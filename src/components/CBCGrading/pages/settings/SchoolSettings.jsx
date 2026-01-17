@@ -39,16 +39,24 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
     return savedLogo || brandingSettings?.logoUrl || '/logo-zawadi.png';
   });
 
+  const [faviconPreview, setFaviconPreview] = useState(() => {
+    const savedFavicon = localStorage.getItem('schoolFavicon');
+    return savedFavicon || brandingSettings?.faviconUrl || '/favicon.png';
+  });
+
+  const faviconInputRef = useRef(null);
+
   // Update branding settings when component mounts
   useEffect(() => {
     if (setBrandingSettings) {
       setBrandingSettings(prev => ({
         ...prev,
         logoUrl: logoPreview,
+        faviconUrl: faviconPreview,
         schoolName: settings.schoolName
       }));
     }
-  }, [logoPreview, settings.schoolName, setBrandingSettings]);
+  }, [logoPreview, faviconPreview, settings.schoolName, setBrandingSettings]);
 
   const handleChange = (field, value) => {
     setSettings(prev => ({ ...prev, [field]: value }));
@@ -80,6 +88,36 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
     }
   };
 
+  const handleFaviconUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const allowed = ['image/png', 'image/svg+xml', 'image/jpeg'];
+      const maxSize = 200 * 1024; // 200 KB
+
+      if (!allowed.includes(file.type)) {
+        alert('Please upload a PNG, SVG, or JPG image for the favicon');
+        return;
+      }
+
+      if (file.size > maxSize) {
+        alert('Favicon must be less than 200 KB');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFaviconPreview(reader.result);
+        showSuccess('Favicon uploaded! Click "Save Changes" to persist.');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveFavicon = () => {
+    setFaviconPreview('/favicon.png');
+    showSuccess('Favicon reset to default. Click "Save Changes" to persist.');
+  };
+
   const handleRemoveLogo = () => {
     setLogoPreview('/logo-zawadi.png');
     showSuccess('Logo removed. Click "Save Changes" to persist.');
@@ -90,6 +128,7 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
       // Save all settings to localStorage
       localStorage.setItem('schoolSettings', JSON.stringify(settings));
       localStorage.setItem('schoolLogo', logoPreview);
+      localStorage.setItem('schoolFavicon', faviconPreview);
       localStorage.setItem('schoolName', settings.schoolName);
       
       // Update branding settings in app state
@@ -97,13 +136,14 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
         setBrandingSettings(prev => ({
           ...prev,
           logoUrl: logoPreview,
+          faviconUrl: faviconPreview,
           schoolName: settings.schoolName,
           welcomeTitle: `Welcome to ${settings.schoolName}`,
           welcomeMessage: settings.motto || 'Empowering education through innovative learning management.'
         }));
       }
       
-      showSuccess('All settings saved successfully! Logo will appear everywhere.');
+      showSuccess('All settings saved successfully! Logo and favicon will appear everywhere.');
       
       // Force a small delay to ensure state updates propagate
       setTimeout(() => {
@@ -210,6 +250,26 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
                       Use Default
                     </button>
                   )}
+                </div>
+
+                {/* Favicon Upload */}
+                <div className="mt-4">
+                  <h4 className="font-semibold text-gray-800 mb-2">Favicon</h4>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 border rounded flex items-center justify-center bg-gray-50 overflow-hidden">
+                      <img src={faviconPreview} alt="Favicon" className="w-full h-full object-contain p-1" onError={(e) => { e.target.src = '/favicon.png'; }} />
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <input ref={faviconInputRef} type="file" accept=".png,.svg,.jpg,.jpeg" onChange={handleFaviconUpload} className="hidden" />
+                      <button onClick={() => faviconInputRef.current?.click()} className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
+                        Upload Favicon
+                      </button>
+                      {faviconPreview && faviconPreview !== '/favicon.png' && (
+                        <button onClick={handleRemoveFavicon} className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm">Remove</button>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-2">Recommended: PNG or SVG, max 200 KB</p>
                 </div>
               </div>
             </div>
