@@ -174,35 +174,51 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
   };
 
   return (
-    <div className="w-full h-screen">
-      {/* Two Column Layout */}
-      <div className="bg-white overflow-hidden h-full flex flex-col lg:flex-row">
+    <div className="w-full h-screen overflow-hidden">
+      {/* Two Column Layout - Full Screen */}
+      <div className="bg-white h-full flex flex-col lg:flex-row">
         
         {/* Left Column - Branding Area */}
         <div 
-          className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center items-center text-white"
+          className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative"
           style={{ backgroundColor: brandingSettings?.brandColor || '#1e3a8a' }}
         >
-          <div className="max-w-md text-center">
-            {/* Logo Placeholder */}
-            <div className="mb-8">
-              <img 
-                src={brandingSettings?.logoUrl || '/logo-zawadi.png'} 
-                alt="School Logo" 
-                className="w-32 h-32 object-contain mx-auto"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = '/logo-zawadi.png';
-                }}
-              />
+          {/* Decorative Elements */}
+          <div className="absolute inset-0 overflow-hidden opacity-10">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1 flex items-center justify-center relative z-10">
+            <div className="max-w-md text-center">
+              {/* Logo */}
+              <div className="mb-12">
+                <img 
+                  src={brandingSettings?.logoUrl || '/logo-zawadi.png'} 
+                  alt="School Logo" 
+                  className="w-48 h-48 object-contain mx-auto drop-shadow-2xl"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '/logo-zawadi.png';
+                  }}
+                />
+              </div>
+              
+              {/* Welcome Message */}
+              <h2 className="text-4xl font-bold mb-4 drop-shadow-md">
+                {brandingSettings?.welcomeTitle || 'Welcome to Zawadi JRN Academy'}
+              </h2>
+              <p className="text-blue-100 text-lg leading-relaxed">
+                {brandingSettings?.welcomeMessage || 'Empowering education through innovative learning management.'}
+              </p>
             </div>
-            
-            {/* Onboarding Message */}
-            <h2 className="text-3xl font-bold mb-4">
-              {brandingSettings?.welcomeTitle || 'Welcome to Zawadi JRN Academy'}
-            </h2>
-            <p className="text-blue-200 text-lg leading-relaxed">
-              {brandingSettings?.welcomeMessage || 'Empowering education through innovative learning management.'}
+          </div>
+
+          {/* Footer Copyright */}
+          <div className="relative z-10 text-center">
+            <p className="text-blue-100 text-sm">
+              © 2025 Zawadi JRN Academy. All rights reserved.
             </p>
           </div>
         </div>

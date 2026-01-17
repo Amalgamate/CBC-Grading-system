@@ -21,8 +21,7 @@ const DailyAttendance = ({ learners }) => {
   const {
     attendanceRecords,
     markAttendance,
-    markAllPresent,
-    getAttendanceForDate
+    getAttendanceByDate
   } = useAttendance();
 
   const { showSuccess, showError } = useNotifications();
@@ -35,18 +34,19 @@ const DailyAttendance = ({ learners }) => {
   );
 
   // Get attendance for current selection
-  const todaysAttendance = getAttendanceForDate(selectedDate, selectedClass, selectedStream);
+  const todaysAttendance = getAttendanceByDate(selectedDate) || [];
 
   // Handlers
   const handleAttendanceChange = (learnerId, status) => {
-    markAttendance(learnerId, selectedDate, status);
+    markAttendance({ learnerId, date: selectedDate, status });
     const learner = learners.find(l => l.id === learnerId);
     showSuccess(`${learner.firstName}'s attendance marked as ${status}`);
   };
 
   const handleMarkAllPresent = () => {
-    const learnerIds = classLearners.map(l => l.id);
-    markAllPresent(learnerIds, selectedDate);
+    classLearners.forEach(learner => {
+      markAttendance({ learnerId: learner.id, date: selectedDate, status: 'Present' });
+    });
     showSuccess(`All learners marked as present for ${selectedDate}`);
   };
 

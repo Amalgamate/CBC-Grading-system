@@ -16,14 +16,14 @@ const Dashboard = ({ learners, teachers }) => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatsCard
-          title="Active Learners"
+          title="Active Students"
           value={activeLearners}
           icon={Users}
           color="blue"
           subtitle="Currently enrolled"
         />
         <StatsCard
-          title="Active Teachers"
+          title="Active Tutors"
           value={activeTeachers}
           icon={GraduationCap}
           color="green"
@@ -54,9 +54,9 @@ const Dashboard = ({ learners, teachers }) => {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h4 className="font-semibold text-blue-900 mb-2">📚 Learner Management</h4>
+            <h4 className="font-semibold text-blue-900 mb-2">📚 Student Management</h4>
             <p className="text-sm text-blue-700">
-              Manage learner records, admissions, promotions, and transfers
+              Manage student records, admissions, promotions, and transfers
             </p>
           </div>
           

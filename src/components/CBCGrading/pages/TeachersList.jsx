@@ -50,7 +50,7 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher }) 
     <div className="space-y-6">
       {/* Page Header */}
       <PageHeader
-        title="Teachers"
+        title="Tutors"
         subtitle="Manage teaching staff and their assignments"
         icon={GraduationCap}
         actions={
@@ -59,7 +59,7 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher }) 
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
           >
             <Plus size={20} />
-            Add Teacher
+            Add Tutor
           </button>
         }
       />
@@ -67,7 +67,7 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher }) 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatsCard
-          title="Total Teachers"
+          title="Total Tutors"
           value={teachers.length}
           icon={GraduationCap}
           color="blue"

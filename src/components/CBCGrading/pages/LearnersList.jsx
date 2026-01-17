@@ -4,14 +4,14 @@
  */
 
 import React, { useState } from 'react';
-import { Plus, Eye, Edit, Trash2 } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2, LogOut } from 'lucide-react';
 import PageHeader from '../shared/PageHeader';
 import SearchFilter from '../shared/SearchFilter';
 import StatusBadge from '../shared/StatusBadge';
 import EmptyState from '../shared/EmptyState';
 import { Users } from 'lucide-react';
 
-const LearnersList = ({ learners, onAddLearner, onEditLearner, onViewLearner, onDeleteLearner }) => {
+const LearnersList = ({ learners, onAddLearner, onEditLearner, onViewLearner, onMarkAsExited, onDeleteLearner }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGrade, setFilterGrade] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -49,6 +49,7 @@ const LearnersList = ({ learners, onAddLearner, onEditLearner, onViewLearner, on
       options: [
         { value: 'all', label: 'All Status' },
         { value: 'Active', label: 'Active' },
+        { value: 'Exited', label: 'Exited' },
         { value: 'Deactivated', label: 'Deactivated' }
       ]
     }
@@ -58,8 +59,8 @@ const LearnersList = ({ learners, onAddLearner, onEditLearner, onViewLearner, on
     <div className="space-y-6">
       {/* Page Header */}
       <PageHeader
-        title="All Learners"
-        subtitle="Manage learner records and information"
+        title="All Students"
+        subtitle="Manage student records and information"
         icon={Users}
         actions={
           <button 
@@ -67,7 +68,7 @@ const LearnersList = ({ learners, onAddLearner, onEditLearner, onViewLearner, on
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
             <Plus size={20} />
-            Add Learner
+            Add Student
           </button>
         }
       />
@@ -89,11 +90,11 @@ const LearnersList = ({ learners, onAddLearner, onEditLearner, onViewLearner, on
       {filteredLearners.length === 0 ? (
         <EmptyState
           icon={Users}
-          title="No Learners Found"
+          title="No Students Found"
           message={searchTerm || filterGrade !== 'all' || filterStatus !== 'all' 
-            ? "No learners match your search criteria." 
-            : "No learners have been added yet."}
-          actionText={!searchTerm && filterGrade === 'all' && filterStatus === 'all' ? "Add Your First Learner" : null}
+            ? "No students match your search criteria." 
+            : "No students have been added yet."}
+          actionText={!searchTerm && filterGrade === 'all' && filterStatus === 'all' ? "Add Your First Student" : null}
           onAction={onAddLearner}
         />
       ) : (
@@ -101,7 +102,7 @@ const LearnersList = ({ learners, onAddLearner, onEditLearner, onViewLearner, on
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Learner</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Student</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Admission No</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Grade</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Guardian</th>
@@ -146,6 +147,15 @@ const LearnersList = ({ learners, onAddLearner, onEditLearner, onViewLearner, on
                       >
                         <Edit size={18} />
                       </button>
+                      {learner.status === 'Active' && (
+                        <button 
+                          onClick={() => onMarkAsExited(learner.id)}
+                          className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition" 
+                          title="Mark as Exited"
+                        >
+                          <LogOut size={18} />
+                        </button>
+                      )}
                       <button 
                         onClick={() => onDeleteLearner(learner.id)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition" 

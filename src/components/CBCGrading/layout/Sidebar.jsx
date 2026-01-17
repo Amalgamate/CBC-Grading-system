@@ -6,7 +6,7 @@
 import React from 'react';
 import { 
   Menu, X, Home, Users, Settings, BookOpen, Clock, 
-  BarChart3, ChevronDown, GraduationCap, ClipboardList, Megaphone, UserPlus 
+  BarChart3, ChevronDown, GraduationCap, ClipboardList, Megaphone, UserPlus, HelpCircle 
 } from 'lucide-react';
 
 const Sidebar = ({ 
@@ -20,31 +20,31 @@ const Sidebar = ({
 }) => {
   const navSections = [
     { 
-      id: 'dashboard', 
-      label: 'Dashboard', 
-      icon: Home, 
-      items: []
+    id: 'dashboard', 
+    label: 'Dashboard', 
+    icon: Home, 
+    items: [] 
     },
     { 
-      id: 'learners', 
-      label: 'Learners', 
-      icon: Users, 
-      items: [
-        { id: 'learners-list', label: 'Learners List', path: 'learners-list' },
-        { id: 'learners-admissions', label: 'Admissions', path: 'learners-admissions' },
-        { id: 'learners-transfers-in', label: 'Transfers In', path: 'learners-transfers-in' },
-        { id: 'learners-exited', label: 'Exited Learners', path: 'learners-exited' },
-        { id: 'learners-promotion', label: 'Promotion', path: 'learners-promotion' },
-        { id: 'learners-transfer-out', label: 'Transfer Out', path: 'learners-transfer-out' }
-      ]
+    id: 'learners', 
+    label: 'Students', 
+    icon: Users, 
+    items: [
+    { id: 'learners-list', label: 'Students List', path: 'learners-list' },
+    { id: 'learners-admissions', label: 'Admissions', path: 'learners-admissions' },
+    { id: 'learners-transfers-in', label: 'Transfers In', path: 'learners-transfers-in' },
+    { id: 'learners-exited', label: 'Exited Students', path: 'learners-exited' },
+    { id: 'learners-promotion', label: 'Promotion', path: 'learners-promotion' },
+    { id: 'learners-transfer-out', label: 'Transfer Out', path: 'learners-transfer-out' }
+    ]
     },
     { 
-      id: 'teachers', 
-      label: 'Teachers', 
-      icon: GraduationCap, 
-      items: [
-        { id: 'teachers-list', label: 'Teachers List', path: 'teachers-list' }
-      ]
+    id: 'teachers', 
+    label: 'Tutors', 
+    icon: GraduationCap, 
+    items: [
+    { id: 'teachers-list', label: 'Tutors List', path: 'teachers-list' }
+    ]
     },
     { 
       id: 'parents', 
@@ -85,6 +85,12 @@ const Sidebar = ({
         { id: 'assess-termly-report', label: 'Termly Report', path: 'assess-termly-report' },
         { id: 'assess-performance-scale', label: 'Performance Scale', path: 'assess-performance-scale' }
       ]
+    },
+    { 
+      id: 'help', 
+      label: 'Help & Support', 
+      icon: HelpCircle, 
+      items: []
     },
     { 
       id: 'settings', 

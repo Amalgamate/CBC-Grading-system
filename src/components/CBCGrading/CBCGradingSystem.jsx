@@ -26,6 +26,7 @@ import TermlyReport from './pages/TermlyReport';
 import PerformanceScale from './pages/PerformanceScale';
 import NoticesPage from './pages/NoticesPage';
 import MessagesPage from './pages/MessagesPage';
+import HelpPage from './pages/HelpPage';
 import SchoolSettings from './pages/settings/SchoolSettings';
 import AcademicSettings from './pages/settings/AcademicSettings';
 import UserManagement from './pages/settings/UserManagement';
@@ -34,6 +35,7 @@ import BackupSettings from './pages/settings/BackupSettings';
 import Toast from './shared/Toast';
 import ConfirmDialog from './shared/ConfirmDialog';
 import EmptyState from './shared/EmptyState';
+import AddEditParentModal from './shared/AddEditParentModal';
 
 // Hooks
 import { useLearners } from './hooks/useLearners';
@@ -103,6 +105,11 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
 
+  // Parent Modal State
+  const [showParentModal, setShowParentModal] = useState(false);
+  const [editingParent, setEditingParent] = useState(null);
+  const [parents, setParents] = useState([]);
+
   // Custom Hooks
   const {
     learners,
@@ -145,7 +152,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   };
 
   const handleAddLearner = () => {
-    showSuccess('Add learner feature coming soon!');
+    setCurrentPage('learners-admissions');
   };
 
   const handleEditLearner = (learner) => {
@@ -156,6 +163,19 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   const handleViewLearner = (learner) => {
     setSelectedLearner(learner);
     showSuccess('View learner feature coming soon!');
+  };
+
+  const handleMarkAsExited = (learnerId) => {
+    setConfirmAction(() => () => {
+      // Update learner status to Exited
+      const learner = learners.find(l => l.id === learnerId);
+      if (learner) {
+        updateLearner({ ...learner, status: 'Exited' });
+        showSuccess('Learner marked as exited successfully');
+      }
+      setShowConfirmDialog(false);
+    });
+    setShowConfirmDialog(true);
   };
 
   const handleDeleteLearner = (learnerId) => {
@@ -181,6 +201,42 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
     showSuccess('View teacher feature coming soon!');
   };
 
+  // Parent handlers
+  const handleAddParent = () => {
+    setEditingParent(null);
+    setShowParentModal(true);
+  };
+
+  const handleEditParent = (parent) => {
+    setEditingParent(parent);
+    setShowParentModal(true);
+  };
+
+  const handleViewParent = (parent) => {
+    setEditingParent(parent);
+    setShowParentModal(true);
+  };
+
+  const handleSaveParent = (parentData) => {
+    if (editingParent) {
+      setParents(parents.map(p => p.id === editingParent.id ? parentData : p));
+      showSuccess('Parent updated successfully!');
+    } else {
+      setParents([...parents, parentData]);
+      showSuccess('Parent added successfully!');
+    }
+    setShowParentModal(false);
+    setEditingParent(null);
+  };
+
+  const handleDeleteParent = (parentId) => {
+    setConfirmAction(() => () => {
+      setShowConfirmDialog(false);
+      showSuccess('Parent deleted successfully');
+    });
+    setShowConfirmDialog(true);
+  };
+
   // Render Current Page
   const renderPage = () => {
     switch(currentPage) {
@@ -195,6 +251,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
             onAddLearner={handleAddLearner}
             onEditLearner={handleEditLearner}
             onViewLearner={handleViewLearner}
+            onMarkAsExited={handleMarkAsExited}
             onDeleteLearner={handleDeleteLearner}
           />
         );
@@ -222,7 +279,15 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       
       // Parents Module
       case 'parents-list':
-        return <ParentsList learners={learners} />;
+        return (
+          <ParentsList
+            parents={parents}
+            onAddParent={handleAddParent}
+            onEditParent={handleEditParent}
+            onViewParent={handleViewParent}
+            onDeleteParent={handleDeleteParent}
+          />
+        );
       
       // Attendance Module
       case 'attendance-daily':
@@ -251,6 +316,10 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
         return <NoticesPage />;
       case 'comm-messages':
         return <MessagesPage />;
+      
+      // Help Module
+      case 'help':
+        return <HelpPage />;
       
       // Settings Module
       case 'settings-school':
@@ -312,13 +381,27 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
         onClose={hideNotification}
       />
 
+      {/* Add/Edit Parent Modal */}
+      <AddEditParentModal
+        show={showParentModal}
+        onClose={() => {
+          setShowParentModal(false);
+          setEditingParent(null);
+        }}
+        onSave={handleSaveParent}
+        parent={editingParent}
+        learners={learners}
+      />
+
       {/* Confirmation Dialog */}
       <ConfirmDialog
         show={showConfirmDialog}
         title="Confirm Action"
-        message={currentPage === 'dashboard' && confirmAction 
-          ? "Are you sure you want to logout?" 
-          : "Are you sure you want to delete this item?"}
+        message={
+          currentPage === 'dashboard' && confirmAction 
+            ? "Are you sure you want to logout?" 
+            : "Are you sure you want to proceed with this action?"
+        }
         confirmText="Confirm"
         cancelText="Cancel"
         onConfirm={() => confirmAction && confirmAction()}
