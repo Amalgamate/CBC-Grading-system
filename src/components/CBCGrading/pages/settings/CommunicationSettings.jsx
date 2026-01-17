@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { 
   Mail, MessageSquare, CreditCard, Send, Save, Settings as SettingsIcon,
-  TestTube, CheckCircle, XCircle, Loader, ExternalLink
+  TestTube, CheckCircle, XCircle, Loader
 } from 'lucide-react';
 import PageHeader from '../../shared/PageHeader';
 import { useNotifications } from '../../hooks/useNotifications';

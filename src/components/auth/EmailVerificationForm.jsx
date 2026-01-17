@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mail, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Mail, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function EmailVerificationForm({ email, onVerifySuccess }) {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);

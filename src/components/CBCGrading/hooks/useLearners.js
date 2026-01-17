@@ -9,8 +9,8 @@ import { validateLearnerData } from '../utils/validators';
 export const useLearners = (initialLearners = []) => {
   const [learners, setLearners] = useState(initialLearners);
   const [selectedLearner, setSelectedLearner] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [loading] = useState(false);
+  const [error] = useState(null);
 
   /**
    * Add a new learner

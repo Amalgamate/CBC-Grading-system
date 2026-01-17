@@ -3,7 +3,7 @@
  */
 
 import React, { useState } from 'react';
-import { FileText, Download } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import PageHeader from '../shared/PageHeader';
 
 const TermlyReport = ({ learners }) => {

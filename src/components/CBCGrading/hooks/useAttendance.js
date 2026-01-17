@@ -13,7 +13,7 @@ export const useAttendance = (initialRecords = []) => {
   const [selectedDate, setSelectedDate] = useState(getCurrentDate());
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedStream, setSelectedStream] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
   /**
    * Mark attendance for a learner
@@ -219,7 +219,7 @@ export const useAttendance = (initialRecords = []) => {
   // Computed values
   const todayAttendance = useMemo(() => 
     getAttendanceByDate(getCurrentDate()),
-    [attendanceRecords, getAttendanceByDate]
+    [getAttendanceByDate]
   );
 
   const totalRecords = useMemo(() => 

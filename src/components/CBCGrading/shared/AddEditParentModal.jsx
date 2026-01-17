@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Mail, Phone, MapPin, Briefcase, Users } from 'lucide-react';
+import { X, Save, User, Phone, MapPin, Briefcase, Users } from 'lucide-react';
 
 const AddEditParentModal = ({ show, onClose, onSave, parent = null, learners = [] }) => {
   const isEdit = parent !== null;

@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Book, Search, ChevronDown, ChevronRight, HelpCircle, FileText, Video, Mail, MessageSquare, CreditCard, Settings } from 'lucide-react';
+import { Book, Search, ChevronDown, ChevronRight, HelpCircle, FileText, Video, Mail, MessageSquare, Settings } from 'lucide-react';
 import PageHeader from '../shared/PageHeader';
 
 const HelpPage = () => {

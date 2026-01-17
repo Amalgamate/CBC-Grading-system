@@ -9,7 +9,7 @@ import PageHeader from '../shared/PageHeader';
 import { useNotifications } from '../hooks/useNotifications';
 
 const SummativeTests = () => {
-  const { showSuccess, showError } = useNotifications();
+  const { showSuccess } = useNotifications();
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('add');
   const [selectedTest, setSelectedTest] = useState(null);

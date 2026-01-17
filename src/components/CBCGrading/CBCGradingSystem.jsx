@@ -113,20 +113,14 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   // Custom Hooks
   const {
     learners,
-    selectedLearner,
     setSelectedLearner,
-    addLearner,
     updateLearner,
     deleteLearner
   } = useLearners(initialLearners);
 
   const {
     teachers,
-    selectedTeacher,
-    setSelectedTeacher,
-    addTeacher,
-    updateTeacher,
-    deleteTeacher
+    setSelectedTeacher
   } = useTeachers(initialTeachers);
 
   const {
@@ -134,7 +128,6 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
     toastMessage,
     toastType,
     showSuccess,
-    showError,
     hideNotification
   } = useNotifications();
 

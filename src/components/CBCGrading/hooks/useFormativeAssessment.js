@@ -5,14 +5,13 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { validateAssessment } from '../utils/validators';
-import { calculateGradeAverage, calculateStrandPerformance } from '../utils/gradeCalculations';
-import { getRubricFromScore, calculateWeightedGrade } from '../utils/performanceScale';
+import { calculateStrandPerformance } from '../utils/gradeCalculations';
 
 export const useFormativeAssessment = (initialAssessments = []) => {
   const [formativeAssessments, setFormativeAssessments] = useState(initialAssessments);
   const [selectedAssessment, setSelectedAssessment] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [loading] = useState(false);
+  const [error] = useState(null);
 
   /**
    * Add a new formative assessment

@@ -9,8 +9,8 @@ import { validateTeacherData } from '../utils/validators';
 export const useTeachers = (initialTeachers = []) => {
   const [teachers, setTeachers] = useState(initialTeachers);
   const [selectedTeacher, setSelectedTeacher] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [loading] = useState(false);
+  const [error] = useState(null);
 
   /**
    * Add a new teacher

@@ -19,12 +19,11 @@ const DailyAttendance = ({ learners }) => {
   
   // Custom hooks
   const {
-    attendanceRecords,
     markAttendance,
     getAttendanceByDate
   } = useAttendance();
 
-  const { showSuccess, showError } = useNotifications();
+  const { showSuccess } = useNotifications();
 
   // Filter learners for selected class
   const classLearners = learners.filter(l => 

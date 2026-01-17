@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Plus, Eye, Edit, Trash2, Users, Mail, Phone, User, MapPin } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Mail, Phone, User, MapPin } from 'lucide-react';
 import PageHeader from '../shared/PageHeader';
 import SearchFilter from '../shared/SearchFilter';
 import EmptyState from '../shared/EmptyState';

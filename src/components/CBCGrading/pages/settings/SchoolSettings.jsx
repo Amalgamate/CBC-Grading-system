@@ -48,7 +48,7 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
         schoolName: settings.schoolName
       }));
     }
-  }, []);
+  }, [logoPreview, settings.schoolName, setBrandingSettings]);
 
   const handleChange = (field, value) => {
     setSettings(prev => ({ ...prev, [field]: value }));

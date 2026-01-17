@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { 
-  Menu, X, Home, Users, Settings, BookOpen, Clock, 
+  Menu, X, Home, Users, Settings, 
   BarChart3, ChevronDown, GraduationCap, ClipboardList, Megaphone, UserPlus, HelpCircle 
 } from 'lucide-react';
 

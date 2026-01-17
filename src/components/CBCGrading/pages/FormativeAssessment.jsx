@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { ClipboardList, Save, Calendar, BookOpen } from 'lucide-react';
+import { ClipboardList, Save } from 'lucide-react';
 import PageHeader from '../shared/PageHeader';
 import { useNotifications } from '../hooks/useNotifications';
 
