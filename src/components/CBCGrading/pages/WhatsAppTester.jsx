@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { MessageCircle, Send, Users, Bell } from 'lucide-react';
+import { Send, Users, Bell } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import api from '../../../services/api';
 
@@ -13,7 +13,6 @@ const WhatsAppTester = () => {
   const [loading, setLoading] = useState(false);
   const [testPhone, setTestPhone] = useState('+254');
   const [selectedLearner, setSelectedLearner] = useState('');
-  const [customMessage, setCustomMessage] = useState('');
   const [announcementTitle, setAnnouncementTitle] = useState('');
   const [announcementContent, setAnnouncementContent] = useState('');
 
@@ -231,11 +230,4 @@ const WhatsAppTester = () => {
 };
 
 export default WhatsAppTester;
-      if (result.success) {
-        showSuccess(`✅ Announcement sent to ${result.data.sent} parents!`);
-        setAnnouncementTitle('');
-        setAnnouncementContent('');
-      } else {
-        showSuccess('❌ Failed: ' + result.message);
-      }
 

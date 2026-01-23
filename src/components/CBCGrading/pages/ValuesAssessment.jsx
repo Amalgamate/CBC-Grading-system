@@ -3,8 +3,8 @@
  * Assess the 7 national values for CBC
  */
 
-import React, { useState, useEffect } from 'react';
-import { Save, User, Heart, Shield } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { User, Heart, Save, Shield } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import api from '../../../services/api';
 
@@ -15,7 +15,6 @@ const ValuesAssessment = ({ learners }) => {
   const [selectedLearnerId, setSelectedLearnerId] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('TERM_1');
   const [academicYear, setAcademicYear] = useState(2026);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Values state
@@ -88,14 +87,7 @@ const ValuesAssessment = ({ learners }) => {
   const selectedLearner = learners?.find(l => l.id === selectedLearnerId);
 
   // Load existing values when learner/term changes
-  useEffect(() => {
-    if (selectedLearnerId && selectedTerm) {
-      loadExistingValues();
-    }
-  }, [selectedLearnerId, selectedTerm, academicYear]);
-
-  const loadExistingValues = async () => {
-    setLoading(true);
+  const loadExistingValues = useCallback(async () => {
     try {
       const response = await api.cbc.getValues(selectedLearnerId, {
         term: selectedTerm,
@@ -128,10 +120,14 @@ const ValuesAssessment = ({ learners }) => {
         integrity: 'ME1',
         comment: ''
       });
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [selectedLearnerId, selectedTerm, academicYear, showSuccess]);
+
+  useEffect(() => {
+    if (selectedLearnerId && selectedTerm) {
+      loadExistingValues();
+    }
+  }, [selectedLearnerId, selectedTerm, academicYear, loadExistingValues]);
 
   const handleSave = async () => {
     if (!selectedLearnerId) {

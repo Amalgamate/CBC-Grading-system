@@ -3,7 +3,7 @@
  * Track learner participation in sports, arts, clubs, etc.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Save, User, Trophy, Edit2, Trash2, Award } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import api from '../../../services/api';
@@ -15,7 +15,6 @@ const CoCurricularActivities = ({ learners }) => {
   const [selectedLearnerId, setSelectedLearnerId] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('TERM_1');
   const [academicYear, setAcademicYear] = useState(2026);
-  const [loading, setLoading] = useState(false);
   const [activities, setActivities] = useState([]);
 
   // New activity state
@@ -59,15 +58,7 @@ const CoCurricularActivities = ({ learners }) => {
 
   const selectedLearner = learners?.find(l => l.id === selectedLearnerId);
 
-  // Load activities when learner/term changes
-  useEffect(() => {
-    if (selectedLearnerId && selectedTerm) {
-      loadActivities();
-    }
-  }, [selectedLearnerId, selectedTerm, academicYear]);
-
-  const loadActivities = async () => {
-    setLoading(true);
+  const loadActivities = useCallback(async () => {
     try {
       const response = await api.cbc.getCoCurricular(selectedLearnerId, {
         term: selectedTerm,
@@ -80,10 +71,15 @@ const CoCurricularActivities = ({ learners }) => {
     } catch (error) {
       console.log('No activities found');
       setActivities([]);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [selectedLearnerId, selectedTerm, academicYear]);
+
+  // Load activities when learner/term changes
+  useEffect(() => {
+    if (selectedLearnerId && selectedTerm) {
+      loadActivities();
+    }
+  }, [selectedLearnerId, selectedTerm, academicYear, loadActivities]);
 
   const handleSave = async () => {
     if (!selectedLearnerId) {
@@ -143,7 +139,7 @@ const CoCurricularActivities = ({ learners }) => {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this activity?')) return;
+    if (!window.confirm('Are you sure you want to delete this activity?')) return;
 
     try {
       const response = await api.cbc.deleteCoCurricular(id);

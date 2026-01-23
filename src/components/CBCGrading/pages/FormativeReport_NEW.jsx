@@ -3,11 +3,11 @@
  * View formative assessment reports for learners with actual API data
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FileText, Download, Printer, Search, Loader } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import api from '../../../services/api';
-import { generatePDFFromElement, generatePDFWithLetterhead } from '../../../utils/simplePdfGenerator';
+import { generatePDFWithLetterhead } from '../../../utils/simplePdfGenerator';
 
 const FormativeReport = ({ learners, brandingSettings }) => {
   const { showSuccess, showError } = useNotifications();
@@ -28,17 +28,7 @@ const FormativeReport = ({ learners, brandingSettings }) => {
     { value: 'TERM_3', label: 'Term 3' }
   ];
 
-  // Get selected learner
-  const selectedLearner = learners?.find(l => l.id === selectedLearnerId);
-
-  // Fetch report data when learner or term changes
-  useEffect(() => {
-    if (selectedLearnerId && selectedTerm) {
-      fetchReportData();
-    }
-  }, [selectedLearnerId, selectedTerm]);
-
-  const fetchReportData = async () => {
+  const fetchReportData = useCallback(async () => {
     setLoading(true);
     try {
       const response = await api.reports.getFormativeReport(selectedLearnerId, {
@@ -58,7 +48,14 @@ const FormativeReport = ({ learners, brandingSettings }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedLearnerId, selectedTerm, showError]);
+
+  // Fetch report data when learner or term changes
+  useEffect(() => {
+    if (selectedLearnerId && selectedTerm) {
+      fetchReportData();
+    }
+  }, [selectedLearnerId, selectedTerm, fetchReportData]);
 
   const handleDownloadPDF = async () => {
     if (!reportData) {
