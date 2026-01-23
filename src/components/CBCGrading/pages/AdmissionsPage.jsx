@@ -5,7 +5,6 @@
 
 import React, { useState } from 'react';
 import { UserPlus, Save, X, ArrowRight, ArrowLeft, CheckCircle, User, Users as UsersIcon, Heart } from 'lucide-react';
-import PageHeader from '../shared/PageHeader';
 import { useNotifications } from '../hooks/useNotifications';
 
 const AdmissionsPage = () => {
@@ -55,7 +54,6 @@ const AdmissionsPage = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Learner Admissions" subtitle="Add new learners to the system" icon={UserPlus} />
 
       <div className="bg-white rounded-xl shadow-md p-6">
         {/* Progress Steps */}

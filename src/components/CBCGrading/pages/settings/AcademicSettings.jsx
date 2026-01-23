@@ -4,7 +4,6 @@
 
 import React, { useState } from 'react';
 import { Calendar, Save, BookOpen, Plus, Edit, Trash2 } from 'lucide-react';
-import PageHeader from '../../shared/PageHeader';
 import { useNotifications } from '../../hooks/useNotifications';
 
 const AcademicSettings = () => {
@@ -82,8 +81,6 @@ const AcademicSettings = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Academic Settings" subtitle="Configure academic year and terms" icon={Calendar} />
-
       {/* Tabs */}
       <div className="bg-white rounded-xl shadow-md">
         <div className="border-b border-gray-200">

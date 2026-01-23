@@ -3,8 +3,7 @@
  */
 
 import React, { useState } from 'react';
-import { MessageSquare, Plus, Reply, X } from 'lucide-react';
-import PageHeader from '../shared/PageHeader';
+import { Plus, Reply, X } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 
 const MessagesPage = () => {
@@ -17,9 +16,9 @@ const MessagesPage = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Messages" subtitle="Parent-teacher communication" icon={MessageSquare}
-        actions={<button onClick={() => setShowCompose(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><Plus size={20} /> Compose</button>}
-      />
+      <div className="flex justify-end mb-4">
+        <button onClick={() => setShowCompose(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><Plus size={20} /> Compose</button>
+      </div>
 
       <div className="bg-white rounded-xl shadow-md divide-y">
         {messages.map(msg => (

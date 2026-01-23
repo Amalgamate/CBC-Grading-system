@@ -1,0 +1,1085 @@
+/**
+ * API Service
+ * Centralized service for all backend API calls
+ * Base URL: http://localhost:5000/api
+ */
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+/**
+ * Helper function to get auth token from localStorage
+ */
+const getAuthToken = () => {
+  return localStorage.getItem('token') || localStorage.getItem('authToken');
+};
+
+/**
+ * Helper function to make authenticated requests
+ */
+const fetchWithAuth = async (url, options = {}) => {
+  const token = getAuthToken();
+  
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${url}`, {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
+  });
+
+  // Handle unauthorized responses
+  if (response.status === 401) {
+    // Token expired or invalid - clear auth and redirect to login
+    localStorage.removeItem('token');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    window.location.href = '/';
+    throw new Error('Unauthorized - Please login again');
+  }
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'An error occurred');
+  }
+
+  return data;
+};
+
+// ============================================
+// AUTHENTICATION ENDPOINTS
+// ============================================
+
+export const authAPI = {
+  /**
+   * Login user
+   * @param {Object} credentials - { email, password }
+   * @returns {Promise} User data and token
+   */
+  login: async (credentials) => {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(credentials),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Login failed');
+    }
+
+    return data;
+  },
+
+  /**
+   * Register new user
+   * @param {Object} userData - User registration data
+   * @returns {Promise} User data and token
+   */
+  register: async (userData) => {
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Registration failed');
+    }
+
+    return data;
+  },
+
+  /**
+   * Get current user profile
+   * @returns {Promise} Current user data
+   */
+  me: async () => {
+    return fetchWithAuth('/auth/me');
+  },
+
+  /**
+   * Get seeded development users
+   * @returns {Promise} List of seeded users
+   */
+  getSeededUsers: async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/seeded-users`);
+    
+    if (!response.ok) {
+      return { users: [] };
+    }
+
+    return response.json();
+  },
+};
+
+// ============================================
+// USER MANAGEMENT ENDPOINTS
+// ============================================
+
+export const userAPI = {
+  /**
+   * Get all users
+   * @returns {Promise} List of all users
+   */
+  getAll: async () => {
+    return fetchWithAuth('/users');
+  },
+
+  /**
+   * Get user by ID
+   * @param {string} id - User ID
+   * @returns {Promise} User data
+   */
+  getById: async (id) => {
+    return fetchWithAuth(`/users/${id}`);
+  },
+
+  /**
+   * Get users by role
+   * @param {string} role - User role
+   * @returns {Promise} List of users with specified role
+   */
+  getByRole: async (role) => {
+    return fetchWithAuth(`/users/role/${role}`);
+  },
+
+  /**
+   * Get user statistics
+   * @returns {Promise} User statistics for dashboard
+   */
+  getStats: async () => {
+    return fetchWithAuth('/users/stats');
+  },
+
+  /**
+   * Create new user
+   * @param {Object} userData - User data
+   * @returns {Promise} Created user data
+   */
+  create: async (userData) => {
+    return fetchWithAuth('/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  },
+
+  /**
+   * Update user
+   * @param {string} id - User ID
+   * @param {Object} userData - Updated user data
+   * @returns {Promise} Updated user data
+   */
+  update: async (id, userData) => {
+    return fetchWithAuth(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+  },
+
+  /**
+   * Archive user (soft delete)
+   * @param {string} id - User ID
+   * @returns {Promise} Success message
+   */
+  archive: async (id) => {
+    return fetchWithAuth(`/users/${id}/archive`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Unarchive user
+   * @param {string} id - User ID
+   * @returns {Promise} Success message
+   */
+  unarchive: async (id) => {
+    return fetchWithAuth(`/users/${id}/unarchive`, {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Delete user (hard delete)
+   * @param {string} id - User ID
+   * @returns {Promise} Success message
+   */
+  delete: async (id) => {
+    return fetchWithAuth(`/users/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============================================
+// TEACHERS API (alias to userAPI.getByRole)
+// ============================================
+
+export const teacherAPI = {
+  /**
+   * Get all teachers
+   * @returns {Promise} List of teachers
+   */
+  getAll: async () => {
+    return userAPI.getByRole('TEACHER');
+  },
+
+  /**
+   * Create new teacher
+   * @param {Object} teacherData - Teacher data
+   * @returns {Promise} Created teacher data
+   */
+  create: async (teacherData) => {
+    return userAPI.create({ ...teacherData, role: 'TEACHER' });
+  },
+
+  /**
+   * Update teacher
+   * @param {string} id - Teacher ID
+   * @param {Object} teacherData - Updated teacher data
+   * @returns {Promise} Updated teacher data
+   */
+  update: async (id, teacherData) => {
+    return userAPI.update(id, teacherData);
+  },
+
+  /**
+   * Delete teacher
+   * @param {string} id - Teacher ID
+   * @returns {Promise} Success message
+   */
+  delete: async (id) => {
+    return userAPI.delete(id);
+  },
+};
+
+// ============================================
+// PARENTS API (alias to userAPI.getByRole)
+// ============================================
+
+export const parentAPI = {
+  /**
+   * Get all parents
+   * @returns {Promise} List of parents
+   */
+  getAll: async () => {
+    return userAPI.getByRole('PARENT');
+  },
+
+  /**
+   * Create new parent
+   * @param {Object} parentData - Parent data
+   * @returns {Promise} Created parent data
+   */
+  create: async (parentData) => {
+    return userAPI.create({ ...parentData, role: 'PARENT' });
+  },
+
+  /**
+   * Update parent
+   * @param {string} id - Parent ID
+   * @param {Object} parentData - Updated parent data
+   * @returns {Promise} Updated parent data
+   */
+  update: async (id, parentData) => {
+    return userAPI.update(id, parentData);
+  },
+
+  /**
+   * Archive parent (soft delete)
+   * @param {string} id - Parent ID
+   * @returns {Promise} Success message
+   */
+  archive: async (id) => {
+    return userAPI.archive(id);
+  },
+
+  /**
+   * Unarchive parent
+   * @param {string} id - Parent ID
+   * @returns {Promise} Success message
+   */
+  unarchive: async (id) => {
+    return userAPI.unarchive(id);
+  },
+
+  /**
+   * Delete parent (hard delete)
+   * @param {string} id - Parent ID
+   * @returns {Promise} Success message
+   */
+  delete: async (id) => {
+    return userAPI.delete(id);
+  },
+};
+
+// ============================================
+// LEARNERS API
+// ============================================
+
+export const learnerAPI = {
+  /**
+   * Get all learners
+   * @param {Object} params - Query parameters (grade, stream, status, search, page, limit)
+   * @returns {Promise} List of learners
+   */
+  getAll: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/learners${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Get learner statistics
+   * @returns {Promise} Learner statistics
+   */
+  getStats: async () => {
+    return fetchWithAuth('/learners/stats');
+  },
+
+  /**
+   * Get learner by ID
+   * @param {string} id - Learner ID
+   * @returns {Promise} Learner data
+   */
+  getById: async (id) => {
+    return fetchWithAuth(`/learners/${id}`);
+  },
+
+  /**
+   * Get learner by admission number
+   * @param {string} admissionNumber - Admission number
+   * @returns {Promise} Learner data
+   */
+  getByAdmissionNumber: async (admissionNumber) => {
+    return fetchWithAuth(`/learners/admission/${admissionNumber}`);
+  },
+
+  /**
+   * Get learners by grade
+   * @param {string} grade - Grade level
+   * @param {Object} params - Additional params (stream, status)
+   * @returns {Promise} List of learners
+   */
+  getByGrade: async (grade, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/learners/grade/${grade}${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Get parent's children
+   * @param {string} parentId - Parent user ID
+   * @returns {Promise} List of children
+   */
+  getParentChildren: async (parentId) => {
+    return fetchWithAuth(`/learners/parent/${parentId}`);
+  },
+
+  /**
+   * Create new learner
+   * @param {Object} learnerData - Learner data
+   * @returns {Promise} Created learner data
+   */
+  create: async (learnerData) => {
+    return fetchWithAuth('/learners', {
+      method: 'POST',
+      body: JSON.stringify(learnerData),
+    });
+  },
+
+  /**
+   * Update learner
+   * @param {string} id - Learner ID
+   * @param {Object} learnerData - Updated learner data
+   * @returns {Promise} Updated learner data
+   */
+  update: async (id, learnerData) => {
+    return fetchWithAuth(`/learners/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(learnerData),
+    });
+  },
+
+  /**
+   * Delete learner
+   * @param {string} id - Learner ID
+   * @returns {Promise} Success message
+   */
+  delete: async (id) => {
+    return fetchWithAuth(`/learners/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============================================
+// CLASSES API
+// ============================================
+
+export const classAPI = {
+  /**
+   * Get all classes
+   * @param {Object} params - Query parameters (grade, stream, academicYear, term, active)
+   * @returns {Promise} List of classes
+   */
+  getAll: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/classes${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Get class by ID
+   * @param {string} id - Class ID
+   * @returns {Promise} Class data with enrolled learners
+   */
+  getById: async (id) => {
+    return fetchWithAuth(`/classes/${id}`);
+  },
+
+  /**
+   * Create new class
+   * @param {Object} classData - Class data
+   * @returns {Promise} Created class data
+   */
+  create: async (classData) => {
+    return fetchWithAuth('/classes', {
+      method: 'POST',
+      body: JSON.stringify(classData),
+    });
+  },
+
+  /**
+   * Update class
+   * @param {string} id - Class ID
+   * @param {Object} classData - Updated class data
+   * @returns {Promise} Updated class data
+   */
+  update: async (id, classData) => {
+    return fetchWithAuth(`/classes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(classData),
+    });
+  },
+
+  /**
+   * Enroll learner in class
+   * @param {string} classId - Class ID
+   * @param {string} learnerId - Learner ID
+   * @returns {Promise} Enrollment data
+   */
+  enrollLearner: async (classId, learnerId) => {
+    return fetchWithAuth('/classes/enroll', {
+      method: 'POST',
+      body: JSON.stringify({ classId, learnerId }),
+    });
+  },
+
+  /**
+   * Unenroll learner from class
+   * @param {string} classId - Class ID
+   * @param {string} learnerId - Learner ID
+   * @returns {Promise} Success message
+   */
+  unenrollLearner: async (classId, learnerId) => {
+    return fetchWithAuth('/classes/unenroll', {
+      method: 'POST',
+      body: JSON.stringify({ classId, learnerId }),
+    });
+  },
+
+  /**
+   * Get learner's current class
+   * @param {string} learnerId - Learner ID
+   * @returns {Promise} Class enrollment data
+   */
+  getLearnerClass: async (learnerId) => {
+    return fetchWithAuth(`/classes/learner/${learnerId}`);
+  },
+};
+
+// ============================================
+// ATTENDANCE API
+// ============================================
+
+export const attendanceAPI = {
+  /**
+   * Mark attendance for a single learner
+   * @param {Object} attendanceData - { learnerId, date, status, classId, remarks }
+   * @returns {Promise} Attendance record
+   */
+  mark: async (attendanceData) => {
+    return fetchWithAuth('/attendance', {
+      method: 'POST',
+      body: JSON.stringify(attendanceData),
+    });
+  },
+
+  /**
+   * Mark attendance for multiple learners (bulk)
+   * @param {Object} bulkData - { date, classId, attendanceRecords }
+   * @returns {Promise} Bulk operation results
+   */
+  markBulk: async (bulkData) => {
+    return fetchWithAuth('/attendance/bulk', {
+      method: 'POST',
+      body: JSON.stringify(bulkData),
+    });
+  },
+
+  /**
+   * Get attendance records
+   * @param {Object} params - Query parameters (date, startDate, endDate, learnerId, classId, status)
+   * @returns {Promise} List of attendance records
+   */
+  getRecords: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/attendance${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Get attendance statistics
+   * @param {Object} params - Query parameters (startDate, endDate, classId, learnerId)
+   * @returns {Promise} Attendance statistics
+   */
+  getStats: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/attendance/stats${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Get daily class attendance report
+   * @param {string} classId - Class ID
+   * @param {string} date - Date (YYYY-MM-DD)
+   * @returns {Promise} Daily attendance report with all learners
+   */
+  getDailyClassReport: async (classId, date) => {
+    return fetchWithAuth(`/attendance/class/daily?classId=${classId}&date=${date}`);
+  },
+
+  /**
+   * Get learner attendance summary
+   * @param {string} learnerId - Learner ID
+   * @param {Object} params - Query parameters (startDate, endDate)
+   * @returns {Promise} Learner attendance summary
+   */
+  getLearnerSummary: async (learnerId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/attendance/learner/${learnerId}${queryString ? `?${queryString}` : ''}`);
+  },
+};
+
+// ============================================
+// ASSESSMENTS API
+// ============================================
+
+export const assessmentAPI = {
+  // ============================================
+  // FORMATIVE ASSESSMENTS
+  // ============================================
+
+  /**
+   * Create or update formative assessment
+   * @param {Object} assessmentData - Assessment data
+   * @returns {Promise} Created/updated assessment
+   */
+  createFormative: async (assessmentData) => {
+    return fetchWithAuth('/assessments/formative', {
+      method: 'POST',
+      body: JSON.stringify(assessmentData),
+    });
+  },
+
+  /**
+   * Get all formative assessments with filters
+   * @param {Object} params - Query parameters (term, academicYear, learningArea, grade)
+   * @returns {Promise} List of formative assessments
+   */
+  getFormativeAssessments: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/assessments/formative${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Get formative assessments for a specific learner
+   * @param {string} learnerId - Learner ID
+   * @param {Object} params - Query parameters (term, academicYear)
+   * @returns {Promise} List of learner's formative assessments
+   */
+  getFormativeByLearner: async (learnerId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/assessments/formative/learner/${learnerId}${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Delete formative assessment
+   * @param {string} id - Assessment ID
+   * @returns {Promise} Success message
+   */
+  deleteFormative: async (id) => {
+    return fetchWithAuth(`/assessments/formative/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // ============================================
+  // SUMMATIVE TESTS
+  // ============================================
+
+  /**
+   * Create summative test
+   * @param {Object} testData - Test data
+   * @returns {Promise} Created test
+   */
+  createTest: async (testData) => {
+    return fetchWithAuth('/assessments/tests', {
+      method: 'POST',
+      body: JSON.stringify(testData),
+    });
+  },
+
+  /**
+   * Get all summative tests with filters
+   * @param {Object} params - Query parameters (term, academicYear, grade, learningArea, published)
+   * @returns {Promise} List of tests
+   */
+  getTests: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/assessments/tests${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Get single test with results
+   * @param {string} id - Test ID
+   * @returns {Promise} Test data with results and statistics
+   */
+  getTest: async (id) => {
+    return fetchWithAuth(`/assessments/tests/${id}`);
+  },
+
+  /**
+   * Update summative test
+   * @param {string} id - Test ID
+   * @param {Object} testData - Updated test data
+   * @returns {Promise} Updated test
+   */
+  updateTest: async (id, testData) => {
+    return fetchWithAuth(`/assessments/tests/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(testData),
+    });
+  },
+
+  /**
+   * Delete summative test
+   * @param {string} id - Test ID
+   * @returns {Promise} Success message
+   */
+  deleteTest: async (id) => {
+    return fetchWithAuth(`/assessments/tests/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // ============================================
+  // SUMMATIVE RESULTS
+  // ============================================
+
+  /**
+   * Record summative result
+   * @param {Object} resultData - Result data (testId, learnerId, marksObtained, remarks, teacherComment)
+   * @returns {Promise} Recorded result
+   */
+  recordResult: async (resultData) => {
+    return fetchWithAuth('/assessments/summative/results', {
+      method: 'POST',
+      body: JSON.stringify(resultData),
+    });
+  },
+
+  /**
+   * Get summative results for a learner
+   * @param {string} learnerId - Learner ID
+   * @param {Object} params - Query parameters (term, academicYear)
+   * @returns {Promise} List of learner's results
+   */
+  getSummativeByLearner: async (learnerId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/assessments/summative/results/learner/${learnerId}${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Get all results for a specific test
+   * @param {string} testId - Test ID
+   * @returns {Promise} List of test results
+   */
+  getTestResults: async (testId) => {
+    return fetchWithAuth(`/assessments/summative/results/test/${testId}`);
+  },
+};
+
+// ============================================
+// FEE MANAGEMENT API
+// ============================================
+
+export const feeAPI = {
+  /**
+   * Get all fee structures
+   * @param {Object} params - Query parameters
+   * @returns {Promise} Fee structures
+   */
+  getAllFeeStructures: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/fees/structures${query ? `?${query}` : ''}`);
+  },
+
+  /**
+   * Create fee structure
+   * @param {Object} data - Fee structure data
+   * @returns {Promise} Created fee structure
+   */
+  createFeeStructure: async (data) => {
+    return fetchWithAuth('/fees/structures', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Update fee structure
+   * @param {string} id - Fee structure ID
+   * @param {Object} data - Updated data
+   * @returns {Promise} Updated fee structure
+   */
+  updateFeeStructure: async (id, data) => {
+    return fetchWithAuth(`/fees/structures/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete fee structure
+   * @param {string} id - Fee structure ID
+   * @returns {Promise} Success message
+   */
+  deleteFeeStructure: async (id) => {
+    return fetchWithAuth(`/fees/structures/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Get all invoices
+   * @param {Object} params - Query parameters
+   * @returns {Promise} Invoices
+   */
+  getAllInvoices: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/fees/invoices${query ? `?${query}` : ''}`);
+  },
+
+  /**
+   * Get learner invoices
+   * @param {string} learnerId - Learner ID
+   * @returns {Promise} Learner invoices
+   */
+  getLearnerInvoices: async (learnerId) => {
+    return fetchWithAuth(`/fees/invoices/learner/${learnerId}`);
+  },
+
+  /**
+   * Create invoice
+   * @param {Object} data - Invoice data
+   * @returns {Promise} Created invoice
+   */
+  createInvoice: async (data) => {
+    return fetchWithAuth('/fees/invoices', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Bulk generate invoices
+   * @param {Object} data - Bulk generation data
+   * @returns {Promise} Created invoices
+   */
+  bulkGenerateInvoices: async (data) => {
+    return fetchWithAuth('/fees/invoices/bulk', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Record payment
+   * @param {Object} data - Payment data
+   * @returns {Promise} Payment record
+   */
+  recordPayment: async (data) => {
+    return fetchWithAuth('/fees/payments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Get payment statistics
+   * @param {Object} params - Query parameters
+   * @returns {Promise} Payment stats
+   */
+  getPaymentStats: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/fees/stats${query ? `?${query}` : ''}`);
+  },
+};
+
+// ============================================
+// NOTIFICATIONS API
+// ============================================
+
+export const notificationAPI = {
+  /**
+   * Send assessment completion notification to parent
+   * @param {Object} data - { learnerId, assessmentType, subject, grade, term }
+   * @returns {Promise} Send result
+   */
+  sendAssessmentNotification: async (data) => {
+    return fetchWithAuth('/notifications/assessment-complete', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Send bulk assessment notifications
+   * @param {Object} data - { learnerIds, assessmentType, subject, grade, term }
+   * @returns {Promise} Bulk send result
+   */
+  sendBulkAssessmentNotifications: async (data) => {
+    return fetchWithAuth('/notifications/assessment-complete/bulk', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Send custom message to parent
+   * @param {Object} data - { parentId, message }
+   * @returns {Promise} Send result
+   */
+  sendCustomMessage: async (data) => {
+    return fetchWithAuth('/notifications/custom', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Send announcement to all parents or filtered group
+   * @param {Object} data - { title, content, grade, stream }
+   * @returns {Promise} Send result
+   */
+  sendAnnouncement: async (data) => {
+    return fetchWithAuth('/notifications/announcement', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Test WhatsApp connection
+   * @param {string} phoneNumber - Phone number to test
+   * @returns {Promise} Test result
+   */
+  testWhatsApp: async (phoneNumber) => {
+    return fetchWithAuth('/notifications/test', {
+      method: 'POST',
+      body: JSON.stringify({ phoneNumber }),
+    });
+  },
+};
+
+// ============================================
+// REPORTS API (NEW)
+// ============================================
+
+export const reportAPI = {
+  /**
+   * Get comprehensive formative report for a learner
+   * @param {string} learnerId - Learner ID
+   * @param {Object} params - { term, academicYear }
+   * @returns {Promise} Formative report data
+   */
+  getFormativeReport: async (learnerId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/reports/formative/${learnerId}${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Get comprehensive summative report for a learner
+   * @param {string} learnerId - Learner ID
+   * @param {Object} params - { term, academicYear }
+   * @returns {Promise} Summative report data
+   */
+  getSummativeReport: async (learnerId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/reports/summative/${learnerId}${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Get complete termly report (formative + summative + attendance + CBC elements)
+   * @param {string} learnerId - Learner ID
+   * @param {Object} params - { term, academicYear }
+   * @returns {Promise} Complete termly report data
+   */
+  getTermlyReport: async (learnerId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/reports/termly/${learnerId}${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Get class-level performance analytics
+   * @param {string} classId - Class ID
+   * @param {Object} params - { term, academicYear }
+   * @returns {Promise} Class analytics data
+   */
+  getClassAnalytics: async (classId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/reports/analytics/class/${classId}${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Get individual learner analytics (year-long progress)
+   * @param {string} learnerId - Learner ID
+   * @param {Object} params - { academicYear }
+   * @returns {Promise} Learner analytics data
+   */
+  getLearnerAnalytics: async (learnerId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/reports/analytics/learner/${learnerId}${queryString ? `?${queryString}` : ''}`);
+  },
+};
+
+// ============================================
+// HEALTH CHECK
+// ============================================
+
+export const healthAPI = {
+  /**
+   * Check if backend is reachable
+   * @returns {Promise} Health status
+   */
+  check: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/health`);
+      return response.json();
+    } catch (error) {
+      throw new Error('Backend server is not reachable');
+    }
+  },
+};
+
+// ============================================
+// CBC ASSESSMENT API (NEW)
+// ============================================
+
+export const cbcAPI = {
+  // Core Competencies
+  saveCompetencies: async (data) => {
+    return fetchWithAuth('/cbc/competencies', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  getCompetencies: async (learnerId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/cbc/competencies/${learnerId}${queryString ? `?${queryString}` : ''}`);
+  },
+
+  // Values Assessment
+  saveValues: async (data) => {
+    return fetchWithAuth('/cbc/values', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  getValues: async (learnerId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/cbc/values/${learnerId}${queryString ? `?${queryString}` : ''}`);
+  },
+
+  // Co-Curricular Activities
+  createCoCurricular: async (data) => {
+    return fetchWithAuth('/cbc/cocurricular', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  getCoCurricular: async (learnerId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/cbc/cocurricular/${learnerId}${queryString ? `?${queryString}` : ''}`);
+  },
+
+  updateCoCurricular: async (id, data) => {
+    return fetchWithAuth(`/cbc/cocurricular/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteCoCurricular: async (id) => {
+    return fetchWithAuth(`/cbc/cocurricular/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Termly Report Comments
+  saveComments: async (data) => {
+    return fetchWithAuth('/cbc/comments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  getComments: async (learnerId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/cbc/comments/${learnerId}${queryString ? `?${queryString}` : ''}`);
+  },
+};
+
+// Export all APIs
+const api = {
+  auth: authAPI,
+  users: userAPI,
+  teachers: teacherAPI,
+  parents: parentAPI,
+  learners: learnerAPI,
+  classes: classAPI,
+  attendance: attendanceAPI,
+  assessments: assessmentAPI,
+  reports: reportAPI,
+  notifications: notificationAPI,
+  fees: feeAPI,
+  cbc: cbcAPI,
+  health: healthAPI,
+};
+
+export default api;

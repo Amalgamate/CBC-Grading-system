@@ -3,8 +3,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { School, Save, Upload, X } from 'lucide-react';
-import PageHeader from '../../shared/PageHeader';
+import { School, Save, Upload, X, AlertTriangle } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications';
 
 const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
@@ -45,6 +44,31 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
   });
 
   const faviconInputRef = useRef(null);
+
+  // Track initial state for dirty checking
+  const [savedState, setSavedState] = useState(() => ({
+    settings: settings,
+    logo: logoPreview,
+    favicon: faviconPreview
+  }));
+
+  // Check for unsaved changes
+  const hasUnsavedChanges = 
+    JSON.stringify(settings) !== JSON.stringify(savedState.settings) ||
+    logoPreview !== savedState.logo ||
+    faviconPreview !== savedState.favicon;
+
+  // Warn on page leave if unsaved
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   // Update branding settings when component mounts
   useEffect(() => {
@@ -91,16 +115,15 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
   const handleFaviconUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const allowed = ['image/png', 'image/svg+xml', 'image/jpeg'];
-      const maxSize = 200 * 1024; // 200 KB
-
-      if (!allowed.includes(file.type)) {
-        alert('Please upload a PNG, SVG, or JPG image for the favicon');
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file (PNG, JPG, SVG)');
         return;
       }
 
-      if (file.size > maxSize) {
-        alert('Favicon must be less than 200 KB');
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('File size must be less than 2MB');
         return;
       }
 
@@ -143,6 +166,13 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
         }));
       }
       
+      // Update saved state to current values
+      setSavedState({
+        settings: settings,
+        logo: logoPreview,
+        favicon: faviconPreview
+      });
+
       showSuccess('All settings saved successfully! Logo and favicon will appear everywhere.');
       
       // Force a small delay to ensure state updates propagate
@@ -158,24 +188,28 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="School Settings" subtitle="Configure school information and upload logo" icon={School} />
-
-      {/* Important Notice */}
-      <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
+      {/* Unsaved Changes Notification */}
+      {hasUnsavedChanges && (
+        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-lg flex justify-between items-center animate-pulse">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-amber-700">
+                <strong>Unsaved Changes:</strong> You have made changes to the school settings. 
+                Please save your changes to ensure they are applied.
+              </p>
+            </div>
           </div>
-          <div className="ml-3">
-            <p className="text-sm text-blue-700">
-              <strong>Important:</strong> Make sure to click <strong>"Save Changes"</strong> at the bottom to persist your logo and settings. 
-              The logo will then appear on the login page and sidebar permanently.
-            </p>
-          </div>
+          <button 
+            onClick={handleSave}
+            className="ml-4 px-3 py-1 bg-amber-100 text-amber-700 hover:bg-amber-200 rounded text-sm font-medium transition"
+          >
+            Save Now
+          </button>
         </div>
-      </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-md p-6">
         <div className="space-y-6">

@@ -3,8 +3,7 @@
  */
 
 import React, { useState } from 'react';
-import { Database, Download, Upload, RefreshCw, Trash2 } from 'lucide-react';
-import PageHeader from '../../shared/PageHeader';
+import { Download, Upload, RefreshCw, Trash2 } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications';
 
 const BackupSettings = () => {
@@ -41,16 +40,16 @@ const BackupSettings = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Backup & Restore"
-        subtitle="Manage system backups"
-        icon={Database}
-        actions={
-          <button onClick={handleCreateBackup} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            <RefreshCw size={20} /> Create Backup
-          </button>
-        }
-      />
+      {/* Compact Action Toolbar */}
+      <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 flex justify-end">
+        <button 
+          onClick={handleCreateBackup} 
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
+        >
+          <RefreshCw size={20} /> 
+          <span>Create Backup</span>
+        </button>
+      </div>
 
       {/* Backup Information */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">

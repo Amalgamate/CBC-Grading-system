@@ -1,13 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mail, AlertCircle, RefreshCw } from 'lucide-react';
+import { Mail, AlertCircle, RefreshCw, CheckCircle, Smartphone, MessageSquare } from 'lucide-react';
 
-export default function EmailVerificationForm({ email, onVerifySuccess }) {
+export default function EmailVerificationForm({ email, phone, onVerifySuccess, brandingSettings }) {
+  const [verificationMethod, setVerificationMethod] = useState('email');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const inputRefs = useRef([]);
+
+  // Auto-approve code for development: 123456
+  const DEV_AUTO_APPROVE_CODE = '123456';
 
   useEffect(() => {
     if (resendTimer > 0) {
@@ -30,6 +35,12 @@ export default function EmailVerificationForm({ email, onVerifySuccess }) {
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
+
+    // Auto-submit when all 6 digits are entered
+    const otpValue = newOtp.join('');
+    if (otpValue.length === 6) {
+      setTimeout(() => handleVerify(otpValue), 300);
+    }
   };
 
   const handleKeyDown = (index, e) => {
@@ -49,13 +60,17 @@ export default function EmailVerificationForm({ email, onVerifySuccess }) {
     
     const nextIndex = Math.min(pastedData.length, 5);
     inputRefs.current[nextIndex]?.focus();
+
+    // Auto-submit pasted code
+    if (pastedData.length === 6) {
+      setTimeout(() => handleVerify(pastedData), 300);
+    }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleVerify = async (otpValue) => {
+    const code = otpValue || otp.join('');
     
-    const otpValue = otp.join('');
-    if (otpValue.length !== 6) {
+    if (code.length !== 6) {
       setError('Please enter the complete 6-digit code');
       return;
     }
@@ -66,124 +81,360 @@ export default function EmailVerificationForm({ email, onVerifySuccess }) {
     setTimeout(() => {
       setIsLoading(false);
       
-      // Simulate successful verification
-      if (otpValue === '123456' || otpValue.length === 6) {
-        onVerifySuccess();
+      // Auto-approve for development (accepts any 6-digit code or 123456)
+      if (code === DEV_AUTO_APPROVE_CODE || code.length === 6) {
+        setShowSuccess(true);
+        setTimeout(() => {
+          onVerifySuccess();
+        }, 1500);
       } else {
         setError('Invalid verification code. Please try again.');
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       }
-    }, 1500);
+    }, 1000);
   };
 
-  const handleResend = () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    handleVerify();
+  };
+
+  const handleResend = async () => {
     if (!canResend) return;
     
     setResendTimer(60);
     setCanResend(false);
     setOtp(['', '', '', '', '', '']);
     setError('');
-    
-    // Show success message (simulated)
-    const successDiv = document.createElement('div');
-    successDiv.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50';
-    successDiv.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span>Verification code sent!</span>';
-    document.body.appendChild(successDiv);
-    setTimeout(() => successDiv.remove(), 3000);
+
+    // Send verification based on selected method
+    try {
+      if (verificationMethod === 'whatsapp') {
+        // Send via WhatsApp API
+        const response = await fetch('http://localhost:5000/api/auth/send-whatsapp-verification', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            phone: phone || '+254713612141',
+            code: DEV_AUTO_APPROVE_CODE
+          })
+        });
+
+        if (response.ok) {
+          showSuccessToast('Verification code sent via WhatsApp!');
+        } else {
+          showErrorToast('Failed to send WhatsApp message. Using email instead.');
+        }
+      } else if (verificationMethod === 'sms') {
+        // Send via SMS API
+        showSuccessToast('Verification code sent via SMS!');
+      } else {
+        // Send via Email
+        showSuccessToast('Verification code sent to your email!');
+      }
+    } catch (error) {
+      console.error('Error sending verification:', error);
+      showErrorToast('Failed to send verification code. Please try again.');
+    }
     
     inputRefs.current[0]?.focus();
   };
 
-  return (
-    <div className="w-full max-w-md">
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl mb-4 shadow-lg">
-          <Mail className="text-white" size={32} />
-        </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Verify Your Email</h1>
-        <p className="text-gray-600">
-          We've sent a 6-digit code to
-        </p>
-        <p className="text-blue-600 font-semibold mt-1">{email || 'your@email.com'}</p>
-      </div>
+  const showSuccessToast = (message) => {
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in';
+    toast.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span>${message}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  };
 
-      <div className="bg-white rounded-2xl shadow-xl p-8">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3 text-center">
-              Enter Verification Code
-            </label>
-            <div className="flex justify-center gap-2">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={(el) => (inputRefs.current[index] = el)}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  onPaste={handlePaste}
-                  className={`w-12 h-14 text-center text-xl font-bold border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                    error ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  autoFocus={index === 0}
-                />
-              ))}
+  const showErrorToast = (message) => {
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in';
+    toast.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg><span>${message}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  };
+
+  const getVerificationIcon = () => {
+    switch(verificationMethod) {
+      case 'whatsapp': return <MessageSquare className="text-white" size={32} />;
+      case 'sms': return <Smartphone className="text-white" size={32} />;
+      default: return <Mail className="text-white" size={32} />;
+    }
+  };
+
+  const getVerificationDestination = () => {
+    switch(verificationMethod) {
+      case 'whatsapp': return phone || '+254713612141';
+      case 'sms': return phone || '+254713612141';
+      default: return email || 'your@email.com';
+    }
+  };
+
+  if (showSuccess) {
+    return (
+      <div className="w-full h-screen overflow-hidden">
+        <div className="bg-white h-full flex items-center justify-center">
+          <div className="text-center max-w-md px-6">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-500 rounded-full mb-6 animate-bounce">
+              <CheckCircle className="text-white" size={48} />
             </div>
-            {error && (
-              <div className="flex items-center justify-center gap-1 mt-3 text-red-600 text-sm">
-                <AlertCircle size={14} />
-                <span>{error}</span>
-              </div>
-            )}
+            <h1 className="text-3xl font-bold text-gray-900 mb-3">Verification Successful!</h1>
+            <p className="text-gray-600 text-lg">Your account has been verified. Redirecting you to the dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-screen overflow-hidden">
+      {/* Two Column Layout - Full Screen */}
+      <div className="bg-white h-full flex flex-col lg:flex-row">
+        
+        {/* Left Column - Branding Area */}
+        <div 
+          className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative overflow-hidden"
+          style={{ backgroundColor: brandingSettings?.brandColor || '#1e3a8a' }}
+        >
+          {/* Decorative Elements */}
+          <div className="absolute inset-0 overflow-hidden opacity-10">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
+            <div className="absolute top-1/2 left-1/4 w-48 h-48 bg-white rounded-full -translate-y-1/2"></div>
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading || otp.join('').length !== 6}
-            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 focus:ring-4 focus:ring-blue-300 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? (
-              <div className="flex items-center justify-center gap-2">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Verifying...</span>
+          {/* Main Content */}
+          <div className="flex-1 flex items-center justify-center relative z-10">
+            <div className="max-w-md text-center space-y-8">
+              {/* Logo */}
+              <div className="mb-12">
+                <img 
+                  src={brandingSettings?.logoUrl || '/logo-zawadi.png'} 
+                  alt="School Logo" 
+                  className="w-48 h-48 object-contain mx-auto drop-shadow-2xl"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '/logo-zawadi.png';
+                  }}
+                />
               </div>
-            ) : (
-              'Verify Email'
-            )}
-          </button>
-        </form>
+              
+              {/* Verification Message */}
+              <div className="space-y-6">
+                <h2 className="text-4xl font-bold drop-shadow-md">
+                  Almost There!
+                </h2>
+                <p className="text-blue-100 text-lg leading-relaxed">
+                  We've sent you a verification code to confirm your identity. Enter the code to complete your registration and access your dashboard.
+                </p>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600 mb-2">Didn't receive the code?</p>
-          <button
-            type="button"
-            onClick={handleResend}
-            disabled={!canResend}
-            className={`inline-flex items-center gap-2 font-semibold transition ${
-              canResend 
-                ? 'text-blue-600 hover:text-blue-700' 
-                : 'text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-            {canResend ? (
-              'Resend Code'
-            ) : (
-              `Resend in ${resendTimer}s`
-            )}
-          </button>
+                {/* Security Features */}
+                <div className="space-y-4 pt-4">
+                  <div className="flex items-start gap-3 text-left">
+                    <div className="flex-shrink-0 w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mt-0.5">
+                      <CheckCircle size={18} />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-white">Secure Verification</h4>
+                      <p className="text-blue-100 text-sm">Your code is valid for 10 minutes</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3 text-left">
+                    <div className="flex-shrink-0 w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mt-0.5">
+                      <CheckCircle size={18} />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-white">Multiple Options</h4>
+                      <p className="text-blue-100 text-sm">Receive code via Email, SMS, or WhatsApp</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3 text-left">
+                    <div className="flex-shrink-0 w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mt-0.5">
+                      <CheckCircle size={18} />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-white">Instant Access</h4>
+                      <p className="text-blue-100 text-sm">Get started immediately after verification</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Copyright */}
+          <div className="relative z-10 text-center">
+            <p className="text-blue-100 text-sm">
+              © 2025 {brandingSettings?.schoolName || 'Zawadi JRN Academy'}. All rights reserved.
+            </p>
+          </div>
         </div>
 
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-gray-700 text-center">
-            💡 <strong>Tip:</strong> Check your spam folder if you don't see the email
-          </p>
+        {/* Right Column - Verification Form */}
+        <div className="w-full lg:w-1/2 p-6 lg:p-16 flex flex-col justify-center overflow-y-auto">
+          <div className="max-w-md mx-auto w-full">
+            {/* Header */}
+            <div className="mb-8 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl mb-4 shadow-lg">
+                {getVerificationIcon()}
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Verify Your Account</h1>
+              <p className="text-gray-600 mb-1">
+                We've sent a 6-digit code to
+              </p>
+              <p className="text-blue-600 font-semibold text-lg">{getVerificationDestination()}</p>
+            </div>
+
+            {/* Verification Method Selector */}
+            <div className="mb-8">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Verification Method
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setVerificationMethod('email')}
+                  className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${
+                    verificationMethod === 'email'
+                      ? 'border-blue-600 bg-blue-50 text-blue-600'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                  }`}
+                >
+                  <Mail size={24} />
+                  <span className="text-xs font-semibold">Email</span>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setVerificationMethod('sms')}
+                  className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${
+                    verificationMethod === 'sms'
+                      ? 'border-blue-600 bg-blue-50 text-blue-600'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                  }`}
+                >
+                  <Smartphone size={24} />
+                  <span className="text-xs font-semibold">SMS</span>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setVerificationMethod('whatsapp')}
+                  className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${
+                    verificationMethod === 'whatsapp'
+                      ? 'border-blue-600 bg-blue-50 text-blue-600'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                  }`}
+                >
+                  <MessageSquare size={24} />
+                  <span className="text-xs font-semibold">WhatsApp</span>
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3 text-center">
+                  Enter Verification Code
+                </label>
+                <div className="flex justify-center gap-2 mb-2">
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => (inputRefs.current[index] = el)}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleChange(index, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(index, e)}
+                      onPaste={handlePaste}
+                      className={`w-12 h-14 text-center text-xl font-bold border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                        error ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      autoFocus={index === 0}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-center text-gray-500 mb-3">
+                  💡 Dev mode: Any 6-digit code will work (or use 123456)
+                </p>
+                {error && (
+                  <div className="flex items-center justify-center gap-1 mt-3 text-red-600 text-sm">
+                    <AlertCircle size={14} />
+                    <span>{error}</span>
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading || otp.join('').length !== 6}
+                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 focus:ring-4 focus:ring-blue-300 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Verifying...</span>
+                  </div>
+                ) : (
+                  'Verify Account'
+                )}
+              </button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600 mb-2">Didn't receive the code?</p>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={!canResend}
+                className={`inline-flex items-center gap-2 font-semibold transition ${
+                  canResend 
+                    ? 'text-blue-600 hover:text-blue-700' 
+                    : 'text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+                {canResend ? (
+                  'Resend Code'
+                ) : (
+                  `Resend in ${resendTimer}s`
+                )}
+              </button>
+            </div>
+
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-gray-700 text-center">
+                💡 <strong>Tip:</strong> Check your spam folder if using email verification
+              </p>
+            </div>
+          </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes slide-in {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-in {
+          animation: slide-in 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

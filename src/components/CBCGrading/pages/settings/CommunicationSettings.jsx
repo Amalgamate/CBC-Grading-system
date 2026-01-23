@@ -5,10 +5,9 @@
 
 import React, { useState } from 'react';
 import { 
-  Mail, MessageSquare, CreditCard, Send, Save, Settings as SettingsIcon,
+  Mail, MessageSquare, CreditCard, Send, Save,
   TestTube, CheckCircle, XCircle, Loader
 } from 'lucide-react';
-import PageHeader from '../../shared/PageHeader';
 import { useNotifications } from '../../hooks/useNotifications';
 
 const CommunicationSettings = () => {
@@ -104,12 +103,6 @@ const CommunicationSettings = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Communication Settings"
-        subtitle="Configure SMS, Email, and M-Pesa integrations"
-        icon={SettingsIcon}
-      />
-
       {/* Tabs */}
       <div className="bg-white rounded-xl shadow-md">
         <div className="border-b border-gray-200 flex">

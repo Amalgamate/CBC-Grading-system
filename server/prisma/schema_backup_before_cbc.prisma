@@ -1,0 +1,85 @@
+// Prisma Schema - Complete with Learners, Classes, and Attendance
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER MANAGEMENT & AUTHENTICATION
+// ============================================
+
+enum UserRole {
+  SUPER_ADMIN      // System owner - full access
+  ADMIN            // School administrator
+  HEAD_TEACHER     // Senior teacher with oversight
+  TEACHER          // Regular classroom teacher
+  PARENT           // Parent/guardian (view-only for their children)
+  ACCOUNTANT       // Financial officer
+  RECEPTIONIST     // Front desk staff
+  LIBRARIAN        // Library staff
+  NURSE            // School nurse
+  SECURITY         // Security personnel
+  DRIVER           // Transport driver
+  COOK             // Kitchen staff
+  CLEANER          // Cleaning staff
+  GROUNDSKEEPER    // Grounds maintenance
+  IT_SUPPORT       // IT support staff
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model User {
+  id            String      @id @default(uuid())
+  email         String      @unique
+  username      String?     @unique
+  password      String
+  firstName     String
+  lastName      String
+  middleName    String?
+  phone         String?
+  role          UserRole    @default(TEACHER)
+  status        UserStatus  @default(ACTIVE)
+  archived      Boolean     @default(false)  // Soft delete for teachers
+  archivedAt    DateTime?   // When archived
+  archivedBy    String?     // Who archived
+  
+  // School & Branch Association
+  schoolId      String?     // School the user belongs to (null for SUPER_ADMIN)
+  school        School?     @relation("SchoolUsers", fields: [schoolId], references: [id], onDelete: SetNull)
+  branchId      String?     // Primary branch (null if user has access to all branches)
+  branch        Branch?     @relation("BranchUsers", fields: [branchId], references: [id], onDelete: SetNull)
+  
+  // ID Badge Information
+  staffId       String?     @unique // Staff number/employee ID
+  idCardPhoto   String?     // Photo for ID card
+  idCardIssued  DateTime?   // When ID was issued
+  idCardExpiry  DateTime?   // ID expiry date
+  
+  lastLogin     DateTime?
+  emailVerified Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  // Relations
+  learners                Learner[]               @relation("ParentLearners")
+  classesAsTeacher        Class[]                 @relation("ClassTeacher")
+  attendancesMarked       Attendance[]            @relation("AttendanceMarker")
+  formativeAssessments    FormativeAssessment[]   @relation("TeacherFormativeAssessments")
+  createdTests            SummativeTest[]         @relation("CreatedTests")
+  recordedResults         SummativeResult[]       @relation("RecordedResults")
+  
+  @@map("users")
+  @@index([schoolId])
+  @@index([branchId])
+}
+
+// ... REST OF THE SCHEMA CONTENT ...
+// (This is a backup - the actual content continues but truncated here for brevity)

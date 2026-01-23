@@ -1,24 +1,31 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from './hooks/useAuth';
 import Auth from './pages/Auth';
 // Import the refactored version
 import CBCGradingSystem from './components/CBCGrading/CBCGradingSystem';
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const { isAuthenticated, user, login, logout } = useAuth();
   
   // Load branding settings from localStorage
   const [brandingSettings, setBrandingSettings] = useState(() => {
     const savedLogo = localStorage.getItem('schoolLogo');
     const savedSchoolName = localStorage.getItem('schoolName');
     const savedFavicon = localStorage.getItem('schoolFavicon');
+    const savedBrandColor = localStorage.getItem('brandColor');
+    const savedWelcomeTitle = localStorage.getItem('welcomeTitle');
+    const savedWelcomeMessage = localStorage.getItem('welcomeMessage');
+    const savedOnboardingTitle = localStorage.getItem('onboardingTitle');
+    const savedOnboardingMessage = localStorage.getItem('onboardingMessage');
     
     return {
       logoUrl: savedLogo || '/logo-zawadi.png',
       faviconUrl: savedFavicon || '/favicon.png',
-      brandColor: '#1e3a8a', // blue-900
-      welcomeTitle: 'Welcome to Zawadi JRN Academy',
-      welcomeMessage: 'Empowering education through innovative learning management.',
+      brandColor: savedBrandColor || '#1e3a8a',
+      welcomeTitle: savedWelcomeTitle || 'Welcome to Zawadi JRN Academy',
+      welcomeMessage: savedWelcomeMessage || 'Empowering education through innovative learning management.',
+      onboardingTitle: savedOnboardingTitle || 'Join Our Community',
+      onboardingMessage: savedOnboardingMessage || 'Start your journey with us today. Create an account to access powerful tools for managing learning and assessment with ease.',
       schoolName: savedSchoolName || 'Zawadi JRN'
     };
   });
@@ -63,14 +70,15 @@ export default function App() {
     setFavicon(brandingSettings.faviconUrl);
   }, [brandingSettings.faviconUrl]);
 
-  const handleAuthSuccess = (user) => {
-    setCurrentUser(user);
-    setIsAuthenticated(true);
+  const handleAuthSuccess = (userData) => {
+    // userData should contain: { email, name, role, id, firstName, lastName }
+    // Token is already stored in localStorage by LoginForm
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken') || 'temp-token';
+    login(userData, token);
   };
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
-    setCurrentUser(null);
+    logout();
   };
 
   if (!isAuthenticated) {
@@ -79,7 +87,7 @@ export default function App() {
 
   return (
     <CBCGradingSystem 
-      user={currentUser} 
+      user={user} 
       onLogout={handleLogout} 
       brandingSettings={brandingSettings} 
       setBrandingSettings={setBrandingSettings} 

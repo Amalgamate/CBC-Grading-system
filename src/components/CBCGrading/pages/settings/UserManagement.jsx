@@ -3,8 +3,9 @@
  */
 
 import React, { useState } from 'react';
-import { Users, Plus, Edit, Trash2, X } from 'lucide-react';
-import PageHeader from '../../shared/PageHeader';
+import { 
+  UserPlus, Edit, Trash2, X
+} from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications';
 
 const UserManagement = () => {
@@ -26,9 +27,16 @@ const UserManagement = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="User Management" subtitle="Manage system users" icon={Users}
-        actions={<button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><Plus size={20} /> Add User</button>}
-      />
+      {/* Compact Action Toolbar */}
+      <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 flex justify-end">
+        <button 
+          onClick={() => setShowModal(true)} 
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
+        >
+          <UserPlus size={20} /> 
+          <span>Add User</span>
+        </button>
+      </div>
 
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
         <table className="w-full">

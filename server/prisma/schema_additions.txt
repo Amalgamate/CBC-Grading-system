@@ -1,0 +1,179 @@
+// ============================================
+// CBC-SPECIFIC ASSESSMENT MODELS
+// Add these to the end of schema.prisma
+// ============================================
+
+// Core Competencies Assessment (CBC Requirement)
+model CoreCompetency {
+  id              String        @id @default(uuid())
+  
+  // Learner Reference
+  learnerId       String
+  learner         Learner       @relation("LearnerCoreCompetencies", fields: [learnerId], references: [id], onDelete: Cascade)
+  
+  // Academic Period
+  term            Term
+  academicYear    Int
+  
+  // Six Core Competencies with detailed ratings
+  communication        DetailedRubricRating
+  communicationComment String?  @db.Text
+  
+  criticalThinking        DetailedRubricRating
+  criticalThinkingComment String?  @db.Text
+  
+  creativity        DetailedRubricRating
+  creativityComment String?  @db.Text
+  
+  collaboration        DetailedRubricRating
+  collaborationComment String?  @db.Text
+  
+  citizenship        DetailedRubricRating
+  citizenshipComment String?  @db.Text
+  
+  learningToLearn        DetailedRubricRating
+  learningToLearnComment String?  @db.Text
+  
+  // Assessor
+  assessedBy      String
+  assessor        User          @relation("AssessorCoreCompetencies", fields: [assessedBy], references: [id])
+  
+  // Metadata
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@unique([learnerId, term, academicYear])
+  @@map("core_competencies")
+  @@index([learnerId])
+  @@index([term, academicYear])
+}
+
+// Values Assessment (CBC Requirement)
+model ValuesAssessment {
+  id              String        @id @default(uuid())
+  
+  // Learner Reference
+  learnerId       String
+  learner         Learner       @relation("LearnerValues", fields: [learnerId], references: [id], onDelete: Cascade)
+  
+  // Academic Period
+  term            Term
+  academicYear    Int
+  
+  // Seven National Values
+  love            DetailedRubricRating
+  responsibility  DetailedRubricRating
+  respect         DetailedRubricRating
+  unity           DetailedRubricRating
+  peace           DetailedRubricRating
+  patriotism      DetailedRubricRating
+  integrity       DetailedRubricRating
+  
+  // General Comment
+  comment         String?       @db.Text
+  
+  // Assessor
+  assessedBy      String
+  assessor        User          @relation("AssessorValues", fields: [assessedBy], references: [id])
+  
+  // Metadata
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@unique([learnerId, term, academicYear])
+  @@map("values_assessments")
+  @@index([learnerId])
+  @@index([term, academicYear])
+}
+
+// Co-Curricular Activities
+model CoCurricularActivity {
+  id              String        @id @default(uuid())
+  
+  // Learner Reference
+  learnerId       String
+  learner         Learner       @relation("LearnerCoCurricular", fields: [learnerId], references: [id], onDelete: Cascade)
+  
+  // Academic Period
+  term            Term
+  academicYear    Int
+  
+  // Activity Details
+  activityName    String                    // Football, Drama, Choir, etc.
+  activityType    String                    // Sports, Arts, Clubs, etc.
+  performance     DetailedRubricRating      // Performance rating
+  achievements    String?       @db.Text    // Competitions, awards, etc.
+  remarks         String?       @db.Text
+  
+  // Recorder
+  recordedBy      String
+  recorder        User          @relation("RecorderCoCurricular", fields: [recordedBy], references: [id])
+  
+  // Metadata
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@map("co_curricular_activities")
+  @@index([learnerId])
+  @@index([term, academicYear])
+  @@index([activityType])
+}
+
+// Termly Report Comments
+model TermlyReportComment {
+  id              String        @id @default(uuid())
+  
+  // Learner Reference
+  learnerId       String
+  learner         Learner       @relation("LearnerReportComments", fields: [learnerId], references: [id], onDelete: Cascade)
+  
+  // Academic Period
+  term            Term
+  academicYear    Int
+  
+  // Class Teacher Comment
+  classTeacherComment    String   @db.Text
+  classTeacherName       String
+  classTeacherSignature  String?  // Base64 or URL
+  classTeacherDate       DateTime
+  
+  // Head Teacher Comment
+  headTeacherComment     String?  @db.Text
+  headTeacherName        String?
+  headTeacherSignature   String?
+  headTeacherDate        DateTime?
+  
+  // Parent/Guardian Acknowledgment
+  parentComment          String?  @db.Text
+  parentSignature        String?
+  parentDate             DateTime?
+  
+  // Next Term Details
+  nextTermOpens          DateTime
+  
+  // Metadata
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@unique([learnerId, term, academicYear])
+  @@map("termly_report_comments")
+  @@index([learnerId])
+  @@index([term, academicYear])
+}
+
+// ============================================
+// UPDATE USER MODEL - ADD RELATIONS
+// Add these to the User model relations section:
+// ============================================
+// assessedCoreCompetencies  CoreCompetency[]      @relation("AssessorCoreCompetencies")
+// assessedValues            ValuesAssessment[]    @relation("AssessorValues")
+// recordedCoCurricular      CoCurricularActivity[] @relation("RecorderCoCurricular")
+
+// ============================================
+// UPDATE LEARNER MODEL - ADD RELATIONS  
+// Add these to the Learner model relations section:
+// ============================================
+// coreCompetencies     CoreCompetency[]        @relation("LearnerCoreCompetencies")
+// valuesAssessments    ValuesAssessment[]      @relation("LearnerValues")
+// coCurricularActivities CoCurricularActivity[] @relation("LearnerCoCurricular")
+// reportComments       TermlyReportComment[]   @relation("LearnerReportComments")

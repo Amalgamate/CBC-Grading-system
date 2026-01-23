@@ -6,13 +6,14 @@
 import React, { useState } from 'react';
 import Sidebar from './layout/Sidebar';
 import Header from './layout/Header';
-import Dashboard from './pages/Dashboard';
+import RoleDashboard from './pages/dashboard/RoleDashboard';
 import LearnersList from './pages/LearnersList';
 import TeachersList from './pages/TeachersList';
 import ParentsList from './pages/ParentsList';
+import LearningHubPage from './pages/LearningHubPage';
 import PromotionPage from './pages/PromotionPage';
 import TransferOutPage from './pages/TransferOutPage';
-import DailyAttendance from './pages/DailyAttendance';
+import DailyAttendance from './pages/DailyAttendanceAPI';
 import AttendanceReports from './pages/AttendanceReports';
 import AdmissionsPage from './pages/AdmissionsPage';
 import TransfersInPage from './pages/TransfersInPage';
@@ -27,65 +28,33 @@ import PerformanceScale from './pages/PerformanceScale';
 import NoticesPage from './pages/NoticesPage';
 import MessagesPage from './pages/MessagesPage';
 import HelpPage from './pages/HelpPage';
+import TimetablePage from './pages/TimetablePage';
 import SchoolSettings from './pages/settings/SchoolSettings';
 import AcademicSettings from './pages/settings/AcademicSettings';
 import UserManagement from './pages/settings/UserManagement';
 import BrandingSettings from './pages/settings/BrandingSettings';
 import BackupSettings from './pages/settings/BackupSettings';
+import CommunicationSettings from './pages/settings/CommunicationSettings';
+import FeeCollectionPage from './pages/FeeCollectionPage';
+import FeeStructurePage from './pages/FeeStructurePage';
+import FeeReportsPage from './pages/FeeReportsPage';
+import StudentStatementsPage from './pages/StudentStatementsPage';
 import Toast from './shared/Toast';
 import ConfirmDialog from './shared/ConfirmDialog';
 import EmptyState from './shared/EmptyState';
 import AddEditParentModal from './shared/AddEditParentModal';
+import AddEditTeacherModal from './shared/AddEditTeacherModal';
+import AddEditLearnerModal from './shared/AddEditLearnerModal';
+import ViewLearnerModal from './shared/ViewLearnerModal';
 
 // Hooks
 import { useLearners } from './hooks/useLearners';
 import { useTeachers } from './hooks/useTeachers';
+import { useParents } from './hooks/useParents';
 import { useNotifications } from './hooks/useNotifications';
 
 // Utils
 import { PAGE_TITLES } from './utils/constants';
-
-// Sample initial data
-const initialLearners = [
-  { 
-    id: 1, firstName: 'Amina', middleName: 'Wanjiku', lastName: 'Hassan', 
-    admNo: 'ADM001', grade: 'Grade 3', stream: 'A', status: 'Active', 
-    phone: '+254712345678', avatar: '👧', dob: '2015-05-12', gender: 'Female',
-    guardian1Name: 'Hassan Mohamed', guardian1Phone: '+254701234567',
-    guardian1Email: 'hassan.m@email.com', guardian1Relationship: 'Father'
-  },
-  { 
-    id: 2, firstName: 'Jamal', middleName: 'Kariuki', lastName: 'Kipchoge',
-    admNo: 'ADM002', grade: 'Grade 3', stream: 'A', status: 'Active',
-    phone: '+254712345679', avatar: '👦', dob: '2015-03-22', gender: 'Male',
-    guardian1Name: 'Samuel Kipchoge', guardian1Phone: '+254702234567',
-    guardian1Email: 'samuel.k@email.com', guardian1Relationship: 'Father'
-  },
-  { 
-    id: 3, firstName: 'Zara', middleName: 'Akinyi', lastName: 'Mwangi',
-    admNo: 'ADM003', grade: 'Grade 3', stream: 'B', status: 'Active',
-    phone: '+254712345680', avatar: '👧', dob: '2015-07-08', gender: 'Female',
-    guardian1Name: 'John Mwangi', guardian1Phone: '+254703234567',
-    guardian1Email: 'john.mwangi@email.com', guardian1Relationship: 'Father'
-  }
-];
-
-const initialTeachers = [
-  {
-    id: 1, firstName: 'Grace', lastName: 'Wanjiru', employeeNo: 'TCH001',
-    email: 'grace.wanjiru@zawadijrn.ac.ke', phone: '+254710234567',
-    gender: 'Female', tscNumber: 'TSC/234567', status: 'Active',
-    role: 'Class Teacher', subject: 'English', experience: '12 years',
-    avatar: '👩‍🏫', qualifications: 'B.Ed (Arts)'
-  },
-  {
-    id: 2, firstName: 'David', lastName: 'Omondi', employeeNo: 'TCH002',
-    email: 'david.omondi@zawadijrn.ac.ke', phone: '+254711234567',
-    gender: 'Male', tscNumber: 'TSC/345678', status: 'Active',
-    role: 'Head of Department', subject: 'Mathematics', experience: '15 years',
-    avatar: '👨‍🏫', qualifications: 'M.Ed (Mathematics)'
-  }
-];
 
 export default function CBCGradingSystem({ user, onLogout, brandingSettings, setBrandingSettings }) {
   // UI State
@@ -98,6 +67,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
     attendance: false,
     communications: false,
     assessment: false,
+    'learning-hub': false,
     settings: false
   });
 
@@ -108,20 +78,51 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   // Parent Modal State
   const [showParentModal, setShowParentModal] = useState(false);
   const [editingParent, setEditingParent] = useState(null);
-  const [parents, setParents] = useState([]);
+
+  // Teacher Modal State
+  const [showTeacherModal, setShowTeacherModal] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState(null);
+
+  // Learner Modal State
+  const [showLearnerModal, setShowLearnerModal] = useState(false);
+  const [editingLearner, setEditingLearner] = useState(null);
+  const [viewingLearner, setViewingLearner] = useState(null);
+  const [showViewLearnerModal, setShowViewLearnerModal] = useState(false);
 
   // Custom Hooks
+  // Fetching data from backend API at http://localhost:5000/api
   const {
     learners,
+    pagination,
     setSelectedLearner,
+    createLearner,
     updateLearner,
-    deleteLearner
-  } = useLearners(initialLearners);
+    deleteLearner,
+    fetchLearners,
+    loading: learnersLoading,
+    error: learnersError,
+  } = useLearners();
 
   const {
     teachers,
-    setSelectedTeacher
-  } = useTeachers(initialTeachers);
+    setSelectedTeacher,
+    createTeacher,
+    updateTeacher,
+    deleteTeacher,
+    loading: teachersLoading,
+    error: teachersError,
+  } = useTeachers();
+
+  const {
+    parents,
+    setSelectedParent,
+    createParent,
+    updateParent,
+    archiveParent,
+    deleteParent,
+    loading: parentsLoading,
+    error: parentsError,
+  } = useParents();
 
   const {
     showToast,
@@ -145,17 +146,39 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   };
 
   const handleAddLearner = () => {
-    setCurrentPage('learners-admissions');
+    setEditingLearner(null);
+    setShowLearnerModal(true);
   };
 
   const handleEditLearner = (learner) => {
-    setSelectedLearner(learner);
-    showSuccess('Edit learner feature coming soon!');
+    setEditingLearner(learner);
+    setShowLearnerModal(true);
   };
 
   const handleViewLearner = (learner) => {
-    setSelectedLearner(learner);
-    showSuccess('View learner feature coming soon!');
+    setViewingLearner(learner);
+    setShowViewLearnerModal(true);
+  };
+
+  const handleSaveLearner = async (learnerData) => {
+    if (editingLearner) {
+      const result = await updateLearner(editingLearner.id, learnerData);
+      if (result.success) {
+        showSuccess('Student updated successfully!');
+        setShowLearnerModal(false);
+        setEditingLearner(null);
+      } else {
+        showSuccess('Error updating student: ' + result.error);
+      }
+    } else {
+      const result = await createLearner(learnerData);
+      if (result.success) {
+        showSuccess('Student added successfully!');
+        setShowLearnerModal(false);
+      } else {
+        showSuccess('Error creating student: ' + result.error);
+      }
+    }
   };
 
   const handleMarkAsExited = (learnerId) => {
@@ -171,27 +194,66 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
     setShowConfirmDialog(true);
   };
 
-  const handleDeleteLearner = (learnerId) => {
-    setConfirmAction(() => () => {
-      deleteLearner(learnerId);
+  const handleDeleteLearner = async (learnerId) => {
+    setConfirmAction(() => async () => {
+      const result = await deleteLearner(learnerId);
+      if (result.success) {
+        showSuccess('Student deleted successfully');
+      } else {
+        showSuccess('Error deleting student: ' + result.error);
+      }
       setShowConfirmDialog(false);
-      showSuccess('Learner deleted successfully');
     });
     setShowConfirmDialog(true);
   };
 
   const handleAddTeacher = () => {
-    showSuccess('Add teacher feature coming soon!');
+    setEditingTeacher(null);
+    setShowTeacherModal(true);
   };
 
   const handleEditTeacher = (teacher) => {
-    setSelectedTeacher(teacher);
-    showSuccess('Edit teacher feature coming soon!');
+    setEditingTeacher(teacher);
+    setShowTeacherModal(true);
+  };
+
+  const handleSaveTeacher = async (teacherData) => {
+    if (editingTeacher) {
+      const result = await updateTeacher(editingTeacher.id, teacherData);
+      if (result.success) {
+        showSuccess('Tutor updated successfully!');
+        setShowTeacherModal(false);
+        setEditingTeacher(null);
+      } else {
+        showSuccess('Error updating tutor: ' + result.error);
+      }
+    } else {
+      const result = await createTeacher(teacherData);
+      if (result.success) {
+        showSuccess('Tutor added successfully!');
+        setShowTeacherModal(false);
+      } else {
+        showSuccess('Error creating tutor: ' + result.error);
+      }
+    }
   };
 
   const handleViewTeacher = (teacher) => {
     setSelectedTeacher(teacher);
-    showSuccess('View teacher feature coming soon!');
+    showSuccess('View teacher details feature coming soon!');
+  };
+
+  const handleDeleteTeacher = async (teacherId) => {
+    setConfirmAction(() => async () => {
+      const result = await deleteTeacher(teacherId);
+      if (result.success) {
+        showSuccess('Tutor deleted successfully');
+      } else {
+        showSuccess('Error deleting tutor: ' + result.error);
+      }
+      setShowConfirmDialog(false);
+    });
+    setShowConfirmDialog(true);
   };
 
   // Parent handlers
@@ -206,26 +268,53 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   };
 
   const handleViewParent = (parent) => {
-    setEditingParent(parent);
-    setShowParentModal(true);
+    setSelectedParent(parent);
+    showSuccess('View parent details feature coming soon!');
   };
 
-  const handleSaveParent = (parentData) => {
+  const handleSaveParent = async (parentData) => {
     if (editingParent) {
-      setParents(parents.map(p => p.id === editingParent.id ? parentData : p));
-      showSuccess('Parent updated successfully!');
+      const result = await updateParent(editingParent.id, parentData);
+      if (result.success) {
+        showSuccess('Parent updated successfully!');
+        setShowParentModal(false);
+        setEditingParent(null);
+      } else {
+        showSuccess('Error updating parent: ' + result.error);
+      }
     } else {
-      setParents([...parents, parentData]);
-      showSuccess('Parent added successfully!');
+      const result = await createParent(parentData);
+      if (result.success) {
+        showSuccess('Parent added successfully!');
+        setShowParentModal(false);
+      } else {
+        showSuccess('Error creating parent: ' + result.error);
+      }
     }
-    setShowParentModal(false);
-    setEditingParent(null);
   };
 
-  const handleDeleteParent = (parentId) => {
-    setConfirmAction(() => () => {
+  const handleDeleteParent = async (parentId) => {
+    setConfirmAction(() => async () => {
+      const result = await deleteParent(parentId);
+      if (result.success) {
+        showSuccess('Parent deleted successfully');
+      } else {
+        showSuccess('Error deleting parent: ' + result.error);
+      }
       setShowConfirmDialog(false);
-      showSuccess('Parent deleted successfully');
+    });
+    setShowConfirmDialog(true);
+  };
+
+  const handleArchiveParent = async (parentId) => {
+    setConfirmAction(() => async () => {
+      const result = await archiveParent(parentId);
+      if (result.success) {
+        showSuccess('Parent archived successfully');
+      } else {
+        showSuccess('Error archiving parent: ' + result.error);
+      }
+      setShowConfirmDialog(false);
     });
     setShowConfirmDialog(true);
   };
@@ -234,13 +323,16 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   const renderPage = () => {
     switch(currentPage) {
       case 'dashboard':
-        return <Dashboard learners={learners} teachers={teachers} />;
+        return <RoleDashboard learners={learners} pagination={pagination} teachers={teachers} user={user} />;
       
       // Learners Module
       case 'learners-list':
         return (
           <LearnersList
             learners={learners}
+            loading={learnersLoading}
+            pagination={pagination}
+            onFetchLearners={fetchLearners}
             onAddLearner={handleAddLearner}
             onEditLearner={handleEditLearner}
             onViewLearner={handleViewLearner}
@@ -267,6 +359,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
             onAddTeacher={handleAddTeacher}
             onEditTeacher={handleEditTeacher}
             onViewTeacher={handleViewTeacher}
+            onDeleteTeacher={handleDeleteTeacher}
           />
         );
       
@@ -279,8 +372,13 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
             onEditParent={handleEditParent}
             onViewParent={handleViewParent}
             onDeleteParent={handleDeleteParent}
+            onArchiveParent={handleArchiveParent}
           />
         );
+      
+      // Timetable Module
+      case 'timetable':
+        return <TimetablePage />;
       
       // Attendance Module
       case 'attendance-daily':
@@ -304,11 +402,28 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       case 'assess-performance-scale':
         return <PerformanceScale />;
       
+      // Learning Hub Module (Placeholder)
+      case 'learning-hub-materials':
+      case 'learning-hub-assignments':
+      case 'learning-hub-lesson-plans':
+      case 'learning-hub-library':
+        return <LearningHubPage />;
+      
       // Communications Module
       case 'comm-notices':
         return <NoticesPage />;
       case 'comm-messages':
         return <MessagesPage />;
+      
+      // Fee Management Module
+      case 'fees-structure':
+        return <FeeStructurePage />;
+      case 'fees-collection':
+        return <FeeCollectionPage />;
+      case 'fees-reports':
+        return <FeeReportsPage />;
+      case 'fees-statements':
+        return <StudentStatementsPage />;
       
       // Help Module
       case 'help':
@@ -322,9 +437,11 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       case 'settings-users':
         return <UserManagement />;
       case 'settings-branding':
-        return <BrandingSettings />;
+        return <BrandingSettings brandingSettings={brandingSettings} setBrandingSettings={setBrandingSettings} />;
       case 'settings-backup':
         return <BackupSettings />;
+      case 'settings-communication':
+        return <CommunicationSettings />;
       
       default:
         return (
@@ -358,6 +475,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
           user={user}
           onLogout={handleLogout}
           brandingSettings={brandingSettings}
+          title={PAGE_TITLES[currentPage]}
         />
 
         {/* Page Content */}
@@ -384,6 +502,38 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
         onSave={handleSaveParent}
         parent={editingParent}
         learners={learners}
+      />
+
+      {/* Add/Edit Teacher Modal */}
+      <AddEditTeacherModal
+        show={showTeacherModal}
+        onClose={() => {
+          setShowTeacherModal(false);
+          setEditingTeacher(null);
+        }}
+        onSave={handleSaveTeacher}
+        teacher={editingTeacher}
+      />
+
+      {/* Add/Edit Learner Modal */}
+      <AddEditLearnerModal
+        show={showLearnerModal}
+        onClose={() => {
+          setShowLearnerModal(false);
+          setEditingLearner(null);
+        }}
+        onSave={handleSaveLearner}
+        learner={editingLearner}
+      />
+
+      {/* View Learner Modal */}
+      <ViewLearnerModal
+        show={showViewLearnerModal}
+        onClose={() => {
+          setShowViewLearnerModal(false);
+          setViewingLearner(null);
+        }}
+        learner={viewingLearner}
       />
 
       {/* Confirmation Dialog */}

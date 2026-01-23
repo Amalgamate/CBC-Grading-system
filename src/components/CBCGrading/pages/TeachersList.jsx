@@ -4,16 +4,17 @@
  */
 
 import React, { useState } from 'react';
-import { Plus, Eye, Edit, Trash2, GraduationCap, BookOpen, CheckCircle, Clock } from 'lucide-react';
-import PageHeader from '../shared/PageHeader';
-import SearchFilter from '../shared/SearchFilter';
+import { Plus, Upload, Eye, Edit, Trash2, GraduationCap, BookOpen, Search, RefreshCw } from 'lucide-react';
 import StatusBadge from '../shared/StatusBadge';
 import EmptyState from '../shared/EmptyState';
-import StatsCard from '../shared/StatsCard';
+import { useAuth } from '../../../hooks/useAuth';
+import BulkOperationsModal from '../shared/bulk/BulkOperationsModal';
 
-const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher }) => {
+const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, onDeleteTeacher, onRefresh }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const { user } = useAuth();
 
   // Filter teachers
   const filteredTeachers = teachers.filter(t => {
@@ -27,86 +28,78 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher }) 
     return matchesSearch && matchesStatus;
   });
 
-  const filters = [
-    {
-      label: 'Status',
-      value: filterStatus,
-      onChange: setFilterStatus,
-      span: 2,
-      options: [
-        { value: 'all', label: 'All Status' },
-        { value: 'Active', label: 'Active' },
-        { value: 'On Leave', label: 'On Leave' },
-        { value: 'Inactive', label: 'Inactive' }
-      ]
-    }
-  ];
-
-  const activeTeachers = teachers.filter(t => t.status === 'Active').length;
-  const onLeave = teachers.filter(t => t.status === 'On Leave').length;
-  const uniqueSubjects = [...new Set(teachers.map(t => t.subject))].length;
+  const handleReset = () => {
+    setSearchTerm('');
+    setFilterStatus('all');
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <PageHeader
-        title="Tutors"
-        subtitle="Manage teaching staff and their assignments"
-        icon={GraduationCap}
-        actions={
-          <button 
-            onClick={onAddTeacher}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-          >
-            <Plus size={20} />
-            Add Tutor
-          </button>
-        }
-      />
+    <div className="space-y-4">
+      {/* Compact Quick Actions Toolbar */}
+      <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+        <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
+          
+          {/* Search and Filters */}
+          <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto flex-1">
+            {/* Search */}
+            <div className="relative flex-grow md:max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by name, employee number, or subject..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatsCard
-          title="Total Tutors"
-          value={teachers.length}
-          icon={GraduationCap}
-          color="blue"
-          subtitle="All staff"
-        />
-        <StatsCard
-          title="Active"
-          value={activeTeachers}
-          icon={CheckCircle}
-          color="green"
-          subtitle="Teaching staff"
-        />
-        <StatsCard
-          title="On Leave"
-          value={onLeave}
-          icon={Clock}
-          color="orange"
-          subtitle="Currently away"
-        />
-        <StatsCard
-          title="Subjects"
-          value={uniqueSubjects}
-          icon={BookOpen}
-          color="purple"
-          subtitle="Learning areas"
-        />
+            {/* Filters */}
+            <div className="flex gap-2">
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="all">All Status</option>
+                <option value="Active">Active</option>
+                <option value="On Leave">On Leave</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+              
+              {/* Reset Button */}
+              {(searchTerm || filterStatus !== 'all') && (
+                <button
+                  onClick={handleReset}
+                  className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition"
+                  title="Reset filters"
+                >
+                  <RefreshCw size={20} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 w-full xl:w-auto justify-end">
+            <button 
+              onClick={() => setShowBulkModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-50 transition"
+              title="Bulk import/export tutors"
+            >
+              <Upload size={18} />
+              <span className="hidden sm:inline">Bulk Operations</span>
+            </button>
+            <button 
+              onClick={onAddTeacher}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm"
+            >
+              <Plus size={18} />
+              <span className="hidden sm:inline">Add Tutor</span>
+              <span className="inline sm:hidden">Add</span>
+            </button>
+          </div>
+        </div>
       </div>
-
-      {/* Search & Filters */}
-      <SearchFilter
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        filters={filters}
-        onReset={() => {
-          setSearchTerm('');
-          setFilterStatus('all');
-        }}
-        placeholder="Search by name, employee number, or subject..."
-      />
 
       {/* Teachers Table */}
       {filteredTeachers.length === 0 ? (
@@ -177,6 +170,7 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher }) 
                         <Edit size={18} />
                       </button>
                       <button 
+                        onClick={() => onDeleteTeacher(teacher.id)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition" 
                         title="Delete"
                       >
@@ -190,6 +184,19 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher }) 
           </table>
         </div>
       )}
+
+      {/* Bulk Operations Modal */}
+      <BulkOperationsModal
+        isOpen={showBulkModal}
+        onClose={() => setShowBulkModal(false)}
+        title="Bulk Tutor Operations"
+        entityType="teachers"
+        userRole={user?.role}
+        onUploadComplete={() => {
+          setShowBulkModal(false);
+          if (onRefresh) onRefresh();
+        }}
+      />
     </div>
   );
 };

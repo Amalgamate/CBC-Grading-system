@@ -149,32 +149,58 @@ export const USER_ROLES = [
 // Page Titles Mapping
 export const PAGE_TITLES = {
   'dashboard': 'Dashboard',
-  'learners-list': 'All Learners',
-  'learners-parents': 'Parents & Guardians',
-  'learners-promotion': 'Learner Promotion',
-  'learners-transfers': 'Transfer Out',
-  'learners-incoming': 'Incoming Transfers',
-  'teachers-list': 'Teachers',
-  'attendance-learners': 'Mark Attendance',
-  'attendance-report': 'Attendance Report',
-  'attendance-termly': 'Termly Attendance Summary',
-  'comms-notices': 'Notices',
-  'comms-inbox': 'Inbox',
-  'comms-channels': 'Communication Channels',
+  
+  // Learners
+  'learners-list': 'All Students',
+  'learners-admissions': 'Admissions',
+  'learners-transfers-in': 'Incoming Transfers',
+  'learners-exited': 'Exited Students',
+  'learners-promotion': 'Promotion',
+  'learners-transfer-out': 'Transfer Out',
+  
+  // Teachers/Parents
+  'teachers-list': 'Tutors List',
+  'parents-list': 'Parents List',
+  
+  // Attendance
+  'attendance-daily': 'Daily Attendance',
+  'attendance-reports': 'Attendance Reports',
+  
+  // Communications
+  'comm-notices': 'Notices & Announcements',
+  'comm-messages': 'Messages',
+  
+  // Assessment
   'assess-formative': 'Formative Assessment',
   'assess-formative-report': 'Formative Report',
-  'assess-summative': 'Summative',
-  'assess-performance-scale': 'Performance Level Scale',
   'assess-summative-tests': 'Summative Tests',
   'assess-summative-assessment': 'Summative Assessment',
   'assess-summative-report': 'Summative Report',
   'assess-termly-report': 'Termly Report',
+  'assess-performance-scale': 'Performance Scale',
+  
+  // Learning Hub
+  'learning-hub-materials': 'Class Materials',
+  'learning-hub-assignments': 'Assignments',
+  'learning-hub-lesson-plans': 'Lesson Plans',
+  'learning-hub-library': 'Resource Library',
+  
+  // Fees
+  'fees-structure': 'Fee Structure',
+  'fees-collection': 'Fee Collection',
+  'fees-reports': 'Fee Reports',
+  'fees-statements': 'Student Statements',
+  
+  // Help
+  'help': 'Help & Support',
+  
+  // Settings
   'settings-school': 'School Settings',
-  'settings-streams': 'Streams',
-  'settings-timetable': 'Timetable Management',
-  'settings-system': 'System Settings',
-  'settings-roles': 'Roles',
+  'settings-academic': 'Academic Settings',
   'settings-users': 'System Users',
+  'settings-branding': 'Branding & Customization',
+  'settings-backup': 'Backup & Restore',
+  'settings-communication': 'Communication Settings',
   'settings-profile': 'My Profile'
 };
 

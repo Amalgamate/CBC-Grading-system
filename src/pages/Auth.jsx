@@ -40,12 +40,12 @@ export default function Auth({ onAuthSuccess, brandingSettings }) {
 
   return (
     <div className={`min-h-screen ${
-      currentView === 'login' 
+      currentView === 'login' || currentView === 'register' || currentView === 'verify-email' || currentView === 'welcome' || currentView === 'forgot-password'
         ? '' 
         : 'bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100 flex items-center justify-center p-4'
     }`}>
-      {/* Animated Background Elements - Only show for non-login views */}
-      {currentView !== 'login' && (
+      {/* Animated Background Elements - Only show for wrapped views */}
+      {currentView !== 'login' && currentView !== 'register' && currentView !== 'verify-email' && currentView !== 'welcome' && currentView !== 'forgot-password' && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-20 left-10 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
           <div className="absolute top-40 right-10 w-72 h-72 bg-cyan-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
@@ -55,7 +55,7 @@ export default function Auth({ onAuthSuccess, brandingSettings }) {
 
       {/* Content */}
       <div className={`${
-        currentView === 'login' 
+        currentView === 'login' || currentView === 'register' || currentView === 'verify-email' || currentView === 'welcome' || currentView === 'forgot-password'
           ? 'w-full h-screen' 
           : 'relative z-10 w-full flex items-center justify-center'
       }`}>
@@ -72,12 +72,14 @@ export default function Auth({ onAuthSuccess, brandingSettings }) {
           <RegisterForm
             onSwitchToLogin={() => setCurrentView('login')}
             onRegisterSuccess={handleRegisterSuccess}
+            brandingSettings={brandingSettings}
           />
         )}
 
         {currentView === 'forgot-password' && (
           <ForgotPasswordForm
             onSwitchToLogin={() => setCurrentView('login')}
+            brandingSettings={brandingSettings}
           />
         )}
 
@@ -90,7 +92,9 @@ export default function Auth({ onAuthSuccess, brandingSettings }) {
         {currentView === 'verify-email' && (
           <EmailVerificationForm
             email={userData?.email}
+            phone={userData?.phone}
             onVerifySuccess={handleVerifySuccess}
+            brandingSettings={brandingSettings}
           />
         )}
 
@@ -98,6 +102,7 @@ export default function Auth({ onAuthSuccess, brandingSettings }) {
           <WelcomeScreen
             user={userData}
             onGetStarted={handleGetStarted}
+            brandingSettings={brandingSettings}
           />
         )}
       </div>

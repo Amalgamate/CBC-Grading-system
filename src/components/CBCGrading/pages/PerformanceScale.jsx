@@ -5,7 +5,6 @@
 
 import React, { useState } from 'react';
 import { Award, Plus, Edit, Trash2, Search, Eye } from 'lucide-react';
-import PageHeader from '../shared/PageHeader';
 import { useNotifications } from '../hooks/useNotifications';
 
 const PerformanceScale = () => {
@@ -155,11 +154,7 @@ const PerformanceScale = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Performance Level Scale"
-        subtitle="Manage custom grading scales for different grades and terms"
-        icon={Award}
-        actions={
+      <div className="flex justify-end mb-4">
           <button
             onClick={() => handleOpenModal()}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
@@ -167,8 +162,7 @@ const PerformanceScale = () => {
             <Plus size={20} />
             New Performance Level Scale
           </button>
-        }
-      />
+      </div>
 
       {/* Search Bar */}
       <div className="bg-white rounded-xl shadow-md p-4">

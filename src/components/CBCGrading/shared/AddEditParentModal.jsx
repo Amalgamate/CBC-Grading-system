@@ -10,37 +10,31 @@ const AddEditParentModal = ({ show, onClose, onSave, parent = null, learners = [
   const isEdit = parent !== null;
   
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
-    relationship: 'Father',
-    occupation: '',
-    employer: '',
-    idNumber: '',
-    county: 'Nairobi',
-    subcounty: '',
-    address: '',
-    learnerIds: []
+    password: ''
   });
 
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (parent) {
-      setFormData(parent);
+      setFormData({
+        firstName: parent.firstName || '',
+        lastName: parent.lastName || '',
+        email: parent.email || '',
+        phone: parent.phone || '',
+        password: '' // Don't populate password for edits
+      });
     } else {
       setFormData({
-        name: '',
+        firstName: '',
+        lastName: '',
         email: '',
         phone: '',
-        relationship: 'Father',
-        occupation: '',
-        employer: '',
-        idNumber: '',
-        county: 'Nairobi',
-        subcounty: '',
-        address: '',
-        learnerIds: []
+        password: ''
       });
     }
   }, [parent, show]);
@@ -66,8 +60,18 @@ const AddEditParentModal = ({ show, onClose, onSave, parent = null, learners = [
   const validate = () => {
     const newErrors = {};
     
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
+    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
+    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
     if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
+    
+    // Password is only required for new parents
+    if (!isEdit && !formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password && formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -78,13 +82,20 @@ const AddEditParentModal = ({ show, onClose, onSave, parent = null, learners = [
     
     if (!validate()) return;
     
+    // Prepare data for API
     const parentData = {
-      ...formData,
-      id: parent?.id || Date.now()
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone
     };
+
+    // Only include password if it's provided
+    if (formData.password) {
+      parentData.password = formData.password;
+    }
     
     onSave(parentData);
-    onClose();
   };
 
   if (!show) return null;
@@ -116,55 +127,38 @@ const AddEditParentModal = ({ show, onClose, onSave, parent = null, learners = [
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
+                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Full Name <span className="text-red-500">*</span>
+                    First Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    name="name"
-                    value={formData.name}
+                    name="firstName"
+                    value={formData.firstName}
                     onChange={handleChange}
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
-                      errors.name ? 'border-red-500' : 'border-gray-300'
+                      errors.firstName ? 'border-red-500' : 'border-gray-300'
                     }`}
-                    placeholder="Enter full name"
+                    placeholder="Enter first name"
                   />
-                  {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+                  {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Relationship
-                  </label>
-                  <select
-                    name="relationship"
-                    value={formData.relationship}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value="Father">Father</option>
-                    <option value="Mother">Mother</option>
-                    <option value="Guardian">Guardian</option>
-                    <option value="Grandparent">Grandparent</option>
-                    <option value="Uncle">Uncle</option>
-                    <option value="Aunt">Aunt</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    ID Number
+                    Last Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    name="idNumber"
-                    value={formData.idNumber}
+                    name="lastName"
+                    value={formData.lastName}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                    placeholder="ID Number"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
+                      errors.lastName ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="Enter last name"
                   />
+                  {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
                 </div>
               </div>
             </div>
@@ -196,137 +190,58 @@ const AddEditParentModal = ({ show, onClose, onSave, parent = null, learners = [
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Email Address
+                    Email Address <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    disabled={isEdit} // Can't change email when editing
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
+                      errors.email ? 'border-red-500' : 'border-gray-300'
+                    } ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     placeholder="email@example.com"
                   />
+                  {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                  {isEdit && <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>}
                 </div>
               </div>
             </div>
 
-            {/* Employment Information */}
+            {/* Account Security */}
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-4">
                 <Briefcase className="text-green-600" size={20} />
-                <h3 className="text-lg font-bold text-green-900">Employment Information</h3>
+                <h3 className="text-lg font-bold text-green-900">Account Security</h3>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Occupation
-                  </label>
-                  <input
-                    type="text"
-                    name="occupation"
-                    value={formData.occupation}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                    placeholder="e.g., Teacher, Engineer"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Employer
-                  </label>
-                  <input
-                    type="text"
-                    name="employer"
-                    value={formData.employer}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                    placeholder="Company/Organization"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Password {!isEdit && <span className="text-red-500">*</span>}
+                  {isEdit && <span className="text-gray-500 text-xs ml-2">(Leave empty to keep current password)</span>}
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
+                    errors.password ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder={isEdit ? "Enter new password (optional)" : "Enter password (min 8 characters)"}
+                />
+                {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+                {!isEdit && <p className="text-xs text-gray-500 mt-1">Minimum 8 characters required</p>}
               </div>
             </div>
 
-            {/* Location Information */}
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <MapPin className="text-orange-600" size={20} />
-                <h3 className="text-lg font-bold text-orange-900">Location Information</h3>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    County
-                  </label>
-                  <input
-                    type="text"
-                    name="county"
-                    value={formData.county}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                    placeholder="Nairobi"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Sub-County
-                  </label>
-                  <input
-                    type="text"
-                    name="subcounty"
-                    value={formData.subcounty}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                    placeholder="Westlands"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Residential Address
-                  </label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                    placeholder="Street address"
-                  />
-                </div>
-              </div>
+            {/* Info Box */}
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <p className="text-sm text-purple-800">
+                <strong>Note:</strong> The parent will be created with the role "PARENT" and can access the system to view their children's information.
+              </p>
             </div>
-
-            {/* Link to Learners */}
-            {learners.length > 0 && (
-              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Users className="text-indigo-600" size={20} />
-                  <h3 className="text-lg font-bold text-indigo-900">Linked Learners</h3>
-                </div>
-                
-                <div className="space-y-2">
-                  {learners.map(learner => (
-                    <label key={learner.id} className="flex items-center gap-3 p-3 bg-white rounded-lg cursor-pointer hover:bg-indigo-50 transition">
-                      <input
-                        type="checkbox"
-                        checked={formData.learnerIds.includes(learner.id)}
-                        onChange={() => handleLearnerToggle(learner.id)}
-                        className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-                      />
-                      <span className="text-2xl">{learner.avatar}</span>
-                      <div>
-                        <p className="font-semibold text-gray-800">{learner.firstName} {learner.lastName}</p>
-                        <p className="text-xs text-gray-500">{learner.admNo} - {learner.grade} {learner.stream}</p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </form>
 

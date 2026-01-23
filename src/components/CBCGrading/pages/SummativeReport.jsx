@@ -3,8 +3,7 @@
  */
 
 import React, { useState } from 'react';
-import { BarChart3, Download, Printer } from 'lucide-react';
-import PageHeader from '../shared/PageHeader';
+import { Download, Printer } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 
 const SummativeReport = ({ learners }) => {
@@ -23,7 +22,6 @@ const SummativeReport = ({ learners }) => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Summative Report" subtitle="View summative assessment reports" icon={BarChart3} />
 
       <div className="bg-white rounded-xl shadow-md p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -31,7 +29,7 @@ const SummativeReport = ({ learners }) => {
             <label className="block text-sm font-semibold text-gray-700 mb-2">Learner</label>
             <select value={selectedLearnerId} onChange={(e) => setSelectedLearnerId(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
               <option value="">Select Learner</option>
-              {learners.filter(l => l.status === 'Active').map(l => <option key={l.id} value={l.id}>{l.firstName} {l.lastName} ({l.admNo})</option>)}
+              {learners.filter(l => l.status === 'ACTIVE' || l.status === 'Active').map(l => <option key={l.id} value={l.id}>{l.firstName} {l.lastName} ({l.admNo})</option>)}
             </select>
           </div>
           <div>

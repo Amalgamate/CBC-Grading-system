@@ -4,8 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { CheckCircle, ArrowRight, Users, GraduationCap } from 'lucide-react';
-import PageHeader from '../shared/PageHeader';
+import { CheckCircle, ArrowRight, Users } from 'lucide-react';
 import EmptyState from '../shared/EmptyState';
 
 const PromotionPage = ({ learners = [], onPromote, showNotification }) => {
@@ -60,12 +59,6 @@ const PromotionPage = ({ learners = [], onPromote, showNotification }) => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <PageHeader
-        title="Learner Promotion"
-        subtitle="Promote learners to the next grade level"
-        icon={GraduationCap}
-      />
 
       {/* Step 1: Select Source Class */}
       <div className="bg-white rounded-xl shadow-md p-6">

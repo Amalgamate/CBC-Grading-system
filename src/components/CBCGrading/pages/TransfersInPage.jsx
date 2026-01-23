@@ -5,7 +5,6 @@
 
 import React, { useState } from 'react';
 import { UserPlus, CheckCircle, XCircle, Eye, Search, Filter } from 'lucide-react';
-import PageHeader from '../shared/PageHeader';
 import EmptyState from '../shared/EmptyState';
 import { useNotifications } from '../hooks/useNotifications';
 
@@ -66,11 +65,6 @@ const TransfersInPage = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Transfers In"
-        subtitle="Manage incoming student transfers from other schools"
-        icon={UserPlus}
-      />
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

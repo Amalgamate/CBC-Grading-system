@@ -58,6 +58,15 @@ desktop.ini
 
 # Ignore local backup folder
 _backup_removed_files/
+backup_removed/
+
+# Ignore sensitive data files
+*.csv
+*.xls
+*.xlsx
+
+# Temporary files
+temp_login.json
 
 # Ignore local history / backups (personal)
 .history/

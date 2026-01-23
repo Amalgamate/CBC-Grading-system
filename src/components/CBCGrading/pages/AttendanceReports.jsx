@@ -4,8 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Calendar, Download, FileText, CheckCircle, XCircle, Clock, Users, BarChart3 } from 'lucide-react';
-import PageHeader from '../shared/PageHeader';
+import { Calendar, Download, FileText, CheckCircle, XCircle, Clock, Users } from 'lucide-react';
 import StatsCard from '../shared/StatsCard';
 import EmptyState from '../shared/EmptyState';
 import { useAttendance } from '../hooks/useAttendance';
@@ -41,18 +40,13 @@ const AttendanceReports = ({ learners }) => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <PageHeader
-        title="Attendance Reports"
-        subtitle="Generate and analyze attendance data"
-        icon={BarChart3}
-        actions={
+      {/* Actions Toolbar */}
+      <div className="flex justify-end mb-4">
           <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
             <Download size={20} />
             Export Report
           </button>
-        }
-      />
+      </div>
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-md p-6">

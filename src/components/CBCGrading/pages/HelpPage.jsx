@@ -5,7 +5,6 @@
 
 import React, { useState } from 'react';
 import { Book, Search, ChevronDown, ChevronRight, HelpCircle, FileText, Video, Mail, MessageSquare, Settings } from 'lucide-react';
-import PageHeader from '../shared/PageHeader';
 
 const HelpPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -271,11 +270,6 @@ const HelpPage = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Help & Documentation"
-        subtitle="Complete guide to using the CBC Grading System"
-        icon={HelpCircle}
-      />
 
       {/* Search Bar */}
       <div className="bg-white rounded-xl shadow-md p-6">

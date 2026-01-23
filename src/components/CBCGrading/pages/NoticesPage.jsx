@@ -3,8 +3,7 @@
  */
 
 import React, { useState } from 'react';
-import { Megaphone, Plus, Edit, Trash2, X, Eye } from 'lucide-react';
-import PageHeader from '../shared/PageHeader';
+import { Plus, Edit, Trash2, X, Eye } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 
 const NoticesPage = () => {
@@ -25,9 +24,9 @@ const NoticesPage = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Notices & Announcements" subtitle="School-wide communication" icon={Megaphone}
-        actions={<button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><Plus size={20} /> Create Notice</button>}
-      />
+      <div className="flex justify-end mb-4">
+        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><Plus size={20} /> Create Notice</button>
+      </div>
 
       <div className="grid grid-cols-1 gap-4">
         {notices.map(notice => (

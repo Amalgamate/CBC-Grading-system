@@ -5,7 +5,6 @@
 
 import React, { useState } from 'react';
 import { CheckCircle, FileText, AlertCircle } from 'lucide-react';
-import PageHeader from '../shared/PageHeader';
 import { TRANSFER_REASONS } from '../utils/constants';
 import { getCurrentDate } from '../utils/dateHelpers';
 
@@ -87,12 +86,6 @@ const TransferOutPage = ({ learners = [], onTransferOut, showNotification }) => 
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <PageHeader
-        title="Transfer Out Learner"
-        subtitle="Process a learner transfer to another institution"
-        icon={FileText}
-      />
 
       {/* Transfer Form */}
       <div className="max-w-3xl mx-auto">

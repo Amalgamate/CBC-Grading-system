@@ -4,8 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { FileText, Plus, Edit, Trash2, Eye, X } from 'lucide-react';
-import PageHeader from '../shared/PageHeader';
+import { Plus, Edit, Trash2, Eye, X } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 
 const SummativeTests = () => {
@@ -68,16 +67,11 @@ const SummativeTests = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Summative Tests"
-        subtitle="Create and manage summative tests and examinations"
-        icon={FileText}
-        actions={
+      <div className="flex justify-end mb-4">
           <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
             <Plus size={20} /> Create New Test
           </button>
-        }
-      />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

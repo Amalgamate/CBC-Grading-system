@@ -1,35 +1,38 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, Users } from 'lucide-react';
 
 export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword, onLoginSuccess, brandingSettings }) {
-  // Mock admin credentials pre-filled for easy access
   const [formData, setFormData] = useState({
-    email: 'admin@zawadijrn.ac.ke',
-    password: 'admin123',
-    rememberMe: true
+    email: '',
+    password: '',
+    rememberMe: false
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  const [showSampleUsers, setShowSampleUsers] = useState(false);
-  const sampleUsersRef = useRef(null);
+  const [seededUsers, setSeededUsers] = useState([]);
+  const [showSeededUsers, setShowSeededUsers] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
-  // Close dropdown when clicking outside
+  // Fetch seeded users for development
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (sampleUsersRef.current && !sampleUsersRef.current.contains(event.target)) {
-        setShowSampleUsers(false);
+    const fetchSeededUsers = async () => {
+      try {
+        setLoadingUsers(true);
+        const response = await fetch('http://localhost:5000/api/auth/seeded-users');
+        if (response.ok) {
+          const data = await response.json();
+          setSeededUsers(data.users || []);
+        }
+      } catch (error) {
+        console.log('Seeded users not available (production mode or not seeded yet)');
+      } finally {
+        setLoadingUsers(false);
       }
     };
 
-    if (showSampleUsers) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showSampleUsers]);
+    fetchSeededUsers();
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -50,82 +53,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
     return Object.keys(newErrors).length === 0;
   };
 
-  // Mock users database for authentication
-  const mockUsers = [
-    { 
-      email: 'admin@zawadijrn.ac.ke', 
-      password: 'admin123', 
-      name: 'System Administrator', 
-      role: 'Administrator',
-      empNo: 'EMP001',
-      department: 'Administration'
-    },
-    { 
-      email: 'grace.wanjiru@zawadijrn.ac.ke', 
-      password: 'teacher123', 
-      name: 'Grace Wanjiru', 
-      role: 'Teacher',
-      empNo: 'TCH002',
-      department: 'Academic'
-    },
-    { 
-      email: 'david.omondi@zawadijrn.ac.ke', 
-      password: 'teacher123', 
-      name: 'David Omondi', 
-      role: 'Teacher',
-      empNo: 'TCH003',
-      department: 'Academic'
-    }
-  ];
 
-  // Sample users for quick login
-  const sampleUsers = [
-    { 
-      label: 'Admin User', 
-      email: 'admin@zawadijrn.ac.ke', 
-      password: 'admin123', 
-      role: 'Administrator' 
-    },
-    { 
-      label: 'Teacher - Grace Wanjiru', 
-      email: 'grace.wanjiru@zawadijrn.ac.ke', 
-      password: 'teacher123', 
-      role: 'Teacher' 
-    },
-    { 
-      label: 'Teacher - David Omondi', 
-      email: 'david.omondi@zawadijrn.ac.ke', 
-      password: 'teacher123', 
-      role: 'Teacher' 
-    },
-    { 
-      label: 'Parent User (Coming Soon)', 
-      email: '', 
-      password: '', 
-      role: 'Parent',
-      disabled: true 
-    },
-    { 
-      label: 'Student User (Coming Soon)', 
-      email: '', 
-      password: '', 
-      role: 'Student',
-      disabled: true 
-    }
-  ];
-
-  // Function to populate credentials from sample users
-  const selectSampleUser = (user) => {
-    if (!user.disabled) {
-      setFormData({
-        email: user.email,
-        password: user.password,
-        rememberMe: true
-      });
-      setShowSampleUsers(false);
-      setErrors({});
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -134,30 +62,53 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
     
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // Check against mock users
-      const user = mockUsers.find(
-        u => u.email === formData.email && u.password === formData.password
-      );
-      
-      if (user) {
+    try {
+      // Call backend API for authentication
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store token
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          if (formData.rememberMe) {
+            localStorage.setItem('authToken', data.token);
+          }
+        }
+        
         onLoginSuccess({
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          empNo: user.empNo,
-          department: user.department
+          email: data.user.email,
+          name: `${data.user.firstName} ${data.user.lastName}`,
+          role: data.user.role,
+          id: data.user.id,
+          firstName: data.user.firstName,
+          lastName: data.user.lastName
         });
       } else {
         setErrors({
-          email: 'Invalid email or password',
-          password: 'Invalid email or password'
+          email: data.message || 'Invalid email or password',
+          password: data.message || 'Invalid email or password'
         });
       }
-    }, 1500);
+    } catch (error) {
+      console.error('Login error:', error);
+      setErrors({
+        email: 'Unable to connect to server. Please try again.',
+        password: 'Unable to connect to server. Please try again.'
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -171,6 +122,16 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+  };
+
+  const handleSelectSeededUser = (user) => {
+    setFormData({
+      email: user.email,
+      password: user.passwordHint,
+      rememberMe: true
+    });
+    setShowSeededUsers(false);
+    setErrors({});
   };
 
   return (
@@ -231,58 +192,67 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
               <p className="text-gray-600">Sign in to continue to your dashboard</p>
             </div>
 
-            {/* Sample Users Floating Button */}
-            <div className="relative mb-6" ref={sampleUsersRef}>
-              <button
-                type="button"
-                onClick={() => setShowSampleUsers(!showSampleUsers)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg"
-              >
-                <Users size={18} />
-                <span className="font-medium">Sample Users</span>
-              </button>
+            {/* Seeded Users Button - Development Only */}
+            {seededUsers.length > 0 && (
+              <div className="mb-6">
+                <button
+                  type="button"
+                  onClick={() => setShowSeededUsers(!showSeededUsers)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg font-semibold"
+                >
+                  <Users size={20} />
+                  <span>Development Users ({seededUsers.length})</span>
+                </button>
 
-              {/* Sample Users Dropdown */}
-              {showSampleUsers && (
-                <div className="absolute top-full mt-2 left-0 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-10 overflow-hidden">
-                  <div className="bg-blue-50 px-4 py-3 border-b border-blue-100">
-                    <h3 className="font-semibold text-blue-900 text-sm">Select a Sample User</h3>
-                    <p className="text-xs text-blue-600 mt-0.5">Click to auto-fill credentials</p>
-                  </div>
-                  <div className="max-h-80 overflow-y-auto">
-                    {sampleUsers.map((user, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        onClick={() => selectSampleUser(user)}
-                        disabled={user.disabled}
-                        className={`w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 transition-colors ${
-                          user.disabled 
-                            ? 'bg-gray-50 cursor-not-allowed opacity-60' 
-                            : 'hover:bg-blue-50 cursor-pointer'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="font-semibold text-gray-900 text-sm">{user.label}</div>
-                            {!user.disabled && (
-                              <div className="text-xs text-gray-600 mt-1 space-y-0.5">
-                                <div className="font-mono">{user.email}</div>
-                                <div className="flex items-center gap-2">
-                                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-[10px] font-medium">
-                                    {user.role}
-                                  </span>
+                {/* Seeded Users Dropdown */}
+                {showSeededUsers && (
+                  <div className="mt-2 bg-white border-2 border-purple-200 rounded-lg shadow-xl overflow-hidden animate-fade-in">
+                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-4 py-3 border-b border-purple-100">
+                      <h3 className="font-bold text-purple-900 text-sm">Seeded Development Users</h3>
+                      <p className="text-xs text-purple-600 mt-0.5">Click to auto-fill credentials</p>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {loadingUsers ? (
+                        <div className="px-4 py-6 text-center text-gray-500">
+                          <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                          Loading users...
+                        </div>
+                      ) : (
+                        seededUsers.map((user, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => handleSelectSeededUser(user)}
+                            className="w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-purple-50 transition-colors"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="font-semibold text-gray-900 text-sm">
+                                  {user.firstName} {user.lastName}
+                                </div>
+                                <div className="text-xs text-gray-600 mt-1 space-y-0.5">
+                                  <div className="font-mono">{user.email}</div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-semibold">
+                                      {user.role}
+                                    </span>
+                                    <span className="text-[10px] text-gray-500">
+                                      Password: {user.passwordHint}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
+
+
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Email Field */}
@@ -404,6 +374,22 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
           </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

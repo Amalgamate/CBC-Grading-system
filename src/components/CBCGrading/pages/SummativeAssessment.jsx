@@ -4,8 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Edit3, Save, TrendingUp } from 'lucide-react';
-import PageHeader from '../shared/PageHeader';
+import { Save, TrendingUp } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 
 const SummativeAssessment = ({ learners }) => {
@@ -19,7 +18,7 @@ const SummativeAssessment = ({ learners }) => {
   ];
 
   const selectedTestData = tests.find(t => t.id === parseInt(selectedTest));
-  const classLearners = selectedTestData ? learners.filter(l => l.grade === selectedTestData.grade && l.stream === selectedTestData.stream && l.status === 'Active') : [];
+  const classLearners = selectedTestData ? learners.filter(l => l.grade === selectedTestData.grade && l.stream === selectedTestData.stream && (l.status === 'ACTIVE' || l.status === 'Active')) : [];
 
   const handleMarkChange = (learnerId, mark) => {
     setMarks(prev => ({ ...prev, [learnerId]: Math.min(mark, selectedTestData?.totalMarks || 100) }));
@@ -42,7 +41,6 @@ const SummativeAssessment = ({ learners }) => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Summative Assessment" subtitle="Mark summative tests for learners" icon={Edit3} />
 
       <div className="bg-white rounded-xl shadow-md p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
