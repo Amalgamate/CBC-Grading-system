@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Mail, Phone, BookOpen } from 'lucide-react';
+import { X, Save, User, Mail, BookOpen } from 'lucide-react';
 
 const AddEditTeacherModal = ({ show, onClose, onSave, teacher = null }) => {
   const isEdit = teacher !== null;

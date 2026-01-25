@@ -131,7 +131,7 @@ const PhotoUploadComponent = ({ currentPhoto, onPhotoChange, learnerName }) => {
             <div className="relative group">
               <img
                 src={capturedPhoto}
-                alt={`${learnerName || 'Student'} photo`}
+                alt={learnerName || 'Student'}
                 className="w-32 h-32 rounded-full object-cover border-4 border-blue-500 shadow-lg"
               />
               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-full transition flex items-center justify-center">

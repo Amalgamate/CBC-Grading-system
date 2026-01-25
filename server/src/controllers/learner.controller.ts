@@ -9,7 +9,7 @@ import { Response } from 'express';
 import prisma from '../config/database';
 import { ApiError } from '../utils/error.util';
 import { AuthRequest } from '../middleware/permissions.middleware';
-import { Grade, Stream, LearnerStatus, Gender } from '@prisma/client';
+import { Grade, LearnerStatus, Gender } from '@prisma/client';
 
 export class LearnerController {
   /**
@@ -40,7 +40,7 @@ export class LearnerController {
     
     // Apply filters
     if (grade) whereClause.grade = grade as Grade;
-    if (stream) whereClause.stream = stream as Stream;
+    if (stream) whereClause.stream = String(stream);
     if (status) whereClause.status = status as LearnerStatus;
     
     // Search by name or admission number
@@ -298,7 +298,7 @@ export class LearnerController {
         dateOfBirth: new Date(dateOfBirth),
         gender: gender as Gender,
         grade: grade as Grade,
-        stream: stream as Stream,
+        stream: stream as any,
         parentId,
         guardianName,
         guardianPhone,
@@ -398,7 +398,7 @@ export class LearnerController {
     if (dateOfBirth) updateData.dateOfBirth = new Date(dateOfBirth);
     if (gender) updateData.gender = gender as Gender;
     if (grade) updateData.grade = grade as Grade;
-    if (stream !== undefined) updateData.stream = stream as Stream;
+    if (stream !== undefined) updateData.stream = stream as any;
     if (parentId !== undefined) updateData.parentId = parentId;
     if (guardianName !== undefined) updateData.guardianName = guardianName;
     if (guardianPhone !== undefined) updateData.guardianPhone = guardianPhone;
@@ -484,7 +484,7 @@ export class LearnerController {
     };
 
     if (stream) {
-      whereClause.stream = stream as Stream;
+      whereClause.stream = stream as any;
     }
 
     const learners = await prisma.learner.findMany({

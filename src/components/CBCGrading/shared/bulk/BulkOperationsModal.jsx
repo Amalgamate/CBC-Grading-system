@@ -6,6 +6,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Upload, Download, FileDown, AlertCircle, CheckCircle, Loader, Building2, MapPin } from 'lucide-react';
+import { schoolAPI, API_BASE_URL } from '../../../../services/api';
 
 const BulkOperationsModal = ({ 
   isOpen, 
@@ -41,27 +42,19 @@ const BulkOperationsModal = ({
   const fetchSchools = async () => {
     setLoadingSchools(true);
     try {
-      const response = await fetch('http://localhost:5000/api/schools', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken')}`
-        }
-      });
+      const result = await schoolAPI.getAll();
       
-      if (response.ok) {
-        const result = await response.json();
-        
-        // Handle different response formats
-        // API returns {data: [...], count: n} format
-        const schoolsArray = Array.isArray(result) ? result : (result.data || result.schools || []);
-        setSchools(schoolsArray);
-        
-        // Auto-select if only one school
-        if (schoolsArray.length === 1) {
-          setSelectedSchool(schoolsArray[0].id);
-          // Auto-select if only one branch
-          if (schoolsArray[0].branches?.length === 1) {
-            setSelectedBranch(schoolsArray[0].branches[0].id);
-          }
+      // Handle different response formats
+      // API returns {data: [...], count: n} format
+      const schoolsArray = Array.isArray(result) ? result : (result.data || result.schools || []);
+      setSchools(schoolsArray);
+      
+      // Auto-select if only one school
+      if (schoolsArray.length === 1) {
+        setSelectedSchool(schoolsArray[0].id);
+        // Auto-select if only one branch
+        if (schoolsArray[0].branches?.length === 1) {
+          setSelectedBranch(schoolsArray[0].branches[0].id);
         }
       }
     } catch (error) {

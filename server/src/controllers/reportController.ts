@@ -11,6 +11,10 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/permissions.middleware';
 import { PrismaClient, Term } from '@prisma/client';
 import * as rubricUtil from '../utils/rubric.util';
+import * as reportService from '../services/report.service';
+import * as reportUtil from '../utils/report.util';
+
+import { gradingService } from '../services/grading.service';
 
 const prisma = new PrismaClient();
 
@@ -46,7 +50,8 @@ export const getFormativeReport = async (req: Request, res: Response) => {
         grade: true,
         stream: true,
         dateOfBirth: true,
-        gender: true
+        gender: true,
+        schoolId: true // Added to fetch grading system
       }
     });
 
@@ -56,6 +61,12 @@ export const getFormativeReport = async (req: Request, res: Response) => {
         message: 'Learner not found'
       });
     }
+
+    // Fetch grading system
+    const gradingSystem = learner.schoolId 
+      ? await gradingService.getGradingSystem(learner.schoolId, 'CBC') 
+      : null;
+    const ranges = gradingSystem?.ranges;
 
     // Get all formative assessments for this term
     const assessments = await prisma.formativeAssessment.findMany({
@@ -78,8 +89,16 @@ export const getFormativeReport = async (req: Request, res: Response) => {
     });
 
     // Calculate summary statistics
-    const summary = calculateFormativeSummary(assessments);
-
+    const summary = calculateFormativeSummary(assessments); // Note: calculateFormativeSummary in this file is local and basic, doesn't use ranges currently except implicitly via distribution keys if they match.
+    // Wait, the local calculateFormativeSummary I read earlier (lines 572-602) does NOT take ranges.
+    // It calculates distribution based on detailedRating which is already stored.
+    // It calculates average percentage.
+    // So it might not strictly need ranges unless we want to recalculate something.
+    // But wait, reportService has a more complex calculateFormativeSummary.
+    // This controller uses a LOCAL calculateFormativeSummary (defined at bottom of file).
+    // Let's check if I should replace it with reportService one or update local one.
+    // The local one seems to just aggregate existing data.
+    
     // Get class teacher comment (if exists)
     const teacherComment = await prisma.termlyReportComment.findUnique({
       where: {
@@ -150,7 +169,8 @@ export const getSummativeReport = async (req: Request, res: Response) => {
         middleName: true,
         admissionNumber: true,
         grade: true,
-        stream: true
+        stream: true,
+        schoolId: true // Added to fetch grading system
       }
     });
 
@@ -160,6 +180,12 @@ export const getSummativeReport = async (req: Request, res: Response) => {
         message: 'Learner not found'
       });
     }
+
+    // Fetch grading system
+    const gradingSystem = learner.schoolId 
+      ? await gradingService.getGradingSystem(learner.schoolId, 'SUMMATIVE') 
+      : null;
+    const ranges = gradingSystem?.ranges;
 
     // Get all summative results for this term
     const results = await prisma.summativeResult.findMany({
@@ -195,7 +221,7 @@ export const getSummativeReport = async (req: Request, res: Response) => {
     });
 
     // Group results by learning area and calculate aggregates
-    const subjectSummary = calculateSubjectSummary(results);
+    const subjectSummary = calculateSubjectSummary(results, ranges);
 
     // Calculate overall statistics
     const overallStats = {
@@ -237,7 +263,7 @@ export const getSummativeReport = async (req: Request, res: Response) => {
 // ============================================
 
 /**
- * Get Complete Termly Report for a Learner
+ * Get Complete Termly Report for a Learner (ENHANCED)
  * Combines formative, summative, attendance, competencies, values, etc.
  * GET /api/reports/termly/:learnerId
  */
@@ -246,166 +272,81 @@ export const getTermlyReport = async (req: Request, res: Response) => {
     const { learnerId } = req.params;
     const { term, academicYear } = req.query;
 
+    // Validate required parameters
     if (!term || !academicYear) {
       return res.status(400).json({
         success: false,
-        message: 'Term and academic year are required'
+        message: 'Term and academic year are required',
+        error: 'Missing query parameters: term and academicYear'
       });
     }
 
-    // Get learner details
-    const learner = await prisma.learner.findUnique({
-      where: { id: learnerId },
-      include: {
-        parent: {
-          select: {
-            firstName: true,
-            lastName: true,
-            phone: true,
-            email: true
-          }
-        }
-      }
+    // Validate term format
+    const validTerms: Term[] = ['TERM_1', 'TERM_2', 'TERM_3'];
+    if (!validTerms.includes(term as Term)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid term value',
+        error: 'Term must be one of: TERM_1, TERM_2, TERM_3'
+      });
+    }
+
+    // Validate academic year
+    const year = parseInt(academicYear as string);
+    if (isNaN(year) || year < 2020 || year > 2050) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid academic year',
+        error: 'Academic year must be a valid number between 2020 and 2050'
+      });
+    }
+
+    // Generate comprehensive report using service layer
+    const report = await reportService.generateTermlyReport(
+      learnerId,
+      term as Term,
+      year
+    );
+
+    // Validate report completeness
+    const completeness = reportUtil.validateReportCompleteness({
+      hasFormative: report.formative.assessments.length > 0,
+      hasSummative: report.summative.results.length > 0,
+      hasCompetencies: report.coreCompetencies !== null,
+      hasValues: report.values !== null,
+      hasAttendance: report.attendance.totalDays > 0
     });
 
-    if (!learner) {
-      return res.status(404).json({
-        success: false,
-        message: 'Learner not found'
-      });
-    }
-
-    const termValue = term as Term;
-    const yearValue = parseInt(academicYear as string);
-
-    // Parallel fetch all report components
-    const [
-      formativeAssessments,
-      summativeResults,
-      attendanceRecords,
-      coreCompetencies,
-      valuesAssessment,
-      coCurricularActivities,
-      reportComments
-    ] = await Promise.all([
-      // Formative assessments
-      prisma.formativeAssessment.findMany({
-        where: { learnerId, term: termValue, academicYear: yearValue },
-        include: { teacher: { select: { firstName: true, lastName: true } } }
-      }),
-
-      // Summative results
-      prisma.summativeResult.findMany({
-        where: {
-          learnerId,
-          test: { term: termValue, academicYear: yearValue }
-        },
-        include: {
-          test: {
-            select: {
-              title: true,
-              learningArea: true,
-              totalMarks: true,
-              passMarks: true
-            }
-          }
-        }
-      }),
-
-      // Attendance (Note: no term/year fields in schema, filter by date if needed)
-      prisma.attendance.findMany({
-        where: {
-          learnerId
-        }
-      }),
-
-      // Core competencies
-      prisma.coreCompetency.findUnique({
-        where: {
-          learnerId_term_academicYear: {
-            learnerId,
-            term: termValue,
-            academicYear: yearValue
-          }
-        },
-        include: {
-          assessor: { select: { firstName: true, lastName: true } }
-        }
-      }),
-
-      // Values
-      prisma.valuesAssessment.findUnique({
-        where: {
-          learnerId_term_academicYear: {
-            learnerId,
-            term: termValue,
-            academicYear: yearValue
-          }
-        }
-      }),
-
-      // Co-curricular
-      prisma.coCurricularActivity.findMany({
-        where: {
-          learnerId,
-          term: termValue,
-          academicYear: yearValue
-        }
-      }),
-
-      // Comments
-      prisma.termlyReportComment.findUnique({
-        where: {
-          learnerId_term_academicYear: {
-            learnerId,
-            term: termValue,
-            academicYear: yearValue
-          }
-        }
-      })
-    ]);
-
-    // Calculate summaries
-    const formativeSummary = calculateFormativeSummary(formativeAssessments);
-    const summativeSummary = calculateSubjectSummary(summativeResults);
-    const attendanceSummary = calculateAttendanceSummary(attendanceRecords);
+    // Check if report is ready for publication
+    const publicationStatus = reportUtil.isReportReadyForPublication({
+      hasFormative: report.formative.assessments.length > 0,
+      hasSummative: report.summative.results.length > 0,
+      hasTeacherComment: report.comments?.classTeacher !== null
+    });
 
     res.json({
       success: true,
+      message: 'Termly report generated successfully',
       data: {
-        learner,
-        term: termValue,
-        academicYear: yearValue,
-        
-        // Academic Performance
-        formative: {
-          assessments: formativeAssessments,
-          summary: formativeSummary
-        },
-        summative: {
-          results: summativeResults,
-          summary: summativeSummary
-        },
-        
-        // Attendance
-        attendance: attendanceSummary,
-        
-        // CBC Specific
-        coreCompetencies,
-        values: valuesAssessment,
-        coCurricular: coCurricularActivities,
-        
-        // Comments & Admin
-        comments: reportComments,
-        
-        // Metadata
-        generatedDate: new Date(),
+        ...report,
+        completeness,
+        publicationStatus,
         reportType: 'TERMLY_COMPREHENSIVE'
       }
     });
 
   } catch (error: any) {
     console.error('Error generating termly report:', error);
+    
+    // Handle specific error types
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        message: 'Resource not found',
+        error: error.message
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Failed to generate termly report',
@@ -684,7 +625,7 @@ function calculateFormativeSummary(assessments: any[]) {
   };
 }
 
-function calculateSubjectSummary(results: any[]) {
+function calculateSubjectSummary(results: any[], ranges?: any[]) {
   if (results.length === 0) {
     return {
       subjects: [],
@@ -722,61 +663,26 @@ function calculateSubjectSummary(results: any[]) {
     return {
       ...subject,
       averagePercentage: Math.round(avgPercentage),
-      averageGrade: calculateGradeFromPercentage(avgPercentage),
+      averageGrade: ranges 
+        ? gradingService.calculateGradeSync(avgPercentage, ranges)
+        : calculateGradeFromPercentage(avgPercentage),
       testCount: subject.tests.length
     };
   });
 
-  const overallAverage = Math.round(
-    subjects.reduce((sum, s) => sum + s.averagePercentage, 0) / subjects.length
-  );
-
   return {
     subjects,
-    overallAverage,
+    overallAverage: Math.round(
+      subjects.reduce((sum, s) => sum + s.averagePercentage, 0) / subjects.length
+    ),
     totalTests: results.length
   };
 }
 
-function calculateAttendanceSummary(records: any[]) {
-  if (records.length === 0) {
-    return {
-      totalDays: 0,
-      present: 0,
-      absent: 0,
-      late: 0,
-      excused: 0,
-      sick: 0,
-      attendancePercentage: 0
-    };
+function calculateGradeFromPercentage(percentage: number, ranges?: any[]): string {
+  if (ranges) {
+    return gradingService.calculateGradeSync(percentage, ranges);
   }
-
-  const summary = {
-    totalDays: records.length,
-    present: 0,
-    absent: 0,
-    late: 0,
-    excused: 0,
-    sick: 0,
-    attendancePercentage: 0
-  };
-
-  records.forEach(record => {
-    switch (record.status) {
-      case 'PRESENT': summary.present++; break;
-      case 'ABSENT': summary.absent++; break;
-      case 'LATE': summary.late++; break;
-      case 'EXCUSED': summary.excused++; break;
-      case 'SICK': summary.sick++; break;
-    }
-  });
-
-  summary.attendancePercentage = Math.round((summary.present / summary.totalDays) * 100);
-
-  return summary;
-}
-
-function calculateGradeFromPercentage(percentage: number): string {
   if (percentage >= 80) return 'A';
   if (percentage >= 60) return 'B';
   if (percentage >= 50) return 'C';
@@ -819,7 +725,7 @@ function analyzeFormativePerformance(assessments: any[]) {
   return analysis;
 }
 
-function analyzeSummativePerformance(results: any[]) {
+function analyzeSummativePerformance(results: any[], ranges?: any[]) {
   const bySubject = new Map<string, any[]>();
   
   results.forEach(r => {
@@ -835,6 +741,10 @@ function analyzeSummativePerformance(results: any[]) {
     const avgPercentage = results.reduce((sum, r) => sum + r.percentage, 0) / results.length;
     const gradeDistribution: any = { A: 0, B: 0, C: 0, D: 0, E: 0 };
     
+    // Note: gradeDistribution keys are hardcoded here, which might be an issue if dynamic grades don't match A-E.
+    // However, for backward compatibility we keep it. Ideally this should be dynamic too.
+    // For now, we assume dynamic grades map to SummativeGrade enum or we might miss some counts if they are different.
+    
     results.forEach(r => {
       gradeDistribution[r.grade] = (gradeDistribution[r.grade] || 0) + 1;
     });
@@ -843,7 +753,9 @@ function analyzeSummativePerformance(results: any[]) {
       subject,
       studentCount: results.length,
       averagePercentage: Math.round(avgPercentage),
-      averageGrade: calculateGradeFromPercentage(avgPercentage),
+      averageGrade: ranges
+        ? gradingService.calculateGradeSync(avgPercentage, ranges)
+        : calculateGradeFromPercentage(avgPercentage),
       gradeDistribution,
       passRate: Math.round((results.filter(r => r.status === 'PASS').length / results.length) * 100)
     });

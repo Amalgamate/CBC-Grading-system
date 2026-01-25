@@ -4,7 +4,7 @@
  * Base URL: http://localhost:5000/api
  */
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 /**
  * Helper function to get auth token from localStorage
@@ -126,6 +126,101 @@ export const authAPI = {
 
     return response.json();
   },
+
+  /**
+   * Reset Password
+   */
+  resetPassword: async (token, password) => {
+    return fetchWithAuth('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    });
+  },
+};
+
+// ============================================
+// CONFIGURATION ENDPOINTS
+// ============================================
+
+export const configAPI = {
+  /**
+   * Get Term Configurations for a school
+   */
+  getTermConfigs: async (schoolId) => {
+    return fetchWithAuth(`/config/term/${schoolId}`);
+  },
+
+  /**
+   * Create or Update Term Configuration
+   */
+  upsertTermConfig: async (data) => {
+    return fetchWithAuth('/config/term', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Get Aggregation Configurations
+   */
+  getAggregationConfigs: async (schoolId) => {
+    return fetchWithAuth(`/config/aggregation/${schoolId}`);
+  },
+
+  /**
+   * Create Aggregation Configuration
+   */
+  createAggregationConfig: async (data) => {
+    return fetchWithAuth('/config/aggregation', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  
+  /**
+   * Update Aggregation Configuration
+   */
+  updateAggregationConfig: async (id, data) => {
+    return fetchWithAuth(`/config/aggregation/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete Aggregation Configuration
+   */
+  deleteAggregationConfig: async (id) => {
+    return fetchWithAuth(`/config/aggregation/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Get Stream Configurations
+   */
+  getStreamConfigs: async (schoolId) => {
+    return fetchWithAuth(`/config/streams/${schoolId}`);
+  },
+
+  /**
+   * Create or Update Stream Configuration
+   */
+  upsertStreamConfig: async (data) => {
+    return fetchWithAuth('/config/streams', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete Stream Configuration
+   */
+  deleteStreamConfig: async (id) => {
+    return fetchWithAuth(`/config/streams/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 // ============================================
@@ -153,10 +248,12 @@ export const userAPI = {
   /**
    * Get users by role
    * @param {string} role - User role
+   * @param {Object} params - Query parameters (page, limit)
    * @returns {Promise} List of users with specified role
    */
-  getByRole: async (role) => {
-    return fetchWithAuth(`/users/role/${role}`);
+  getByRole: async (role, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/users/role/${role}${queryString ? `?${queryString}` : ''}`);
   },
 
   /**
@@ -227,6 +324,38 @@ export const userAPI = {
 };
 
 // ============================================
+// SCHOOL MANAGEMENT ENDPOINTS
+// ============================================
+
+export const schoolAPI = {
+  /**
+   * Get all schools
+   * @returns {Promise} List of all schools
+   */
+  getAll: async () => {
+    return fetchWithAuth('/schools');
+  },
+
+  /**
+   * Get school by ID
+   * @param {string} id - School ID
+   * @returns {Promise} School data
+   */
+  getById: async (id) => {
+    return fetchWithAuth(`/schools/${id}`);
+  },
+
+  /**
+   * Get branches for a school
+   * @param {string} schoolId - School ID
+   * @returns {Promise} List of branches
+   */
+  getBranches: async (schoolId) => {
+    return fetchWithAuth(`/schools/${schoolId}/branches`);
+  },
+};
+
+// ============================================
 // TEACHERS API (alias to userAPI.getByRole)
 // ============================================
 
@@ -275,10 +404,11 @@ export const teacherAPI = {
 export const parentAPI = {
   /**
    * Get all parents
+   * @param {Object} params - Query parameters (page, limit)
    * @returns {Promise} List of parents
    */
-  getAll: async () => {
-    return userAPI.getByRole('PARENT');
+  getAll: async (params = {}) => {
+    return userAPI.getByRole('PARENT', params);
   },
 
   /**
@@ -508,6 +638,42 @@ export const classAPI = {
    */
   getLearnerClass: async (learnerId) => {
     return fetchWithAuth(`/classes/learner/${learnerId}`);
+  },
+
+  /**
+   * Assign teacher to class (dedicated endpoint)
+   * @param {string} classId - Class ID
+   * @param {string} teacherId - Teacher ID
+   * @returns {Promise} Updated class data
+   */
+  assignTeacher: async (classId, teacherId) => {
+    return fetchWithAuth('/classes/assign-teacher', {
+      method: 'POST',
+      body: JSON.stringify({ classId, teacherId }),
+    });
+  },
+
+  /**
+   * Unassign teacher from class
+   * @param {string} classId - Class ID
+   * @returns {Promise} Success message
+   */
+  unassignTeacher: async (classId) => {
+    return fetchWithAuth('/classes/unassign-teacher', {
+      method: 'POST',
+      body: JSON.stringify({ classId }),
+    });
+  },
+
+  /**
+   * Get teacher's workload
+   * @param {string} teacherId - Teacher ID
+   * @param {Object} params - Query parameters (academicYear, term)
+   * @returns {Promise} Teacher workload data
+   */
+  getTeacherWorkload: async (teacherId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/classes/teacher/${teacherId}/workload${queryString ? `?${queryString}` : ''}`);
   },
 };
 
@@ -1065,6 +1231,89 @@ export const cbcAPI = {
   },
 };
 
+// ============================================
+// WORKFLOW API
+// ============================================
+
+export const workflowAPI = {
+  submit: async (data) => {
+    return fetchWithAuth('/workflow/submit', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  approve: async (type, id, data = {}) => {
+    return fetchWithAuth(`/workflow/approve/${type}/${id}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  reject: async (type, id, data) => {
+    return fetchWithAuth(`/workflow/reject/${type}/${id}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  publish: async (type, id) => {
+    return fetchWithAuth(`/workflow/publish/${type}/${id}`, {
+      method: 'POST',
+    });
+  },
+  getHistory: async (type, id) => {
+    return fetchWithAuth(`/workflow/history/${type}/${id}`);
+  }
+};
+
+// ============================================
+// GRADING API
+// ============================================
+
+export const gradingAPI = {
+  getSystems: async (schoolId) => {
+    return fetchWithAuth(`/grading/school/${schoolId}`);
+  },
+  
+  createSystem: async (data) => {
+    return fetchWithAuth('/grading/system', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateSystem: async (id, data) => {
+    return fetchWithAuth(`/grading/system/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteSystem: async (id) => {
+    return fetchWithAuth(`/grading/system/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  updateRange: async (id, data) => {
+    return fetchWithAuth(`/grading/range/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  createRange: async (data) => {
+    return fetchWithAuth('/grading/range', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteRange: async (id) => {
+    return fetchWithAuth(`/grading/range/${id}`, {
+      method: 'DELETE',
+    });
+  }
+};
+
 // Export all APIs
 const api = {
   auth: authAPI,
@@ -1080,6 +1329,8 @@ const api = {
   fees: feeAPI,
   cbc: cbcAPI,
   health: healthAPI,
+  workflow: workflowAPI,
+  grading: gradingAPI,
 };
 
 export default api;

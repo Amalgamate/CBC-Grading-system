@@ -7,6 +7,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Save, User, Trophy, Edit2, Trash2, Award } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import api from '../../../services/api';
+import SmartLearnerSearch from '../shared/SmartLearnerSearch';
+import { getCurrentAcademicYear } from '../utils/academicYear';
 
 const CoCurricularActivities = ({ learners }) => {
   const { showSuccess, showError } = useNotifications();
@@ -14,7 +16,7 @@ const CoCurricularActivities = ({ learners }) => {
   // Form state
   const [selectedLearnerId, setSelectedLearnerId] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('TERM_1');
-  const [academicYear, setAcademicYear] = useState(2026);
+  const [academicYear, setAcademicYear] = useState(getCurrentAcademicYear());
   const [activities, setActivities] = useState([]);
 
   // New activity state
@@ -197,18 +199,12 @@ const CoCurricularActivities = ({ learners }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Learner</label>
-            <select
-              value={selectedLearnerId}
-              onChange={(e) => setSelectedLearnerId(e.target.value)}
-              className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            >
-              <option value="">Select Learner</option>
-              {learners?.filter(l => l.status === 'ACTIVE' || l.status === 'Active').map(l => (
-                <option key={l.id} value={l.id}>
-                  {l.firstName} {l.lastName} - {l.grade} {l.stream || ''}
-                </option>
-              ))}
-            </select>
+            <SmartLearnerSearch
+              learners={learners?.filter(l => l.status === 'ACTIVE' || l.status === 'Active') || []}
+              selectedLearnerId={selectedLearnerId}
+              onSelect={setSelectedLearnerId}
+              placeholder="Search by name, adm no..."
+            />
           </div>
 
           <div>

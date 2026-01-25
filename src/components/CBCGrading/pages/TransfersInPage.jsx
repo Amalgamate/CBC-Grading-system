@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { UserPlus, CheckCircle, XCircle, Eye, Search, Filter } from 'lucide-react';
+import { CheckCircle, Eye, Filter, Search, UserPlus, XCircle } from 'lucide-react';
 import EmptyState from '../shared/EmptyState';
 import { useNotifications } from '../hooks/useNotifications';
 
@@ -52,15 +52,15 @@ const TransfersInPage = () => {
     const matchesSearch = transfer.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transfer.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transfer.previousSchool.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || transfer.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || transfer.status?.toLowerCase() === statusFilter.toLowerCase();
     return matchesSearch && matchesStatus;
   });
 
   const stats = {
     total: incomingTransfers.length,
-    pending: incomingTransfers.filter(t => t.status === 'Pending').length,
-    approved: incomingTransfers.filter(t => t.status === 'Approved').length,
-    rejected: incomingTransfers.filter(t => t.status === 'Rejected').length
+    pending: incomingTransfers.filter(t => t.status?.toLowerCase() === 'pending').length,
+    approved: incomingTransfers.filter(t => t.status?.toLowerCase() === 'approved').length,
+    rejected: incomingTransfers.filter(t => t.status?.toLowerCase() === 'rejected').length
   };
 
   return (

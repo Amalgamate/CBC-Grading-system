@@ -8,6 +8,26 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
 /**
+ * Helper to convert image URL to Base64
+ * This ensures images are fully loaded and renderable by html2canvas
+ */
+const convertImageToBase64 = async (url) => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Error converting image to Base64:', error);
+    return url; // Return original URL if conversion fails
+  }
+};
+
+/**
  * Convert HTML element to PDF
  * @param {string} elementId - ID of element to convert
  * @param {string} filename - Output filename
@@ -198,26 +218,48 @@ export const generatePDFWithLetterhead = async (
       throw new Error(`Element with ID "${elementId}" not found`);
     }
 
+    // Convert logo to Base64 to ensure it renders correctly in PDF
+    // html2canvas often fails with external images or relative paths if not preloaded
+    let processedLogoUrl = logoUrl;
+    if (logoUrl && !logoUrl.startsWith('data:')) {
+      if (options.onProgress) options.onProgress('Processing logo...', 10);
+      processedLogoUrl = await convertImageToBase64(logoUrl);
+    }
+
     // Create temporary wrapper with letterhead
     const wrapper = document.createElement('div');
     wrapper.style.backgroundColor = '#ffffff';
     wrapper.style.padding = '20px';
     wrapper.style.fontFamily = 'Arial, sans-serif';
 
-    // Add letterhead
+    // Add letterhead - Compact Professional Layout
     const letterhead = `
-      <div style="text-align: center; padding: 20px; border-bottom: 3px solid ${brandColor}; margin-bottom: 20px;">
-        <img src="${logoUrl}" alt="School Logo" style="height: 60px; margin-bottom: 10px;" crossorigin="anonymous" />
-        <h1 style="margin: 10px 0 5px 0; font-size: 24px; font-weight: bold; color: ${brandColor}; letter-spacing: 1px;">
-          ${schoolName.toUpperCase()}
-        </h1>
-        <p style="margin: 3px 0; font-size: 11px; color: #666;">${address}</p>
-        <p style="margin: 3px 0; font-size: 11px; color: #666;">Tel: ${phone} | Email: ${email}</p>
-        <p style="margin: 3px 0; font-size: 11px; color: ${brandColor};">${website}</p>
+      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; padding: 0 10px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid ${brandColor}; padding-bottom: 10px; margin-bottom: 15px;">
+          
+          <!-- Logo Section -->
+          <div style="flex-shrink: 0;">
+            <img src="${processedLogoUrl}" alt="School Logo" style="height: 60px; width: auto; object-fit: contain;" crossorigin="anonymous" />
+          </div>
+
+          <!-- School Details Section -->
+          <div style="text-align: right; flex-grow: 1; padding-left: 15px;">
+            <h1 style="margin: 0 0 2px 0; font-size: 22px; font-weight: 800; color: ${brandColor}; letter-spacing: -0.5px; text-transform: uppercase;">
+              ${schoolName}
+            </h1>
+            <div style="font-size: 10px; line-height: 1.3; color: #555;">
+              <p style="margin: 0;">${address}</p>
+              <p style="margin: 0;"><strong>Tel:</strong> ${phone} &nbsp;|&nbsp; <strong>Email:</strong> ${email}</p>
+              <p style="margin: 0;"><a href="${website}" style="color: ${brandColor}; text-decoration: none;">${website}</a></p>
+            </div>
+          </div>
+          
+        </div>
       </div>
     `;
 
     // Clone element content
+    if (options.onProgress) options.onProgress('Preparing document layout...', 20);
     const contentClone = element.cloneNode(true);
     
     // Assemble wrapper
@@ -228,21 +270,27 @@ export const generatePDFWithLetterhead = async (
     wrapper.style.position = 'absolute';
     wrapper.style.left = '-9999px';
     wrapper.style.top = '0';
+    wrapper.style.width = '210mm'; // Force A4 width for consistency
     document.body.appendChild(wrapper);
 
     // Generate PDF from wrapper
+    if (options.onProgress) options.onProgress('Rendering high-quality image...', 40);
     const canvas = await html2canvas(wrapper, {
       scale: options.scale || 2,
       useCORS: true,
       backgroundColor: '#ffffff',
       logging: false,
-      allowTaint: false
+      allowTaint: false,
+      onclone: (clonedDoc) => {
+        // Optional: specific tweaks to cloned document before rendering
+      }
     });
 
     // Remove temporary wrapper
     document.body.removeChild(wrapper);
 
     // Create PDF
+    if (options.onProgress) options.onProgress('Compiling PDF pages...', 70);
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF('p', 'mm', 'a4');
     const imgWidth = 210;
@@ -263,25 +311,35 @@ export const generatePDFWithLetterhead = async (
     }
 
     // Add footer with page numbers
+    if (options.onProgress) options.onProgress('Adding professional finish...', 90);
     const totalPages = pdf.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       pdf.setPage(i);
       pdf.setFontSize(8);
-      pdf.setTextColor(150);
+      pdf.setTextColor(128, 128, 128); // Gray text
+      
+      // Footer Line
+      pdf.setDrawColor(230, 230, 230);
+      pdf.line(10, pdf.internal.pageSize.getHeight() - 15, 200, pdf.internal.pageSize.getHeight() - 15);
+
+      // Page Number
       pdf.text(
         `Page ${i} of ${totalPages}`,
         pdf.internal.pageSize.getWidth() - 20,
         pdf.internal.pageSize.getHeight() - 10,
         { align: 'right' }
       );
+      
+      // Generation Date & Copyright
       pdf.text(
-        `Generated: ${new Date().toLocaleDateString('en-GB')}`,
+        `Generated: ${new Date().toLocaleString('en-GB')} | © ${new Date().getFullYear()} ${schoolName}`,
         10,
         pdf.internal.pageSize.getHeight() - 10
       );
     }
 
     // Download
+    if (options.onProgress) options.onProgress('Finalizing download...', 100);
     pdf.save(filename);
     
     return { success: true };

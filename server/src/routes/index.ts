@@ -13,6 +13,9 @@ import schoolRoutes from './school.routes';
 import feeRoutes from './fee.routes';
 import bulkRoutes from './bulk';
 import cbcRoutes from './cbcRoutes';
+import gradingRoutes from './grading.routes';
+import configRoutes from './config.routes';
+import workflowRoutes from './workflow.routes';
 
 const router = Router();
 
@@ -31,5 +34,8 @@ router.use('/biometric', biometricRoutes); // Biometric attendance endpoints (co
 router.use('/fees', feeRoutes); // Fee management endpoints
 router.use('/bulk', bulkRoutes); // Bulk import/export operations
 router.use('/cbc', cbcRoutes); // CBC Assessment endpoints (Core Competencies, Values, Co-Curricular)
+router.use('/grading', gradingRoutes);
+router.use('/config', configRoutes);
+router.use('/workflow', workflowRoutes); // ✅ NEW: Workflow & approval system
 
 export default router;

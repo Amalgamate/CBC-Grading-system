@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, Users } from 'lucide-react';
+import { authAPI } from '../../services/api';
 
 export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword, onLoginSuccess, brandingSettings }) {
   const [formData, setFormData] = useState({
@@ -63,48 +64,32 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
     setIsLoading(true);
     
     try {
-      // Call backend API for authentication
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        })
+      const data = await authAPI.login({
+        email: formData.email,
+        password: formData.password
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // Store token
-        if (data.token) {
-          localStorage.setItem('token', data.token);
-          if (formData.rememberMe) {
-            localStorage.setItem('authToken', data.token);
-          }
+      // Store token
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        if (formData.rememberMe) {
+          localStorage.setItem('authToken', data.token);
         }
-        
-        onLoginSuccess({
-          email: data.user.email,
-          name: `${data.user.firstName} ${data.user.lastName}`,
-          role: data.user.role,
-          id: data.user.id,
-          firstName: data.user.firstName,
-          lastName: data.user.lastName
-        });
-      } else {
-        setErrors({
-          email: data.message || 'Invalid email or password',
-          password: data.message || 'Invalid email or password'
-        });
       }
+      
+      onLoginSuccess({
+        email: data.user.email,
+        name: `${data.user.firstName} ${data.user.lastName}`,
+        role: data.user.role,
+        id: data.user.id,
+        firstName: data.user.firstName,
+        lastName: data.user.lastName
+      });
     } catch (error) {
       console.error('Login error:', error);
       setErrors({
-        email: 'Unable to connect to server. Please try again.',
-        password: 'Unable to connect to server. Please try again.'
+        email: error.message || 'Invalid email or password',
+        password: error.message || 'Invalid email or password'
       });
     } finally {
       setIsLoading(false);

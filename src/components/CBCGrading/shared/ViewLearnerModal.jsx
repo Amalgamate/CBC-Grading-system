@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { X, User, Calendar, MapPin, Phone, Mail, Users, Heart, AlertCircle } from 'lucide-react';
+import { X, User, Calendar, MapPin, Users, Heart } from 'lucide-react';
 
 const ViewLearnerModal = ({ show, onClose, learner }) => {
   if (!show || !learner) return null;

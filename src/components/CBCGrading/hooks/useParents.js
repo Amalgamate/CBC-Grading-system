@@ -11,15 +11,21 @@ export const useParents = () => {
   const [selectedParent, setSelectedParent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0
+  });
 
   /**
    * Fetch all parents from backend
    */
-  const fetchParents = useCallback(async () => {
+  const fetchParents = useCallback(async (params = {}) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.parents.getAll();
+      const response = await api.parents.getAll(params);
       
       if (response.success) {
         // Transform backend data to match frontend format
@@ -39,6 +45,9 @@ export const useParents = () => {
         }));
         
         setParents(transformedParents);
+        if (response.pagination) {
+          setPagination(response.pagination);
+        }
       }
     } catch (err) {
       console.error('Error fetching parents:', err);
@@ -178,6 +187,7 @@ export const useParents = () => {
     setSelectedParent,
     loading,
     error,
+    pagination,
     fetchParents,
     createParent,
     updateParent,

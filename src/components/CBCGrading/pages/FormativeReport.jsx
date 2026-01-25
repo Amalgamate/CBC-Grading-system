@@ -1,26 +1,45 @@
 /**
  * Formative Report Page - UPDATED WITH REAL DATA
  * View formative assessment reports for learners with actual API data
+ * Redesigned with Compact Context Header Pattern
  */
 
-import React, { useState, useEffect } from 'react';
-import { FileText, Download, Printer, Search, Loader } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { FileText, Search, Loader, Printer, ArrowLeft, Download, Edit3, User, Filter } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import api from '../../../services/api';
 import { generatePDFWithLetterhead } from '../../../utils/simplePdfGenerator';
+import DownloadReportButton from '../shared/DownloadReportButton';
+import SmartLearnerSearch from '../shared/SmartLearnerSearch';
 
 const FormativeReport = ({ learners, brandingSettings }) => {
   const { showSuccess, showError } = useNotifications();
   
   // UI State
+  const [viewMode, setViewMode] = useState('setup'); // 'setup' or 'report'
   const [selectedLearnerId, setSelectedLearnerId] = useState('');
+  const [selectedGrade, setSelectedGrade] = useState('all');
   const [selectedTerm, setSelectedTerm] = useState('TERM_1');
   const [selectedArea, setSelectedArea] = useState('all');
   
   // Data State
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  const grades = [
+    { value: 'all', label: 'All Classes' },
+    { value: 'PP1', label: 'PP1' },
+    { value: 'PP2', label: 'PP2' },
+    { value: 'GRADE_1', label: 'Grade 1' },
+    { value: 'GRADE_2', label: 'Grade 2' },
+    { value: 'GRADE_3', label: 'Grade 3' },
+    { value: 'GRADE_4', label: 'Grade 4' },
+    { value: 'GRADE_5', label: 'Grade 5' },
+    { value: 'GRADE_6', label: 'Grade 6' },
+    { value: 'GRADE_7', label: 'Grade 7' },
+    { value: 'GRADE_8', label: 'Grade 8' },
+    { value: 'GRADE_9', label: 'Grade 9' },
+  ];
 
   const terms = [
     { value: 'TERM_1', label: 'Term 1' },
@@ -28,11 +47,17 @@ const FormativeReport = ({ learners, brandingSettings }) => {
     { value: 'TERM_3', label: 'Term 3' }
   ];
 
-  // Get selected learner
-  const selectedLearner = learners?.find(l => l.id === selectedLearnerId);
+  const filteredLearners = useMemo(() => {
+    let filtered = learners?.filter(l => l.status === 'ACTIVE' || l.status === 'Active') || [];
+    if (selectedGrade !== 'all') {
+      filtered = filtered.filter(l => l.grade === selectedGrade);
+    }
+    return filtered;
+  }, [learners, selectedGrade]);
 
-  // Fetch report data when learner or term changes
-  const fetchReportData = React.useCallback(async () => {
+  const fetchReportData = useCallback(async () => {
+    if (!selectedLearnerId) return;
+    
     setLoading(true);
     try {
       const response = await api.reports.getFormativeReport(selectedLearnerId, {
@@ -42,6 +67,7 @@ const FormativeReport = ({ learners, brandingSettings }) => {
 
       if (response.success) {
         setReportData(response.data);
+        setViewMode('report'); // Auto-switch to report view on success
       } else {
         throw new Error(response.message || 'Failed to load report');
       }
@@ -54,19 +80,18 @@ const FormativeReport = ({ learners, brandingSettings }) => {
     }
   }, [selectedLearnerId, selectedTerm, showError]);
 
+  // Fetch report data when learner or term changes
   useEffect(() => {
     if (selectedLearnerId && selectedTerm) {
       fetchReportData();
     }
-  }, [fetchReportData, selectedLearnerId, selectedTerm]);
+  }, [selectedLearnerId, selectedTerm, fetchReportData]);
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = async (onProgress) => {
     if (!reportData) {
       showError('No report data available');
-      return;
+      return { success: false, error: 'No data' };
     }
-
-    setIsGeneratingPDF(true);
 
     try {
       const filename = `${reportData.learner.firstName}_${reportData.learner.lastName}_Formative_${selectedTerm}_Report.pdf`;
@@ -85,19 +110,23 @@ const FormativeReport = ({ learners, brandingSettings }) => {
         'formative-report-content',
         filename,
         schoolInfo,
-        { scale: 2, multiPage: true }
+        { 
+          scale: 2, 
+          multiPage: true,
+          onProgress
+        }
       );
 
       if (result.success) {
         showSuccess('Report downloaded successfully!');
+        return { success: true };
       } else {
         throw new Error(result.error || 'PDF generation failed');
       }
     } catch (error) {
       console.error('PDF generation error:', error);
       showError('Failed to generate PDF. Please try again.');
-    } finally {
-      setIsGeneratingPDF(false);
+      return { success: false, error: error.message };
     }
   };
 
@@ -137,263 +166,311 @@ const FormativeReport = ({ learners, brandingSettings }) => {
     ? reportData?.assessments || []
     : reportData?.assessments.filter(a => a.learningArea === selectedArea) || [];
 
-  return (
-    <div className="space-y-6">
-      
-      {/* Selection Panel */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <h3 className="text-lg font-bold mb-4">Select Learner & Term</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Learner</label>
-            <select 
-              value={selectedLearnerId} 
-              onChange={(e) => setSelectedLearnerId(e.target.value)} 
-              className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select Learner</option>
-              {learners?.filter(l => l.status === 'ACTIVE' || l.status === 'Active').map(l => (
-                <option key={l.id} value={l.id}>
-                  {l.firstName} {l.lastName} ({l.admissionNumber})
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Term</label>
-            <select 
-              value={selectedTerm} 
-              onChange={(e) => setSelectedTerm(e.target.value)} 
-              className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              {terms.map(t => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Learning Area</label>
-            <select 
-              value={selectedArea} 
-              onChange={(e) => setSelectedArea(e.target.value)} 
-              className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              disabled={!reportData}
-            >
-              <option value="all">All Learning Areas</option>
-              {reportData?.summary.learningAreasAssessed.map(a => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        
-        {/* Action Buttons */}
-        {selectedLearnerId && reportData && (
-          <div className="mt-4 flex gap-3">
-            <button 
-              onClick={handleDownloadPDF} 
-              disabled={isGeneratingPDF}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isGeneratingPDF ? (
-                <>
-                  <Loader className="animate-spin" size={18} />
-                  Generating PDF...
-                </>
-              ) : (
-                <>
-                  <Download size={18} />
-                  Download PDF
-                </>
-              )}
-            </button>
-            <button 
-              onClick={handlePrint} 
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              <Printer size={18} />
-              Print Report
-            </button>
-          </div>
-        )}
-      </div>
+  const handleReset = () => {
+    setSelectedLearnerId('');
+    setReportData(null);
+    setViewMode('setup');
+  };
 
-      {/* Loading State */}
-      {loading && (
-        <div className="bg-white rounded-xl shadow-md p-12 text-center">
-          <Loader className="mx-auto animate-spin text-blue-600 mb-4" size={48} />
-          <p className="text-gray-600">Loading report data...</p>
+  return (
+    <div className="space-y-6 max-w-6xl mx-auto">
+      
+      {/* SETUP VIEW: SELECTION PANEL */}
+      {viewMode === 'setup' && (
+        <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100 max-w-3xl mx-auto mt-8">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
+               <FileText size={32} />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">Generate Formative Report</h2>
+            <p className="text-gray-500">Select a learner and term to view their assessment report</p>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Select Learner</label>
+              
+              {/* Grade Filter Pills */}
+              <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-2 -mx-2 px-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                <div className="flex items-center justify-center min-w-[24px] text-gray-400">
+                  <Filter size={14} />
+                </div>
+                {grades.map(grade => (
+                  <button
+                    key={grade.value}
+                    onClick={() => {
+                        setSelectedGrade(grade.value);
+                        setSelectedLearnerId(''); // Clear selection on filter change
+                    }}
+                    className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                      selectedGrade === grade.value 
+                        ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-100' 
+                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+                    }`}
+                  >
+                    {grade.label}
+                  </button>
+                ))}
+              </div>
+
+              <SmartLearnerSearch
+                learners={filteredLearners}
+                selectedLearnerId={selectedLearnerId}
+                onSelect={setSelectedLearnerId}
+                placeholder={selectedGrade === 'all' ? "Search all learners..." : `Search in ${grades.find(g => g.value === selectedGrade)?.label}...`}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Academic Term</label>
+              <select 
+                value={selectedTerm} 
+                onChange={(e) => setSelectedTerm(e.target.value)} 
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              >
+                {terms.map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {loading && (
+            <div className="mt-8 text-center">
+              <Loader className="mx-auto animate-spin text-blue-600 mb-2" size={24} />
+              <p className="text-sm text-gray-500">Generating report...</p>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Report Content */}
-      {!loading && reportData && (
+      {/* REPORT VIEW */}
+      {viewMode === 'report' && reportData && (
         <>
-          {/* Learner Information */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-bold mb-4">Learner Information</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <p className="text-sm font-semibold text-gray-600">Name</p>
-                <p className="text-gray-900">
-                  {reportData.learner.firstName} {reportData.learner.middleName || ''} {reportData.learner.lastName}
-                </p>
+          {/* Compact Context Header */}
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-blue-100 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-4 z-20 print:hidden">
+             <div className="flex items-center gap-4">
+              <div className="bg-blue-50 p-3 rounded-lg text-blue-600">
+                <User size={24} />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-600">Admission No</p>
-                <p className="text-gray-900">{reportData.learner.admissionNumber}</p>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-600">Class</p>
-                <p className="text-gray-900">{reportData.learner.grade} {reportData.learner.stream ? `- ${reportData.learner.stream}` : ''}</p>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-600">Term</p>
-                <p className="text-gray-900">{terms.find(t => t.value === selectedTerm)?.label} 2026</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Summary Statistics */}
-          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-xl p-6">
-            <h4 className="font-bold text-blue-900 mb-4">Performance Summary</h4>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className="bg-white rounded-lg p-4 text-center">
-                <p className="text-xs text-gray-600 font-semibold mb-1">Total Assessments</p>
-                <p className="text-3xl font-bold text-blue-800">{reportData.summary.totalAssessments}</p>
-              </div>
-              <div className="bg-white rounded-lg p-4 text-center">
-                <p className="text-xs text-gray-600 font-semibold mb-1">Average %</p>
-                <p className="text-3xl font-bold text-purple-800">{reportData.summary.averagePercentage}%</p>
-              </div>
-              <div className="bg-green-100 rounded-lg p-4 text-center">
-                <p className="text-xs text-green-700 font-semibold mb-1">Exceeding</p>
-                <p className="text-3xl font-bold text-green-800">
-                  {(reportData.summary.distribution.EE1 || 0) + (reportData.summary.distribution.EE2 || 0)}
-                </p>
-              </div>
-              <div className="bg-blue-100 rounded-lg p-4 text-center">
-                <p className="text-xs text-blue-700 font-semibold mb-1">Meeting</p>
-                <p className="text-3xl font-bold text-blue-800">
-                  {(reportData.summary.distribution.ME1 || 0) + (reportData.summary.distribution.ME2 || 0)}
-                </p>
-              </div>
-              <div className="bg-yellow-100 rounded-lg p-4 text-center">
-                <p className="text-xs text-yellow-700 font-semibold mb-1">Approaching</p>
-                <p className="text-3xl font-bold text-yellow-800">
-                  {(reportData.summary.distribution.AE1 || 0) + (reportData.summary.distribution.AE2 || 0)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Printable Report Content */}
-          <div id="formative-report-content" className="bg-white rounded-xl shadow-md p-8">
-            <h3 className="text-2xl font-bold text-center mb-6 text-gray-800">Formative Assessment Report</h3>
-            
-            {/* Assessments by Learning Area */}
-            <div className="space-y-6">
-              {filteredAssessments.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  No assessments found for the selected criteria
+                <h3 className="font-bold text-gray-800 text-lg line-clamp-1">
+                  {reportData.learner.firstName} {reportData.learner.lastName}
+                </h3>
+                <div className="flex items-center gap-3 text-sm text-gray-500 font-medium">
+                  <span>{reportData.learner.admissionNumber}</span>
+                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">
+                    {terms.find(t => t.value === selectedTerm)?.label} 2026
+                  </span>
                 </div>
-              ) : (
-                filteredAssessments.map((assessment, index) => (
-                  <div key={index} className="border-2 border-gray-200 rounded-lg p-5">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h4 className="font-bold text-lg text-gray-800">{assessment.learningArea}</h4>
-                        {assessment.strand && (
-                          <p className="text-sm text-gray-600">
-                            <span className="font-semibold">Strand:</span> {assessment.strand}
-                            {assessment.subStrand && ` - ${assessment.subStrand}`}
-                          </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="hidden md:block">
+                <select 
+                  value={selectedArea} 
+                  onChange={(e) => setSelectedArea(e.target.value)} 
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Learning Areas</option>
+                  {reportData?.summary.learningAreasAssessed.map(a => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="h-8 w-px bg-gray-200 mx-2 hidden md:block"></div>
+
+              <button 
+                onClick={handleReset}
+                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium"
+              >
+                <Edit3 size={16} />
+                Change
+              </button>
+              
+              <DownloadReportButton 
+                onDownload={handleDownloadPDF}
+                label="PDF"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm font-semibold text-sm flex items-center gap-2"
+              />
+              
+              <button 
+                onClick={handlePrint} 
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                title="Print Report"
+              >
+                <Printer size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* Report Content */}
+          <div id="formative-report-content" className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Learner Information */}
+            <div className="bg-white rounded-xl shadow-md p-4 print:shadow-none print:border print:border-gray-200">
+              <h3 className="text-xs font-bold mb-3 uppercase text-gray-500 tracking-wider border-b border-gray-100 pb-2">Learner Details</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase">Name</p>
+                  <p className="text-gray-900 text-sm font-bold">
+                    {reportData.learner.firstName} {reportData.learner.middleName || ''} {reportData.learner.lastName}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase">Admission No</p>
+                  <p className="text-gray-900 text-sm font-bold">{reportData.learner.admissionNumber}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase">Class</p>
+                  <p className="text-gray-900 text-sm font-bold">{reportData.learner.grade} {reportData.learner.stream ? `- ${reportData.learner.stream}` : ''}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase">Term</p>
+                  <p className="text-gray-900 text-sm font-bold">{terms.find(t => t.value === selectedTerm)?.label} 2026</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Summary Statistics */}
+            <div className="bg-white rounded-xl shadow-md overflow-hidden print:shadow-none print:border print:border-gray-200">
+              <div className="bg-blue-50 px-4 py-2 border-b border-blue-100">
+                <h4 className="font-bold text-blue-800 text-xs uppercase tracking-wider">Performance Summary</h4>
+              </div>
+              <div className="p-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="bg-gray-50 rounded-lg p-3 text-center border border-gray-100">
+                    <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Total Assessments</p>
+                    <p className="text-2xl font-bold text-gray-800">{reportData.summary.totalAssessments}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3 text-center border border-gray-100">
+                    <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Average %</p>
+                    <p className="text-2xl font-bold text-purple-600">{reportData.summary.averagePercentage}%</p>
+                  </div>
+                  <div className="bg-green-50 rounded-lg p-3 text-center border border-green-100">
+                    <p className="text-[10px] text-green-600 font-bold uppercase mb-1">Exceeding</p>
+                    <p className="text-2xl font-bold text-green-700">
+                      {(reportData.summary.distribution.EE1 || 0) + (reportData.summary.distribution.EE2 || 0)}
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-3 text-center border border-blue-100">
+                    <p className="text-[10px] text-blue-600 font-bold uppercase mb-1">Meeting</p>
+                    <p className="text-2xl font-bold text-blue-700">
+                      {(reportData.summary.distribution.ME1 || 0) + (reportData.summary.distribution.ME2 || 0)}
+                    </p>
+                  </div>
+                  <div className="bg-yellow-50 rounded-lg p-3 text-center border border-yellow-100">
+                    <p className="text-[10px] text-yellow-600 font-bold uppercase mb-1">Approaching</p>
+                    <p className="text-2xl font-bold text-yellow-700">
+                      {(reportData.summary.distribution.AE1 || 0) + (reportData.summary.distribution.AE2 || 0)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Printable Report Content */}
+            <div className="bg-white rounded-xl shadow-md p-6 print:shadow-none print:p-0">
+              <div className="flex items-center justify-between mb-6 print:hidden">
+                 <h3 className="text-lg font-bold text-gray-800">Detailed Assessment Report</h3>
+                 <span className="text-sm text-gray-500">{filteredAssessments.length} records found</span>
+              </div>
+              
+              {/* Assessments by Learning Area */}
+              <div className="space-y-4">
+                {filteredAssessments.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                    <FileText className="mx-auto mb-2 text-gray-400" size={32} />
+                    <p>No assessments found for the selected criteria</p>
+                  </div>
+                ) : (
+                  filteredAssessments.map((assessment, index) => (
+                    <div key={index} className="border border-gray-200 rounded-xl p-4 hover:border-blue-200 transition-colors break-inside-avoid">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h4 className="font-bold text-sm text-gray-900">{assessment.learningArea}</h4>
+                          {assessment.strand && (
+                            <p className="text-xs text-gray-600 mt-0.5">
+                              <span className="font-semibold">Strand:</span> {assessment.strand}
+                              {assessment.subStrand && ` - ${assessment.subStrand}`}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${getRatingColor(assessment.detailedRating)}`}>
+                            {assessment.detailedRating} - {assessment.percentage}%
+                          </span>
+                          <p className="text-[10px] text-gray-500 mt-1 font-medium uppercase">{getRatingLabel(assessment.detailedRating)}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-2 bg-gray-50 p-3 rounded-lg text-xs">
+                        {/* Feedback Sections */}
+                        {assessment.strengths && (
+                          <div className="flex gap-2">
+                            <span className="font-bold text-green-700 min-w-[80px]">✓ Strengths:</span>
+                            <span className="text-gray-700">{assessment.strengths}</span>
+                          </div>
+                        )}
+
+                        {assessment.areasImprovement && (
+                          <div className="flex gap-2">
+                            <span className="font-bold text-orange-700 min-w-[80px]">→ Improve:</span>
+                            <span className="text-gray-700">{assessment.areasImprovement}</span>
+                          </div>
+                        )}
+
+                        {assessment.recommendations && (
+                          <div className="flex gap-2">
+                            <span className="font-bold text-blue-700 min-w-[80px]">💡 Advice:</span>
+                            <span className="text-gray-700">{assessment.recommendations}</span>
+                          </div>
                         )}
                       </div>
-                      <div className="text-right">
-                        <span className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${getRatingColor(assessment.detailedRating)}`}>
-                          {assessment.detailedRating} - {assessment.percentage}%
-                        </span>
-                        <p className="text-xs text-gray-600 mt-1">{getRatingLabel(assessment.detailedRating)}</p>
+
+                      {/* Teacher Info */}
+                      <div className="mt-2 pt-2 border-t border-gray-100 text-[10px] text-gray-400 flex justify-end items-center gap-1">
+                        <span>Assessed by:</span>
+                        <span className="font-medium text-gray-600">{assessment.teacher?.firstName} {assessment.teacher?.lastName}</span>
                       </div>
                     </div>
+                  ))
+                )}
+              </div>
 
-                    {/* Feedback Sections */}
-                    {assessment.strengths && (
-                      <div className="mb-3">
-                        <p className="text-sm font-semibold text-green-700 mb-1">✓ Strengths:</p>
-                        <p className="text-sm text-gray-700 bg-green-50 p-3 rounded">{assessment.strengths}</p>
+              {/* Teacher's Overall Comment */}
+              {reportData.teacherComment && (
+                <div className="mt-6 bg-blue-50 border border-blue-100 p-4 rounded-xl break-inside-avoid">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-blue-100 p-2 rounded-lg text-blue-600">
+                      <Edit3 size={16} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-bold text-blue-900 text-sm mb-1">Class Teacher's Comment</p>
+                      <p className="text-gray-700 text-sm leading-relaxed">{reportData.teacherComment.classTeacherComment}</p>
+                      
+                      <div className="mt-3 flex justify-between items-center border-t border-blue-200 pt-2">
+                        <p className="text-xs font-semibold text-blue-800">
+                          {reportData.teacherComment.classTeacherName}
+                        </p>
+                        <p className="text-xs text-blue-600">
+                          {new Date(reportData.teacherComment.classTeacherDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
                       </div>
-                    )}
-
-                    {assessment.areasImprovement && (
-                      <div className="mb-3">
-                        <p className="text-sm font-semibold text-orange-700 mb-1">→ Areas for Improvement:</p>
-                        <p className="text-sm text-gray-700 bg-orange-50 p-3 rounded">{assessment.areasImprovement}</p>
-                      </div>
-                    )}
-
-                    {assessment.recommendations && (
-                      <div className="mb-3">
-                        <p className="text-sm font-semibold text-blue-700 mb-1">💡 Recommendations:</p>
-                        <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded">{assessment.recommendations}</p>
-                      </div>
-                    )}
-
-                    {/* Teacher Info */}
-                    <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
-                      Assessed by: {assessment.teacher?.firstName} {assessment.teacher?.lastName}
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-
-            {/* Teacher's Overall Comment */}
-            {reportData.teacherComment && (
-              <div className="mt-8 bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-lg">
-                <p className="font-bold text-gray-800 mb-2">Class Teacher's Comment:</p>
-                <p className="text-gray-700">{reportData.teacherComment.classTeacherComment}</p>
-                <div className="mt-4 flex justify-between items-center">
-                  <p className="text-sm text-gray-600">
-                    <span className="font-semibold">{reportData.teacherComment.classTeacherName}</span>
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Date: {new Date(reportData.teacherComment.classTeacherDate).toLocaleDateString('en-GB')}
-                  </p>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Report Footer */}
-            <div className="mt-8 pt-6 border-t-2 border-gray-300 text-center text-sm text-gray-500">
-              <p>Generated on: {new Date(reportData.generatedDate).toLocaleString('en-GB')}</p>
-              <p className="mt-2">This is an official document from {brandingSettings?.schoolName || 'Zawadi JRN Academy'}</p>
+              {/* Report Footer */}
+              <div className="mt-8 pt-4 border-t border-gray-200 text-center text-[10px] text-gray-400">
+                <p>Generated on: {new Date(reportData.generatedDate).toLocaleString('en-GB')}</p>
+                <p className="mt-1">This is an official document from {brandingSettings?.schoolName || 'Zawadi JRN Academy'}</p>
+              </div>
             </div>
           </div>
         </>
-      )}
-
-      {/* Empty State */}
-      {!loading && !reportData && selectedLearnerId && (
-        <div className="bg-white rounded-xl shadow-md p-12 text-center">
-          <FileText className="mx-auto text-gray-400 mb-4" size={64} />
-          <h3 className="text-xl font-bold text-gray-800 mb-2">No Report Available</h3>
-          <p className="text-gray-600">
-            No formative assessments found for this learner in {terms.find(t => t.value === selectedTerm)?.label}
-          </p>
-        </div>
-      )}
-
-      {/* Initial Empty State */}
-      {!selectedLearnerId && (
-        <div className="bg-white rounded-xl shadow-md p-12 text-center">
-          <Search className="mx-auto text-gray-400 mb-4" size={64} />
-          <h3 className="text-xl font-bold text-gray-800 mb-2">Select a Learner</h3>
-          <p className="text-gray-600">Choose a learner from the dropdown above to view their formative report</p>
-        </div>
       )}
     </div>
   );

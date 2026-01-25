@@ -3,14 +3,34 @@
  * Promote learners to next grade level
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, ArrowRight, Users } from 'lucide-react';
 import EmptyState from '../shared/EmptyState';
+import { useAuth } from '../../../hooks/useAuth';
+import { configAPI } from '../../../services/api';
 
 const PromotionPage = ({ learners = [], onPromote, showNotification }) => {
+  const { user } = useAuth();
   const [sourceGrade, setSourceGrade] = useState('Grade 3');
   const [sourceStream, setSourceStream] = useState('all');
   const [selectedLearners, setSelectedLearners] = useState([]);
+  const [availableStreams, setAvailableStreams] = useState([]);
+
+  // Fetch streams
+  useEffect(() => {
+    const fetchStreams = async () => {
+      if (user?.schoolId) {
+        try {
+          const resp = await configAPI.getStreamConfigs(user.schoolId);
+          const arr = resp?.data || [];
+          setAvailableStreams(arr.filter(s => s.active));
+        } catch (error) {
+          console.error('Failed to fetch streams:', error);
+        }
+      }
+    };
+    fetchStreams();
+  }, [user?.schoolId]);
 
   // Get learners for selected class
   const classLearners = learners.filter(l => 
@@ -93,9 +113,11 @@ const PromotionPage = ({ learners = [], onPromote, showNotification }) => {
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             >
               <option value="all">All Streams</option>
-              <option value="A">Stream A</option>
-              <option value="B">Stream B</option>
-              <option value="C">Stream C</option>
+              {availableStreams.map(stream => (
+                <option key={stream.id} value={stream.name}>
+                  {stream.name}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex items-end gap-2">

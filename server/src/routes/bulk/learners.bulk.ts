@@ -155,6 +155,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
 
     // Process valid records
     const created: any[] = [];
+    const updated: any[] = [];
     const failed: any[] = [];
 
     for (const item of results) {
@@ -184,6 +185,67 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || nameParts[0];
 
+        // Handle Parent/Guardian creation or linking
+        let parentId: string | undefined;
+        const parentName = csvData['Parent/Guardian'];
+        const parentPhone = csvData['Phone 1'];
+
+        if (parentPhone) {
+          // Check if parent already exists by phone within the same school context
+          const existingParent = await prisma.user.findFirst({
+            where: {
+              phone: parentPhone,
+              role: 'PARENT',
+            }
+          });
+
+          if (existingParent) {
+            parentId = existingParent.id;
+          } else if (parentName) {
+            // Create new parent user
+            const nameParts = parentName.split(' ');
+            const pFirstName = nameParts[0] || 'Parent';
+            const pLastName = nameParts.slice(1).join(' ') || 'Guardian';
+            const cleanPhone = parentPhone.replace(/[^0-9]/g, '');
+            const email = `parent${cleanPhone}@zawadi.com`; // Placeholder email
+
+            // Create parent user
+            const newParent = await prisma.user.create({
+              data: {
+                email,
+                password: await import('bcryptjs').then(b => b.hash('password123', 10)), // Default password
+                firstName: pFirstName,
+                lastName: pLastName,
+                phone: parentPhone,
+                role: 'PARENT',
+                status: 'ACTIVE',
+                schoolId,
+              }
+            });
+            parentId = newParent.id;
+          }
+        }
+
+        // Parse registration date
+        let admissionDate = new Date();
+        if (csvData['Reg Date']) {
+          const dateParts = csvData['Reg Date'].split('/');
+          if (dateParts.length === 3) {
+            // Assume format DD/MM/YYYY
+            const day = parseInt(dateParts[0], 10);
+            const month = parseInt(dateParts[1], 10) - 1; // Month is 0-indexed
+            const year = parseInt(dateParts[2], 10);
+            const parsedDate = new Date(year, month, day);
+            
+            // Validate the date
+            if (!isNaN(parsedDate.getTime())) {
+              admissionDate = parsedDate;
+            } else {
+              console.warn(`Invalid Reg Date for ${csvData['Adm No']}: ${csvData['Reg Date']}. Using current date.`);
+            }
+          }
+        }
+
         // Check if admission number already exists within school
         const existing = await prisma.learner.findUnique({
           where: { 
@@ -195,48 +257,49 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
         });
 
         if (existing) {
-          failed.push({
-            line: item.line,
-            admNo: csvData['Adm No'],
-            name: csvData['Leaner Name'],
-            reason: 'Admission number already exists'
+          // Update existing learner
+          await prisma.learner.update({
+            where: { id: existing.id },
+            data: {
+                parentId: parentId, // Update link
+                guardianName: csvData['Parent/Guardian'] || undefined,
+                guardianPhone: csvData['Phone 1'] || undefined,
+            }
           });
-          continue;
+          
+          updated.push({
+            line: item.line,
+            id: existing.id,
+            admNo: csvData['Adm No'],
+            name: csvData['Leaner Name']
+          });
+        } else {
+          // Create learner
+          const learner = await prisma.learner.create({
+            data: {
+              schoolId,
+              branchId,
+              admissionNumber: csvData['Adm No'],
+              firstName,
+              lastName,
+              dateOfBirth: new Date(2010, 0, 1), // Default DOB - should be updated later
+              gender: 'MALE', // Default gender - should be updated later
+              grade,
+              status: 'ACTIVE',
+              admissionDate,
+              guardianName: csvData['Parent/Guardian'] || undefined,
+              guardianPhone: csvData['Phone 1'] || undefined,
+              parentId: parentId, // Link to parent User record
+            }
+          });
+
+          created.push({
+            line: item.line,
+            id: learner.id,
+            admNo: csvData['Adm No'],
+            name: csvData['Leaner Name']
+          });
         }
-
-        // Parse registration date
-        let admissionDate = new Date();
-        if (csvData['Reg Date']) {
-          const dateParts = csvData['Reg Date'].split('/');
-          if (dateParts.length === 3) {
-            admissionDate = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`);
-          }
-        }
-
-        // Create learner
-        const learner = await prisma.learner.create({
-          data: {
-            schoolId,
-            branchId,
-            admissionNumber: csvData['Adm No'],
-            firstName,
-            lastName,
-            dateOfBirth: new Date(2010, 0, 1), // Default DOB - should be updated later
-            gender: 'MALE', // Default gender - should be updated later
-            grade,
-            status: 'ACTIVE',
-            admissionDate,
-            guardianName: csvData['Parent/Guardian'] || undefined,
-            guardianPhone: csvData['Phone 1'] || undefined,
-          }
-        });
-
-        created.push({
-          line: item.line,
-          id: learner.id,
-          admNo: csvData['Adm No'],
-          name: csvData['Leaner Name']
-        });
 
       } catch (error) {
         failed.push({
@@ -263,11 +326,13 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
         total: lineNumber - 1,
         processed: results.length,
         created: created.length,
+        updated: updated.length,
         failed: failed.length + errors.length,
         validationErrors: errors.length
       },
       details: {
         created,
+        updated,
         failed,
         validationErrors: errors
       }

@@ -1,15 +1,14 @@
 /**
  * Learners List Page
- * Display and manage all learners
- * Add Student button is restricted for teachers (view-only)
  */
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Upload, Eye, Edit, Trash2, LogOut, Lock, ChevronLeft, ChevronRight, Search, RefreshCw, Users } from 'lucide-react';
+import { Plus, Upload, Eye, Edit, Trash2, LogOut, Lock, ChevronLeft, ChevronRight, Search, RefreshCw, Users, MoreVertical } from 'lucide-react';
 import StatusBadge from '../shared/StatusBadge';
 import EmptyState from '../shared/EmptyState';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { useAuth } from '../../../hooks/useAuth';
+import { configAPI } from '../../../services/api';
 import BulkOperationsModal from '../shared/bulk/BulkOperationsModal';
 
 const LearnersList = ({ 
@@ -22,12 +21,18 @@ const LearnersList = ({
   onViewLearner, 
   onMarkAsExited, 
   onDeleteLearner, 
-  onRefresh 
+  onRefresh,
+  onBulkDelete
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGrade, setFilterGrade] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('ACTIVE');
+  const [filterStream, setFilterStream] = useState('all');
+  const [availableStreams, setAvailableStreams] = useState([]);
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [selectedLearners, setSelectedLearners] = useState([]);
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { can, isRole } = usePermissions();
   const { user } = useAuth();
 
@@ -35,26 +40,41 @@ const LearnersList = ({
   const canCreateLearner = can('CREATE_LEARNER');
   const isTeacher = isRole('TEACHER');
 
+  // Fetch streams on mount
+  useEffect(() => {
+    const fetchStreams = async () => {
+      if (user?.schoolId) {
+        try {
+          const resp = await configAPI.getStreamConfigs(user.schoolId);
+          const arr = resp?.data || [];
+          setAvailableStreams(arr.filter(s => s.active));
+        } catch (error) {
+          console.error('Failed to fetch streams:', error);
+        }
+      }
+    };
+    fetchStreams();
+  }, [user?.schoolId]);
+
   // Server-side filtering effect
   useEffect(() => {
     const timer = setTimeout(() => {
       if (onFetchLearners) {
         const params = {
-          page: 1, // Reset to page 1 on filter change
+          page: 1,
           search: searchTerm,
           limit: pagination?.limit || 50
         };
 
-        // Only add filters if they are not 'all'
-        // undefined values are converted to string "undefined" by URLSearchParams, causing 0 results
         if (filterGrade !== 'all') params.grade = filterGrade;
         if (filterStatus !== 'all') params.status = filterStatus;
+        if (filterStream !== 'all') params.stream = filterStream;
 
         onFetchLearners(params);
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [searchTerm, filterGrade, filterStatus, onFetchLearners, pagination?.limit]);
+  }, [searchTerm, filterGrade, filterStatus, filterStream, onFetchLearners, pagination?.limit]);
 
   const handlePageChange = (newPage) => {
     if (onFetchLearners) {
@@ -66,6 +86,7 @@ const LearnersList = ({
 
       if (filterGrade !== 'all') params.grade = filterGrade;
       if (filterStatus !== 'all') params.status = filterStatus;
+      if (filterStream !== 'all') params.stream = filterStream;
 
       onFetchLearners(params);
     }
@@ -76,7 +97,77 @@ const LearnersList = ({
   const handleReset = () => {
     setSearchTerm('');
     setFilterGrade('all');
-    setFilterStatus('all');
+    setFilterStatus('ACTIVE');
+    setSelectedLearners([]);
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedLearners(displayLearners.map(l => l.id));
+    } else {
+      setSelectedLearners([]);
+    }
+  };
+
+  const handleSelectLearner = (id) => {
+    if (selectedLearners.includes(id)) {
+      setSelectedLearners(selectedLearners.filter(learnerId => learnerId !== id));
+    } else {
+      setSelectedLearners([...selectedLearners, id]);
+    }
+  };
+
+  const refreshData = () => {
+    if (onFetchLearners) {
+      const params = {
+        page: pagination?.page || 1,
+        search: searchTerm,
+        limit: pagination?.limit || 50
+      };
+
+      if (filterGrade !== 'all') params.grade = filterGrade;
+      if (filterStatus !== 'all') params.status = filterStatus;
+
+      onFetchLearners(params);
+    }
+  };
+
+  const handleIndividualDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this student?')) {
+      return;
+    }
+
+    try {
+      if (onBulkDelete) {
+        await onBulkDelete([id]);
+        refreshData();
+      } else {
+        await onDeleteLearner(id);
+      }
+    } catch (error) {
+      console.error('Error deleting student:', error);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete ${selectedLearners.length} students? This action cannot be undone.`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      if (onBulkDelete) {
+        await onBulkDelete(selectedLearners);
+      } else {
+        await Promise.all(selectedLearners.map(id => onDeleteLearner(id)));
+      }
+      setSelectedLearners([]);
+      refreshData();
+    } catch (error) {
+      console.error('Error deleting students:', error);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -107,12 +198,45 @@ const LearnersList = ({
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
               >
                 <option value="all">All Grades</option>
-                <option value="Grade 1">Grade 1</option>
-                <option value="Grade 2">Grade 2</option>
-                <option value="Grade 3">Grade 3</option>
-                <option value="Grade 4">Grade 4</option>
-                <option value="Grade 5">Grade 5</option>
-                <option value="Grade 6">Grade 6</option>
+                <optgroup label="Early Years">
+                  <option value="CRECHE">Creche</option>
+                  <option value="PLAYGROUP">Playgroup</option>
+                  <option value="RECEPTION">Reception</option>
+                  <option value="PP1">PP1</option>
+                  <option value="PP2">PP2</option>
+                  <option value="TRANSITION">Transition</option>
+                </optgroup>
+                <optgroup label="Primary">
+                  <option value="GRADE_1">Grade 1</option>
+                  <option value="GRADE_2">Grade 2</option>
+                  <option value="GRADE_3">Grade 3</option>
+                  <option value="GRADE_4">Grade 4</option>
+                  <option value="GRADE_5">Grade 5</option>
+                  <option value="GRADE_6">Grade 6</option>
+                </optgroup>
+                <optgroup label="Junior Secondary">
+                  <option value="GRADE_7">Grade 7</option>
+                  <option value="GRADE_8">Grade 8</option>
+                  <option value="GRADE_9">Grade 9</option>
+                </optgroup>
+                <optgroup label="Senior Secondary">
+                  <option value="GRADE_10">Grade 10</option>
+                  <option value="GRADE_11">Grade 11</option>
+                  <option value="GRADE_12">Grade 12</option>
+                </optgroup>
+              </select>
+
+              <select
+                value={filterStream}
+                onChange={(e) => setFilterStream(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="all">All Streams</option>
+                {availableStreams.map(stream => (
+                  <option key={stream.id} value={stream.name}>
+                    {stream.name}
+                  </option>
+                ))}
               </select>
 
               <select
@@ -121,13 +245,15 @@ const LearnersList = ({
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
               >
                 <option value="all">All Status</option>
-                <option value="Active">Active</option>
-                <option value="Exited">Exited</option>
-                <option value="Deactivated">Deactivated</option>
+                <option value="ACTIVE">Active</option>
+                <option value="DROPPED_OUT">Exited (Dropped Out)</option>
+                <option value="TRANSFERRED_OUT">Transferred Out</option>
+                <option value="GRADUATED">Graduated</option>
+                <option value="SUSPENDED">Suspended</option>
               </select>
               
               {/* Reset Button */}
-              {(searchTerm || filterGrade !== 'all' || filterStatus !== 'all') && (
+              {(searchTerm || filterGrade !== 'all' || filterStatus !== 'all' || filterStream !== 'all') && (
                 <button
                   onClick={handleReset}
                   className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition"
@@ -139,18 +265,48 @@ const LearnersList = ({
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 w-full xl:w-auto justify-end">
+          {/* Action Buttons & Metrics */}
+          <div className="flex gap-3 w-full xl:w-auto justify-end items-center">
+            {/* Metrics */}
+            <div className="hidden lg:flex items-center gap-4 mr-2 border-r pr-4 border-gray-200 h-10">
+              <div className="text-right">
+                <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total Students</p>
+                <p className="text-xl font-bold text-gray-800 leading-none">{pagination?.total || 0}</p>
+              </div>
+            </div>
+
             {canCreateLearner ? (
               <>
-                <button 
-                  onClick={() => setShowBulkModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-white text-green-700 border border-green-200 rounded-lg hover:bg-green-50 transition"
-                  title="Bulk import/export students"
-                >
-                  <Upload size={18} />
-                  <span className="hidden sm:inline">Bulk Operations</span>
-                </button>
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowQuickActions(!showQuickActions)}
+                    className="p-2 bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 rounded-lg transition"
+                    title="Quick Actions"
+                  >
+                    <MoreVertical size={20} />
+                  </button>
+                  {showQuickActions && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-10" 
+                        onClick={() => setShowQuickActions(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 z-20 py-1">
+                        <button
+                          onClick={() => {
+                            setShowQuickActions(false);
+                            setShowBulkModal(true);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        >
+                          <Upload size={16} />
+                          Bulk Operations
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
                 <button 
                   onClick={onAddLearner}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
@@ -175,6 +331,40 @@ const LearnersList = ({
         </div>
       </div>
 
+      {/* Bulk Actions Toolbar */}
+      {selectedLearners.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between animate-fade-in">
+          <div className="flex items-center gap-3">
+            <span className="bg-blue-600 text-white text-sm font-bold px-3 py-1 rounded-full">
+              {selectedLearners.length}
+            </span>
+            <span className="text-blue-900 font-medium">Students Selected</span>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setSelectedLearners([])}
+              className="px-4 py-2 text-blue-700 hover:bg-blue-100 rounded-lg transition text-sm font-medium"
+            >
+              Cancel
+            </button>
+            {canCreateLearner && (
+              <button
+                onClick={handleBulkDelete}
+                disabled={isDeleting}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition shadow-sm disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                ) : (
+                  <Trash2 size={18} />
+                )}
+                <span>Delete Selected</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Learners Table */}
       {loading && displayLearners.length === 0 ? (
         <div className="flex justify-center items-center h-64">
@@ -195,68 +385,84 @@ const LearnersList = ({
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Student</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Admission No</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Grade</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Guardian</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
+                <th className="px-3 py-2 w-4">
+                  <input
+                    type="checkbox"
+                    checked={displayLearners.length > 0 && selectedLearners.length === displayLearners.length}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Student</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Admission No</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Grade</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Guardian</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {displayLearners.map((learner) => (
-                <tr key={learner.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{learner.avatar}</span>
+                <tr key={learner.id} className={`hover:bg-gray-50 ${selectedLearners.includes(learner.id) ? 'bg-blue-50' : ''}`}>
+                  <td className="px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedLearners.includes(learner.id)}
+                      onChange={() => handleSelectLearner(learner.id)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{learner.avatar}</span>
                       <div>
-                        <p className="font-semibold">{learner.firstName} {learner.lastName}</p>
-                        <p className="text-sm text-gray-500">{learner.gender}</p>
+                        <p className="font-semibold text-sm">{learner.firstName} {learner.lastName}</p>
+                        <p className="text-xs text-gray-500">{learner.gender}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{learner.admNo}</td>
-                  <td className="px-6 py-4 text-sm font-semibold">{learner.grade} {learner.stream}</td>
-                  <td className="px-6 py-4">
-                    <p className="text-sm font-semibold">{learner.guardian1Name}</p>
-                    <p className="text-xs text-gray-500">{learner.guardian1Phone}</p>
+                  <td className="px-3 py-2 text-sm text-gray-600">{learner.admNo}</td>
+                  <td className="px-3 py-2 text-sm font-semibold">{learner.grade} {learner.stream}</td>
+                  <td className="px-3 py-2">
+                    <p className="text-sm font-semibold">{learner.guardianName || (learner.parent ? `${learner.parent.firstName} ${learner.parent.lastName}` : '')}</p>
+                    <p className="text-xs text-gray-500">{learner.guardianPhone || (learner.parent ? learner.parent.phone : '')}</p>
                   </td>
-                  <td className="px-6 py-4">
-                    <StatusBadge status={learner.status} />
+                  <td className="px-3 py-2">
+                    <StatusBadge status={learner.status} size="sm" />
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-1">
                       <button 
                         onClick={() => onViewLearner(learner)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition" 
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition" 
                         title="View Details"
                       >
-                        <Eye size={18} />
+                        <Eye size={16} />
                       </button>
                       {!isTeacher && (
                         <>
                           <button 
                             onClick={() => onEditLearner(learner)}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition" 
+                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition" 
                             title="Edit"
                           >
-                            <Edit size={18} />
+                            <Edit size={16} />
                           </button>
                           {learner.status === 'Active' && (
                             <button 
                               onClick={() => onMarkAsExited(learner.id)}
-                              className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition" 
+                              className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition" 
                               title="Mark as Exited"
                             >
-                              <LogOut size={18} />
+                              <LogOut size={16} />
                             </button>
                           )}
                           <button 
-                            onClick={() => onDeleteLearner(learner.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition" 
+                            onClick={() => handleIndividualDelete(learner.id)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition" 
                             title="Delete"
                           >
-                            <Trash2 size={18} />
+                            <Trash2 size={16} />
                           </button>
                         </>
                       )}

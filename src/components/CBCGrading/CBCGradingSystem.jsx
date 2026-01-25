@@ -1,5 +1,5 @@
 /**
- * CBCGradingSystem - REFACTORED VERSION
+ * CBCGradingSystem
  * Main component using extracted modules
  */
 
@@ -24,6 +24,7 @@ import SummativeTests from './pages/SummativeTests';
 import SummativeAssessment from './pages/SummativeAssessment';
 import SummativeReport from './pages/SummativeReport';
 import TermlyReport from './pages/TermlyReport';
+import SummaryReportPage from './pages/reports/SummaryReportPage';
 import PerformanceScale from './pages/PerformanceScale';
 import NoticesPage from './pages/NoticesPage';
 import MessagesPage from './pages/MessagesPage';
@@ -59,17 +60,61 @@ import { PAGE_TITLES } from './utils/constants';
 export default function CBCGradingSystem({ user, onLogout, brandingSettings, setBrandingSettings }) {
   // UI State
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [currentPage, setCurrentPage] = useState('dashboard');
-  const [expandedSections, setExpandedSections] = useState({ 
-    dashboard: true,
-    learners: false,
-    teachers: false,
-    attendance: false,
-    communications: false,
-    assessment: false,
-    'learning-hub': false,
-    settings: false
+  
+  // Initialize from localStorage or default to 'dashboard'
+  const [currentPage, setCurrentPage] = useState(() => {
+    try {
+      return localStorage.getItem('cbc_current_page') || 'dashboard';
+    } catch (e) {
+      return 'dashboard';
+    }
   });
+
+  // Initialize from localStorage or default
+  const [expandedSections, setExpandedSections] = useState(() => {
+    try {
+      const saved = localStorage.getItem('cbc_expanded_sections');
+      return saved ? JSON.parse(saved) : { 
+        dashboard: true,
+        learners: false,
+        teachers: false,
+        attendance: false,
+        communications: false,
+        assessment: false,
+        'learning-hub': false,
+        settings: false
+      };
+    } catch (e) {
+      return { 
+        dashboard: true,
+        learners: false,
+        teachers: false,
+        attendance: false,
+        communications: false,
+        assessment: false,
+        'learning-hub': false,
+        settings: false
+      };
+    }
+  });
+
+  // Persist currentPage changes
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('cbc_current_page', currentPage);
+    } catch (e) {
+      console.error('Failed to save page state', e);
+    }
+  }, [currentPage]);
+
+  // Persist expandedSections changes
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('cbc_expanded_sections', JSON.stringify(expandedSections));
+    } catch (e) {
+      console.error('Failed to save sidebar state', e);
+    }
+  }, [expandedSections]);
 
   // Confirmation Dialog State
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -90,17 +135,15 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   const [showViewLearnerModal, setShowViewLearnerModal] = useState(false);
 
   // Custom Hooks
-  // Fetching data from backend API at http://localhost:5000/api
   const {
     learners,
     pagination,
-    setSelectedLearner,
     createLearner,
     updateLearner,
     deleteLearner,
+    bulkDeleteLearners,
     fetchLearners,
     loading: learnersLoading,
-    error: learnersError,
   } = useLearners();
 
   const {
@@ -109,19 +152,17 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
     createTeacher,
     updateTeacher,
     deleteTeacher,
-    loading: teachersLoading,
-    error: teachersError,
   } = useTeachers();
 
   const {
     parents,
+    pagination: parentPagination,
+    fetchParents,
     setSelectedParent,
     createParent,
     updateParent,
     archiveParent,
     deleteParent,
-    loading: parentsLoading,
-    error: parentsError,
   } = useParents();
 
   const {
@@ -205,6 +246,16 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       setShowConfirmDialog(false);
     });
     setShowConfirmDialog(true);
+  };
+
+  const handleBulkDeleteLearners = async (learnerIds) => {
+    const result = await bulkDeleteLearners(learnerIds);
+    if (result.success) {
+      const count = learnerIds.length;
+      showSuccess(`${count} student${count !== 1 ? 's' : ''} deleted successfully`);
+    } else {
+      showSuccess(result.error || 'Error deleting students');
+    }
   };
 
   const handleAddTeacher = () => {
@@ -338,6 +389,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
             onViewLearner={handleViewLearner}
             onMarkAsExited={handleMarkAsExited}
             onDeleteLearner={handleDeleteLearner}
+            onBulkDelete={handleBulkDeleteLearners}
           />
         );
       case 'learners-admissions':
@@ -368,6 +420,8 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
         return (
           <ParentsList
             parents={parents}
+            pagination={parentPagination}
+            onFetchParents={fetchParents}
             onAddParent={handleAddParent}
             onEditParent={handleEditParent}
             onViewParent={handleViewParent}
@@ -396,7 +450,9 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       case 'assess-summative-assessment':
         return <SummativeAssessment learners={learners} />;
       case 'assess-summative-report':
-        return <SummativeReport learners={learners} />;
+        return <SummativeReport learners={learners} brandingSettings={brandingSettings} />;
+      case 'assess-summary-report':
+        return <SummaryReportPage />;
       case 'assess-termly-report':
         return <TermlyReport learners={learners} />;
       case 'assess-performance-scale':

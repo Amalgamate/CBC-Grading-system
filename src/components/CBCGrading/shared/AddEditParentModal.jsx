@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Phone, MapPin, Briefcase, Users } from 'lucide-react';
+import { X, Save, User, Phone, Briefcase } from 'lucide-react';
 
 const AddEditParentModal = ({ show, onClose, onSave, parent = null, learners = [] }) => {
   const isEdit = parent !== null;
@@ -46,15 +46,6 @@ const AddEditParentModal = ({ show, onClose, onSave, parent = null, learners = [
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
-  };
-
-  const handleLearnerToggle = (learnerId) => {
-    setFormData(prev => ({
-      ...prev,
-      learnerIds: prev.learnerIds.includes(learnerId)
-        ? prev.learnerIds.filter(id => id !== learnerId)
-        : [...prev.learnerIds, learnerId]
-    }));
   };
 
   const validate = () => {

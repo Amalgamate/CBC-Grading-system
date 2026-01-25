@@ -14,8 +14,7 @@ export const gradeStructure = [
     capacity: 15, 
     active: true, 
     curriculum: 'Play-based', 
-    subjects: [], 
-    streams: ['A'] 
+    subjects: []
   },
   { 
     id: 2, 
@@ -26,8 +25,7 @@ export const gradeStructure = [
     capacity: 20, 
     active: true, 
     curriculum: 'Play-based', 
-    subjects: [], 
-    streams: ['A'] 
+    subjects: []
   },
   { 
     id: 3, 
@@ -38,8 +36,7 @@ export const gradeStructure = [
     capacity: 25, 
     active: true, 
     curriculum: 'Play-based', 
-    subjects: [], 
-    streams: ['A', 'B'] 
+    subjects: []
   },
   { 
     id: 4, 
@@ -50,8 +47,7 @@ export const gradeStructure = [
     capacity: 25, 
     active: true, 
     curriculum: 'Play-based', 
-    subjects: [], 
-    streams: ['A', 'B'] 
+    subjects: []
   },
   { 
     id: 5, 
@@ -62,8 +58,7 @@ export const gradeStructure = [
     capacity: 30, 
     active: true, 
     curriculum: 'CBC', 
-    subjects: ['Literacy', 'Numeracy', 'Environmental', 'Creative Arts'], 
-    streams: ['A', 'B'] 
+    subjects: ['Literacy', 'Numeracy', 'Environmental', 'Creative Arts']
   },
   { 
     id: 6, 
@@ -74,8 +69,7 @@ export const gradeStructure = [
     capacity: 30, 
     active: true, 
     curriculum: 'CBC', 
-    subjects: ['Literacy', 'Numeracy', 'Environmental', 'Creative Arts'], 
-    streams: ['A', 'B'] 
+    subjects: ['Literacy', 'Numeracy', 'Environmental', 'Creative Arts']
   },
   
   // LOWER PRIMARY
@@ -88,8 +82,7 @@ export const gradeStructure = [
     capacity: 35, 
     active: true, 
     curriculum: 'CBC', 
-    subjects: ['English', 'Kiswahili', 'Mathematics', 'Environmental', 'Religious Education', 'Creative Arts', 'Physical Education'], 
-    streams: ['A', 'B', 'C'] 
+    subjects: ['English', 'Kiswahili', 'Mathematics', 'Environmental', 'Religious Education', 'Creative Arts', 'Physical Education']
   },
   { 
     id: 8, 
@@ -100,8 +93,7 @@ export const gradeStructure = [
     capacity: 35, 
     active: true, 
     curriculum: 'CBC', 
-    subjects: ['English', 'Kiswahili', 'Mathematics', 'Environmental', 'Religious Education', 'Creative Arts', 'Physical Education'], 
-    streams: ['A', 'B', 'C'] 
+    subjects: ['English', 'Kiswahili', 'Mathematics', 'Environmental', 'Religious Education', 'Creative Arts', 'Physical Education']
   },
   { 
     id: 9, 
@@ -112,8 +104,7 @@ export const gradeStructure = [
     capacity: 40, 
     active: true, 
     curriculum: 'CBC', 
-    subjects: ['English', 'Kiswahili', 'Mathematics', 'Environmental', 'Religious Education', 'Creative Arts', 'Physical Education'], 
-    streams: ['A', 'B', 'C'] 
+    subjects: ['English', 'Kiswahili', 'Mathematics', 'Environmental', 'Religious Education', 'Creative Arts', 'Physical Education']
   },
   
   // UPPER PRIMARY
@@ -126,8 +117,7 @@ export const gradeStructure = [
     capacity: 40, 
     active: true, 
     curriculum: 'CBC', 
-    subjects: ['English', 'Kiswahili', 'Mathematics', 'Science', 'Social Studies', 'Religious Education', 'Creative Arts', 'Physical Education'], 
-    streams: ['A', 'B', 'C'] 
+    subjects: ['English', 'Kiswahili', 'Mathematics', 'Science', 'Social Studies', 'Religious Education', 'Creative Arts', 'Physical Education']
   },
   { 
     id: 11, 
@@ -138,8 +128,7 @@ export const gradeStructure = [
     capacity: 40, 
     active: true, 
     curriculum: 'CBC', 
-    subjects: ['English', 'Kiswahili', 'Mathematics', 'Science', 'Social Studies', 'Religious Education', 'Creative Arts', 'Physical Education'], 
-    streams: ['A', 'B', 'C'] 
+    subjects: ['English', 'Kiswahili', 'Mathematics', 'Science', 'Social Studies', 'Religious Education', 'Creative Arts', 'Physical Education']
   },
   { 
     id: 12, 
@@ -150,8 +139,7 @@ export const gradeStructure = [
     capacity: 40, 
     active: true, 
     curriculum: 'CBC', 
-    subjects: ['English', 'Kiswahili', 'Mathematics', 'Science', 'Social Studies', 'Religious Education', 'Creative Arts', 'Physical Education'], 
-    streams: ['A', 'B', 'C'] 
+    subjects: ['English', 'Kiswahili', 'Mathematics', 'Science', 'Social Studies', 'Religious Education', 'Creative Arts', 'Physical Education']
   },
   
   // JUNIOR SCHOOL
@@ -164,8 +152,7 @@ export const gradeStructure = [
     capacity: 45, 
     active: true, 
     curriculum: 'CBC/IGCSE', 
-    subjects: ['English', 'Kiswahili', 'Mathematics', 'Science', 'Social Studies', 'Religious Education', 'Life Skills'], 
-    streams: ['A', 'B'] 
+    subjects: ['English', 'Kiswahili', 'Mathematics', 'Science', 'Social Studies', 'Religious Education', 'Life Skills']
   },
   { 
     id: 14, 
@@ -176,8 +163,7 @@ export const gradeStructure = [
     capacity: 45, 
     active: true, 
     curriculum: 'CBC/IGCSE', 
-    subjects: ['English', 'Kiswahili', 'Mathematics', 'Science', 'Social Studies', 'Religious Education', 'Life Skills'], 
-    streams: ['A', 'B'] 
+    subjects: ['English', 'Kiswahili', 'Mathematics', 'Science', 'Social Studies', 'Religious Education', 'Life Skills']
   },
   { 
     id: 15, 
@@ -188,8 +174,7 @@ export const gradeStructure = [
     capacity: 45, 
     active: true, 
     curriculum: 'CBC/IGCSE', 
-    subjects: ['English', 'Kiswahili', 'Mathematics', 'Science', 'Social Studies', 'Religious Education', 'Life Skills'], 
-    streams: ['A'] 
+    subjects: ['English', 'Kiswahili', 'Mathematics', 'Science', 'Social Studies', 'Religious Education', 'Life Skills']
   },
   
   // SENIOR SCHOOL
@@ -202,8 +187,7 @@ export const gradeStructure = [
     capacity: 40, 
     active: true, 
     curriculum: 'IGCSE', 
-    subjects: ['English', 'Mathematics', 'Sciences', 'Humanities', 'Languages'], 
-    streams: ['A'] 
+    subjects: ['English', 'Mathematics', 'Sciences', 'Humanities', 'Languages']
   },
   { 
     id: 17, 
@@ -214,8 +198,7 @@ export const gradeStructure = [
     capacity: 40, 
     active: true, 
     curriculum: 'IGCSE', 
-    subjects: ['English', 'Mathematics', 'Sciences', 'Humanities', 'Languages'], 
-    streams: ['A'] 
+    subjects: ['English', 'Mathematics', 'Sciences', 'Humanities', 'Languages']
   },
   { 
     id: 18, 
@@ -226,8 +209,7 @@ export const gradeStructure = [
     capacity: 40, 
     active: true, 
     curriculum: 'IGCSE', 
-    subjects: ['English', 'Mathematics', 'Sciences', 'Humanities', 'Languages'], 
-    streams: ['A'] 
+    subjects: ['English', 'Mathematics', 'Sciences', 'Humanities', 'Languages']
   }
 ];
 

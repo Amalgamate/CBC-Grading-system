@@ -5,8 +5,8 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  DollarSign, Plus, Edit2, Trash2, Copy, Calendar, BookOpen,
-  CheckCircle, AlertCircle, Search, Filter
+  DollarSign, Plus, Edit2, Trash2, Copy, BookOpen,
+  Search, AlertCircle, CheckCircle
 } from 'lucide-react';
 import EmptyState from '../shared/EmptyState';
 import LoadingSpinner from '../shared/LoadingSpinner';

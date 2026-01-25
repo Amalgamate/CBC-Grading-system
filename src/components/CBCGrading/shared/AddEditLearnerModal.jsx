@@ -8,11 +8,30 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, User, Calendar, MapPin, Users, Heart, Camera, AlertCircle } from 'lucide-react';
 import PhotoUploadComponent from './PhotoUploadComponent';
 import { useAuth } from '../../../hooks/useAuth';
+import { configAPI } from '../../../services/api';
 
 const AddEditLearnerModal = ({ show, onClose, onSave, learner = null }) => {
   const { user } = useAuth();
   const isEdit = learner !== null;
   
+  const [availableStreams, setAvailableStreams] = useState([]);
+
+  useEffect(() => {
+    const fetchStreams = async () => {
+      if (user?.schoolId) {
+        try {
+          const streams = await configAPI.getStreamConfigs(user.schoolId);
+          if (streams && Array.isArray(streams)) {
+            setAvailableStreams(streams.filter(s => s.active));
+          }
+        } catch (error) {
+          console.error('Failed to fetch streams:', error);
+        }
+      }
+    };
+    fetchStreams();
+  }, [user?.schoolId]);
+
   const [formData, setFormData] = useState({
     firstName: '',
     middleName: '',
@@ -326,9 +345,15 @@ const AddEditLearnerModal = ({ show, onClose, onSave, learner = null }) => {
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="A">A</option>
-                    <option value="B">B</option>
-                    <option value="C">C</option>
+                    {availableStreams.length > 0 ? (
+                      availableStreams.map(stream => (
+                        <option key={stream.id} value={stream.name}>
+                          {stream.name}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="">No streams available</option>
+                    )}
                   </select>
                 </div>
               </div>

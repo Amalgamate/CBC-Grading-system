@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { authenticate } from '../middleware/auth.middleware';
 import {
   createSchool,
   getAllSchools,
@@ -16,6 +17,9 @@ import {
 } from '../controllers/school.controller';
 
 const router = Router();
+
+// Protect all routes
+router.use(authenticate);
 
 // ============================================
 // SCHOOL MANAGEMENT ROUTES

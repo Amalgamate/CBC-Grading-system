@@ -457,6 +457,12 @@ export class UserController {
     const { role } = req.params;
     const currentUserRole = req.user!.role;
     const includeArchived = req.query.includeArchived === 'true';
+    const search = req.query.search as string;
+    
+    // Pagination parameters
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const skip = (page - 1) * limit;
 
     // Validate role
     const validRoles: Role[] = ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'PARENT', 'ACCOUNTANT', 'RECEPTIONIST'];
@@ -476,6 +482,19 @@ export class UserController {
       whereClause.archived = false;
     }
 
+    // Search functionality
+    if (search) {
+      whereClause.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    // Get total count for pagination
+    const totalCount = await prisma.user.count({ where: whereClause });
+
     const users = await prisma.user.findMany({
       where: whereClause,
       select: {
@@ -489,12 +508,20 @@ export class UserController {
         createdAt: true,
         lastLogin: true
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit
     });
 
     res.json({
       success: true,
       data: users,
+      pagination: {
+        total: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit)
+      },
       count: users.length,
       role: role
     });

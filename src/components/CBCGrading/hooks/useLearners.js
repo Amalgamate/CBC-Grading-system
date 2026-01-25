@@ -18,9 +18,6 @@ export const useLearners = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  /**
-   * Fetch all learners from backend
-   */
   const fetchLearners = useCallback(async (params = {}) => {
     try {
       setLoading(true);
@@ -28,16 +25,14 @@ export const useLearners = () => {
       const response = await api.learners.getAll(params);
       
       if (response.success) {
-        // Update pagination state if provided
         if (response.pagination) {
           setPagination(response.pagination);
         }
 
-        // Transform backend data to match frontend format
         const transformedLearners = response.data.map(learner => ({
           id: learner.id,
           admissionNumber: learner.admissionNumber,
-          admNo: learner.admissionNumber, // Alias for compatibility
+          admNo: learner.admissionNumber,
           name: `${learner.firstName} ${learner.lastName}`,
           firstName: learner.firstName,
           lastName: learner.lastName,
@@ -74,9 +69,6 @@ export const useLearners = () => {
     }
   }, []);
 
-  /**
-   * Calculate age from date of birth
-   */
   const calculateAge = (dateOfBirth) => {
     const today = new Date();
     const birthDate = new Date(dateOfBirth);
@@ -88,9 +80,6 @@ export const useLearners = () => {
     return age;
   };
 
-  /**
-   * Create new learner
-   */
   const createLearner = useCallback(async (learnerData) => {
     try {
       setLoading(true);
@@ -99,7 +88,7 @@ export const useLearners = () => {
       const response = await api.learners.create(learnerData);
       
       if (response.success) {
-        await fetchLearners(); // Refresh the list (reset to page 1 to ensure visibility)
+        await fetchLearners();
         return { success: true, data: response.data };
       }
     } catch (err) {
@@ -111,9 +100,6 @@ export const useLearners = () => {
     }
   }, [fetchLearners]);
 
-  /**
-   * Update learner
-   */
   const updateLearner = useCallback(async (id, learnerData) => {
     try {
       setLoading(true);
@@ -122,7 +108,6 @@ export const useLearners = () => {
       const response = await api.learners.update(id, learnerData);
       
       if (response.success) {
-        // Refresh current page
         await fetchLearners({ 
           page: pagination.page, 
           limit: pagination.limit 
@@ -138,9 +123,6 @@ export const useLearners = () => {
     }
   }, [fetchLearners, pagination]);
 
-  /**
-   * Delete learner
-   */
   const deleteLearner = useCallback(async (id) => {
     try {
       setLoading(true);
@@ -149,14 +131,12 @@ export const useLearners = () => {
       const response = await api.learners.delete(id);
       
       if (response.success) {
-        // Refresh current page
         await fetchLearners({ 
           page: pagination.page, 
           limit: pagination.limit 
         });
         return { success: true };
       } else {
-        // Handle case where API returns but success is false
         const errorMsg = response.message || 'Failed to delete learner';
         console.error('Delete failed:', errorMsg);
         return { success: false, error: errorMsg };
@@ -170,7 +150,45 @@ export const useLearners = () => {
     }
   }, [fetchLearners, pagination]);
 
-  // Fetch learners on mount
+  const bulkDeleteLearners = useCallback(async (ids) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const deletePromises = ids.map(async (id) => {
+        try {
+          return await api.learners.delete(id);
+        } catch (e) {
+          return { success: false, message: e.message };
+        }
+      });
+      
+      const results = await Promise.all(deletePromises);
+      const failures = results.filter(r => !r.success);
+      
+      await fetchLearners({ 
+        page: pagination.page, 
+        limit: pagination.limit 
+      });
+
+      if (failures.length > 0) {
+        return { 
+          success: false, 
+          error: `Failed to delete ${failures.length} out of ${ids.length} learners`,
+          results 
+        };
+      }
+      
+      return { success: true };
+    } catch (err) {
+      console.error('Error in bulk delete:', err);
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchLearners, pagination]);
+
   useEffect(() => {
     fetchLearners();
   }, [fetchLearners]);
@@ -186,5 +204,6 @@ export const useLearners = () => {
     createLearner,
     updateLearner,
     deleteLearner,
+    bulkDeleteLearners,
   };
 };

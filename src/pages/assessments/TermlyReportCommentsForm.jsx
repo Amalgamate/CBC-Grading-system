@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, AlertCircle, FileText, Lightbulb } from 'lucide-react';
+import { Save, FileText, Lightbulb } from 'lucide-react';
 
 const TermlyReportCommentsForm = () => {
   const [formData, setFormData] = useState({

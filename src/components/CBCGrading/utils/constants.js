@@ -89,9 +89,6 @@ export const GRADE_LEVELS = [
   'Grade 4', 'Grade 5', 'Grade 6'
 ];
 
-// Streams
-export const STREAMS = ['A', 'B', 'C', 'D'];
-
 // Assessment Methods
 export const ASSESSMENT_METHODS = [
   'Observation',
@@ -162,6 +159,9 @@ export const PAGE_TITLES = {
   'teachers-list': 'Tutors List',
   'parents-list': 'Parents List',
   
+  // Timetable
+  'timetable': 'School Timetable',
+  
   // Attendance
   'attendance-daily': 'Daily Attendance',
   'attendance-reports': 'Attendance Reports',
@@ -176,6 +176,7 @@ export const PAGE_TITLES = {
   'assess-summative-tests': 'Summative Tests',
   'assess-summative-assessment': 'Summative Assessment',
   'assess-summative-report': 'Summative Report',
+  'assess-summary-report': 'Summary Report',
   'assess-termly-report': 'Termly Report',
   'assess-performance-scale': 'Performance Scale',
   
@@ -210,5 +211,13 @@ export const PAGE_TITLES = {
  * @returns {string} Tailwind CSS classes
  */
 export const getStatusColor = (status) => {
-  return STATUS_COLORS[status] || 'bg-gray-100 text-gray-800';
+  if (!status) return 'bg-gray-100 text-gray-800';
+  
+  // Try exact match first
+  if (STATUS_COLORS[status]) return STATUS_COLORS[status];
+  
+  // Try case-insensitive match
+  const lowerStatus = status.toLowerCase();
+  const key = Object.keys(STATUS_COLORS).find(k => k.toLowerCase() === lowerStatus);
+  return key ? STATUS_COLORS[key] : 'bg-gray-100 text-gray-800';
 };

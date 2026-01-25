@@ -82,6 +82,13 @@ model User {
   assessedValues              ValuesAssessment[]      @relation("AssessorValues")
   recordedCoCurricular        CoCurricularActivity[]  @relation("RecorderCoCurricular")
   
+  // New Relations for Phase 1 (Foundation)
+  createdTermConfigs          TermConfig[]
+  createdAggregationConfigs   AggregationConfig[]
+  submittedTests              SummativeTest[]         @relation("SubmittedTests")
+  approvedTests               SummativeTest[]         @relation("ApprovedTests")
+  changeHistory               ChangeHistory[]
+
   @@map("users")
   @@index([schoolId])
   @@index([branchId])
@@ -112,20 +119,8 @@ enum Grade {
   GRADE_12
 }
 
-enum Stream {
-  A
-  B
-  C
-  D
-  EAST
-  WEST
-  NORTH
-  SOUTH
-  RED
-  BLUE
-  GREEN
-  YELLOW
-}
+// Stream Enum REMOVED in favor of dynamic string handling
+// Old enum for reference: A, B, C, D, EAST, WEST, NORTH, SOUTH, RED, BLUE, GREEN, YELLOW
 
 enum LearnerStatus {
   ACTIVE
@@ -153,6 +148,57 @@ enum AttendanceStatus {
   LATE
   EXCUSED
   SICK
+}
+
+// ============================================
+// PHASE 1: NEW ENUMS
+// ============================================
+
+enum FormativeAssessmentType {
+  OPENER          // Daily/weekly quick test
+  WEEKLY          // Weekly assessment
+  MONTHLY         // Monthly comprehensive test
+  CAT             // Continuous Assessment Test
+  MID_TERM        // Mid-term test
+  ASSIGNMENT      // Take-home assignment
+  PROJECT         // Project-based assessment
+  PRACTICAL       // Hands-on/lab work
+  QUIZ            // Short quiz
+  OBSERVATION     // Teacher observation
+  ORAL            // Oral assessment
+  EXAM            // Formative exam
+  OTHER           // Custom type
+}
+
+enum AssessmentStatus {
+  DRAFT         // Being created/edited
+  SUBMITTED     // Submitted for review
+  APPROVED      // Approved by head teacher
+  PUBLISHED     // Made visible to students/parents
+  LOCKED        // Locked, no further edits allowed
+}
+
+enum AggregationStrategy {
+  SIMPLE_AVERAGE      // Average all scores
+  BEST_N              // Take best N scores only
+  DROP_LOWEST_N       // Drop N lowest, average rest
+  WEIGHTED_AVERAGE    // Each assessment has different weight
+  MEDIAN              // Use median instead of mean
+}
+
+enum CurriculumType {
+  CBC_ONLY          // Only competency-based
+  EXAM_ONLY         // Traditional exam-based
+  CBC_AND_EXAM      // Both (most common)
+  IGCSE             // International curriculum
+  CAMBRIDGE         // Cambridge system
+  CUSTOM            // School-defined
+}
+
+enum AssessmentMode {
+  FORMATIVE_ONLY    // No end-term exams
+  SUMMATIVE_ONLY    // Only exams, no continuous assessment
+  MIXED             // Both (default)
 }
 
 // ============================================
@@ -191,6 +237,13 @@ model School {
   // Status
   active                  Boolean               @default(true)
   
+  // NEW: Curriculum configuration (Phase 1)
+  curriculumType      CurriculumType   @default(CBC_AND_EXAM)
+  assessmentMode      AssessmentMode   @default(MIXED)
+  
+  // Optional custom grading scale
+  customGradingScale  Json?
+
   // Metadata
   createdAt               DateTime              @default(now())
   updatedAt               DateTime              @updatedAt
@@ -200,6 +253,11 @@ model School {
   learners                Learner[]
   admissionSequences      AdmissionSequence[]
   users                   User[]                @relation("SchoolUsers")
+  gradingSystems          GradingSystem[]
+  termConfigs             TermConfig[]
+  aggregationConfigs      AggregationConfig[]
+  streamConfigs           StreamConfig[]
+  changeHistory           ChangeHistory[]
   
   @@map("schools")
   @@index([county])
@@ -282,7 +340,7 @@ model Class {
   
   name        String     // e.g., "Grade 1 A", "PP1 East"
   grade       Grade
-  stream      Stream?
+  stream      String?
   
   // Teacher Assignment
   teacherId   String?
@@ -365,7 +423,7 @@ model Learner {
   
   // Academic Information
   grade             Grade
-  stream            Stream?
+  stream            String?
   
   // Parent/Guardian Information
   parentId          String?
@@ -544,11 +602,24 @@ model FormativeAssessment {
   teacherId         String
   teacher           User          @relation("TeacherFormativeAssessments", fields: [teacherId], references: [id])
   
+  // New Fields for Phase 1 (Foundation)
+  type              FormativeAssessmentType @default(OPENER)
+  status            AssessmentStatus        @default(DRAFT)
+  title             String?                 // e.g., "Week 1 Opener"
+  date              DateTime?               @default(now())
+  maxScore          Float?                  // Max possible score
+  weight            Float                   @default(1.0) // Weight in aggregation
+  locked            Boolean                 @default(false) // If true, no further edits allowed
+  lockedAt          DateTime?
+  lockedBy          String?
+
   // Metadata
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   
-  @@unique([learnerId, term, academicYear, learningArea])
+  // Adjusted constraint to allow multiple assessments per term/subject
+  // Uniqueness is now based on ID, but we enforce uniqueness on (learner, term, subject, type, title) to prevent duplicates if title is provided
+  @@unique([learnerId, term, academicYear, learningArea, type, title])
   @@map("formative_assessments")
   @@index([learnerId])
   @@index([teacherId])
@@ -589,7 +660,25 @@ model SummativeTest {
   // Status
   published       Boolean         @default(false)
   active          Boolean         @default(true)
+  status          AssessmentStatus @default(DRAFT)
   
+  // Phase 1: Workflow & Config
+  curriculum      CurriculumType  @default(CBC_AND_EXAM)
+  weight          Float           @default(100.0) // Contribution to final grade
+  locked          Boolean         @default(false) // If true, no further edits allowed
+  lockedAt        DateTime?
+  lockedBy        String?
+  statusHistory   Json[]          @default([])
+  
+  // Workflow
+  submittedBy     String?
+  submittedAt     DateTime?
+  submittedByUser User?           @relation("SubmittedTests", fields: [submittedBy], references: [id])
+  
+  approvedBy      String?
+  approvedAt      DateTime?
+  approvedByUser  User?           @relation("ApprovedTests", fields: [approvedBy], references: [id])
+
   // Results
   results         SummativeResult[]
   
@@ -599,9 +688,90 @@ model SummativeTest {
   
   @@map("summative_tests")
   @@index([grade, term, academicYear])
-  @@index([learningArea])
-  @@index([createdBy])
-  @@index([testDate])
+}
+
+// ============================================
+// PHASE 1: NEW MODELS
+// ============================================
+
+model TermConfig {
+  id              String        @id @default(uuid())
+  
+  schoolId        String
+  school          School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  
+  academicYear    Int
+  term            Term
+  
+  startDate       DateTime
+  endDate         DateTime
+  
+  // Weights (e.g., Formative 30%, Summative 70%)
+  formativeWeight Float         @default(30.0)
+  summativeWeight Float         @default(70.0)
+  
+  // Status
+  isActive        Boolean       @default(false)
+  isClosed        Boolean       @default(false)
+  
+  createdBy       String
+  creator         User          @relation(fields: [createdBy], references: [id])
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@unique([schoolId, academicYear, term])
+  @@map("term_configs")
+}
+
+model AggregationConfig {
+  id              String        @id @default(uuid())
+  
+  schoolId        String
+  school          School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  
+  grade           Grade?        // Apply to specific grade (optional, null = all)
+  learningArea    String?       // Apply to specific subject (optional, null = all)
+  
+  type            FormativeAssessmentType
+  strategy        AggregationStrategy     @default(SIMPLE_AVERAGE)
+  
+  // Strategy Parameters
+  nValue          Int?          // For BEST_N or DROP_LOWEST_N
+  weight          Float         @default(1.0)
+  
+  createdBy       String
+  creator         User          @relation(fields: [createdBy], references: [id])
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@map("aggregation_configs")
+}
+
+model ChangeHistory {
+  id              String        @id @default(uuid())
+  
+  schoolId        String
+  school          School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  
+  entityType      String        // e.g., "SummativeResult", "FormativeAssessment"
+  entityId        String
+  action          String        // CREATE, UPDATE, DELETE
+  
+  field           String?       // Specific field changed
+  oldValue        String?       // Serialized old value
+  newValue        String?       // Serialized new value
+  
+  changedBy       String
+  changer         User          @relation(fields: [changedBy], references: [id])
+  
+  changedAt       DateTime      @default(now())
+  reason          String?
+  
+  @@map("change_history")
+  @@index([schoolId])
+  @@index([entityType, entityId])
 }
 
 // ============================================
@@ -1087,4 +1257,79 @@ model MessageReceipt {
   @@index([messageId])
   @@index([recipientId])
   @@index([status])
+}
+// ============================================
+// GRADING SYSTEM CONFIGURATION
+// ============================================
+
+model GradingSystem {
+  id          String   @id @default(uuid())
+  name        String   // e.g. "Standard Summative", "CBC Rubric"
+  type        String   // "SUMMATIVE" or "CBC"
+  
+  // Scope
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  
+  active      Boolean  @default(true)
+  isDefault   Boolean  @default(false)
+  
+  ranges      GradingRange[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("grading_systems")
+}
+
+model GradingRange {
+  id              String        @id @default(uuid())
+  
+  systemId        String
+  system          GradingSystem @relation(fields: [systemId], references: [id], onDelete: Cascade)
+  
+  label           String        // "A", "EE1"
+  minPercentage   Float
+  maxPercentage   Float
+  
+  // Mapping to Enums (Optional but helpful for type safety in code)
+  summativeGrade  SummativeGrade?
+  rubricRating    DetailedRubricRating?
+  
+  points          Int?          // 4, 3, 2, 1 or 8, 7, 6...
+  color           String?       // Hex code
+  description     String?       // "Exceeds Expectations"
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@map("grading_ranges")
+  @@index([systemId])
+}
+
+// ============================================
+// STREAM CONFIGURATION (Dynamic Streams)
+// ============================================
+
+model StreamConfig {
+  id              String    @id @default(uuid())
+  
+  // References
+  schoolId        String
+  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  
+  // Stream Details
+  name            String    // e.g., "A", "Blue", "Eagle"
+  
+  // Status
+  active          Boolean   @default(true)
+  
+  // Metadata
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Unique constraint: Stream name must be unique per school
+  @@unique([schoolId, name])
+  @@map("stream_configs")
+  @@index([schoolId])
 }

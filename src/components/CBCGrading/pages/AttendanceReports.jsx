@@ -4,16 +4,19 @@
  */
 
 import React, { useState } from 'react';
-import { Calendar, Download, FileText, CheckCircle, XCircle, Clock, Users } from 'lucide-react';
+import { Calendar, Download, FileText, CheckCircle, XCircle, Clock, Users, User } from 'lucide-react';
 import StatsCard from '../shared/StatsCard';
 import EmptyState from '../shared/EmptyState';
 import { useAttendance } from '../hooks/useAttendance';
 import { getCurrentDate } from '../utils/dateHelpers';
+import SmartLearnerSearch from '../shared/SmartLearnerSearch';
 
 const AttendanceReports = ({ learners }) => {
   const [filterGrade, setFilterGrade] = useState('all');
   const [reportStartDate, setReportStartDate] = useState('');
   const [reportEndDate, setReportEndDate] = useState('');
+  const [reportType, setReportType] = useState('grade'); // 'grade' or 'learner'
+  const [selectedLearnerId, setSelectedLearnerId] = useState('');
 
   const { attendanceRecords } = useAttendance();
 
@@ -22,9 +25,14 @@ const AttendanceReports = ({ learners }) => {
     const learner = learners.find(l => l.id === record.learnerId);
     if (!learner) return false;
     
-    const matchesGrade = filterGrade === 'all' || learner.grade === filterGrade;
     const matchesStartDate = !reportStartDate || record.date >= reportStartDate;
     const matchesEndDate = !reportEndDate || record.date <= reportEndDate;
+
+    if (reportType === 'learner') {
+      return (selectedLearnerId && record.learnerId.toString() === selectedLearnerId.toString()) && matchesStartDate && matchesEndDate;
+    }
+    
+    const matchesGrade = filterGrade === 'all' || learner.grade === filterGrade;
     
     return matchesGrade && matchesStartDate && matchesEndDate;
   });
@@ -32,32 +40,49 @@ const AttendanceReports = ({ learners }) => {
   // Calculate statistics
   const stats = {
     totalDays: [...new Set(filteredRecords.map(r => r.date))].length,
-    present: filteredRecords.filter(r => r.status === 'Present').length,
-    absent: filteredRecords.filter(r => r.status === 'Absent').length,
-    late: filteredRecords.filter(r => r.status === 'Late').length,
+    present: filteredRecords.filter(r => r.status?.toLowerCase() === 'present').length,
+    absent: filteredRecords.filter(r => r.status?.toLowerCase() === 'absent').length,
+    late: filteredRecords.filter(r => r.status?.toLowerCase() === 'late').length,
     excused: filteredRecords.filter(r => r.status === 'Excused').length
   };
 
   return (
     <div className="space-y-6">
       {/* Actions Toolbar */}
-      <div className="flex justify-end mb-4">
-          <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
-            <Download size={20} />
+      <div className="flex justify-end mb-3">
+          <button className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-xs">
+            <Download size={16} />
             Export Report
           </button>
       </div>
 
+      {/* Report Type Toggle */}
+      <div className="flex gap-4 mb-2 border-b border-gray-200">
+        <button
+          className={`pb-2 px-4 text-sm font-semibold transition ${reportType === 'grade' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => setReportType('grade')}
+        >
+          Class Report
+        </button>
+        <button
+          className={`pb-2 px-4 text-sm font-semibold transition ${reportType === 'learner' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => setReportType('learner')}
+        >
+          Individual Learner Report
+        </button>
+      </div>
+
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <h3 className="text-lg font-bold mb-4 text-purple-700">Report Filters</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-white rounded-lg shadow p-3">
+        <h3 className="text-sm font-bold mb-2 text-purple-700">Report Filters</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          {reportType === 'grade' ? (
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Grade</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Grade</label>
             <select
               value={filterGrade}
               onChange={(e) => setFilterGrade(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-xs"
             >
               <option value="all">All Grades</option>
               <option value="Grade 1">Grade 1</option>
@@ -68,24 +93,35 @@ const AttendanceReports = ({ learners }) => {
               <option value="Grade 6">Grade 6</option>
             </select>
           </div>
+          ) : (
+            <div className="md:col-span-1">
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Select Learner</label>
+              <SmartLearnerSearch
+                learners={learners}
+                selectedLearnerId={selectedLearnerId}
+                onSelect={setSelectedLearnerId}
+                placeholder="Search learner..."
+              />
+            </div>
+          )}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Start Date</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Start Date</label>
             <input
               type="date"
               value={reportStartDate}
               onChange={(e) => setReportStartDate(e.target.value)}
               max={getCurrentDate()}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-xs"
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">End Date</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">End Date</label>
             <input
               type="date"
               value={reportEndDate}
               onChange={(e) => setReportEndDate(e.target.value)}
               max={getCurrentDate()}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-xs"
             />
           </div>
           <div className="flex items-end">
@@ -95,7 +131,7 @@ const AttendanceReports = ({ learners }) => {
                 setReportStartDate('');
                 setReportEndDate('');
               }}
-              className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold"
+              className="w-full px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold text-xs"
             >
               Reset Filters
             </button>
@@ -104,7 +140,7 @@ const AttendanceReports = ({ learners }) => {
       </div>
 
       {/* Summary Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         <StatsCard
           title="Total Days"
           value={stats.totalDays}
@@ -143,9 +179,9 @@ const AttendanceReports = ({ learners }) => {
       </div>
 
       {/* Attendance Records Table */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <div className="p-4 bg-gray-50 border-b">
-          <h4 className="font-bold text-gray-800">Attendance Records</h4>
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="p-3 bg-gray-50 border-b">
+          <h4 className="font-bold text-gray-800 text-xs">Attendance Records</h4>
         </div>
         
         {filteredRecords.length === 0 ? (
@@ -161,13 +197,13 @@ const AttendanceReports = ({ learners }) => {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Learner</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Class</th>
-                  <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Marked By</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Time</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Remarks</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-600 uppercase">Date</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-600 uppercase">Learner</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-600 uppercase">Class</th>
+                  <th className="px-3 py-2 text-center text-[10px] font-semibold text-gray-600 uppercase">Status</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-600 uppercase">Marked By</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-600 uppercase">Time</th>
+                  <th className="px-3 py-2 text-left text-[10px] font-semibold text-gray-600 uppercase">Remarks</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -177,27 +213,27 @@ const AttendanceReports = ({ learners }) => {
                   
                   return (
                     <tr key={record.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm text-gray-600">
+                      <td className="px-3 py-2 text-xs text-gray-600">
                         {new Date(record.date).toLocaleDateString('en-US', { 
                           month: 'short', 
                           day: 'numeric', 
                           year: 'numeric' 
                         })}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-xl">{learner.avatar}</span>
+                          <span className="text-lg">{learner.avatar}</span>
                           <div>
-                            <p className="font-semibold text-sm">{learner.firstName} {learner.lastName}</p>
-                            <p className="text-xs text-gray-500">{learner.admNo}</p>
+                            <p className="font-semibold text-xs">{learner.firstName} {learner.lastName}</p>
+                            <p className="text-[10px] text-gray-500">{learner.admNo}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
+                      <td className="px-3 py-2 text-xs text-gray-600">
                         {learner.grade} {learner.stream}
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                      <td className="px-3 py-2">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                           record.status === 'Present' ? 'bg-green-100 text-green-800' :
                           record.status === 'Absent' ? 'bg-red-100 text-red-800' :
                           record.status === 'Late' ? 'bg-orange-100 text-orange-800' :
@@ -206,9 +242,9 @@ const AttendanceReports = ({ learners }) => {
                           {record.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{record.markedBy}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{record.markedAt}</td>
-                      <td className="px-6 py-4 text-sm text-gray-500 italic">
+                      <td className="px-3 py-2 text-xs text-gray-600">{record.markedBy}</td>
+                      <td className="px-3 py-2 text-xs text-gray-600">{record.markedAt}</td>
+                      <td className="px-3 py-2 text-[10px] text-gray-500 italic">
                         {record.reason || '-'}
                       </td>
                     </tr>
@@ -222,9 +258,9 @@ const AttendanceReports = ({ learners }) => {
 
       {/* Learner-wise Summary */}
       {filteredRecords.length > 0 && (
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h4 className="text-lg font-bold mb-4">Learner-wise Summary</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="bg-white rounded-lg shadow p-3">
+          <h4 className="text-xs font-bold mb-3">Learner-wise Summary</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {[...new Set(filteredRecords.map(r => r.learnerId))].map(learnerId => {
               const learner = learners.find(l => l.id === learnerId);
               if (!learner) return null;
@@ -235,15 +271,15 @@ const AttendanceReports = ({ learners }) => {
               const percentage = totalDays > 0 ? Math.round((presentCount / totalDays) * 100) : 0;
               
               return (
-                <div key={learnerId} className="border rounded-lg p-4 hover:shadow-md transition">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-2xl">{learner.avatar}</span>
+                <div key={learnerId} className="border rounded-lg p-3 hover:shadow-md transition">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">{learner.avatar}</span>
                     <div className="flex-1">
-                      <p className="font-semibold text-sm">{learner.firstName} {learner.lastName}</p>
-                      <p className="text-xs text-gray-500">{learner.admNo} • {learner.grade} {learner.stream}</p>
+                      <p className="font-semibold text-xs">{learner.firstName} {learner.lastName}</p>
+                      <p className="text-[10px] text-gray-500">{learner.admNo} • {learner.grade} {learner.stream}</p>
                     </div>
                   </div>
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-1.5 text-xs">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Total Days:</span>
                       <span className="font-semibold">{totalDays}</span>
@@ -265,10 +301,10 @@ const AttendanceReports = ({ learners }) => {
                       </span>
                     </div>
                   </div>
-                  <div className="mt-3">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="mt-2">
+                    <div className="w-full bg-gray-200 rounded-full h-1.5">
                       <div 
-                        className={`h-2 rounded-full ${percentage >= 90 ? 'bg-green-500' : percentage >= 75 ? 'bg-orange-500' : 'bg-red-500'}`}
+                        className={`h-1.5 rounded-full ${percentage >= 90 ? 'bg-green-500' : percentage >= 75 ? 'bg-orange-500' : 'bg-red-500'}`}
                         style={{ width: `${percentage}%` }}
                       />
                     </div>

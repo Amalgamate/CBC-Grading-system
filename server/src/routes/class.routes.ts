@@ -101,4 +101,42 @@ router.get(
   asyncHandler(classController.getLearnerClass.bind(classController))
 );
 
+/**
+ * @route   POST /api/classes/assign-teacher
+ * @desc    Assign teacher to class
+ * @access  SUPER_ADMIN, ADMIN, HEAD_TEACHER
+ */
+router.post(
+  '/assign-teacher',
+  authenticate,
+  requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
+  auditLog('ASSIGN_TEACHER'),
+  asyncHandler(classController.assignTeacher.bind(classController))
+);
+
+/**
+ * @route   POST /api/classes/unassign-teacher
+ * @desc    Unassign teacher from class
+ * @access  SUPER_ADMIN, ADMIN, HEAD_TEACHER
+ */
+router.post(
+  '/unassign-teacher',
+  authenticate,
+  requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
+  auditLog('UNASSIGN_TEACHER'),
+  asyncHandler(classController.unassignTeacher.bind(classController))
+);
+
+/**
+ * @route   GET /api/classes/teacher/:teacherId/workload
+ * @desc    Get teacher's workload (all assigned classes)
+ * @access  SUPER_ADMIN, ADMIN, HEAD_TEACHER
+ */
+router.get(
+  '/teacher/:teacherId/workload',
+  authenticate,
+  requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
+  asyncHandler(classController.getTeacherWorkload.bind(classController))
+);
+
 export default router;

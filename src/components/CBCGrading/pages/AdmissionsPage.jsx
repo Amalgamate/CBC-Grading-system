@@ -3,13 +3,33 @@
  * Handle new learner admissions with multi-step form
  */
 
-import React, { useState } from 'react';
-import { UserPlus, Save, X, ArrowRight, ArrowLeft, CheckCircle, User, Users as UsersIcon, Heart } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Save, X, ArrowRight, ArrowLeft, CheckCircle, User, Users as UsersIcon, Heart } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
+import { useAuth } from '../../../hooks/useAuth';
+import { configAPI } from '../../../services/api';
 
 const AdmissionsPage = () => {
   const { showSuccess, showError } = useNotifications();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+  const [availableStreams, setAvailableStreams] = useState([]);
+
+  // Fetch streams
+  useEffect(() => {
+    const fetchStreams = async () => {
+      if (user?.schoolId) {
+        try {
+          const resp = await configAPI.getStreamConfigs(user.schoolId);
+          const arr = resp?.data || [];
+          setAvailableStreams(arr.filter(s => s.active));
+        } catch (error) {
+          console.error('Failed to fetch streams:', error);
+        }
+      }
+    };
+    fetchStreams();
+  }, [user?.schoolId]);
   
   const initialFormData = {
     firstName: '', middleName: '', lastName: '', gender: '', dob: '', birthCertNo: '',
@@ -140,7 +160,15 @@ const AdmissionsPage = () => {
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Stream <span className="text-red-500">*</span></label>
                     <select name="stream" value={formData.stream} onChange={handleInputChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                      {['A', 'B', 'C'].map(s => <option key={s} value={s}>Stream {s}</option>)}
+                      <option value="">Select Stream</option>
+                      {availableStreams.length > 0 ? (
+                        availableStreams.map(s => (
+                          <option key={s.id} value={s.name}>{s.name}</option>
+                        ))
+                      ) : (
+                        // Fallback if no streams configured
+                        ['A', 'B', 'C', 'Red', 'Blue', 'Green'].map(s => <option key={s} value={s}>{s}</option>)
+                      )}
                     </select>
                   </div>
                 </div>

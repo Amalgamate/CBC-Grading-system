@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Save, AlertCircle } from 'lucide-react';
 
 const CoreCompetenciesForm = () => {
   const [formData, setFormData] = useState({

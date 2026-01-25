@@ -3,8 +3,8 @@
  * Mark daily attendance for classes with real API integration
  */
 
-import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Save, CheckCircle, Clock, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Users, Save, CheckCircle, Clock, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import EmptyState from '../shared/EmptyState';
 import LoadingSpinner from '../shared/LoadingSpinner';
 import { useAttendance } from '../hooks/useAttendanceAPI';
@@ -29,13 +29,7 @@ const DailyAttendance = () => {
   const { showSuccess, showError } = useNotifications();
 
   // Load daily report when class or date changes
-  useEffect(() => {
-    if (selectedClassId && selectedDate) {
-      loadDailyReport();
-    }
-  }, [selectedClassId, selectedDate]);
-
-  const loadDailyReport = async () => {
+  const loadDailyReport = useCallback(async () => {
     const report = await getDailyClassReport(selectedClassId, selectedDate);
     if (report) {
       setDailyReport(report);
@@ -51,7 +45,13 @@ const DailyAttendance = () => {
       });
       setPendingChanges(initialChanges);
     }
-  };
+  }, [selectedClassId, selectedDate, getDailyClassReport]);
+
+  useEffect(() => {
+    if (selectedClassId && selectedDate) {
+      loadDailyReport();
+    }
+  }, [selectedClassId, selectedDate, loadDailyReport]);
 
   // Get selected class details
   const selectedClass = classes.find(c => c.id === selectedClassId);
@@ -68,6 +68,7 @@ const DailyAttendance = () => {
   };
 
   // Handle remarks change
+  // eslint-disable-next-line no-unused-vars
   const handleRemarksChange = (learnerId, remarks) => {
     setPendingChanges(prev => ({
       ...prev,

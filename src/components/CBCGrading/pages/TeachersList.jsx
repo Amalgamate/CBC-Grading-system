@@ -4,16 +4,19 @@
  */
 
 import React, { useState } from 'react';
-import { Plus, Upload, Eye, Edit, Trash2, GraduationCap, BookOpen, Search, RefreshCw } from 'lucide-react';
+import { Plus, Upload, Eye, Edit, Trash2, GraduationCap, BookOpen, Search, RefreshCw, MoreVertical } from 'lucide-react';
 import StatusBadge from '../shared/StatusBadge';
 import EmptyState from '../shared/EmptyState';
 import { useAuth } from '../../../hooks/useAuth';
 import BulkOperationsModal from '../shared/bulk/BulkOperationsModal';
+import AssignClassModal from '../shared/AssignClassModal';
 
 const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, onDeleteTeacher, onRefresh }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [selectedTeacherForAssignment, setSelectedTeacherForAssignment] = useState(null);
   const { user } = useAuth();
 
   // Filter teachers
@@ -79,16 +82,46 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 w-full xl:w-auto justify-end">
-            <button 
-              onClick={() => setShowBulkModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-50 transition"
-              title="Bulk import/export tutors"
-            >
-              <Upload size={18} />
-              <span className="hidden sm:inline">Bulk Operations</span>
-            </button>
+          {/* Action Buttons & Metrics */}
+          <div className="flex gap-3 w-full xl:w-auto justify-end items-center">
+            {/* Metrics */}
+            <div className="hidden lg:flex items-center gap-4 mr-2 border-r pr-4 border-gray-200 h-10">
+              <div className="text-right">
+                <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total Tutors</p>
+                <p className="text-xl font-bold text-gray-800 leading-none">{teachers?.length || 0}</p>
+              </div>
+            </div>
+
+            <div className="relative">
+              <button 
+                onClick={() => setShowQuickActions(!showQuickActions)}
+                className="p-2 bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 rounded-lg transition"
+                title="Quick Actions"
+              >
+                <MoreVertical size={20} />
+              </button>
+              {showQuickActions && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setShowQuickActions(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 z-20 py-1">
+                    <button
+                      onClick={() => {
+                        setShowQuickActions(false);
+                        setShowBulkModal(true);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <Upload size={16} />
+                      Bulk Operations
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
             <button 
               onClick={onAddTeacher}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm"
@@ -117,64 +150,71 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Teacher</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Employee No</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Subject</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Contact</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Teacher</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Employee No</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Role</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Subject</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Contact</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredTeachers.map((teacher) => (
                 <tr key={teacher.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{teacher.avatar}</span>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{teacher.avatar}</span>
                       <div>
-                        <p className="font-semibold">{teacher.firstName} {teacher.lastName}</p>
-                        <p className="text-sm text-gray-500">{teacher.gender}</p>
+                        <p className="font-semibold text-sm">{teacher.firstName} {teacher.lastName}</p>
+                        <p className="text-xs text-gray-500">{teacher.gender}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{teacher.employeeNo}</td>
-                  <td className="px-6 py-4 text-sm font-semibold">{teacher.role}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
+                  <td className="px-3 py-2 text-sm text-gray-600">{teacher.employeeNo}</td>
+                  <td className="px-3 py-2 text-sm font-semibold">{teacher.role}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-1">
                       <BookOpen size={16} className="text-blue-600" />
                       <span className="text-sm">{teacher.subject}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-3 py-2">
                     <p className="text-sm font-semibold">{teacher.email}</p>
                     <p className="text-xs text-gray-500">{teacher.phone}</p>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-3 py-2">
                     <StatusBadge status={teacher.status} />
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={() => setSelectedTeacherForAssignment(teacher)}
+                        className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition"
+                        title="Assign to Grade"
+                      >
+                        <GraduationCap size={16} />
+                      </button>
                       <button 
                         onClick={() => onViewTeacher(teacher)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition" 
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition" 
                         title="View Details"
                       >
-                        <Eye size={18} />
+                        <Eye size={16} />
                       </button>
                       <button 
                         onClick={() => onEditTeacher(teacher)}
-                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition" 
+                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition" 
                         title="Edit"
                       >
-                        <Edit size={18} />
+                        <Edit size={16} />
                       </button>
                       <button 
                         onClick={() => onDeleteTeacher(teacher.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition" 
+                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition" 
                         title="Delete"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </td>
@@ -194,6 +234,16 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
         userRole={user?.role}
         onUploadComplete={() => {
           setShowBulkModal(false);
+          if (onRefresh) onRefresh();
+        }}
+      />
+
+      {/* Assign Class Modal */}
+      <AssignClassModal
+        isOpen={!!selectedTeacherForAssignment}
+        onClose={() => setSelectedTeacherForAssignment(null)}
+        teacher={selectedTeacherForAssignment}
+        onAssign={() => {
           if (onRefresh) onRefresh();
         }}
       />

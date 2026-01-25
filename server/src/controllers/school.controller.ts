@@ -102,6 +102,9 @@ export const createSchool = async (req: Request, res: Response) => {
 export const getAllSchools = async (req: Request, res: Response) => {
   try {
     const schools = await prisma.school.findMany({
+      where: {
+        active: true
+      },
       include: {
         branches: {
           select: {
@@ -109,13 +112,19 @@ export const getAllSchools = async (req: Request, res: Response) => {
             code: true,
             name: true,
             active: true
+          },
+          where: {
+            active: true
+          },
+          orderBy: {
+            name: 'asc'
           }
         },
         _count: {
           select: { learners: true }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { name: 'asc' }
     });
 
     res.status(200).json({

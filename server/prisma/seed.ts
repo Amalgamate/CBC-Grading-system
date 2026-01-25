@@ -164,6 +164,51 @@ async function main() {
     console.log(`   ℹ️  ${schoolCount} school(s) already exist, skipping...`);
   }
 
+  // Seed streams for all schools
+  console.log('\n📚 Seeding streams A-D...');
+  const schools = await prisma.school.findMany({ where: { active: true } });
+  
+  if (schools.length > 0) {
+    const streamNames = ['A', 'B', 'C', 'D'];
+    
+    for (const school of schools) {
+      console.log(`   📝 Creating streams for ${school.name}...`);
+      
+      for (const streamName of streamNames) {
+        try {
+          // Check if stream already exists
+          const existingStream = await prisma.streamConfig.findFirst({
+            where: {
+              schoolId: school.id,
+              name: streamName
+            }
+          });
+
+          if (existingStream) {
+            console.log(`      ⏭️  Stream ${streamName} already exists, skipping...`);
+            continue;
+          }
+
+          // Create the stream
+          const stream = await prisma.streamConfig.create({
+            data: {
+              schoolId: school.id,
+              name: streamName,
+              active: true
+            }
+          });
+
+          console.log(`      ✅ Created stream: ${stream.name}`);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          console.error(`      ❌ Error creating stream ${streamName}:`, errorMessage);
+        }
+      }
+    }
+  } else {
+    console.log('   ⚠️  No active schools found, skipping stream seeding');
+  }
+
   console.log('\n✨ Database seed completed!');
   console.log('\n📋 Development User Credentials:');
   console.log('━'.repeat(60));

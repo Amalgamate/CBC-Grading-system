@@ -1,0 +1,770 @@
+/**
+ * Workflow Service
+ * Manages assessment lifecycle through approval workflow
+ * Handles state transitions, permissions, and audit trails
+ */
+
+import { PrismaClient, AssessmentStatus, UserRole } from '@prisma/client';
+import { auditService } from './audit.service';
+
+const prisma = new PrismaClient();
+
+// ============================================
+// TYPE DEFINITIONS
+// ============================================
+
+interface WorkflowTransition {
+  assessmentId: string;
+  assessmentType: 'formative' | 'summative';
+  userId: string;
+  comments?: string;
+  reason?: string;
+}
+
+interface WorkflowEvent {
+  id: string;
+  timestamp: Date;
+  action: string;
+  performedBy: string;
+  performedByName: string;
+  fromStatus: AssessmentStatus;
+  toStatus: AssessmentStatus;
+  comments?: string;
+}
+
+interface PendingApprovals {
+  summative: any[];
+  formative: any[];
+  total: number;
+}
+
+// ============================================
+// WORKFLOW CONFIGURATION
+// ============================================
+
+/**
+ * Allowed state transitions
+ * Defines which status can transition to which
+ */
+const WORKFLOW_TRANSITIONS: Record<AssessmentStatus, AssessmentStatus[]> = {
+  DRAFT: ['SUBMITTED'],
+  SUBMITTED: ['APPROVED', 'DRAFT'], // Can approve or reject back to draft
+  APPROVED: ['PUBLISHED'],
+  PUBLISHED: ['LOCKED'],
+  LOCKED: ['PUBLISHED'] // Only via admin unlock
+};
+
+/**
+ * Roles allowed to perform each workflow action
+ */
+const WORKFLOW_PERMISSIONS: Record<string, UserRole[]> = {
+  submit: ['TEACHER', 'HEAD_TEACHER', 'ADMIN', 'SUPER_ADMIN'],
+  approve: ['HEAD_TEACHER', 'ADMIN', 'SUPER_ADMIN'],
+  reject: ['HEAD_TEACHER', 'ADMIN', 'SUPER_ADMIN'],
+  publish: ['ADMIN', 'HEAD_TEACHER', 'SUPER_ADMIN'],
+  lock: ['ADMIN', 'SUPER_ADMIN'],
+  unlock: ['ADMIN', 'SUPER_ADMIN']
+};
+
+// ============================================
+// WORKFLOW SERVICE CLASS
+// ============================================
+
+export class WorkflowService {
+  
+  /**
+   * Submit assessment for approval
+   * Transition: DRAFT → SUBMITTED
+   */
+  async submitForApproval(params: WorkflowTransition): Promise<any> {
+    const { assessmentId, assessmentType, userId, comments } = params;
+
+    // Get current assessment
+    const assessment = await this.getAssessment(assessmentType, assessmentId);
+
+    // Validate current status
+    if (assessment.status !== 'DRAFT') {
+      throw new Error(
+        `Cannot submit assessment with status ${assessment.status}. Must be DRAFT.`
+      );
+    }
+
+    // Check user permission
+    const user = await this.getUser(userId);
+    if (!WORKFLOW_PERMISSIONS.submit.includes(user.role)) {
+      throw new Error(
+        `Role ${user.role} is not permitted to submit assessments`
+      );
+    }
+
+    // Validate assessment has data
+    await this.validateAssessmentHasData(assessmentType, assessmentId);
+
+    // Update status
+    const updated = await this.updateAssessmentStatus(
+      assessmentType,
+      assessmentId,
+      {
+        status: 'SUBMITTED',
+        submittedBy: userId,
+        submittedAt: new Date()
+      }
+    );
+
+    // Log workflow event
+    await this.logWorkflowEvent({
+      assessmentId,
+      assessmentType,
+      action: 'SUBMIT',
+      fromStatus: 'DRAFT',
+      toStatus: 'SUBMITTED',
+      performedBy: userId,
+      comments,
+      schoolId: assessment.schoolId || this.getSchoolIdFromAssessment(assessment)
+    });
+
+    // Notify approvers
+    await this.notifyApprovers(assessment, user);
+
+    return updated;
+  }
+
+  /**
+   * Approve assessment
+   * Transition: SUBMITTED → APPROVED
+   */
+  async approveAssessment(params: WorkflowTransition): Promise<any> {
+    const { assessmentId, assessmentType, userId, comments } = params;
+
+    // Get current assessment
+    const assessment = await this.getAssessment(assessmentType, assessmentId);
+
+    // Validate current status
+    if (assessment.status !== 'SUBMITTED') {
+      throw new Error(
+        `Cannot approve assessment with status ${assessment.status}. Must be SUBMITTED.`
+      );
+    }
+
+    // Check user permission
+    const user = await this.getUser(userId);
+    if (!WORKFLOW_PERMISSIONS.approve.includes(user.role)) {
+      throw new Error(
+        `Role ${user.role} is not permitted to approve assessments`
+      );
+    }
+
+    // Prevent self-approval (except for SUPER_ADMIN)
+    if (assessment.submittedBy === userId && user.role !== 'SUPER_ADMIN') {
+      throw new Error('Cannot approve your own submission');
+    }
+
+    // Update status
+    const updated = await this.updateAssessmentStatus(
+      assessmentType,
+      assessmentId,
+      {
+        status: 'APPROVED',
+        approvedBy: userId,
+        approvedAt: new Date()
+      }
+    );
+
+    // Log workflow event
+    await this.logWorkflowEvent({
+      assessmentId,
+      assessmentType,
+      action: 'APPROVE',
+      fromStatus: 'SUBMITTED',
+      toStatus: 'APPROVED',
+      performedBy: userId,
+      comments,
+      schoolId: assessment.schoolId || this.getSchoolIdFromAssessment(assessment)
+    });
+
+    // Notify submitter
+    await this.notifyApprovalStatus(assessment, user, 'approved');
+
+    return updated;
+  }
+
+  /**
+   * Reject assessment (send back to draft)
+   * Transition: SUBMITTED → DRAFT
+   */
+  async rejectAssessment(params: WorkflowTransition): Promise<any> {
+    const { assessmentId, assessmentType, userId, reason } = params;
+
+    if (!reason) {
+      throw new Error('Rejection reason is required');
+    }
+
+    // Get current assessment
+    const assessment = await this.getAssessment(assessmentType, assessmentId);
+
+    // Validate current status
+    if (assessment.status !== 'SUBMITTED') {
+      throw new Error(
+        `Cannot reject assessment with status ${assessment.status}. Must be SUBMITTED.`
+      );
+    }
+
+    // Check user permission
+    const user = await this.getUser(userId);
+    if (!WORKFLOW_PERMISSIONS.reject.includes(user.role)) {
+      throw new Error(
+        `Role ${user.role} is not permitted to reject assessments`
+      );
+    }
+
+    // Update status back to DRAFT
+    const updated = await this.updateAssessmentStatus(
+      assessmentType,
+      assessmentId,
+      {
+        status: 'DRAFT',
+        // Clear submission data
+        submittedBy: null,
+        submittedAt: null
+      }
+    );
+
+    // Log workflow event
+    await this.logWorkflowEvent({
+      assessmentId,
+      assessmentType,
+      action: 'REJECT',
+      fromStatus: 'SUBMITTED',
+      toStatus: 'DRAFT',
+      performedBy: userId,
+      comments: reason,
+      schoolId: assessment.schoolId || this.getSchoolIdFromAssessment(assessment)
+    });
+
+    // Notify submitter
+    await this.notifyApprovalStatus(assessment, user, 'rejected', reason);
+
+    return updated;
+  }
+
+  /**
+   * Publish assessment (make visible to students/parents)
+   * Transition: APPROVED → PUBLISHED
+   */
+  async publishAssessment(params: WorkflowTransition): Promise<any> {
+    const { assessmentId, assessmentType, userId, comments } = params;
+
+    // Get current assessment
+    const assessment = await this.getAssessment(assessmentType, assessmentId);
+
+    // Validate current status
+    if (assessment.status !== 'APPROVED') {
+      throw new Error(
+        `Cannot publish assessment with status ${assessment.status}. Must be APPROVED.`
+      );
+    }
+
+    // Check user permission
+    const user = await this.getUser(userId);
+    if (!WORKFLOW_PERMISSIONS.publish.includes(user.role)) {
+      throw new Error(
+        `Role ${user.role} is not permitted to publish assessments`
+      );
+    }
+
+    // Update status
+    const updated = await this.updateAssessmentStatus(
+      assessmentType,
+      assessmentId,
+      {
+        status: 'PUBLISHED',
+        published: true, // Keep for backward compatibility
+        publishedAt: new Date()
+      }
+    );
+
+    // Log workflow event
+    await this.logWorkflowEvent({
+      assessmentId,
+      assessmentType,
+      action: 'PUBLISH',
+      fromStatus: 'APPROVED',
+      toStatus: 'PUBLISHED',
+      performedBy: userId,
+      comments,
+      schoolId: assessment.schoolId || this.getSchoolIdFromAssessment(assessment)
+    });
+
+    return updated;
+  }
+
+  /**
+   * Lock assessment (prevent all further edits)
+   * Transition: PUBLISHED → LOCKED
+   * Typically done at end of term
+   */
+  async lockAssessment(params: WorkflowTransition): Promise<any> {
+    const { assessmentId, assessmentType, userId, reason } = params;
+
+    // Get current assessment
+    const assessment = await this.getAssessment(assessmentType, assessmentId);
+
+    // Validate current status
+    if (assessment.status !== 'PUBLISHED') {
+      throw new Error(
+        `Cannot lock assessment with status ${assessment.status}. Must be PUBLISHED.`
+      );
+    }
+
+    // Check user permission
+    const user = await this.getUser(userId);
+    if (!WORKFLOW_PERMISSIONS.lock.includes(user.role)) {
+      throw new Error(
+        `Role ${user.role} is not permitted to lock assessments`
+      );
+    }
+
+    // Update status
+    const updated = await this.updateAssessmentStatus(
+      assessmentType,
+      assessmentId,
+      {
+        status: 'LOCKED',
+        locked: true,
+        lockedAt: new Date(),
+        lockedBy: userId
+      }
+    );
+
+    // Log workflow event
+    await this.logWorkflowEvent({
+      assessmentId,
+      assessmentType,
+      action: 'LOCK',
+      fromStatus: 'PUBLISHED',
+      toStatus: 'LOCKED',
+      performedBy: userId,
+      comments: reason,
+      schoolId: assessment.schoolId || this.getSchoolIdFromAssessment(assessment)
+    });
+
+    return updated;
+  }
+
+  /**
+   * Unlock assessment (admin emergency action)
+   * Transition: LOCKED → PUBLISHED
+   * Requires strong reason and admin role
+   */
+  async unlockAssessment(params: WorkflowTransition): Promise<any> {
+    const { assessmentId, assessmentType, userId, reason } = params;
+
+    if (!reason || reason.length < 10) {
+      throw new Error('Detailed reason (minimum 10 characters) required for unlocking');
+    }
+
+    // Get current assessment
+    const assessment = await this.getAssessment(assessmentType, assessmentId);
+
+    // Validate current status
+    if (assessment.status !== 'LOCKED') {
+      throw new Error(
+        `Cannot unlock assessment with status ${assessment.status}. Must be LOCKED.`
+      );
+    }
+
+    // Check user permission (ADMIN or SUPER_ADMIN only)
+    const user = await this.getUser(userId);
+    if (!WORKFLOW_PERMISSIONS.unlock.includes(user.role)) {
+      throw new Error(
+        `Role ${user.role} is not permitted to unlock assessments. ADMIN role required.`
+      );
+    }
+
+    // Update status
+    const updated = await this.updateAssessmentStatus(
+      assessmentType,
+      assessmentId,
+      {
+        status: 'PUBLISHED',
+        locked: false,
+        lockedAt: null,
+        lockedBy: null
+      }
+    );
+
+    // Log workflow event (HIGH PRIORITY)
+    await this.logWorkflowEvent({
+      assessmentId,
+      assessmentType,
+      action: 'UNLOCK',
+      fromStatus: 'LOCKED',
+      toStatus: 'PUBLISHED',
+      performedBy: userId,
+      comments: `EMERGENCY UNLOCK: ${reason}`,
+      schoolId: assessment.schoolId || this.getSchoolIdFromAssessment(assessment)
+    });
+
+    return updated;
+  }
+
+  /**
+   * Get workflow history for an assessment
+   * Shows all status changes with timestamps and actors
+   */
+  async getWorkflowHistory(
+    assessmentId: string,
+    assessmentType: 'formative' | 'summative'
+  ): Promise<WorkflowEvent[]> {
+    const events = await prisma.changeHistory.findMany({
+      where: {
+        entityType: assessmentType === 'formative' ? 'FormativeAssessment' : 'SummativeTest',
+        entityId: assessmentId,
+        field: 'status'
+      },
+      include: {
+        changer: {
+          select: {
+            firstName: true,
+            lastName: true
+          }
+        }
+      },
+      orderBy: {
+        changedAt: 'desc'
+      }
+    });
+
+    return events.map(event => ({
+      id: event.id,
+      timestamp: event.changedAt,
+      action: event.action,
+      performedBy: event.changedBy,
+      performedByName: `${event.changer.firstName} ${event.changer.lastName}`,
+      fromStatus: (event.oldValue as AssessmentStatus) || 'DRAFT',
+      toStatus: event.newValue as AssessmentStatus,
+      comments: event.reason || undefined
+    }));
+  }
+
+  /**
+   * Get pending approvals for a user
+   * Returns assessments awaiting their approval based on their role
+   */
+  async getPendingApprovals(userId: string): Promise<PendingApprovals> {
+    const user = await this.getUser(userId);
+
+    // Only approvers can see pending approvals
+    if (!WORKFLOW_PERMISSIONS.approve.includes(user.role)) {
+      return {
+        summative: [],
+        formative: [],
+        total: 0
+      };
+    }
+
+    // Get pending summative tests
+    const summativeTests = await prisma.summativeTest.findMany({
+      where: {
+        status: 'SUBMITTED',
+        // Don't show user their own submissions
+        submittedBy: {
+          not: userId
+        }
+      },
+      include: {
+        submittedByUser: {
+          select: {
+            firstName: true,
+            lastName: true
+          }
+        },
+        results: {
+          select: {
+            id: true
+          }
+        }
+      },
+      orderBy: {
+        submittedAt: 'asc'
+      }
+    });
+
+    // Get pending formative assessments (if they have status field)
+    const formativeAssessments = await prisma.formativeAssessment.findMany({
+      where: {
+        status: 'SUBMITTED'
+      },
+      include: {
+        teacher: {
+          select: {
+            firstName: true,
+            lastName: true
+          }
+        },
+        learner: {
+          select: {
+            firstName: true,
+            lastName: true,
+            admissionNumber: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'asc'
+      },
+      take: 50 // Limit to prevent overwhelming
+    });
+
+    return {
+      summative: summativeTests.map(test => ({
+        ...test,
+        submittedByName: `${test.submittedByUser?.firstName} ${test.submittedByUser?.lastName}`,
+        resultCount: test.results.length
+      })),
+      formative: formativeAssessments.map(assessment => ({
+        ...assessment,
+        teacherName: `${assessment.teacher.firstName} ${assessment.teacher.lastName}`,
+        learnerName: `${assessment.learner.firstName} ${assessment.learner.lastName}`
+      })),
+      total: summativeTests.length + formativeAssessments.length
+    };
+  }
+
+  /**
+   * Bulk lock all assessments for a term
+   * Used at end of term to lock everything at once
+   */
+  async bulkLockTermAssessments(params: {
+    schoolId: string;
+    term: string;
+    academicYear: number;
+    userId: string;
+    reason: string;
+  }): Promise<{ locked: number; errors: string[] }> {
+    const { schoolId, term, academicYear, userId, reason } = params;
+
+    // Check user permission
+    const user = await this.getUser(userId);
+    if (!WORKFLOW_PERMISSIONS.lock.includes(user.role)) {
+      throw new Error(
+        `Role ${user.role} is not permitted to lock assessments`
+      );
+    }
+
+    let locked = 0;
+    const errors: string[] = [];
+
+    // Lock all published summative tests
+    try {
+      const result = await prisma.summativeTest.updateMany({
+        where: {
+          term: term as any,
+          academicYear,
+          status: 'PUBLISHED'
+        },
+        data: {
+          status: 'LOCKED',
+          locked: true,
+          lockedAt: new Date()
+        }
+      });
+
+      locked += result.count;
+
+      // Log bulk action
+      await auditService.logChange({
+        schoolId,
+        entityType: 'SummativeTest',
+        entityId: 'BULK',
+        action: 'UPDATE',
+        userId,
+        field: 'status',
+        oldValue: 'PUBLISHED',
+        newValue: 'LOCKED',
+        reason: `BULK LOCK: ${reason}`
+      });
+    } catch (error: any) {
+      errors.push(`Summative tests: ${error.message}`);
+    }
+
+    return { locked, errors };
+  }
+
+  // ============================================
+  // HELPER METHODS
+  // ============================================
+
+  /**
+   * Get assessment by type
+   */
+  private async getAssessment(
+    type: 'formative' | 'summative',
+    id: string
+  ): Promise<any> {
+    if (type === 'summative') {
+      const test = await prisma.summativeTest.findUnique({
+        where: { id },
+        include: {
+          submittedByUser: true,
+          approvedByUser: true
+        }
+      });
+
+      if (!test) {
+        throw new Error(`Summative test ${id} not found`);
+      }
+
+      return test;
+    } else {
+      const assessment = await prisma.formativeAssessment.findUnique({
+        where: { id },
+        include: {
+          teacher: true,
+          learner: {
+            select: {
+              schoolId: true
+            }
+          }
+        }
+      });
+
+      if (!assessment) {
+        throw new Error(`Formative assessment ${id} not found`);
+      }
+
+      return assessment;
+    }
+  }
+
+  /**
+   * Get user by ID
+   */
+  private async getUser(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      throw new Error(`User ${userId} not found`);
+    }
+
+    return user;
+  }
+
+  /**
+   * Update assessment status
+   */
+  private async updateAssessmentStatus(
+    type: 'formative' | 'summative',
+    id: string,
+    data: any
+  ): Promise<any> {
+    // Add to status history
+    const statusHistory = {
+      timestamp: new Date(),
+      status: data.status,
+      by: data.submittedBy || data.approvedBy || data.lockedBy
+    };
+
+    if (type === 'summative') {
+      return await prisma.summativeTest.update({
+        where: { id },
+        data: {
+          ...data,
+          statusHistory: {
+            push: statusHistory
+          }
+        }
+      });
+    } else {
+      return await prisma.formativeAssessment.update({
+        where: { id },
+        data
+      });
+    }
+  }
+
+  /**
+   * Log workflow event to audit trail
+   */
+  private async logWorkflowEvent(params: {
+    assessmentId: string;
+    assessmentType: string;
+    action: string;
+    fromStatus: AssessmentStatus;
+    toStatus: AssessmentStatus;
+    performedBy: string;
+    comments?: string;
+    schoolId: string;
+  }) {
+    await auditService.logChange({
+      schoolId: params.schoolId,
+      entityType: params.assessmentType === 'formative' ? 'FormativeAssessment' : 'SummativeTest',
+      entityId: params.assessmentId,
+      action: 'UPDATE',
+      userId: params.performedBy,
+      field: 'status',
+      oldValue: params.fromStatus,
+      newValue: params.toStatus,
+      reason: params.comments || `Workflow action: ${params.action}`
+    });
+  }
+
+  /**
+   * Validate assessment has data before submission
+   */
+  private async validateAssessmentHasData(
+    type: 'formative' | 'summative',
+    id: string
+  ): Promise<void> {
+    if (type === 'summative') {
+      // Check if test has results
+      const resultCount = await prisma.summativeResult.count({
+        where: { testId: id }
+      });
+
+      if (resultCount === 0) {
+        throw new Error('Cannot submit test with no results entered');
+      }
+    }
+    // Formative assessments always have data if they exist
+  }
+
+  /**
+   * Get school ID from assessment
+   */
+  private getSchoolIdFromAssessment(assessment: any): string {
+    // For summative tests, school is in creator
+    // For formative, it's in learner
+    return assessment.learner?.schoolId || assessment.creator?.schoolId || '';
+  }
+
+  /**
+   * Notify approvers of pending submission
+   */
+  private async notifyApprovers(assessment: any, submitter: any): Promise<void> {
+    // TODO: Implement notification system
+    // For now, just log
+    console.log(`Notification: Assessment ${assessment.id} submitted by ${submitter.firstName} for approval`);
+  }
+
+  /**
+   * Notify submitter of approval status
+   */
+  private async notifyApprovalStatus(
+    assessment: any,
+    approver: any,
+    status: 'approved' | 'rejected',
+    reason?: string
+  ): Promise<void> {
+    // TODO: Implement notification system
+    console.log(`Notification: Assessment ${assessment.id} ${status} by ${approver.firstName}${reason ? `: ${reason}` : ''}`);
+  }
+}
+
+// ============================================
+// EXPORT SINGLETON INSTANCE
+// ============================================
+
+export const workflowService = new WorkflowService();

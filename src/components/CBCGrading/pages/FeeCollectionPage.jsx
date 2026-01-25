@@ -5,20 +5,21 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Search, Plus, Eye,
-  FileText, CheckCircle, AlertCircle, Clock
+  Plus, Eye,
+  CheckCircle, AlertCircle, Clock, FileText
 } from 'lucide-react';
 import EmptyState from '../shared/EmptyState';
 import LoadingSpinner from '../shared/LoadingSpinner';
 import { useNotifications } from '../hooks/useNotifications';
 import api from '../../../services/api';
+import SmartLearnerSearch from '../shared/SmartLearnerSearch';
 
 const FeeCollectionPage = () => {
   const [invoices, setInvoices] = useState([]);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchLearnerId, setSearchLearnerId] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const { showSuccess, showError } = useNotifications();
 
@@ -39,6 +40,7 @@ const FeeCollectionPage = () => {
     } catch (error) {
       showError('Failed to load invoices');
       console.error(error);
+      setInvoices([]);
     } finally {
       setLoading(false);
     }
@@ -55,7 +57,7 @@ const FeeCollectionPage = () => {
     }
 
     try {
-      const response = await api.fees.recordPayment({
+      await api.fees.recordPayment({
         invoiceId: selectedInvoice.id,
         amount: parseFloat(paymentData.amount),
         paymentMethod: paymentData.paymentMethod,
@@ -79,7 +81,7 @@ const FeeCollectionPage = () => {
       PARTIAL: { color: 'bg-blue-100 text-blue-800', icon: AlertCircle, label: 'Partial' },
       PAID: { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Paid' },
       OVERPAID: { color: 'bg-purple-100 text-purple-800', icon: CheckCircle, label: 'Overpaid' },
-      WAIVED: { color: 'bg-gray-100 text-gray-800', icon: FileText, label: 'Waived' }
+      WAIVED: { color: 'bg-gray-100 text-gray-800', icon: CheckCircle, label: 'Waived' }
     };
     const badge = badges[status] || badges.PENDING;
     const Icon = badge.icon;
@@ -91,12 +93,20 @@ const FeeCollectionPage = () => {
     );
   };
 
-  const filteredInvoices = invoices.filter(invoice => {
-    const searchLower = searchTerm.toLowerCase();
-    const learnerName = `${invoice.learner?.firstName} ${invoice.learner?.lastName}`.toLowerCase();
-    const admissionNo = invoice.learner?.admissionNumber?.toLowerCase() || '';
-    return learnerName.includes(searchLower) || admissionNo.includes(searchLower) || invoice.invoiceNumber.toLowerCase().includes(searchLower);
-  });
+  const uniqueLearners = React.useMemo(() => {
+    const learnersMap = new Map();
+    invoices.forEach(inv => {
+      if (inv.learner && !learnersMap.has(inv.learner.id)) {
+        learnersMap.set(inv.learner.id, inv.learner);
+      }
+    });
+    return Array.from(learnersMap.values());
+  }, [invoices]);
+
+  const filteredInvoices = React.useMemo(() => invoices.filter(invoice => {
+    if (!searchLearnerId) return true;
+    return invoice.learner?.id === searchLearnerId;
+  }), [invoices, searchLearnerId]);
 
   if (loading) return <LoadingSpinner />;
 
@@ -154,13 +164,11 @@ const FeeCollectionPage = () => {
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Search by student name, admission number, or invoice number..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              <SmartLearnerSearch
+                learners={uniqueLearners}
+                selectedLearnerId={searchLearnerId}
+                onSelect={setSearchLearnerId}
+                placeholder="Search invoices by student..."
               />
             </div>
           </div>
@@ -182,7 +190,7 @@ const FeeCollectionPage = () => {
         <EmptyState
           icon={FileText}
           title="No Invoices Found"
-          message={searchTerm ? "No invoices match your search." : "No invoices have been created yet."}
+          message={searchLearnerId ? "No invoices found for selected learner." : "No invoices have been created yet."}
         />
       ) : (
         <div className="bg-white rounded-xl shadow overflow-hidden">
