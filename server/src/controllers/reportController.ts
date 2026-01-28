@@ -9,14 +9,14 @@
 
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/permissions.middleware';
-import { PrismaClient, Term } from '@prisma/client';
+import { Term } from '@prisma/client';
+import prisma from '../config/database';
+import { ApiError } from '../utils/error.util';
 import * as rubricUtil from '../utils/rubric.util';
 import * as reportService from '../services/report.service';
 import * as reportUtil from '../utils/report.util';
 
 import { gradingService } from '../services/grading.service';
-
-const prisma = new PrismaClient();
 
 // ============================================
 // FORMATIVE REPORT
@@ -26,7 +26,7 @@ const prisma = new PrismaClient();
  * Get Comprehensive Formative Report for a Learner
  * GET /api/reports/formative/:learnerId
  */
-export const getFormativeReport = async (req: Request, res: Response) => {
+export const getFormativeReport = async (req: AuthRequest, res: Response) => {
   try {
     const { learnerId } = req.params;
     const { term, academicYear } = req.query;
@@ -51,7 +51,8 @@ export const getFormativeReport = async (req: Request, res: Response) => {
         stream: true,
         dateOfBirth: true,
         gender: true,
-        schoolId: true // Added to fetch grading system
+        schoolId: true, // Added to fetch grading system
+        branchId: true
       }
     });
 
@@ -60,6 +61,16 @@ export const getFormativeReport = async (req: Request, res: Response) => {
         success: false,
         message: 'Learner not found'
       });
+    }
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+        if (learner.schoolId !== req.user.schoolId) {
+            throw new ApiError(403, 'Unauthorized access to learner report');
+        }
+        if (req.user.branchId && learner.branchId !== req.user.branchId) {
+             throw new ApiError(403, 'Unauthorized access to learner report');
+        }
     }
 
     // Fetch grading system
@@ -89,15 +100,7 @@ export const getFormativeReport = async (req: Request, res: Response) => {
     });
 
     // Calculate summary statistics
-    const summary = calculateFormativeSummary(assessments); // Note: calculateFormativeSummary in this file is local and basic, doesn't use ranges currently except implicitly via distribution keys if they match.
-    // Wait, the local calculateFormativeSummary I read earlier (lines 572-602) does NOT take ranges.
-    // It calculates distribution based on detailedRating which is already stored.
-    // It calculates average percentage.
-    // So it might not strictly need ranges unless we want to recalculate something.
-    // But wait, reportService has a more complex calculateFormativeSummary.
-    // This controller uses a LOCAL calculateFormativeSummary (defined at bottom of file).
-    // Let's check if I should replace it with reportService one or update local one.
-    // The local one seems to just aggregate existing data.
+    const summary = calculateFormativeSummary(assessments); 
     
     // Get class teacher comment (if exists)
     const teacherComment = await prisma.termlyReportComment.findUnique({
@@ -131,6 +134,12 @@ export const getFormativeReport = async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error('Error generating formative report:', error);
+    if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({
+            success: false,
+            message: error.message
+        });
+    }
     res.status(500).json({
       success: false,
       message: 'Failed to generate formative report',
@@ -147,7 +156,7 @@ export const getFormativeReport = async (req: Request, res: Response) => {
  * Get Comprehensive Summative Report for a Learner
  * GET /api/reports/summative/:learnerId
  */
-export const getSummativeReport = async (req: Request, res: Response) => {
+export const getSummativeReport = async (req: AuthRequest, res: Response) => {
   try {
     const { learnerId } = req.params;
     const { term, academicYear } = req.query;
@@ -170,7 +179,8 @@ export const getSummativeReport = async (req: Request, res: Response) => {
         admissionNumber: true,
         grade: true,
         stream: true,
-        schoolId: true // Added to fetch grading system
+        schoolId: true, // Added to fetch grading system
+        branchId: true
       }
     });
 
@@ -179,6 +189,16 @@ export const getSummativeReport = async (req: Request, res: Response) => {
         success: false,
         message: 'Learner not found'
       });
+    }
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+        if (learner.schoolId !== req.user.schoolId) {
+            throw new ApiError(403, 'Unauthorized access to learner report');
+        }
+        if (req.user.branchId && learner.branchId !== req.user.branchId) {
+             throw new ApiError(403, 'Unauthorized access to learner report');
+        }
     }
 
     // Fetch grading system
@@ -250,6 +270,12 @@ export const getSummativeReport = async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error('Error generating summative report:', error);
+    if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({
+            success: false,
+            message: error.message
+        });
+    }
     res.status(500).json({
       success: false,
       message: 'Failed to generate summative report',
@@ -267,7 +293,7 @@ export const getSummativeReport = async (req: Request, res: Response) => {
  * Combines formative, summative, attendance, competencies, values, etc.
  * GET /api/reports/termly/:learnerId
  */
-export const getTermlyReport = async (req: Request, res: Response) => {
+export const getTermlyReport = async (req: AuthRequest, res: Response) => {
   try {
     const { learnerId } = req.params;
     const { term, academicYear } = req.query;
@@ -279,6 +305,29 @@ export const getTermlyReport = async (req: Request, res: Response) => {
         message: 'Term and academic year are required',
         error: 'Missing query parameters: term and academicYear'
       });
+    }
+
+    // Check learner existence and tenant scoping first
+    const learner = await prisma.learner.findUnique({
+        where: { id: learnerId },
+        select: { schoolId: true, branchId: true }
+    });
+
+    if (!learner) {
+        return res.status(404).json({
+            success: false,
+            message: 'Learner not found'
+        });
+    }
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+        if (learner.schoolId !== req.user.schoolId) {
+            throw new ApiError(403, 'Unauthorized access to learner report');
+        }
+        if (req.user.branchId && learner.branchId !== req.user.branchId) {
+             throw new ApiError(403, 'Unauthorized access to learner report');
+        }
     }
 
     // Validate term format
@@ -339,6 +388,13 @@ export const getTermlyReport = async (req: Request, res: Response) => {
     console.error('Error generating termly report:', error);
     
     // Handle specific error types
+    if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({
+            success: false,
+            message: error.message
+        });
+    }
+    
     if (error.message.includes('not found')) {
       return res.status(404).json({
         success: false,
@@ -363,7 +419,7 @@ export const getTermlyReport = async (req: Request, res: Response) => {
  * Get Class Performance Analytics
  * GET /api/reports/analytics/class/:classId
  */
-export const getClassAnalytics = async (req: Request, res: Response) => {
+export const getClassAnalytics = async (req: AuthRequest, res: Response) => {
   try {
     const { classId } = req.params;
     const { term, academicYear } = req.query;
@@ -382,7 +438,8 @@ export const getClassAnalytics = async (req: Request, res: Response) => {
         enrollments: {
           where: { active: true },
           select: { id: true }
-        }
+        },
+        branch: { select: { schoolId: true } }
       }
     });
 
@@ -391,6 +448,16 @@ export const getClassAnalytics = async (req: Request, res: Response) => {
         success: false,
         message: 'Class not found'
       });
+    }
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+        if (classInfo.branch.schoolId !== req.user.schoolId) {
+            throw new ApiError(403, 'Unauthorized access to class analytics');
+        }
+        if (req.user.branchId && classInfo.branchId !== req.user.branchId) {
+             throw new ApiError(403, 'Unauthorized access to class analytics');
+        }
     }
 
     // Get all learners in this class
@@ -458,6 +525,12 @@ export const getClassAnalytics = async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error('Error generating class analytics:', error);
+    if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({
+            success: false,
+            message: error.message
+        });
+    }
     res.status(500).json({
       success: false,
       message: 'Failed to generate class analytics',
@@ -470,7 +543,7 @@ export const getClassAnalytics = async (req: Request, res: Response) => {
  * Get Individual Learner Analytics
  * GET /api/reports/analytics/learner/:learnerId
  */
-export const getLearnerAnalytics = async (req: Request, res: Response) => {
+export const getLearnerAnalytics = async (req: AuthRequest, res: Response) => {
   try {
     const { learnerId } = req.params;
     const { academicYear } = req.query;
@@ -492,7 +565,9 @@ export const getLearnerAnalytics = async (req: Request, res: Response) => {
         firstName: true,
         lastName: true,
         grade: true,
-        stream: true
+        stream: true,
+        schoolId: true,
+        branchId: true
       }
     });
 
@@ -501,6 +576,16 @@ export const getLearnerAnalytics = async (req: Request, res: Response) => {
         success: false,
         message: 'Learner not found'
       });
+    }
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+        if (learner.schoolId !== req.user.schoolId) {
+            throw new ApiError(403, 'Unauthorized access to learner analytics');
+        }
+        if (req.user.branchId && learner.branchId !== req.user.branchId) {
+             throw new ApiError(403, 'Unauthorized access to learner analytics');
+        }
     }
 
     // Get all assessments across all terms for the year
@@ -581,6 +666,12 @@ export const getLearnerAnalytics = async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error('Error generating learner analytics:', error);
+    if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({
+            success: false,
+            message: error.message
+        });
+    }
     res.status(500).json({
       success: false,
       message: 'Failed to generate learner analytics',

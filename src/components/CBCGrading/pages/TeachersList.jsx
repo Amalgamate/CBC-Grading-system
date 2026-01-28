@@ -21,7 +21,7 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
 
   // Filter teachers
   const filteredTeachers = teachers.filter(t => {
-    const matchesSearch = 
+    const matchesSearch =
       t.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.employeeNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -41,7 +41,7 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
       {/* Compact Quick Actions Toolbar */}
       <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
         <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
-          
+
           {/* Search and Filters */}
           <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto flex-1">
             {/* Search */}
@@ -68,7 +68,7 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
                 <option value="On Leave">On Leave</option>
                 <option value="Inactive">Inactive</option>
               </select>
-              
+
               {/* Reset Button */}
               {(searchTerm || filterStatus !== 'all') && (
                 <button
@@ -93,7 +93,7 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
             </div>
 
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setShowQuickActions(!showQuickActions)}
                 className="p-2 bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 rounded-lg transition"
                 title="Quick Actions"
@@ -102,8 +102,8 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
               </button>
               {showQuickActions && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-10" 
+                  <div
+                    className="fixed inset-0 z-10"
                     onClick={() => setShowQuickActions(false)}
                   />
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 z-20 py-1">
@@ -122,7 +122,7 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
               )}
             </div>
 
-            <button 
+            <button
               onClick={onAddTeacher}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm"
             >
@@ -188,30 +188,30 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1">
-                      <button 
+                      <button
                         onClick={() => setSelectedTeacherForAssignment(teacher)}
                         className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition"
                         title="Assign to Grade"
                       >
                         <GraduationCap size={16} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => onViewTeacher(teacher)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition" 
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
                         title="View Details"
                       >
                         <Eye size={16} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => onEditTeacher(teacher)}
-                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition" 
+                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition"
                         title="Edit"
                       >
                         <Edit size={16} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => onDeleteTeacher(teacher.id)}
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition" 
+                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
                         title="Delete"
                       >
                         <Trash2 size={16} />
@@ -231,7 +231,6 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
         onClose={() => setShowBulkModal(false)}
         title="Bulk Tutor Operations"
         entityType="teachers"
-        userRole={user?.role}
         onUploadComplete={() => {
           setShowBulkModal(false);
           if (onRefresh) onRefresh();

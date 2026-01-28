@@ -5,11 +5,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { School, Save, Upload, X, AlertTriangle } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications';
+import { API_BASE_URL } from '../../../../services/api';
 
 const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
   const { showSuccess } = useNotifications();
   const fileInputRef = useRef(null);
-  
+
   // Load saved settings from localStorage on mount
   const [settings, setSettings] = useState(() => {
     const savedSettings = localStorage.getItem('schoolSettings');
@@ -20,16 +21,16 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
         console.error('Error parsing saved settings:', e);
       }
     }
-    
-    // Default settings
+
+    // Default settings - Empty to be populated from backend
     return {
-      schoolName: brandingSettings?.schoolName || 'Zawadi Junior School',
-      address: '123 Education Lane, Nairobi',
-      phone: '+254700000000',
-      email: 'info@zawadischool.ac.ke',
-      motto: 'Excellence in Education',
-      vision: 'To provide quality education for all learners',
-      mission: 'Nurturing future leaders through innovative learning'
+      schoolName: brandingSettings?.schoolName || '',
+      address: '',
+      phone: '',
+      email: '',
+      motto: '',
+      vision: '',
+      mission: ''
     };
   });
 
@@ -53,7 +54,7 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
   }));
 
   // Check for unsaved changes
-  const hasUnsavedChanges = 
+  const hasUnsavedChanges =
     JSON.stringify(settings) !== JSON.stringify(savedState.settings) ||
     logoPreview !== savedState.logo ||
     faviconPreview !== savedState.favicon;
@@ -69,6 +70,55 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
+
+  // Fetch school data from backend on mount
+  useEffect(() => {
+    const fetchSchoolData = async () => {
+      try {
+        const schoolId = localStorage.getItem('currentSchoolId');
+        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+
+        if (!schoolId || !token) return;
+
+        const response = await fetch(`${API_BASE_URL}/schools/${schoolId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'X-School-Id': schoolId
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const school = data.data || data;
+
+          // Update settings with backend data if available
+          if (school && school.name) {
+            setSettings(prev => ({
+              schoolName: school.name || prev.schoolName,
+              address: school.address || prev.address,
+              phone: school.phone || prev.phone,
+              email: school.email || prev.email,
+              motto: school.motto || prev.motto,
+              vision: school.vision || prev.vision,
+              mission: school.mission || prev.mission
+            }));
+
+            // Update logo/favicon if they exist
+            if (school.logoUrl && school.logoUrl !== '/logo-zawadi.png') {
+              setLogoPreview(school.logoUrl);
+            }
+            if (school.faviconUrl && school.faviconUrl !== '/favicon.png') {
+              setFaviconPreview(school.faviconUrl);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching school data:', error);
+      }
+    };
+
+    fetchSchoolData();
+  }, []);
 
   // Update branding settings when component mounts
   useEffect(() => {
@@ -146,14 +196,75 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
     showSuccess('Logo removed. Click "Save Changes" to persist.');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
-      // Save all settings to localStorage
+      const schoolId = localStorage.getItem('currentSchoolId');
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+
+      if (!schoolId || !token) {
+        showSuccess('Settings saved locally!');
+        // Save to localStorage only
+        localStorage.setItem('schoolSettings', JSON.stringify(settings));
+        localStorage.setItem('schoolLogo', logoPreview);
+        localStorage.setItem('schoolFavicon', faviconPreview);
+        localStorage.setItem('schoolName', settings.schoolName);
+
+        // Update branding settings
+        if (setBrandingSettings) {
+          setBrandingSettings(prev => ({
+            ...prev,
+            logoUrl: logoPreview,
+            faviconUrl: faviconPreview,
+            schoolName: settings.schoolName,
+            welcomeTitle: `Welcome to ${settings.schoolName}`,
+            welcomeMessage: settings.motto || 'Empowering education through innovative learning management.'
+          }));
+        }
+
+        setSavedState({
+          settings: settings,
+          logo: logoPreview,
+          favicon: faviconPreview
+        });
+
+        setTimeout(() => {
+          window.dispatchEvent(new Event('storage'));
+        }, 100);
+        return;
+      }
+
+      // Save to backend
+      const response = await fetch(`${API_BASE_URL}/schools/${schoolId}`, {
+        method: 'PUT',  // Changed from PATCH to PUT
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'X-School-Id': schoolId
+        },
+        body: JSON.stringify({
+          name: settings.schoolName,
+          address: settings.address,
+          phone: settings.phone,
+          email: settings.email,
+          motto: settings.motto,
+          vision: settings.vision,
+          mission: settings.mission,
+          logoUrl: logoPreview,
+          faviconUrl: faviconPreview
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to save settings to server');
+      }
+
+      // Save to localStorage as backup
       localStorage.setItem('schoolSettings', JSON.stringify(settings));
       localStorage.setItem('schoolLogo', logoPreview);
       localStorage.setItem('schoolFavicon', faviconPreview);
       localStorage.setItem('schoolName', settings.schoolName);
-      
+
       // Update branding settings in app state
       if (setBrandingSettings) {
         setBrandingSettings(prev => ({
@@ -165,7 +276,7 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
           welcomeMessage: settings.motto || 'Empowering education through innovative learning management.'
         }));
       }
-      
+
       // Update saved state to current values
       setSavedState({
         settings: settings,
@@ -173,16 +284,84 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
         favicon: faviconPreview
       });
 
-      showSuccess('All settings saved successfully! Logo and favicon will appear everywhere.');
-      
+      // Create detailed success message
+      const changes = [];
+      if (savedState.settings.schoolName !== settings.schoolName) {
+        changes.push(`School name updated to "${settings.schoolName}"`);
+      }
+      if (savedState.settings.email !== settings.email && settings.email) {
+        changes.push('Email updated');
+      }
+      if (savedState.settings.phone !== settings.phone && settings.phone) {
+        changes.push('Phone updated');
+      }
+      if (savedState.settings.address !== settings.address && settings.address) {
+        changes.push('Address updated');
+      }
+      if (savedState.settings.motto !== settings.motto && settings.motto) {
+        changes.push('Motto updated');
+      }
+      if (savedState.settings.vision !== settings.vision && settings.vision) {
+        changes.push('Vision statement updated');
+      }
+      if (savedState.settings.mission !== settings.mission && settings.mission) {
+        changes.push('Mission statement updated');
+      }
+      if (savedState.logo !== logoPreview) {
+        changes.push('Logo updated');
+      }
+      if (savedState.favicon !== faviconPreview) {
+        changes.push('Favicon updated');
+      }
+
+      const message = changes.length > 0
+        ? `✅ School settings saved successfully! ${changes.join(', ')}.`
+        : '✅ School settings saved successfully!';
+
+      showSuccess(message);
+
+      // Update user object in localStorage with new school name
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (user.school) {
+          user.school.name = settings.schoolName;
+          localStorage.setItem('user', JSON.stringify(user));
+        }
+      } catch (e) {
+        console.error('Error updating user school name:', e);
+      }
+
       // Force a small delay to ensure state updates propagate
       setTimeout(() => {
         window.dispatchEvent(new Event('storage'));
       }, 100);
-      
+
     } catch (error) {
       console.error('Error saving settings:', error);
-      alert('Error saving settings. Please try again.');
+      showSuccess('⚠️ Settings saved locally, but failed to sync with server. Please check your connection.');
+
+      // Still save locally even if backend fails
+      localStorage.setItem('schoolSettings', JSON.stringify(settings));
+      localStorage.setItem('schoolLogo', logoPreview);
+      localStorage.setItem('schoolFavicon', faviconPreview);
+      localStorage.setItem('schoolName', settings.schoolName);
+
+      if (setBrandingSettings) {
+        setBrandingSettings(prev => ({
+          ...prev,
+          logoUrl: logoPreview,
+          faviconUrl: faviconPreview,
+          schoolName: settings.schoolName,
+          welcomeTitle: `Welcome to ${settings.schoolName}`,
+          welcomeMessage: settings.motto || 'Empowering education through innovative learning management.'
+        }));
+      }
+
+      setSavedState({
+        settings: settings,
+        logo: logoPreview,
+        favicon: faviconPreview
+      });
     }
   };
 
@@ -197,12 +376,12 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
             </div>
             <div className="ml-3">
               <p className="text-sm text-amber-700">
-                <strong>Unsaved Changes:</strong> You have made changes to the school settings. 
+                <strong>Unsaved Changes:</strong> You have made changes to the school settings.
                 Please save your changes to ensure they are applied.
               </p>
             </div>
           </div>
-          <button 
+          <button
             onClick={handleSave}
             className="ml-4 px-3 py-1 bg-amber-100 text-amber-700 hover:bg-amber-200 rounded text-sm font-medium transition"
           >
@@ -221,9 +400,9 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
               <div className="relative">
                 <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden">
                   {logoPreview ? (
-                    <img 
-                      src={logoPreview} 
-                      alt="School Logo" 
+                    <img
+                      src={logoPreview}
+                      alt="School Logo"
                       className="w-full h-full object-contain p-2"
                       onError={(e) => {
                         e.target.src = '/logo-zawadi.png';
@@ -248,7 +427,7 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
               <div className="flex-1">
                 <h4 className="font-semibold text-gray-800 mb-2">Upload School Logo</h4>
                 <p className="text-sm text-gray-600 mb-3">
-                  This logo will appear on the login page and in the sidebar. 
+                  This logo will appear on the login page and in the sidebar.
                   For best results, use a square image (recommended: 200x200px or larger).
                 </p>
                 <div className="space-y-2 text-sm text-gray-600 mb-4">
@@ -257,7 +436,7 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
                   <p>• Recommended dimensions: 200x200px</p>
                   <p className="text-orange-600 font-semibold">• Click "Save Changes" below to persist the logo!</p>
                 </div>
-                
+
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -265,7 +444,7 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
                   onChange={handleLogoUpload}
                   className="hidden"
                 />
-                
+
                 <div className="flex gap-3">
                   <button
                     onClick={() => fileInputRef.current?.click()}
@@ -274,7 +453,7 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
                     <Upload size={20} />
                     Upload Logo
                   </button>
-                  
+
                   {logoPreview && logoPreview !== '/logo-zawadi.png' && (
                     <button
                       onClick={handleRemoveLogo}
@@ -315,41 +494,41 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">School Name *</label>
-                <input 
-                  type="text" 
-                  value={settings.schoolName} 
-                  onChange={(e) => handleChange('schoolName', e.target.value)} 
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                <input
+                  type="text"
+                  value={settings.schoolName}
+                  onChange={(e) => handleChange('schoolName', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter school name"
                 />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
-                <input 
-                  type="email" 
-                  value={settings.email} 
-                  onChange={(e) => handleChange('email', e.target.value)} 
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                <input
+                  type="email"
+                  value={settings.email}
+                  onChange={(e) => handleChange('email', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="school@example.com"
                 />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Phone</label>
-                <input 
-                  type="tel" 
-                  value={settings.phone} 
-                  onChange={(e) => handleChange('phone', e.target.value)} 
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                <input
+                  type="tel"
+                  value={settings.phone}
+                  onChange={(e) => handleChange('phone', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="+254700000000"
                 />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Address</label>
-                <input 
-                  type="text" 
-                  value={settings.address} 
-                  onChange={(e) => handleChange('address', e.target.value)} 
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                <input
+                  type="text"
+                  value={settings.address}
+                  onChange={(e) => handleChange('address', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="School address"
                 />
               </div>
@@ -362,31 +541,31 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">School Motto</label>
-                <input 
-                  type="text" 
-                  value={settings.motto} 
-                  onChange={(e) => handleChange('motto', e.target.value)} 
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                <input
+                  type="text"
+                  value={settings.motto}
+                  onChange={(e) => handleChange('motto', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter school motto"
                 />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Vision Statement</label>
-                <textarea 
-                  value={settings.vision} 
-                  onChange={(e) => handleChange('vision', e.target.value)} 
-                  rows="3" 
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                <textarea
+                  value={settings.vision}
+                  onChange={(e) => handleChange('vision', e.target.value)}
+                  rows="3"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter school vision"
                 />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Mission Statement</label>
-                <textarea 
-                  value={settings.mission} 
-                  onChange={(e) => handleChange('mission', e.target.value)} 
-                  rows="3" 
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                <textarea
+                  value={settings.mission}
+                  onChange={(e) => handleChange('mission', e.target.value)}
+                  rows="3"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter school mission"
                 />
               </div>
@@ -395,12 +574,12 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
 
           {/* Save Button */}
           <div className="flex justify-end pt-6 border-t">
-            <button 
-              onClick={handleSave} 
+            <button
+              onClick={handleSave}
               className="flex items-center gap-2 px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold shadow-lg"
             >
               <Save size={20} />
-              Save Changes (Persist Logo & Settings)
+              Save Changes
             </button>
           </div>
         </div>
@@ -411,9 +590,9 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
         <h3 className="text-lg font-bold mb-4">Preview - How it will appear</h3>
         <div className="bg-white rounded-lg p-6">
           <div className="flex items-center gap-4 mb-4">
-            <img 
-              src={logoPreview} 
-              alt="School Logo Preview" 
+            <img
+              src={logoPreview}
+              alt="School Logo Preview"
               className="w-16 h-16 object-contain"
               onError={(e) => {
                 e.target.src = '/logo-zawadi.png';

@@ -21,9 +21,9 @@ import { Term, FormativeAssessmentType, Grade, AggregationStrategy } from '@pris
 export const getTermConfigs = async (req: Request, res: Response) => {
   try {
     const { schoolId } = req.params;
-    
+
     const configs = await configService.getSchoolTermConfigs(schoolId);
-    
+
     res.json({
       success: true,
       data: configs
@@ -48,13 +48,13 @@ export const getTermConfigs = async (req: Request, res: Response) => {
 export const getSpecificTermConfig = async (req: Request, res: Response) => {
   try {
     const { schoolId, term, year } = req.params;
-    
+
     const config = await configService.getTermConfig({
       schoolId,
       term: term as Term,
       academicYear: parseInt(year)
     });
-    
+
     res.json({
       success: true,
       data: config
@@ -79,9 +79,9 @@ export const getSpecificTermConfig = async (req: Request, res: Response) => {
 export const getActiveTermConfig = async (req: Request, res: Response) => {
   try {
     const { schoolId } = req.params;
-    
+
     const config = await configService.getActiveTermConfig(schoolId);
-    
+
     if (!config) {
       return res.status(404).json({
         success: false,
@@ -91,7 +91,7 @@ export const getActiveTermConfig = async (req: Request, res: Response) => {
         }
       });
     }
-    
+
     res.json({
       success: true,
       data: config
@@ -156,7 +156,7 @@ export const upsertTermConfig = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error upserting term config:', error);
-    
+
     if (error.message.includes('Weights must sum to 100')) {
       return res.status(400).json({
         success: false,
@@ -166,7 +166,7 @@ export const upsertTermConfig = async (req: AuthRequest, res: Response) => {
         }
       });
     }
-    
+
     res.status(500).json({
       success: false,
       error: {
@@ -211,7 +211,7 @@ export const updateTermConfig = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error updating term config:', error);
-    
+
     if (error.message.includes('Weights must sum to 100')) {
       return res.status(400).json({
         success: false,
@@ -231,7 +231,7 @@ export const updateTermConfig = async (req: Request, res: Response) => {
         }
       });
     }
-    
+
     res.status(500).json({
       success: false,
       error: {
@@ -254,9 +254,9 @@ export const updateTermConfig = async (req: Request, res: Response) => {
 export const getAggregationConfigs = async (req: Request, res: Response) => {
   try {
     const { schoolId } = req.params;
-    
+
     const configs = await configService.getSchoolAggregationConfigs(schoolId);
-    
+
     res.json({
       success: true,
       data: configs
@@ -282,14 +282,14 @@ export const getSpecificAggregationConfig = async (req: Request, res: Response) 
   try {
     const { schoolId, assessmentType } = req.params;
     const { grade, learningArea } = req.query;
-    
+
     const config = await configService.getAggregationConfig({
       schoolId,
       assessmentType: assessmentType as FormativeAssessmentType,
       grade: grade as Grade | undefined,
       learningArea: learningArea as string | undefined
     });
-    
+
     if (!config) {
       return res.json({
         success: true,
@@ -299,7 +299,7 @@ export const getSpecificAggregationConfig = async (req: Request, res: Response) 
         }
       });
     }
-    
+
     res.json({
       success: true,
       data: config
@@ -362,7 +362,7 @@ export const createAggregationConfig = async (req: AuthRequest, res: Response) =
     });
   } catch (error: any) {
     console.error('Error creating aggregation config:', error);
-    
+
     if (error.message.includes('requires')) {
       return res.status(400).json({
         success: false,
@@ -372,7 +372,7 @@ export const createAggregationConfig = async (req: AuthRequest, res: Response) =
         }
       });
     }
-    
+
     res.status(500).json({
       success: false,
       error: {
@@ -407,7 +407,7 @@ export const updateAggregationConfig = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error updating aggregation config:', error);
-    
+
     if (error.message.includes('requires')) {
       return res.status(400).json({
         success: false,
@@ -427,7 +427,7 @@ export const updateAggregationConfig = async (req: Request, res: Response) => {
         }
       });
     }
-    
+
     res.status(500).json({
       success: false,
       error: {
@@ -446,9 +446,9 @@ export const updateAggregationConfig = async (req: Request, res: Response) => {
 export const deleteAggregationConfig = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    
+
     await configService.deleteAggregationConfig(id);
-    
+
     res.json({
       success: true,
       message: 'Aggregation configuration deleted successfully'
@@ -477,9 +477,9 @@ export const deleteAggregationConfig = async (req: Request, res: Response) => {
 export const getStreamConfigs = async (req: Request, res: Response) => {
   try {
     const { schoolId } = req.params;
-    
+
     const configs = await configService.getStreamConfigs(schoolId);
-    
+
     res.json({
       success: true,
       data: configs
@@ -503,7 +503,11 @@ export const getStreamConfigs = async (req: Request, res: Response) => {
  */
 export const upsertStreamConfig = async (req: AuthRequest, res: Response) => {
   try {
-    const { id, schoolId, name, active } = req.body;
+    const { id, name, active } = req.body;
+    let { schoolId } = req.body;
+    if (!schoolId) {
+      schoolId = req.user?.schoolId || undefined as any;
+    }
 
     if (!schoolId || !name) {
       return res.status(400).json({
@@ -529,7 +533,7 @@ export const upsertStreamConfig = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error saving stream config:', error);
-    
+
     if (error.message.includes('already exists')) {
       return res.status(409).json({
         success: false,
@@ -558,9 +562,9 @@ export const upsertStreamConfig = async (req: AuthRequest, res: Response) => {
 export const deleteStreamConfig = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    
+
     await configService.deleteStreamConfig(id);
-    
+
     res.json({
       success: true,
       message: 'Stream configuration deleted successfully'
@@ -589,9 +593,9 @@ export const deleteStreamConfig = async (req: Request, res: Response) => {
 export const getConfigurationSummary = async (req: Request, res: Response) => {
   try {
     const { schoolId } = req.params;
-    
+
     const summary = await configService.getConfigurationSummary(schoolId);
-    
+
     res.json({
       success: true,
       data: summary
@@ -616,7 +620,7 @@ export const getConfigurationSummary = async (req: Request, res: Response) => {
 export const getAvailableStrategies = async (req: Request, res: Response) => {
   try {
     const strategies = calculationService.getAvailableStrategies();
-    
+
     res.json({
       success: true,
       data: strategies
@@ -628,6 +632,32 @@ export const getAvailableStrategies = async (req: Request, res: Response) => {
       error: {
         code: 'FETCH_ERROR',
         message: 'Failed to fetch available strategies',
+        details: error.message
+      }
+    });
+  }
+};
+
+/**
+ * GET /api/config/grades
+ * Get list of all valid grades from schema
+ */
+export const getGrades = async (req: Request, res: Response) => {
+  try {
+    // Get all enum values
+    const grades = Object.values(Grade);
+
+    res.json({
+      success: true,
+      data: grades
+    });
+  } catch (error: any) {
+    console.error('Error fetching grades:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'FETCH_ERROR',
+        message: 'Failed to fetch grades',
         details: error.message
       }
     });
@@ -778,5 +808,6 @@ export const configController = {
   getAvailableStrategies,
   resetToDefaults,
   createDefaultAggregationConfigs,
-  recalculateClassScores
+  recalculateClassScores,
+  getGrades
 };

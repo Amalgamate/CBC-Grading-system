@@ -1,16 +1,151 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { AuthRequest } from '../middleware/permissions.middleware';
+import prisma from '../config/database';
 import { generateAdmissionNumber, getCurrentSequenceValue, resetSequence, getNextAdmissionNumberPreview } from '../services/admissionNumber.service';
-
-const prisma = new PrismaClient();
+import { provisionNewSchool, SchoolProvisioningData } from '../services/school-provisioning.service';
+import { deleteSchoolSafely } from '../services/school-deletion.service';
+import { auditService } from '../services/audit.service';
 
 // ============================================
 // SCHOOL MANAGEMENT ENDPOINTS
 // ============================================
 
 /**
+ * Create a new school with COMPLETE provisioning (RECOMMENDED)
+ * POST /api/schools/provision
+ * 
+ * Body:
+ * {
+ *   schoolName: string,
+ *   admissionFormatType: string,
+ *   adminEmail: string,
+ *   adminFirstName: string,
+ *   adminLastName: string,
+ *   adminPhone?: string,
+ *   ... other school fields
+ * }
+ */
+export const createSchoolWithProvisioning = async (req: AuthRequest, res: Response) => {
+  try {
+    // Validate required fields
+    const { schoolName, adminEmail, adminFirstName, adminLastName, admissionFormatType } = req.body;
+
+    if (!schoolName || !adminEmail || !adminFirstName || !adminLastName) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        required: ['schoolName', 'adminEmail', 'adminFirstName', 'adminLastName', 'admissionFormatType']
+      });
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(adminEmail)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Check if email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: adminEmail }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        error: 'Admin email already exists in the system'
+      });
+    }
+
+    // Provision school with complete setup
+    const provisioningData: SchoolProvisioningData = {
+      schoolName: req.body.schoolName,
+      admissionFormatType: req.body.admissionFormatType || 'BRANCH_PREFIX_START',
+      branchSeparator: req.body.branchSeparator,
+      adminEmail: req.body.adminEmail,
+      adminFirstName: req.body.adminFirstName,
+      adminLastName: req.body.adminLastName,
+      adminPhone: req.body.adminPhone,
+      planId: req.body.planId,
+      trialDays: req.body.trialDays,
+      // Optional school details
+      registrationNo: req.body.registrationNo,
+      address: req.body.address,
+      county: req.body.county,
+      subCounty: req.body.subCounty,
+      ward: req.body.ward,
+      phone: req.body.phone,
+      email: req.body.email,
+      website: req.body.website,
+      principalName: req.body.principalName,
+      principalPhone: req.body.principalPhone,
+      motto: req.body.motto,
+      vision: req.body.vision,
+      mission: req.body.mission
+    };
+
+    const result = await provisionNewSchool(provisioningData);
+
+    // Log audit event
+    try {
+      await auditService.logChange({
+        schoolId: result.school.id,
+        entityType: 'School',
+        entityId: result.school.id,
+        action: 'CREATE',
+        userId: req.user?.email || 'SUPER_ADMIN',
+        newValue: JSON.stringify({
+          schoolName: result.school.name,
+          adminEmail: result.adminUser.email,
+          subscriptionExpires: result.subscription.expiresAt
+        })
+      });
+    } catch (err) {
+      console.error('Failed to log audit event:', err);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'School provisioned successfully',
+      data: {
+        school: result.school,
+        adminUser: {
+          id: result.adminUser.id,
+          email: result.adminUser.email,
+          firstName: result.adminUser.firstName,
+          lastName: result.adminUser.lastName,
+          role: result.adminUser.role
+        },
+        subscription: {
+          id: result.subscription.id,
+          status: result.subscription.status,
+          expiresAt: result.subscription.expiresAt
+        },
+        defaultBranch: result.defaultBranch,
+        temporaryPassword: result.tempPassword,
+        loginUrl: result.loginUrl
+      },
+      instructions: {
+        message: 'Save the temporary password and share it securely with the admin.',
+        adminLoginSteps: [
+          `1. Visit: ${result.loginUrl}`,
+          `2. Email: ${result.adminUser.email}`,
+          `3. Password: ${result.tempPassword}`,
+          '4. Change password after first login'
+        ]
+      }
+    });
+  } catch (error: any) {
+    console.error('Error provisioning school:', error);
+    res.status(500).json({
+      error: 'Failed to provision school',
+      message: error.message
+    });
+  }
+};
+
+/**
  * Create a new school with admission format configuration
  * POST /api/schools
+ * 
+ * NOTE: This creates only the school record. Use /api/schools/provision for complete setup.
  * 
  * Body:
  * {
@@ -20,7 +155,7 @@ const prisma = new PrismaClient();
  *   ... other school fields
  * }
  */
-export const createSchool = async (req: Request, res: Response) => {
+export const createSchool = async (req: AuthRequest, res: Response) => {
   try {
     const {
       name,
@@ -30,12 +165,29 @@ export const createSchool = async (req: Request, res: Response) => {
       address,
       county,
       subCounty,
+      ward,
       phone,
       email,
       website,
       principalName,
       principalPhone,
-      logoUrl
+      logoUrl,
+      faviconUrl,
+      schoolType,
+      motto,
+      vision,
+      mission,
+      curriculumType,
+      assessmentMode,
+      status = 'TRIAL',
+      trialDays = 30,
+      // Provisioning options
+      createDefaultBranch = true,
+      branchName = 'Main Campus',
+      branchCode = 'MC',
+      createStreams = true,
+      streamNames = ['A', 'B', 'C', 'D'],
+      initializeGrading = true
     } = req.body;
 
     // Validate required fields
@@ -59,27 +211,111 @@ export const createSchool = async (req: Request, res: Response) => {
       });
     }
 
-    const school = await prisma.school.create({
-      data: {
-        name,
-        admissionFormatType,
-        branchSeparator,
-        registrationNo,
-        address,
-        county,
-        subCounty,
-        phone,
-        email,
-        website,
-        principalName,
-        principalPhone,
-        logoUrl,
-        active: true
+    // Use transaction to create school with all related data
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Create School
+      const school = await tx.school.create({
+        data: {
+          name,
+          admissionFormatType,
+          branchSeparator,
+          registrationNo,
+          address,
+          county,
+          subCounty,
+          ward,
+          phone,
+          email,
+          website,
+          principalName,
+          principalPhone,
+          logoUrl,
+          faviconUrl,
+          schoolType,
+          motto,
+          vision,
+          mission,
+          curriculumType: curriculumType || 'CBC_AND_EXAM',
+          assessmentMode: assessmentMode || 'MIXED',
+          active: status === 'ACTIVE' || status === 'TRIAL',
+          status,
+          trialStart: status === 'TRIAL' ? new Date() : null,
+          trialDays: status === 'TRIAL' ? trialDays : null
+        }
+      });
+
+      let branch = null;
+
+      // 2. Create Default Branch (if requested)
+      if (createDefaultBranch) {
+        branch = await tx.branch.create({
+          data: {
+            schoolId: school.id,
+            name: branchName,
+            code: branchCode.toUpperCase(),
+            address: address || '',
+            phone: phone || '',
+            email: email || '',
+            principalName: principalName || '',
+            active: true
+          }
+        });
       }
+
+      // 3. Create Admission Sequence
+      await tx.admissionSequence.create({
+        data: {
+          schoolId: school.id,
+          academicYear: new Date().getFullYear(),
+          currentValue: 0
+        }
+      });
+
+      // 4. Create Streams (if requested)
+      if (createStreams && Array.isArray(streamNames) && streamNames.length > 0) {
+        for (const streamName of streamNames) {
+          if (streamName.trim()) {
+            await tx.streamConfig.create({
+              data: {
+                schoolId: school.id,
+                name: streamName.trim(),
+                active: true
+              }
+            });
+          }
+        }
+      }
+
+      return { school, branch };
     });
+
+    // 5. Initialize Grading Systems (outside transaction)
+    if (initializeGrading) {
+      try {
+        const { gradingService } = await import('../services/grading.service');
+        await gradingService.getGradingSystem(result.school.id, 'SUMMATIVE');
+        await gradingService.getGradingSystem(result.school.id, 'CBC');
+      } catch (error) {
+        console.warn('Warning: Failed to initialize grading systems:', error);
+      }
+    }
+
+    console.log(`✅ School created: ${result.school.name} (ID: ${result.school.id})`);
+    if (result.branch) {
+      console.log(`   - Branch: ${result.branch.name} (${result.branch.code})`);
+    }
+    if (createStreams) {
+      console.log(`   - Streams: ${streamNames.join(', ')} created`);
+    }
+    if (initializeGrading) {
+      console.log(`   - Grading systems initialized`);
+    }
+
+    const school = result.school;
 
     res.status(201).json({
       message: 'School created successfully',
+      warning: 'NOTE: This endpoint creates only the school record. Use POST /api/schools/provision for complete setup with admin user and subscription.',
       data: school
     });
   } catch (error: any) {
@@ -99,12 +335,17 @@ export const createSchool = async (req: Request, res: Response) => {
  * Get all schools
  * GET /api/schools
  */
-export const getAllSchools = async (req: Request, res: Response) => {
+export const getAllSchools = async (req: AuthRequest, res: Response) => {
   try {
+    const whereClause: any = { active: true };
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      whereClause.id = req.user.schoolId;
+    }
+
     const schools = await prisma.school.findMany({
-      where: {
-        active: true
-      },
+      where: whereClause,
       include: {
         branches: {
           select: {
@@ -141,9 +382,14 @@ export const getAllSchools = async (req: Request, res: Response) => {
  * Get a single school by ID with all details
  * GET /api/schools/:id
  */
-export const getSchoolById = async (req: Request, res: Response) => {
+export const getSchoolById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId && req.user.schoolId !== id) {
+      return res.status(403).json({ error: 'Unauthorized access to school' });
+    }
 
     const school = await prisma.school.findUnique({
       where: { id },
@@ -197,10 +443,15 @@ export const getSchoolById = async (req: Request, res: Response) => {
  * Update a school (except admission format which is immutable)
  * PUT /api/schools/:id
  */
-export const updateSchool = async (req: Request, res: Response) => {
+export const updateSchool = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId && req.user.schoolId !== id) {
+      return res.status(403).json({ error: 'Unauthorized access to school' });
+    }
 
     // Prevent updating admission format (immutable after creation)
     if (updateData.admissionFormatType) {
@@ -250,37 +501,74 @@ export const updateSchool = async (req: Request, res: Response) => {
  * DELETE /api/schools/:id
  * Note: This will cascade delete all branches, learners, and related data
  */
-export const deleteSchool = async (req: Request, res: Response) => {
+/**
+ * Delete a school
+ * DELETE /api/schools/:id
+ * Supports soft delete and hard delete options via query params
+ * ?hardDelete=true (permanent)
+ * ?exportData=true (CSV export)
+ */
+export const deleteSchool = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const { hardDelete, exportData, notifyUsers, reason } = req.query;
 
-    // Verify school exists
-    const school = await prisma.school.findUnique({
-      where: { id },
-      include: { _count: { select: { learners: true } } }
-    });
-
-    if (!school) {
-      return res.status(404).json({ error: 'School not found' });
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId && req.user.schoolId !== id) {
+      return res.status(403).json({ error: 'Unauthorized access to school' });
     }
 
-    // Warn if school has learners
-    if (school._count.learners > 0) {
-      return res.status(400).json({
-        error: `Cannot delete school with ${school._count.learners} learners. Please transfer or delete learners first.`
-      });
-    }
-
-    await prisma.school.delete({
-      where: { id }
+    // Call safe deletion service
+    const result = await deleteSchoolSafely(id, {
+      hardDelete: hardDelete === 'true',
+      exportData: exportData === 'true' || exportData === '1', // Default false unless specified
+      notifyUsers: notifyUsers === 'true',
+      deletedBy: req.user?.userId || 'system',
+      reason: reason as string || 'API request'
     });
 
     res.status(200).json({
-      message: 'School deleted successfully'
+      success: true,
+      message: result.message,
+      data: result
+    });
+  } catch (error: any) {
+    console.error('Error deleting school:', error);
+    res.status(500).json({
+      error: 'Failed to delete school',
+      message: error.message
+    });
+  }
+};
+
+export const deactivateSchool = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id, schoolId } = req.params as any;
+    const targetId = schoolId || id;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId && req.user.schoolId !== targetId) {
+      return res.status(403).json({ error: 'Unauthorized access to school' });
+    }
+
+    const exists = await prisma.school.findUnique({ where: { id: targetId } });
+    if (!exists) {
+      return res.status(404).json({ error: 'School not found' });
+    }
+    const school = await prisma.school.update({
+      where: { id: targetId },
+      data: {
+        active: false,
+        status: 'INACTIVE'
+      }
+    });
+    res.status(200).json({
+      message: 'School deactivated successfully',
+      data: school
     });
   } catch (error) {
-    console.error('Error deleting school:', error);
-    res.status(500).json({ error: 'Failed to delete school' });
+    console.error('Error deactivating school:', error);
+    res.status(500).json({ error: 'Failed to deactivate school' });
   }
 };
 
@@ -302,9 +590,15 @@ export const deleteSchool = async (req: Request, res: Response) => {
  *   principalName?: string
  * }
  */
-export const createBranch = async (req: Request, res: Response) => {
+export const createBranch = async (req: AuthRequest, res: Response) => {
   try {
     const { schoolId } = req.params;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId && req.user.schoolId !== schoolId) {
+      return res.status(403).json({ error: 'Unauthorized access to school' });
+    }
+
     const { name, code, address, phone, email, principalName } = req.body;
 
     // Validate required fields
@@ -362,9 +656,14 @@ export const createBranch = async (req: Request, res: Response) => {
  * Get all branches for a school
  * GET /api/schools/:schoolId/branches
  */
-export const getBranchesBySchool = async (req: Request, res: Response) => {
+export const getBranchesBySchool = async (req: AuthRequest, res: Response) => {
   try {
     const { schoolId } = req.params;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId && req.user.schoolId !== schoolId) {
+      return res.status(403).json({ error: 'Unauthorized access to school' });
+    }
 
     // Verify school exists
     const school = await prisma.school.findUnique({
@@ -376,7 +675,7 @@ export const getBranchesBySchool = async (req: Request, res: Response) => {
     }
 
     const branches = await prisma.branch.findMany({
-      where: { schoolId },
+      where: { schoolId, archived: false },
       include: {
         _count: {
           select: { learners: true, classes: true }
@@ -399,9 +698,18 @@ export const getBranchesBySchool = async (req: Request, res: Response) => {
  * Get a single branch by ID
  * GET /api/schools/:schoolId/branches/:branchId
  */
-export const getBranchById = async (req: Request, res: Response) => {
+export const getBranchById = async (req: AuthRequest, res: Response) => {
   try {
     const { schoolId, branchId } = req.params;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId && req.user.schoolId !== schoolId) {
+      return res.status(403).json({ error: 'Unauthorized access to school' });
+    }
+
+    if (req.user?.branchId && req.user.branchId !== branchId) {
+      return res.status(403).json({ error: 'Unauthorized access to branch' });
+    }
 
     const branch = await prisma.branch.findUnique({
       where: { id: branchId },
@@ -454,10 +762,19 @@ export const getBranchById = async (req: Request, res: Response) => {
  * Update a branch
  * PUT /api/schools/:schoolId/branches/:branchId
  */
-export const updateBranch = async (req: Request, res: Response) => {
+export const updateBranch = async (req: AuthRequest, res: Response) => {
   try {
     const { schoolId, branchId } = req.params;
     const updateData = req.body;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId && req.user.schoolId !== schoolId) {
+      return res.status(403).json({ error: 'Unauthorized access to school' });
+    }
+
+    if (req.user?.branchId && req.user.branchId !== branchId) {
+      return res.status(403).json({ error: 'Unauthorized access to branch' });
+    }
 
     // Prevent updating branch code (immutable)
     if (updateData.code) {
@@ -494,9 +811,14 @@ export const updateBranch = async (req: Request, res: Response) => {
  * Delete a branch
  * DELETE /api/schools/:schoolId/branches/:branchId
  */
-export const deleteBranch = async (req: Request, res: Response) => {
+export const deleteBranch = async (req: AuthRequest, res: Response) => {
   try {
     const { schoolId, branchId } = req.params;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId && req.user.schoolId !== schoolId) {
+      return res.status(403).json({ error: 'Unauthorized access to school' });
+    }
 
     // Verify branch belongs to school
     const branch = await prisma.branch.findUnique({
@@ -515,13 +837,31 @@ export const deleteBranch = async (req: Request, res: Response) => {
       });
     }
 
-    await prisma.branch.delete({
-      where: { id: branchId }
-    });
+    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
 
-    res.status(200).json({
-      message: 'Branch deleted successfully'
-    });
+    if (isSuperAdmin) {
+      await prisma.branch.delete({
+        where: { id: branchId }
+      });
+
+      res.status(200).json({
+        message: 'Branch permanently deleted by Super Admin'
+      });
+    } else {
+      await prisma.branch.update({
+        where: { id: branchId },
+        data: {
+          archived: true,
+          archivedAt: new Date(),
+          archivedBy: req.user?.userId,
+          active: false
+        }
+      });
+
+      res.status(200).json({
+        message: 'Branch archived successfully'
+      });
+    }
   } catch (error) {
     console.error('Error deleting branch:', error);
     res.status(500).json({ error: 'Failed to delete branch' });
@@ -536,9 +876,14 @@ export const deleteBranch = async (req: Request, res: Response) => {
  * Get admission sequence status for a school
  * GET /api/schools/:schoolId/admission-sequence/:academicYear
  */
-export const getAdmissionSequence = async (req: Request, res: Response) => {
+export const getAdmissionSequence = async (req: AuthRequest, res: Response) => {
   try {
     const { schoolId, academicYear } = req.params;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId && req.user.schoolId !== schoolId) {
+      return res.status(403).json({ error: 'Unauthorized access to school' });
+    }
 
     // Verify school exists
     const school = await prisma.school.findUnique({
@@ -581,9 +926,14 @@ export const getAdmissionSequence = async (req: Request, res: Response) => {
  * Get preview of next admission number(s) for each branch
  * GET /api/schools/:schoolId/admission-number-preview/:academicYear
  */
-export const getAdmissionNumberPreview = async (req: Request, res: Response) => {
+export const getAdmissionNumberPreview = async (req: AuthRequest, res: Response) => {
   try {
     const { schoolId, academicYear } = req.params;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId && req.user.schoolId !== schoolId) {
+      return res.status(403).json({ error: 'Unauthorized access to school' });
+    }
 
     // Verify school exists
     const school = await prisma.school.findUnique({
@@ -632,9 +982,15 @@ export const getAdmissionNumberPreview = async (req: Request, res: Response) => 
  * POST /api/schools/:schoolId/reset-sequence
  * This should be restricted to super admins only
  */
-export const resetAdmissionSequence = async (req: Request, res: Response) => {
+export const resetAdmissionSequence = async (req: AuthRequest, res: Response) => {
   try {
     const { schoolId } = req.params;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId && req.user.schoolId !== schoolId) {
+      return res.status(403).json({ error: 'Unauthorized access to school' });
+    }
+
     const { academicYear, newValue = 0 } = req.body;
 
     // Verify school exists

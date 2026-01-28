@@ -6,7 +6,88 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // Create default seeded users for development
+  console.log('\n🏫 Ensuring EDucore Template school exists...');
+  let templateSchool = await prisma.school.findFirst({
+    where: { name: 'EDucore Template' }
+  });
+
+  if (!templateSchool) {
+    const schoolCount = await prisma.school.count();
+
+    if (schoolCount === 0) {
+      templateSchool = await prisma.school.create({
+        data: {
+          name: 'EDucore Template',
+          registrationNo: 'EDUCORE-TEMPLATE-001',
+          address: 'Nairobi, Kenya',
+          county: 'Nairobi',
+          subCounty: 'Westlands',
+          phone: '+254712345000',
+          email: 'template@educore.local',
+          principalName: 'Template Principal',
+          principalPhone: '+254712345010',
+          active: true,
+          status: 'TEMPLATE',
+          admissionFormatType: 'BRANCH_PREFIX_START',
+          branchSeparator: '-'
+        }
+      });
+
+      console.log(`   ✅ Created template school: ${templateSchool.name} (ID: ${templateSchool.id})`);
+    } else {
+      templateSchool = await prisma.school.create({
+        data: {
+          name: 'EDucore Template',
+          registrationNo: 'EDUCORE-TEMPLATE-001',
+          address: 'Nairobi, Kenya',
+          county: 'Nairobi',
+          subCounty: 'Westlands',
+          phone: '+254712345000',
+          email: 'template@educore.local',
+          principalName: 'Template Principal',
+          principalPhone: '+254712345010',
+          active: true,
+          status: 'TEMPLATE',
+          admissionFormatType: 'BRANCH_PREFIX_START',
+          branchSeparator: '-'
+        }
+      });
+
+      console.log(
+        `   ✅ Created template school alongside existing schools: ${templateSchool.name} (ID: ${templateSchool.id})`
+      );
+    }
+  } else {
+    console.log(`   ℹ️  Template school already exists: ${templateSchool.name} (ID: ${templateSchool.id})`);
+  }
+
+  let templateBranch: any | null = null;
+
+  if (templateSchool) {
+    templateBranch = await prisma.branch.findFirst({
+      where: { schoolId: templateSchool.id, code: 'TPL' }
+    });
+
+    if (!templateBranch) {
+      templateBranch = await prisma.branch.create({
+        data: {
+          schoolId: templateSchool.id,
+          name: 'Template Campus',
+          code: 'TPL',
+          address: templateSchool.address,
+          phone: templateSchool.phone,
+          email: templateSchool.email,
+          principalName: templateSchool.principalName,
+          active: true
+        }
+      });
+
+      console.log(`   ✅ Created template branch: ${templateBranch.name} (Code: ${templateBranch.code})`);
+    } else {
+      console.log(`   ℹ️  Template branch already exists: ${templateBranch.name} (Code: ${templateBranch.code})`);
+    }
+  }
+
   const users: Array<{
     email: string;
     password: string;
@@ -77,20 +158,32 @@ async function main() {
 
   for (const userData of users) {
     try {
-      // Check if user already exists
       const existingUser = await prisma.user.findUnique({
         where: { email: userData.email }
       });
 
       if (existingUser) {
-        console.log(`   ⏭️  User ${userData.email} already exists, skipping...`);
+        if (templateSchool && !existingUser.schoolId && existingUser.role !== 'SUPER_ADMIN') {
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: {
+              schoolId: templateSchool.id,
+              branchId: templateBranch ? templateBranch.id : null
+            }
+          });
+
+          console.log(
+            `   🔄 Updated ${existingUser.role}: ${existingUser.email} with template school and branch assignment`
+          );
+        } else {
+          console.log(`   ⏭️  User ${userData.email} already exists, skipping...`);
+        }
+
         continue;
       }
 
-      // Hash the password
       const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-      // Create the user
       const user = await prisma.user.create({
         data: {
           email: userData.email,
@@ -100,7 +193,11 @@ async function main() {
           role: userData.role,
           phone: userData.phone,
           status: 'ACTIVE' as UserStatus,
-          emailVerified: true
+          emailVerified: true,
+          schoolId:
+            userData.role === 'SUPER_ADMIN' || !templateSchool ? null : templateSchool.id,
+          branchId:
+            userData.role === 'SUPER_ADMIN' || !templateBranch ? null : templateBranch.id
         },
         select: {
           id: true,
@@ -118,50 +215,86 @@ async function main() {
     }
   }
 
-  // Create a default school if none exists
-  console.log('\n🏫 Checking for default school...');
-  const schoolCount = await prisma.school.count();
+  // Create default subscription plans if none exist
+  console.log('\n💳 Checking for subscription plans...');
+  const planCount = await prisma.subscriptionPlan.count();
   
-  if (schoolCount === 0) {
-    console.log('   📝 Creating default school...');
+  if (planCount === 0) {
+    console.log('   📝 Creating default subscription plans...');
     
-    const school = await prisma.school.create({
-      data: {
-        name: 'Zawadi JRN Academy',
-        registrationNo: 'ZJRN-2025-001',
-        address: 'Nairobi, Kenya',
-        county: 'Nairobi',
-        subCounty: 'Westlands',
-        phone: '+254712345000',
-        email: 'info@zawadijrn.ac.ke',
-        principalName: 'Principal Name',
-        principalPhone: '+254712345010',
-        active: true,
-        admissionFormatType: 'BRANCH_PREFIX_START',
-        branchSeparator: '-'
+    const plans = [
+      {
+        name: 'Starter',
+        maxBranches: 1,
+        modules: {
+          ASSESSMENT: true,
+          LEARNERS: true,
+          TUTORS: true,
+          PARENTS: true,
+          ATTENDANCE: true,
+          FEES: true,
+          REPORTS: true,
+          SECURITY: false,
+          LIBRARY: false,
+          TRANSPORT: false,
+          HEALTH: false,
+          SETTINGS: true
+        },
+        isActive: true
+      },
+      {
+        name: 'Professional',
+        maxBranches: 3,
+        modules: {
+          ASSESSMENT: true,
+          LEARNERS: true,
+          TUTORS: true,
+          PARENTS: true,
+          ATTENDANCE: true,
+          FEES: true,
+          REPORTS: true,
+          SECURITY: true,
+          LIBRARY: true,
+          TRANSPORT: true,
+          HEALTH: true,
+          SETTINGS: true
+        },
+        isActive: true
+      },
+      {
+        name: 'Enterprise',
+        maxBranches: 999,
+        modules: {
+          ASSESSMENT: true,
+          LEARNERS: true,
+          TUTORS: true,
+          PARENTS: true,
+          ATTENDANCE: true,
+          FEES: true,
+          REPORTS: true,
+          SECURITY: true,
+          LIBRARY: true,
+          TRANSPORT: true,
+          HEALTH: true,
+          SETTINGS: true
+        },
+        isActive: true
       }
-    });
+    ];
 
-    console.log(`   ✅ Created school: ${school.name} (ID: ${school.id})`);
-
-    // Create a default branch for the school
-    console.log('   📝 Creating default branch...');
-    const branch = await prisma.branch.create({
-      data: {
-        schoolId: school.id,
-        name: 'Main Campus',
-        code: 'MC',
-        address: 'Nairobi, Kenya',
-        phone: '+254712345000',
-        email: 'main@zawadijrn.ac.ke',
-        principalName: 'Campus Principal',
-        active: true
+    for (const planData of plans) {
+      try {
+        const plan = await prisma.subscriptionPlan.create({
+          data: planData
+        });
+        console.log(`   ✅ Created plan: ${plan.name} (Max branches: ${plan.maxBranches})`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error(`   ❌ Error creating plan ${planData.name}:`, errorMessage);
       }
-    });
-
-    console.log(`   ✅ Created branch: ${branch.name} (Code: ${branch.code})`);
+    }
   } else {
-    console.log(`   ℹ️  ${schoolCount} school(s) already exist, skipping...`);
+    console.log(`   ℹ️  ${planCount} subscription plan(s) already exist, skipping...`);
   }
 
   // Seed streams for all schools

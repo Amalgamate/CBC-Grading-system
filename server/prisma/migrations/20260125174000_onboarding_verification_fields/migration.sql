@@ -1,0 +1,9 @@
+ALTER TABLE "users"
+  ADD COLUMN IF NOT EXISTS "emailVerificationToken" TEXT,
+  ADD COLUMN IF NOT EXISTS "emailVerificationSentAt" TIMESTAMP NULL,
+  ADD COLUMN IF NOT EXISTS "phoneVerificationCode" TEXT,
+  ADD COLUMN IF NOT EXISTS "phoneVerificationSentAt" TIMESTAMP NULL;
+
+ALTER TABLE "schools"
+  ADD COLUMN IF NOT EXISTS "ward" TEXT,
+  ADD COLUMN IF NOT EXISTS "schoolType" TEXT;

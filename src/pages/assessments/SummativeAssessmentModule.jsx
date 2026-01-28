@@ -25,7 +25,7 @@ const SummativeAssessmentModule = () => {
               onClick={() => setActiveView('scales')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
                 activeView === 'scales'
-                  ? 'bg-blue-600 text-white shadow-md'
+                  ? 'bg-blue-100 text-blue-800 border border-blue-300'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -37,7 +37,7 @@ const SummativeAssessmentModule = () => {
               onClick={() => setActiveView('tests')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
                 activeView === 'tests'
-                  ? 'bg-blue-600 text-white shadow-md'
+                  ? 'bg-blue-100 text-blue-800 border border-blue-300'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >

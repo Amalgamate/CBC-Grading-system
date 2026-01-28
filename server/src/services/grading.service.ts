@@ -33,6 +33,16 @@ export const gradingService = {
   },
 
   /**
+   * Get grading system by ID
+   */
+  async getGradingSystemById(id: string) {
+    return await prisma.gradingSystem.findUnique({
+      where: { id },
+      include: { ranges: true }
+    });
+  },
+
+  /**
    * Get Aggregation Config for a specific context
    * Hierarchy: Specific (Grade & Subject) -> Grade only -> Subject only -> Global (School only)
    */
@@ -40,7 +50,7 @@ export const gradingService = {
     // Try to find most specific config first
     // Since Prisma doesn't support "best match" query directly, we might need to fetch candidates and filter in code or use multiple queries.
     // Efficient approach: Fetch all configs for this school and type, then sort by specificity.
-    
+
     const configs = await prisma.aggregationConfig.findMany({
       where: {
         schoolId,
@@ -53,7 +63,7 @@ export const gradingService = {
     // 2. Grade only
     // 3. LearningArea only
     // 4. Neither (Global default for this type)
-    
+
     const matchedConfig = configs.find(c => c.grade === grade && c.learningArea === learningArea)
       || configs.find(c => c.grade === grade && !c.learningArea)
       || configs.find(c => !c.grade && c.learningArea === learningArea)
@@ -117,8 +127,8 @@ export const gradingService = {
   async createDefaultSystem(schoolId: string, type: 'SUMMATIVE' | 'CBC') {
     // Check if one exists to avoid duplicates (double check)
     const existing = await prisma.gradingSystem.findFirst({
-        where: { schoolId, type, isDefault: true },
-        include: { ranges: true }
+      where: { schoolId, type, isDefault: true },
+      include: { ranges: true }
     });
     if (existing) return existing;
 
@@ -175,7 +185,7 @@ export const gradingService = {
     const range = system.ranges.find(r => percentage >= r.minPercentage && percentage <= r.maxPercentage);
     return range?.summativeGrade || 'E';
   },
-  
+
   /**
    * Calculate grade with details (sync version if system is provided)
    */

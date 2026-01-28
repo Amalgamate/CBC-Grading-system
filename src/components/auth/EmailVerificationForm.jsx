@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Mail, AlertCircle, RefreshCw, CheckCircle, Smartphone, MessageSquare } from 'lucide-react';
+import { API_BASE_URL } from '../../services/api';
 
 export default function EmailVerificationForm({ email, phone, onVerifySuccess, brandingSettings }) {
   const [verificationMethod, setVerificationMethod] = useState('email');
@@ -57,7 +58,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
     const newOtp = pastedData.split('');
     while (newOtp.length < 6) newOtp.push('');
     setOtp(newOtp.slice(0, 6));
-    
+
     const nextIndex = Math.min(pastedData.length, 5);
     inputRefs.current[nextIndex]?.focus();
 
@@ -69,18 +70,18 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
 
   const handleVerify = async (otpValue) => {
     const code = otpValue || otp.join('');
-    
+
     if (code.length !== 6) {
       setError('Please enter the complete 6-digit code');
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
-      
+
       // Auto-approve for development (accepts any 6-digit code or 123456)
       if (code === DEV_AUTO_APPROVE_CODE || code.length === 6) {
         setShowSuccess(true);
@@ -102,7 +103,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
 
   const handleResend = async () => {
     if (!canResend) return;
-    
+
     setResendTimer(60);
     setCanResend(false);
     setOtp(['', '', '', '', '', '']);
@@ -112,7 +113,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
     try {
       if (verificationMethod === 'whatsapp') {
         // Send via WhatsApp API
-        const response = await fetch('http://localhost:5000/api/auth/send-whatsapp-verification', {
+        const response = await fetch(`${API_BASE_URL}/auth/send-whatsapp-verification`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -139,7 +140,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
       console.error('Error sending verification:', error);
       showErrorToast('Failed to send verification code. Please try again.');
     }
-    
+
     inputRefs.current[0]?.focus();
   };
 
@@ -160,7 +161,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
   };
 
   const getVerificationIcon = () => {
-    switch(verificationMethod) {
+    switch (verificationMethod) {
       case 'whatsapp': return <MessageSquare className="text-white" size={32} />;
       case 'sms': return <Smartphone className="text-white" size={32} />;
       default: return <Mail className="text-white" size={32} />;
@@ -168,7 +169,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
   };
 
   const getVerificationDestination = () => {
-    switch(verificationMethod) {
+    switch (verificationMethod) {
       case 'whatsapp': return phone || '+254713612141';
       case 'sms': return phone || '+254713612141';
       default: return email || 'your@email.com';
@@ -195,9 +196,9 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
     <div className="w-full h-screen overflow-hidden">
       {/* Two Column Layout - Full Screen */}
       <div className="bg-white h-full flex flex-col lg:flex-row">
-        
+
         {/* Left Column - Branding Area */}
-        <div 
+        <div
           className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative overflow-hidden"
           style={{ backgroundColor: brandingSettings?.brandColor || '#1e3a8a' }}
         >
@@ -213,9 +214,9 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
             <div className="max-w-md text-center space-y-8">
               {/* Logo */}
               <div className="mb-12">
-                <img 
-                  src={brandingSettings?.logoUrl || '/logo-zawadi.png'} 
-                  alt="School Logo" 
+                <img
+                  src={brandingSettings?.logoUrl || '/logo-zawadi.png'}
+                  alt="School Logo"
                   className="w-48 h-48 object-contain mx-auto drop-shadow-2xl"
                   onError={(e) => {
                     e.target.onerror = null;
@@ -223,7 +224,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                   }}
                 />
               </div>
-              
+
               {/* Verification Message */}
               <div className="space-y-6">
                 <h2 className="text-4xl font-bold drop-shadow-md">
@@ -244,7 +245,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                       <p className="text-blue-100 text-sm">Your code is valid for 10 minutes</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start gap-3 text-left">
                     <div className="flex-shrink-0 w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mt-0.5">
                       <CheckCircle size={18} />
@@ -254,7 +255,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                       <p className="text-blue-100 text-sm">Receive code via Email, SMS, or WhatsApp</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start gap-3 text-left">
                     <div className="flex-shrink-0 w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mt-0.5">
                       <CheckCircle size={18} />
@@ -301,37 +302,34 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                 <button
                   type="button"
                   onClick={() => setVerificationMethod('email')}
-                  className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${
-                    verificationMethod === 'email'
-                      ? 'border-blue-600 bg-blue-50 text-blue-600'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                  }`}
+                  className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${verificationMethod === 'email'
+                    ? 'border-blue-600 bg-blue-50 text-blue-600'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                    }`}
                 >
                   <Mail size={24} />
                   <span className="text-xs font-semibold">Email</span>
                 </button>
-                
+
                 <button
                   type="button"
                   onClick={() => setVerificationMethod('sms')}
-                  className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${
-                    verificationMethod === 'sms'
-                      ? 'border-blue-600 bg-blue-50 text-blue-600'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                  }`}
+                  className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${verificationMethod === 'sms'
+                    ? 'border-blue-600 bg-blue-50 text-blue-600'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                    }`}
                 >
                   <Smartphone size={24} />
                   <span className="text-xs font-semibold">SMS</span>
                 </button>
-                
+
                 <button
                   type="button"
                   onClick={() => setVerificationMethod('whatsapp')}
-                  className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${
-                    verificationMethod === 'whatsapp'
-                      ? 'border-blue-600 bg-blue-50 text-blue-600'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                  }`}
+                  className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${verificationMethod === 'whatsapp'
+                    ? 'border-blue-600 bg-blue-50 text-blue-600'
+                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                    }`}
                 >
                   <MessageSquare size={24} />
                   <span className="text-xs font-semibold">WhatsApp</span>
@@ -356,9 +354,8 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                       onChange={(e) => handleChange(index, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(index, e)}
                       onPaste={handlePaste}
-                      className={`w-12 h-14 text-center text-xl font-bold border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                        error ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      className={`w-12 h-14 text-center text-xl font-bold border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${error ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       autoFocus={index === 0}
                     />
                   ))}
@@ -396,11 +393,10 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                 type="button"
                 onClick={handleResend}
                 disabled={!canResend}
-                className={`inline-flex items-center gap-2 font-semibold transition ${
-                  canResend 
-                    ? 'text-blue-600 hover:text-blue-700' 
-                    : 'text-gray-400 cursor-not-allowed'
-                }`}
+                className={`inline-flex items-center gap-2 font-semibold transition ${canResend
+                  ? 'text-blue-600 hover:text-blue-700'
+                  : 'text-gray-400 cursor-not-allowed'
+                  }`}
               >
                 <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
                 {canResend ? (

@@ -1,11 +1,10 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { AuthRequest } from './permissions.middleware';
-
-// Re-export AuthRequest for convenience
-export type { AuthRequest };
 import { verifyAccessToken } from '../utils/jwt.util';
 import { ApiError } from '../utils/error.util';
 import { Role } from '../config/permissions';
+
+export type { AuthRequest };
 
 export const authenticate = async (
   req: AuthRequest,
@@ -22,6 +21,14 @@ export const authenticate = async (
     const decoded = verifyAccessToken(token);
     req.user = decoded;
     
+    // Set tenant context if available
+    if (decoded.schoolId || decoded.branchId) {
+      (req as any).tenant = {
+        schoolId: decoded.schoolId,
+        branchId: decoded.branchId
+      };
+    }
+
     next();
   } catch (error) {
     next(new ApiError(401, 'Invalid or expired token'));

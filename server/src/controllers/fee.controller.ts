@@ -17,7 +17,12 @@ export class FeeController {
     const { academicYear, term, grade, active } = req.query;
 
     const where: any = {};
-    
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      where.schoolId = req.user.schoolId;
+    }
+
     if (academicYear) where.academicYear = parseInt(academicYear as string);
     if (term) where.term = term;
     if (grade) where.grade = grade;
@@ -47,6 +52,17 @@ export class FeeController {
     const { name, description, feeType, amount, grade, term, academicYear, mandatory, active } = req.body;
     const userId = req.user!.userId;
 
+    // Phase 5: Tenant Scoping
+    const schoolId = req.user?.schoolId;
+    // Allow SUPER_ADMIN to potentially set schoolId if needed, or enforce context
+    if (!schoolId && req.user?.role !== 'SUPER_ADMIN') {
+      throw new ApiError(400, 'School context required');
+    }
+    const targetSchoolId = schoolId || req.body.schoolId;
+    if (!targetSchoolId) {
+      throw new ApiError(400, 'School ID is required');
+    }
+
     // Validate required fields
     if (!name || !feeType || !amount || !academicYear) {
       throw new ApiError(400, 'Missing required fields: name, feeType, amount, academicYear');
@@ -58,7 +74,8 @@ export class FeeController {
         name,
         academicYear,
         term: term || null,
-        grade: grade || null
+        grade: grade || null,
+        schoolId: targetSchoolId
       }
     });
 
@@ -77,7 +94,9 @@ export class FeeController {
         academicYear,
         mandatory: mandatory !== undefined ? mandatory : true,
         active: active !== undefined ? active : true,
-        createdBy: userId
+        createdBy: userId,
+        schoolId: targetSchoolId,
+        branchId: req.user?.branchId || req.body.branchId
       }
     });
 
@@ -99,6 +118,11 @@ export class FeeController {
     const existing = await prisma.feeStructure.findUnique({ where: { id } });
     if (!existing) {
       throw new ApiError(404, 'Fee structure not found');
+    }
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId && existing.schoolId !== req.user.schoolId) {
+      throw new ApiError(403, 'Unauthorized access to fee structure');
     }
 
     const updated = await prisma.feeStructure.update({
@@ -138,16 +162,40 @@ export class FeeController {
       throw new ApiError(404, 'Fee structure not found');
     }
 
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId && existing.schoolId !== req.user.schoolId) {
+      throw new ApiError(403, 'Unauthorized access to fee structure');
+    }
+
     if (existing.invoices.length > 0) {
       throw new ApiError(400, 'Cannot delete fee structure with existing invoices. Deactivate it instead.');
     }
 
-    await prisma.feeStructure.delete({ where: { id } });
+    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
 
-    res.json({
-      success: true,
-      message: 'Fee structure deleted successfully'
-    });
+    if (isSuperAdmin) {
+      await prisma.feeStructure.delete({ where: { id } });
+
+      res.json({
+        success: true,
+        message: 'Fee structure permanently deleted by Super Admin'
+      });
+    } else {
+      await prisma.feeStructure.update({
+        where: { id },
+        data: {
+          archived: true,
+          archivedAt: new Date(),
+          archivedBy: req.user?.userId,
+          active: false
+        }
+      });
+
+      res.json({
+        success: true,
+        message: 'Fee structure archived successfully'
+      });
+    }
   }
 
   /**
@@ -158,13 +206,23 @@ export class FeeController {
     const { status, term, academicYear, grade, learnerId } = req.query;
 
     const where: any = {};
-    
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      where.learner = {
+        schoolId: req.user.schoolId
+      };
+    }
+
     if (status) where.status = status;
     if (term) where.term = term;
     if (academicYear) where.academicYear = parseInt(academicYear as string);
     if (learnerId) where.learnerId = learnerId;
     if (grade) {
-      where.learner = { grade };
+      where.learner = {
+        ...where.learner,
+        grade
+      };
     }
 
     const invoices = await prisma.feeInvoice.findMany({
@@ -219,6 +277,11 @@ export class FeeController {
 
     if (!learner) {
       throw new ApiError(404, 'Learner not found');
+    }
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId && learner.schoolId !== req.user.schoolId) {
+      throw new ApiError(403, 'Unauthorized access to learner');
     }
 
     // If parent, check if this is their child
@@ -365,7 +428,7 @@ export class FeeController {
     // Update invoice
     const newPaidAmount = Number(invoice.paidAmount) + Number(amount);
     const newBalance = Number(invoice.totalAmount) - newPaidAmount;
-    
+
     let newStatus = invoice.status;
     if (newBalance === 0) {
       newStatus = 'PAID';
@@ -497,9 +560,18 @@ export class FeeController {
       throw new ApiError(404, 'Fee structure not found');
     }
 
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId && feeStructure.schoolId !== req.user.schoolId) {
+      throw new ApiError(403, 'Unauthorized access to fee structure');
+    }
+
     // Get learners
     const where: any = { grade, status: 'ACTIVE' };
     if (stream) where.stream = stream;
+    // Phase 5: Tenant Scoping for learners
+    if (req.user?.schoolId) {
+      where.schoolId = req.user.schoolId;
+    }
 
     const learners = await prisma.learner.findMany({ where });
 

@@ -53,6 +53,10 @@ model User {
   archived      Boolean     @default(false)  // Soft delete for teachers
   archivedAt    DateTime?   // When archived
   archivedBy    String?     // Who archived
+  emailVerificationToken String?
+  emailVerificationSentAt DateTime?
+  phoneVerificationCode String?
+  phoneVerificationSentAt DateTime?
   
   // School & Branch Association
   schoolId      String?     // School the user belongs to (null for SUPER_ADMIN)
@@ -202,6 +206,11 @@ enum AssessmentMode {
 }
 
 // ============================================
+// SCHOOL STATUS ENUM (Multi-tenant lifecycle)
+// ============================================
+// SchoolStatus removed; use plain string status field
+
+// ============================================
 // ADMISSION FORMAT ENUM
 // ============================================
 
@@ -223,12 +232,18 @@ model School {
   address                 String?
   county                  String?
   subCounty               String?
+  ward                    String?
   phone                   String?
   email                   String?
   website                 String?
   principalName           String?
   principalPhone          String?
   logoUrl                 String?               // School logo URL or base64
+  faviconUrl              String?               // School favicon URL or base64
+  schoolType              String?
+  motto                   String?               // School motto
+  vision                  String?               @db.Text // School vision statement
+  mission                 String?               @db.Text // School mission statement
   
   // Admission Format Configuration (set at setup, immutable)
   admissionFormatType     AdmissionFormatType   @default(BRANCH_PREFIX_START)
@@ -236,6 +251,9 @@ model School {
   
   // Status
   active                  Boolean               @default(true)
+  status                  String                @default("ACTIVE")
+  trialStart              DateTime?
+  trialDays               Int?                  @default(30)
   
   // NEW: Curriculum configuration (Phase 1)
   curriculumType      CurriculumType   @default(CBC_AND_EXAM)
@@ -243,6 +261,10 @@ model School {
   
   // Optional custom grading scale
   customGradingScale  Json?
+
+  archived                Boolean               @default(false)
+  archivedAt              DateTime?
+  archivedBy              String?
 
   // Metadata
   createdAt               DateTime              @default(now())
@@ -258,9 +280,50 @@ model School {
   aggregationConfigs      AggregationConfig[]
   streamConfigs           StreamConfig[]
   changeHistory           ChangeHistory[]
+  subscriptions           SchoolSubscription[]
+  
+  // Assessment Relations (Phase 2)
+  formativeAssessments    FormativeAssessment[]
+  summativeTests          SummativeTest[]
+  summativeResults        SummativeResult[]
+  feeStructures           FeeStructure[]
   
   @@map("schools")
   @@index([county])
+}
+
+// ============================================
+// SUBSCRIPTION & PLANS (Multi-tenant)
+// ============================================
+model SubscriptionPlan {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  modules       Json
+  maxBranches   Int      @default(1)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  subscriptions SchoolSubscription[]
+
+  @@map("subscription_plans")
+}
+
+model SchoolSubscription {
+  id            String   @id @default(uuid())
+  schoolId      String
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  planId        String
+  plan          SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  startedAt     DateTime @default(now())
+  expiresAt     DateTime
+  status        String   @default("ACTIVE") // ACTIVE, EXPIRED, CANCELED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("school_subscriptions")
+  @@index([schoolId])
+  @@index([planId])
 }
 
 // ============================================
@@ -284,6 +347,9 @@ model Branch {
   
   // Status
   active          Boolean   @default(true)
+  archived        Boolean   @default(false)
+  archivedAt      DateTime?
+  archivedBy      String?
   
   // Metadata
   createdAt       DateTime  @default(now())
@@ -293,6 +359,12 @@ model Branch {
   learners        Learner[]
   classes         Class[]
   users           User[]    @relation("BranchUsers")
+  
+  // Assessment Relations (Phase 2)
+  formativeAssessments    FormativeAssessment[]
+  summativeTests          SummativeTest[]
+  summativeResults        SummativeResult[]
+  feeStructures           FeeStructure[]
   
   // Unique constraint: branch code must be unique per school
   @@unique([schoolId, code])
@@ -356,6 +428,9 @@ model Class {
   
   // Status
   active      Boolean   @default(true)
+  archived    Boolean   @default(false)
+  archivedAt  DateTime?
+  archivedBy  String?
   
   // Metadata
   createdAt   DateTime  @default(now())
@@ -465,6 +540,9 @@ model Learner {
   updatedAt         DateTime        @updatedAt
   createdBy         String?
   updatedBy         String?
+  archived          Boolean         @default(false)
+  archivedAt        DateTime?
+  archivedBy        String?
   
   // Relations (UPDATED WITH CBC RELATIONS)
   enrollments           ClassEnrollment[]
@@ -613,6 +691,18 @@ model FormativeAssessment {
   lockedAt          DateTime?
   lockedBy          String?
 
+  // TENANT FIELDS (PHASE 2)
+  schoolId          String
+  school            School      @relation(fields: [schoolId], references: [id])
+  branchId          String?
+  branch            Branch?     @relation(fields: [branchId], references: [id])
+  archived          Boolean     @default(false)
+  archivedAt        DateTime?
+  archivedBy        String?
+  
+  @@index([schoolId])
+  @@index([branchId])
+
   // Metadata
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
@@ -678,13 +768,29 @@ model SummativeTest {
   approvedBy      String?
   approvedAt      DateTime?
   approvedByUser  User?           @relation("ApprovedTests", fields: [approvedBy], references: [id])
+  
+  // Scale / Grading System
+  scaleId         String?
+  scale           GradingSystem?  @relation(fields: [scaleId], references: [id])
 
   // Results
   results         SummativeResult[]
   
+  // TENANT FIELDS (PHASE 2)
+  schoolId          String
+  school            School      @relation(fields: [schoolId], references: [id])
+  branchId          String?
+  branch            Branch?     @relation(fields: [branchId], references: [id])
+  
+  @@index([schoolId])
+  @@index([branchId])
+
   // Metadata
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+  archived        Boolean         @default(false)
+  archivedAt      DateTime?
+  archivedBy      String?
   
   @@map("summative_tests")
   @@index([grade, term, academicYear])
@@ -807,9 +913,21 @@ model SummativeResult {
   recordedBy      String
   recorder        User            @relation("RecordedResults", fields: [recordedBy], references: [id])
   
+  // TENANT FIELDS (PHASE 2)
+  schoolId          String
+  school            School      @relation(fields: [schoolId], references: [id])
+  branchId          String?
+  branch            Branch?     @relation(fields: [branchId], references: [id])
+  
+  @@index([schoolId])
+  @@index([branchId])
+
   // Metadata
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+  archived        Boolean         @default(false)
+  archivedAt      DateTime?
+  archivedBy      String?
   
   @@unique([testId, learnerId])
   @@map("summative_results")
@@ -899,6 +1017,9 @@ model ValuesAssessment {
   // Metadata
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  archived        Boolean       @default(false)
+  archivedAt      DateTime?
+  archivedBy      String?
   
   @@unique([learnerId, term, academicYear])
   @@map("values_assessments")
@@ -932,6 +1053,9 @@ model CoCurricularActivity {
   // Metadata
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  archived        Boolean       @default(false)
+  archivedAt      DateTime?
+  archivedBy      String?
   
   @@map("co_curricular_activities")
   @@index([learnerId])
@@ -1022,6 +1146,9 @@ model IDCardTemplate {
   createdBy         String
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
+  archived          Boolean       @default(false)
+  archivedAt        DateTime?
+  archivedBy        String?
   
   @@map("id_card_templates")
 }
@@ -1079,6 +1206,12 @@ model FeeStructure {
   term            Term?
   academicYear    Int
   
+  // Tenant Scoping
+  schoolId        String
+  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  branchId        String?
+  branch          Branch?   @relation(fields: [branchId], references: [id])
+  
   // Status
   active          Boolean   @default(true)
   mandatory       Boolean   @default(true)
@@ -1087,6 +1220,9 @@ model FeeStructure {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   createdBy       String
+  archived        Boolean   @default(false)
+  archivedAt      DateTime?
+  archivedBy      String?
   
   // Relations
   invoices        FeeInvoice[]
@@ -1125,6 +1261,9 @@ model FeeInvoice {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   issuedBy          String
+  archived          Boolean       @default(false)
+  archivedAt        DateTime?
+  archivedBy        String?
   
   // Relations
   payments          FeePayment[]
@@ -1263,23 +1402,33 @@ model MessageReceipt {
 // ============================================
 
 model GradingSystem {
-  id          String   @id @default(uuid())
-  name        String   // e.g. "Standard Summative", "CBC Rubric"
-  type        String   // "SUMMATIVE" or "CBC"
+  id            String   @id @default(uuid())
+  name          String   // e.g. "Standard Summative", "CBC Rubric"
+  type          String   // "SUMMATIVE" or "CBC"
   
+  // New: Grade and subject specific scales
+  grade         Grade?   
+  learningArea  String?
+
   // Scope
-  schoolId    String
-  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId      String
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   
-  active      Boolean  @default(true)
-  isDefault   Boolean  @default(false)
+  active        Boolean  @default(true)
+  archived      Boolean  @default(false)
+  archivedAt    DateTime?
+  archivedBy    String?
+  isDefault     Boolean  @default(false)
   
-  ranges      GradingRange[]
+  ranges        GradingRange[]
+  summativeTests SummativeTest[]
   
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@map("grading_systems")
+  @@index([schoolId])
+  @@index([grade])
 }
 
 model GradingRange {
@@ -1302,6 +1451,9 @@ model GradingRange {
   
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  archived        Boolean       @default(false)
+  archivedAt      DateTime?
+  archivedBy      String?
   
   @@map("grading_ranges")
   @@index([systemId])

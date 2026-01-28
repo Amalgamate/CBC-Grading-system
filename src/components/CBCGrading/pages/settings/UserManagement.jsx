@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   UserPlus, Edit, Trash2, X, Save, Shield, Users, Search, 
   RotateCcw, Eye, EyeOff, Mail, Phone, Archive, ArchiveRestore,
-  Settings, Lock, Check, AlertCircle, UserCheck, Clock, Activity
+  Settings, Lock, Check, AlertCircle, Clock, Activity
 } from 'lucide-react';
 
 // Mock API - Replace with actual API calls

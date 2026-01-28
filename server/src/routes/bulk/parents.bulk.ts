@@ -12,12 +12,11 @@ import { Parser } from 'json2csv';
 import { Readable } from 'stream';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { authenticate, requireSchool } from '../../middleware/auth.middleware';
 
 const router = Router();
 const prisma = new PrismaClient();
 
-const upload = multer({ 
+const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }
 });
@@ -37,15 +36,14 @@ const parentSchema = z.object({
  * POST /api/bulk/parents/upload
  * Now automatically uses the logged-in user's school!
  */
-router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequest, res: Response) => {
+router.post('/upload', upload.single('file'), async (req: AuthRequest, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Get school from authenticated user OR request body
-    // SUPER_ADMIN must provide schoolId in request
-    const schoolId = req.body.schoolId || req.query.schoolId || req.user!.schoolId;
+    // Get school from headers (preferred), request body, or user token
+    const schoolId = req.headers['x-school-id'] as string || req.body.schoolId || req.query.schoolId || req.user!.schoolId;
 
     // For non-SUPER_ADMIN users, require school association
     if (!schoolId && req.user!.role !== 'SUPER_ADMIN') {
@@ -79,7 +77,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
     let lineNumber = 1;
 
     const stream = Readable.from(req.file.buffer.toString());
-    
+
     await new Promise((resolve, reject) => {
       stream
         .pipe(csvParser())
@@ -154,9 +152,9 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
           for (const admNo of admNos) {
             // Only link to students in the same school
             const learner = await prisma.learner.findFirst({
-              where: { 
+              where: {
                 admissionNumber: admNo,
-                schoolId 
+                schoolId
               }
             });
 
@@ -213,7 +211,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
 
   } catch (error) {
     console.error('Bulk upload error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to process upload',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -224,7 +222,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
  * GET /api/bulk/parents/export
  * Export parents (scoped to user's school)
  */
-router.get('/export', authenticate, requireSchool, async (req: AuthRequest, res: Response) => {
+router.get('/export', async (req: AuthRequest, res: Response) => {
   try {
     const schoolId = req.user!.schoolId!;
 
@@ -260,7 +258,7 @@ router.get('/export', authenticate, requireSchool, async (req: AuthRequest, res:
       'Student Admission Numbers': parent.learners.map(l => l.admissionNumber).join(', '),
       'Student Names': parent.learners.map(l => `${l.firstName} ${l.lastName}`).join(', '),
       'Status': parent.status,
-      'Created Date': parent.createdAt ? 
+      'Created Date': parent.createdAt ?
         new Date(parent.createdAt).toLocaleDateString('en-GB') : ''
     }));
 
@@ -278,7 +276,7 @@ router.get('/export', authenticate, requireSchool, async (req: AuthRequest, res:
 
   } catch (error) {
     console.error('Export error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to export data',
       details: error instanceof Error ? error.message : 'Unknown error'
     });

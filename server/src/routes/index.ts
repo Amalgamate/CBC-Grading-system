@@ -16,26 +16,50 @@ import cbcRoutes from './cbcRoutes';
 import gradingRoutes from './grading.routes';
 import configRoutes from './config.routes';
 import workflowRoutes from './workflow.routes';
+import adminRoutes from './admin.routes';
+import { checkSchoolActive } from '../middleware/trial.guard';
+import onboardingRoutes from './onboarding.routes';
+import { issueCsrfToken } from '../middleware/csrf.middleware';
+import { authenticate } from '../middleware/auth.middleware';
+import { requireTenant } from '../middleware/tenant.middleware';
 
 const router = Router();
 
-// Mount routes
+// ============================================
+// PUBLIC ROUTES
+// ============================================
 router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
+router.use('/onboarding', onboardingRoutes); // Public onboarding endpoints
+router.get('/auth/csrf', issueCsrfToken);
+
+// ============================================
+// PROTECTED ROUTES (Authenticated & Tenant-Aware)
+// ============================================
+// These routes require authentication and proper trial status check
+router.use(authenticate);
+
+// Admin routes must come BEFORE requireTenant middleware
+// because super admins need access to ALL schools
+router.use('/admin', adminRoutes);
+
+// Apply tenant middleware to all other routes
+router.use(requireTenant);
+
 router.use('/schools', schoolRoutes);
 router.use('/users', userRoutes);
-router.use('/learners', learnerRoutes);
-router.use('/classes', classRoutes);
-router.use('/attendance', attendanceRoutes);
+router.use('/learners', checkSchoolActive, learnerRoutes);
+router.use('/classes', checkSchoolActive, classRoutes);
+router.use('/attendance', checkSchoolActive, attendanceRoutes);
 router.use('/notifications', notificationRoutes);
-router.use('/assessments', assessmentRoutes);
-router.use('/reports', reportRoutes);
-router.use('/biometric', biometricRoutes); // Biometric attendance endpoints (coming soon)
-router.use('/fees', feeRoutes); // Fee management endpoints
-router.use('/bulk', bulkRoutes); // Bulk import/export operations
-router.use('/cbc', cbcRoutes); // CBC Assessment endpoints (Core Competencies, Values, Co-Curricular)
-router.use('/grading', gradingRoutes);
-router.use('/config', configRoutes);
-router.use('/workflow', workflowRoutes); // ✅ NEW: Workflow & approval system
+router.use('/assessments', checkSchoolActive, assessmentRoutes);
+router.use('/reports', checkSchoolActive, reportRoutes);
+router.use('/biometric', biometricRoutes);
+router.use('/fees', checkSchoolActive, feeRoutes);
+router.use('/bulk', checkSchoolActive, bulkRoutes);
+router.use('/cbc', cbcRoutes);
+router.use('/grading', checkSchoolActive, gradingRoutes);
+router.use('/config', checkSchoolActive, configRoutes);
+router.use('/workflow', workflowRoutes);
 
 export default router;

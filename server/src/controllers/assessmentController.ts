@@ -5,12 +5,11 @@
 
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/permissions.middleware';
-import { PrismaClient, RubricRating, DetailedRubricRating, SummativeGrade, TestStatus, FormativeAssessmentType, AssessmentStatus, CurriculumType } from '@prisma/client';
+import { RubricRating, DetailedRubricRating, SummativeGrade, TestStatus, FormativeAssessmentType, AssessmentStatus, CurriculumType } from '@prisma/client';
+import prisma from '../config/database';
 import * as rubricUtil from '../utils/rubric.util';
 import { gradingService } from '../services/grading.service';
 import { auditService } from '../services/audit.service';
-
-const prisma = new PrismaClient();
 
 // ============================================
 // FORMATIVE ASSESSMENT CONTROLLERS
@@ -67,8 +66,8 @@ export const createFormativeAssessment = async (req: AuthRequest, res: Response)
     }
 
     // Fetch school's grading system
-    const gradingSystem = req.user?.schoolId 
-      ? await gradingService.getGradingSystem(req.user.schoolId, 'CBC') 
+    const gradingSystem = req.user?.schoolId
+      ? await gradingService.getGradingSystem(req.user.schoolId, 'CBC')
       : null;
     const ranges = gradingSystem?.ranges;
 
@@ -85,7 +84,7 @@ export const createFormativeAssessment = async (req: AuthRequest, res: Response)
         : rubricUtil.ratingToPoints(detailedRating as DetailedRubricRating);
 
       calculatedOverallRating = rubricUtil.detailedToGeneralRating(detailedRating as DetailedRubricRating);
-      
+
       if (!percentage) {
         calculatedPercentage = ranges
           ? gradingService.getAveragePercentageSync(detailedRating as DetailedRubricRating, ranges)
@@ -116,15 +115,22 @@ export const createFormativeAssessment = async (req: AuthRequest, res: Response)
     // Check if assessment already exists (upsert logic adjusted for new constraints)
     // We try to find a match based on the new composite key logic
     // If title is provided, use it. If not, we might match null title.
+    const whereMatch: any = {
+      learnerId,
+      term,
+      academicYear: parseInt(academicYear),
+      learningArea,
+      type: type as FormativeAssessmentType,
+      title: title || null // Explicitly match null if title is undefined/empty
+    };
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      whereMatch.schoolId = req.user.schoolId;
+    }
+
     const existingAssessment = await prisma.formativeAssessment.findFirst({
-      where: {
-        learnerId,
-        term,
-        academicYear: parseInt(academicYear),
-        learningArea,
-        type: type as FormativeAssessmentType,
-        title: title || null // Explicitly match null if title is undefined/empty
-      }
+      where: whereMatch
     });
 
     let assessment;
@@ -187,6 +193,15 @@ export const createFormativeAssessment = async (req: AuthRequest, res: Response)
 
     } else {
       // Create new assessment
+      // Phase 5: Ensure schoolId is present
+      if (!req.user?.schoolId) {
+        // Allow SUPER_ADMIN to pass schoolId in body, otherwise fail
+        // But for now assuming context is sufficient or we handle it
+        if (!req.body.schoolId) {
+          return res.status(400).json({ success: false, message: 'School Context Required' });
+        }
+      }
+
       assessment = await prisma.formativeAssessment.create({
         data: {
           learnerId,
@@ -214,7 +229,10 @@ export const createFormativeAssessment = async (req: AuthRequest, res: Response)
           title: title || null,
           date: date ? new Date(date) : new Date(),
           maxScore: maxScore ? Number(maxScore) : undefined,
-          weight: Number(weight)
+          weight: Number(weight),
+          // Phase 5: Tenant Fields
+          schoolId: req.user?.schoolId || req.body.schoolId,
+          branchId: req.user?.branchId || req.body.branchId
         },
         include: {
           learner: {
@@ -267,12 +285,17 @@ export const createFormativeAssessment = async (req: AuthRequest, res: Response)
  * Get Formative Assessments for a Learner
  * GET /api/assessments/formative/learner/:learnerId
  */
-export const getFormativeByLearner = async (req: Request, res: Response) => {
+export const getFormativeByLearner = async (req: AuthRequest, res: Response) => {
   try {
     const { learnerId } = req.params;
     const { term, academicYear } = req.query;
 
     const whereClause: any = { learnerId };
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      whereClause.schoolId = req.user.schoolId;
+    }
 
     if (term) whereClause.term = term;
     if (academicYear) whereClause.academicYear = parseInt(academicYear as string);
@@ -322,11 +345,16 @@ export const getFormativeByLearner = async (req: Request, res: Response) => {
  * Get All Formative Assessments (with filters)
  * GET /api/assessments/formative
  */
-export const getFormativeAssessments = async (req: Request, res: Response) => {
+export const getFormativeAssessments = async (req: AuthRequest, res: Response) => {
   try {
     const { term, academicYear, learningArea, grade } = req.query;
 
-    const whereClause: any = {};
+    const whereClause: any = { archived: false };
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      whereClause.schoolId = req.user.schoolId;
+    }
 
     if (term) whereClause.term = term;
     if (academicYear) whereClause.academicYear = parseInt(academicYear as string);
@@ -382,18 +410,55 @@ export const getFormativeAssessments = async (req: Request, res: Response) => {
  * Delete Formative Assessment
  * DELETE /api/assessments/formative/:id
  */
-export const deleteFormativeAssessment = async (req: Request, res: Response) => {
+export const deleteFormativeAssessment = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
-    await prisma.formativeAssessment.delete({
+    // Phase 5: Tenant Check
+    const assessment = await prisma.formativeAssessment.findUnique({
       where: { id }
     });
 
-    res.json({
-      success: true,
-      message: 'Assessment deleted successfully'
-    });
+    if (!assessment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Assessment not found'
+      });
+    }
+
+    if (req.user?.schoolId && assessment.schoolId !== req.user.schoolId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized access to assessment'
+      });
+    }
+
+    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
+
+    if (isSuperAdmin) {
+      await prisma.formativeAssessment.delete({
+        where: { id }
+      });
+
+      res.json({
+        success: true,
+        message: 'Assessment permanently deleted by Super Admin'
+      });
+    } else {
+      await prisma.formativeAssessment.update({
+        where: { id },
+        data: {
+          archived: true,
+          archivedAt: new Date(),
+          archivedBy: req.user?.userId
+        }
+      });
+
+      res.json({
+        success: true,
+        message: 'Assessment archived successfully'
+      });
+    }
 
   } catch (error: any) {
     console.error('Error deleting formative assessment:', error);
@@ -414,7 +479,7 @@ export const deleteFormativeAssessment = async (req: Request, res: Response) => 
  */
 const calculateGradeAndStatus = (percentage: number, passMarks: number, ranges?: any[]): { grade: SummativeGrade, status: TestStatus } => {
   let grade: SummativeGrade;
-  
+
   if (ranges) {
     grade = gradingService.calculateGradeSync(percentage, ranges);
   } else {
@@ -459,7 +524,8 @@ export const createSummativeTest = async (req: AuthRequest, res: Response) => {
       // New fields
       status = 'DRAFT',
       curriculum = 'CBC_AND_EXAM',
-      weight = 100.0
+      weight = 100.0,
+      scaleId
     } = req.body;
 
     const createdBy = req.user?.userId;
@@ -477,6 +543,28 @@ export const createSummativeTest = async (req: AuthRequest, res: Response) => {
         success: false,
         message: 'Missing required fields'
       });
+    }
+
+    // AUTO-LINK SCALE: If scaleId is not provided, try to find a matching one
+    let resolvedScaleId = scaleId;
+    if (!resolvedScaleId && req.user?.schoolId) {
+      const matchingScale = await prisma.gradingSystem.findFirst({
+        where: {
+          schoolId: req.user.schoolId,
+          type: 'SUMMATIVE',
+          grade: grade,
+          active: true,
+          // Learning area might be partial match or null in some scales
+          OR: [
+            { learningArea: learningArea },
+            { name: { contains: learningArea } }
+          ]
+        }
+      });
+      if (matchingScale) {
+        resolvedScaleId = matchingScale.id;
+        console.log(`- Auto-linked test "${title}" to scale "${matchingScale.name}"`);
+      }
     }
 
     const test = await prisma.summativeTest.create({
@@ -497,7 +585,11 @@ export const createSummativeTest = async (req: AuthRequest, res: Response) => {
         // New fields
         status: status as AssessmentStatus,
         curriculum: curriculum as CurriculumType,
-        weight: Number(weight)
+        weight: Number(weight),
+        scaleId: resolvedScaleId,
+        // Phase 5: Tenant Fields
+        schoolId: req.user?.schoolId || req.body.schoolId,
+        branchId: req.user?.branchId || req.body.branchId
       },
       include: {
         creator: {
@@ -546,11 +638,16 @@ export const createSummativeTest = async (req: AuthRequest, res: Response) => {
  * Get All Summative Tests
  * GET /api/assessments/tests
  */
-export const getSummativeTests = async (req: Request, res: Response) => {
+export const getSummativeTests = async (req: AuthRequest, res: Response) => {
   try {
     const { term, academicYear, grade, learningArea, published } = req.query;
 
-    const whereClause: any = {};
+    const whereClause: any = { archived: false };
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      whereClause.schoolId = req.user.schoolId;
+    }
 
     if (term) whereClause.term = term;
     if (academicYear) whereClause.academicYear = parseInt(academicYear as string);
@@ -599,7 +696,7 @@ export const getSummativeTests = async (req: Request, res: Response) => {
  * Get Single Summative Test with Results
  * GET /api/assessments/tests/:id
  */
-export const getSummativeTest = async (req: Request, res: Response) => {
+export const getSummativeTest = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -634,6 +731,14 @@ export const getSummativeTest = async (req: Request, res: Response) => {
       return res.status(404).json({
         success: false,
         message: 'Test not found'
+      });
+    }
+
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId && test.schoolId !== req.user.schoolId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized access to test'
       });
     }
 
@@ -685,6 +790,15 @@ export const updateSummativeTest = async (req: AuthRequest, res: Response) => {
     delete updateData.id;
     delete updateData.createdBy;
     delete updateData.createdAt;
+
+    // Phase 5: Check ownership
+    const existingTest = await prisma.summativeTest.findUnique({ where: { id } });
+    if (!existingTest) {
+      return res.status(404).json({ success: false, message: 'Test not found' });
+    }
+    if (req.user?.schoolId && existingTest.schoolId !== req.user.schoolId) {
+      return res.status(403).json({ success: false, message: 'Unauthorized access to test' });
+    }
 
     // Convert date if provided
     if (updateData.testDate) {
@@ -754,25 +868,45 @@ export const updateSummativeTest = async (req: AuthRequest, res: Response) => {
  * Delete Summative Test
  * DELETE /api/assessments/tests/:id
  */
-export const deleteSummativeTest = async (req: Request, res: Response) => {
+export const deleteSummativeTest = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.userId;
+    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
 
-    // This will also delete all associated results (cascade)
-    await prisma.summativeTest.delete({
-      where: { id }
-    });
+    if (isSuperAdmin) {
+      // Hard delete for Super Admin
+      await prisma.summativeTest.delete({
+        where: { id }
+      });
 
-    res.json({
-      success: true,
-      message: 'Test deleted successfully'
-    });
+      res.json({
+        success: true,
+        message: 'Test permanently deleted by Super Admin'
+      });
+    } else {
+      // Soft delete (Archive) for others
+      await prisma.summativeTest.update({
+        where: { id },
+        data: {
+          archived: true,
+          archivedAt: new Date(),
+          archivedBy: userId,
+          active: false
+        }
+      });
+
+      res.json({
+        success: true,
+        message: 'Test archived successfully'
+      });
+    }
 
   } catch (error: any) {
     console.error('Error deleting summative test:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete test',
+      message: 'Failed to process delete request',
       error: error.message
     });
   }
@@ -813,7 +947,7 @@ export const recordSummativeResult = async (req: AuthRequest, res: Response) => 
       });
     }
 
-    // Get test details to calculate percentage
+    // Get test details to calculate percentage and get scale context
     const test = await prisma.summativeTest.findUnique({
       where: { id: testId }
     });
@@ -825,10 +959,16 @@ export const recordSummativeResult = async (req: AuthRequest, res: Response) => 
       });
     }
 
-    // Fetch grading system
-    const gradingSystem = req.user?.schoolId 
-      ? await gradingService.getGradingSystem(req.user.schoolId, 'SUMMATIVE') 
-      : null;
+    // Fetch appropriate grading system: Specific Scale ID -> School Default Summative
+    let gradingSystem;
+    if (test.scaleId) {
+      gradingSystem = await gradingService.getGradingSystemById(test.scaleId);
+    }
+
+    if (!gradingSystem && req.user?.schoolId) {
+      gradingSystem = await gradingService.getGradingSystem(req.user.schoolId, 'SUMMATIVE');
+    }
+
     const ranges = gradingSystem?.ranges;
 
     // Calculate percentage, grade, and status
@@ -891,7 +1031,9 @@ export const recordSummativeResult = async (req: AuthRequest, res: Response) => 
           status,
           remarks,
           teacherComment,
-          recordedBy
+          recordedBy,
+          schoolId: test.schoolId,
+          branchId: test.branchId
         },
         include: {
           learner: {
@@ -1060,6 +1202,131 @@ export const getTestResults = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch results',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Record Summative Results (Bulk)
+ * POST /api/assessments/summative/results/bulk
+ */
+export const recordSummativeResultsBulk = async (req: AuthRequest, res: Response) => {
+  try {
+    const { testId, results } = req.body; // results: [{ learnerId, marksObtained }]
+    const recordedBy = req.user?.userId;
+
+    if (!recordedBy) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    if (!testId || !Array.isArray(results) || results.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid payload' });
+    }
+
+    // Get test details
+    const test = await prisma.summativeTest.findUnique({ where: { id: testId } });
+    if (!test) return res.status(404).json({ success: false, message: 'Test not found' });
+
+    // Fetch appropriate grading system: Specific Scale ID -> School Default Summative
+    let gradingSystem;
+    if (test.scaleId) {
+      gradingSystem = await gradingService.getGradingSystemById(test.scaleId);
+    }
+
+    if (!gradingSystem && req.user?.schoolId) {
+      gradingSystem = await gradingService.getGradingSystem(req.user.schoolId, 'SUMMATIVE');
+    }
+
+    const ranges = gradingSystem?.ranges;
+
+    // Process all results in a transaction for data integrity
+    await prisma.$transaction(async (tx) => {
+      for (const item of results) {
+        // Skip invalid marks
+        if (item.marksObtained === undefined || item.marksObtained === null || item.marksObtained === '') continue;
+
+        const marks = Number(item.marksObtained);
+        // Calculate percentage, grade, and status
+        const percentage = (marks / test.totalMarks) * 100;
+        const { grade, status } = calculateGradeAndStatus(percentage, test.passMarks, ranges);
+
+        // Determine remarks if not provided
+        let remarks = item.remarks;
+        if (!remarks && ranges) {
+          // Using rating util roughly or find range
+          const matchedRange = ranges.find((r: any) => percentage >= r.minPercentage && percentage <= r.maxPercentage);
+          if (matchedRange) remarks = matchedRange.label;
+        }
+
+        // Upsert result
+        await tx.summativeResult.upsert({
+          where: {
+            testId_learnerId: {
+              testId,
+              learnerId: item.learnerId
+            }
+          },
+          update: {
+            marksObtained: marks,
+            percentage,
+            grade,
+            status,
+            recordedBy,
+            remarks,
+            teacherComment: item.teacherComment
+          },
+          create: {
+            testId,
+            learnerId: item.learnerId,
+            marksObtained: marks,
+            percentage,
+            grade,
+            status,
+            recordedBy,
+            schoolId: test.schoolId,
+            branchId: test.branchId,
+            remarks,
+            teacherComment: item.teacherComment
+          }
+        });
+      }
+    });
+
+    // Post-process: Update positions (Rankings)
+    // We do this outside the main transaction or as a separate step because it needs ALL results to be committed ideally,
+    // or just assume current transaction state.
+    // To ensure accuracy, we re-fetch all results for the test.
+    const allResults = await prisma.summativeResult.findMany({
+      where: { testId },
+      orderBy: { marksObtained: 'desc' },
+      select: { id: true }
+    });
+
+    // Update ranks in parallel
+    // Note: If list is huge, this might throttle DB, but for class size (50-100) it's fine.
+    const updatePromises = allResults.map((r, index) =>
+      prisma.summativeResult.update({
+        where: { id: r.id },
+        data: {
+          position: index + 1,
+          outOf: allResults.length
+        }
+      })
+    );
+
+    await Promise.all(updatePromises);
+
+    res.json({
+      success: true,
+      message: `Successfully recorded ${results.length} results`
+    });
+
+  } catch (error: any) {
+    console.error('Error bulk recording summative results:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to record results',
       error: error.message
     });
   }

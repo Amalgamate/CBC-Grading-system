@@ -20,6 +20,13 @@ export class ClassController {
     const { grade, stream, academicYear, term, active = 'true' } = req.query;
     
     const whereClause: any = {};
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.branchId) {
+      whereClause.branchId = req.user.branchId;
+    } else if (req.user?.schoolId) {
+      whereClause.branch = { schoolId: req.user.schoolId };
+    }
     
     if (grade) whereClause.grade = grade as Grade;
     if (stream) whereClause.stream = stream as any;
@@ -67,6 +74,9 @@ export class ClassController {
     const classData = await prisma.class.findUnique({
       where: { id },
       include: {
+        branch: {
+          select: { schoolId: true }
+        },
         teacher: {
           select: {
             id: true,
@@ -100,6 +110,16 @@ export class ClassController {
       throw new ApiError(404, 'Class not found');
     }
 
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId) {
+      if (classData.branch.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to class');
+      }
+      if (req.user.branchId && classData.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to class');
+      }
+    }
+
     res.json({
       success: true,
       data: classData,
@@ -123,8 +143,26 @@ export class ClassController {
       room,
     } = req.body;
 
-    if (!name || !grade || !branchId) {
-      throw new ApiError(400, 'Missing required fields: name, grade, branchId');
+    // Phase 5: Tenant Scoping
+    let finalBranchId = branchId;
+
+    if (req.user?.branchId) {
+      finalBranchId = req.user.branchId;
+    } else if (req.user?.schoolId) {
+      if (!branchId) throw new ApiError(400, 'branchId is required');
+      // Verify branch belongs to school
+      const branch = await prisma.branch.findUnique({ where: { id: branchId } });
+      if (!branch || branch.schoolId !== req.user.schoolId) {
+        throw new ApiError(400, 'Invalid branchId for this school');
+      }
+      finalBranchId = branchId;
+    } else {
+        // SUPER_ADMIN or no tenant context?
+        if (!finalBranchId) throw new ApiError(400, 'branchId is required');
+    }
+
+    if (!name || !grade) {
+      throw new ApiError(400, 'Missing required fields: name, grade');
     }
 
     // Check if teacher exists
@@ -133,6 +171,10 @@ export class ClassController {
       if (!teacher || teacher.role !== 'TEACHER') {
         throw new ApiError(400, 'Invalid teacher');
       }
+      // Phase 5: Check teacher tenant
+      if (req.user?.schoolId && teacher.schoolId !== req.user.schoolId) {
+         throw new ApiError(400, 'Teacher must belong to the same school');
+      }
     }
 
     const newClass = await prisma.class.create({
@@ -140,7 +182,7 @@ export class ClassController {
         name,
         grade: grade as Grade,
         stream: stream as any,
-        branchId,
+        branchId: finalBranchId,
         teacherId,
         academicYear,
         term: term as Term,
@@ -173,9 +215,23 @@ export class ClassController {
     const { id } = req.params;
     const { name, teacherId, capacity, room, active } = req.body;
 
-    const classData = await prisma.class.findUnique({ where: { id } });
+    const classData = await prisma.class.findUnique({ 
+      where: { id },
+      include: { branch: { select: { schoolId: true } } }
+    });
+
     if (!classData) {
       throw new ApiError(404, 'Class not found');
+    }
+
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId) {
+      if (classData.branch.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to class');
+      }
+      if (req.user.branchId && classData.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to class');
+      }
     }
 
     // Validate teacher if being assigned/changed
@@ -186,6 +242,11 @@ export class ClassController {
       
       if (!teacher) {
         throw new ApiError(404, 'Teacher not found');
+      }
+
+      // Phase 5: Teacher Tenant Check
+      if (req.user?.schoolId && teacher.schoolId !== req.user.schoolId) {
+         throw new ApiError(400, 'Teacher must belong to the same school');
       }
       
       if (teacher.role !== 'TEACHER' && teacher.role !== 'HEAD_TEACHER') {
@@ -244,15 +305,34 @@ export class ClassController {
     }
 
     // Check if class exists
-    const classData = await prisma.class.findUnique({ where: { id: classId } });
+    const classData = await prisma.class.findUnique({ 
+      where: { id: classId },
+      include: { branch: { select: { schoolId: true } } }
+    });
+
     if (!classData) {
       throw new ApiError(404, 'Class not found');
+    }
+
+    // Phase 5: Class Tenant Check
+    if (req.user?.schoolId) {
+      if (classData.branch.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to class');
+      }
+      if (req.user.branchId && classData.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to class');
+      }
     }
 
     // Check if learner exists
     const learner = await prisma.learner.findUnique({ where: { id: learnerId } });
     if (!learner) {
       throw new ApiError(404, 'Learner not found');
+    }
+
+    // Phase 5: Learner Tenant Check
+    if (req.user?.schoolId && learner.schoolId !== req.user.schoolId) {
+      throw new ApiError(403, 'Learner belongs to a different school');
     }
 
     // Check if already enrolled
@@ -310,10 +390,25 @@ export class ClassController {
           learnerId,
         },
       },
+      include: {
+        class: {
+          include: { branch: { select: { schoolId: true } } }
+        }
+      }
     });
 
     if (!enrollment) {
       throw new ApiError(404, 'Enrollment not found');
+    }
+
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId) {
+      if (enrollment.class.branch.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to class');
+      }
+      if (req.user.branchId && enrollment.class.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to class');
+      }
     }
 
     await prisma.classEnrollment.update({
@@ -350,6 +445,7 @@ export class ClassController {
                 email: true,
               },
             },
+            branch: { select: { schoolId: true } }
           },
         },
       },
@@ -357,6 +453,19 @@ export class ClassController {
         enrolledAt: 'desc',
       },
     });
+
+    if (enrollment) {
+        // Phase 5: Tenant Check
+        if (req.user?.schoolId) {
+            if (enrollment.class.branch.schoolId !== req.user.schoolId) {
+                 // If learner is in another school's class, don't show it? 
+                 // Or throw error? Since we are querying by learnerId, 
+                 // we should probably check learner first or just return null if not authorized.
+                 // But let's throw 403 for safety if we found it but it's wrong tenant.
+                 throw new ApiError(403, 'Unauthorized access to learner class information');
+            }
+        }
+    }
 
     res.json({
       success: true,
@@ -384,13 +493,25 @@ export class ClassController {
             id: true,
             firstName: true,
             lastName: true,
+            email: true,
           }
-        } 
+        },
+        branch: { select: { schoolId: true } }
       }
     });
     
     if (!classData) {
       throw new ApiError(404, 'Class not found');
+    }
+
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId) {
+      if (classData.branch.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to class');
+      }
+      if (req.user.branchId && classData.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to class');
+      }
     }
 
     // Validate teacher
@@ -400,6 +521,11 @@ export class ClassController {
     
     if (!teacher) {
       throw new ApiError(404, 'Teacher not found');
+    }
+
+    // Phase 5: Teacher Tenant Check
+    if (req.user?.schoolId && teacher.schoolId !== req.user.schoolId) {
+        throw new ApiError(400, 'Teacher must belong to the same school');
     }
     
     if (teacher.role !== 'TEACHER' && teacher.role !== 'HEAD_TEACHER') {

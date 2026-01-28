@@ -8,13 +8,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Upload, Download, FileDown, AlertCircle, CheckCircle, Loader, Building2, MapPin } from 'lucide-react';
 import { schoolAPI, API_BASE_URL } from '../../../../services/api';
 
-const BulkOperationsModal = ({ 
-  isOpen, 
-  onClose, 
+const BulkOperationsModal = ({
+  isOpen,
+  onClose,
   title,
   entityType, // 'learners', 'teachers', 'parents'
   onUploadComplete,
-  userRole // Pass user role to determine if SUPER_ADMIN
+  userRole // Pass user role if needed, though context is now header-based
 }) => {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -22,62 +22,10 @@ const BulkOperationsModal = ({
   const [uploadResult, setUploadResult] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
-  
-  // School/Branch Selection State
-  const [schools, setSchools] = useState([]);
-  const [selectedSchool, setSelectedSchool] = useState('');
-  const [selectedBranch, setSelectedBranch] = useState('');
-  const [loadingSchools, setLoadingSchools] = useState(false);
-
-  const isSuperAdmin = userRole === 'SUPER_ADMIN';
-  const needsBranch = entityType === 'learners'; // Only learners need branch
-
-  // Fetch schools when modal opens for SUPER_ADMIN
-  useEffect(() => {
-    if (isOpen && isSuperAdmin) {
-      fetchSchools();
-    }
-  }, [isOpen, isSuperAdmin]);
-
-  const fetchSchools = async () => {
-    setLoadingSchools(true);
-    try {
-      const result = await schoolAPI.getAll();
-      
-      // Handle different response formats
-      // API returns {data: [...], count: n} format
-      const schoolsArray = Array.isArray(result) ? result : (result.data || result.schools || []);
-      setSchools(schoolsArray);
-      
-      // Auto-select if only one school
-      if (schoolsArray.length === 1) {
-        setSelectedSchool(schoolsArray[0].id);
-        // Auto-select if only one branch
-        if (schoolsArray[0].branches?.length === 1) {
-          setSelectedBranch(schoolsArray[0].branches[0].id);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching schools:', error);
-      setSchools([]); // Set empty array on error
-    } finally {
-      setLoadingSchools(false);
-    }
-  };
 
   if (!isOpen) return null;
 
-  const selectedSchoolData = Array.isArray(schools) ? schools.find(s => s.id === selectedSchool) : null;
-  const availableBranches = selectedSchoolData?.branches || [];
-
-  const canUpload = () => {
-    if (!file) return false;
-    if (isSuperAdmin) {
-      if (!selectedSchool) return false;
-      if (needsBranch && !selectedBranch) return false;
-    }
-    return true;
-  };
+  const canUpload = () => !!file;
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -93,7 +41,7 @@ const BulkOperationsModal = ({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
       if (droppedFile.type === 'text/csv' || droppedFile.name.endsWith('.csv')) {
@@ -126,19 +74,26 @@ const BulkOperationsModal = ({
     try {
       const formData = new FormData();
       formData.append('file', file);
+
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
       
-      // Add school and branch for SUPER_ADMIN
-      if (isSuperAdmin) {
-        formData.append('schoolId', selectedSchool);
-        if (needsBranch && selectedBranch) {
-          formData.append('branchId', selectedBranch);
-        }
+      if (!token) {
+        setUploadResult({
+          success: false,
+          error: 'Authentication required. Please log in again.'
+        });
+        setUploading(false);
+        return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/bulk/${entityType}/upload`, {
+      // Backend handles schoolId/branchId via token/headers
+      const response = await fetch(`${API_BASE_URL}/bulk/${entityType}/upload`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${token}`,
+          'X-School-Id': localStorage.getItem('currentSchoolId') || '',
+          'X-Branch-Id': localStorage.getItem('currentBranchId') || ''
         },
         body: formData
       });
@@ -169,9 +124,16 @@ const BulkOperationsModal = ({
 
   const downloadTemplate = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/bulk/${entityType}/template`, {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        alert('Authentication required. Please log in again.');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/bulk/${entityType}/template`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${token}`
         }
       });
 
@@ -192,20 +154,21 @@ const BulkOperationsModal = ({
   const handleExport = async () => {
     setExporting(true);
     try {
-      let url = `http://localhost:5000/api/bulk/${entityType}/export`;
+      const token = localStorage.getItem('token');
       
-      // Add query params for SUPER_ADMIN
-      if (isSuperAdmin && selectedSchool) {
-        const params = new URLSearchParams({ schoolId: selectedSchool });
-        if (needsBranch && selectedBranch) {
-          params.append('branchId', selectedBranch);
-        }
-        url += `?${params.toString()}`;
+      if (!token) {
+        alert('Authentication required. Please log in again.');
+        setExporting(false);
+        return;
       }
-      
+
+      let url = `${API_BASE_URL}/bulk/${entityType}/export`;
+
       const response = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${token}`,
+          'X-School-Id': localStorage.getItem('currentSchoolId') || '',
+          'X-Branch-Id': localStorage.getItem('currentBranchId') || ''
         }
       });
 
@@ -248,79 +211,6 @@ const BulkOperationsModal = ({
         </div>
 
         <div className="p-6">
-          {/* School/Branch Selector for SUPER_ADMIN */}
-          {isSuperAdmin && (
-            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-center gap-2 mb-3">
-                <Building2 size={20} className="text-yellow-700" />
-                <h3 className="font-semibold text-yellow-900">Select Target Location</h3>
-              </div>
-              
-              {loadingSchools ? (
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Loader size={16} className="animate-spin" />
-                  <span>Loading schools...</span>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {/* School Selector */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      School <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={selectedSchool}
-                      onChange={(e) => {
-                        setSelectedSchool(e.target.value);
-                        setSelectedBranch(''); // Reset branch when school changes
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">-- Select School --</option>
-                      {schools.map(school => (
-                        <option key={school.id} value={school.id}>
-                          {school.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Branch Selector - Only for learners */}
-                  {needsBranch && selectedSchool && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                        <MapPin size={14} />
-                        Branch <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={selectedBranch}
-                        onChange={(e) => setSelectedBranch(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="">-- Select Branch --</option>
-                        {availableBranches.map(branch => (
-                          <option key={branch.id} value={branch.id}>
-                            {branch.name} ({branch.code})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Selection Summary */}
-                  {selectedSchool && (
-                    <div className="text-sm text-gray-600 bg-white p-2 rounded border border-gray-200">
-                      <strong>Selected:</strong> {selectedSchoolData?.name}
-                      {needsBranch && selectedBranch && (
-                        <> → {availableBranches.find(b => b.id === selectedBranch)?.name}</>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Quick Actions */}
           <div className="grid grid-cols-2 gap-4 mb-6">
             <button
@@ -333,7 +223,7 @@ const BulkOperationsModal = ({
 
             <button
               onClick={handleExport}
-              disabled={exporting || (isSuperAdmin && !selectedSchool)}
+              disabled={exporting}
               className="flex items-center justify-center gap-2 p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {exporting ? (
@@ -350,16 +240,6 @@ const BulkOperationsModal = ({
             </button>
           </div>
 
-          {/* Warning if school not selected */}
-          {isSuperAdmin && !selectedSchool && (
-            <div className="mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg flex items-start gap-2">
-              <AlertCircle size={20} className="text-yellow-700 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-yellow-800">
-                <strong>Please select a school{needsBranch ? ' and branch' : ''}</strong> before uploading or exporting data.
-              </p>
-            </div>
-          )}
-
           {/* Upload Section */}
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -373,11 +253,10 @@ const BulkOperationsModal = ({
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition ${
-                dragActive 
-                  ? 'border-blue-500 bg-blue-50' 
-                  : 'border-gray-300 hover:border-blue-400'
-              } ${!canUpload() && file ? 'opacity-50' : ''}`}
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition ${dragActive
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-300 hover:border-blue-400'
+                } ${!canUpload() && file ? 'opacity-50' : ''}`}
             >
               {file ? (
                 <div className="space-y-3">
@@ -393,7 +272,6 @@ const BulkOperationsModal = ({
                       onClick={handleUpload}
                       disabled={!canUpload() || uploading}
                       className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-                      title={!canUpload() && isSuperAdmin ? 'Please select school and branch first' : ''}
                     >
                       {uploading ? (
                         <>
@@ -444,11 +322,10 @@ const BulkOperationsModal = ({
 
             {/* Upload Results */}
             {uploadResult && (
-              <div className={`mt-6 p-4 rounded-lg border-2 ${
-                uploadResult.success 
-                  ? 'bg-green-50 border-green-300' 
-                  : 'bg-red-50 border-red-300'
-              }`}>
+              <div className={`mt-6 p-4 rounded-lg border-2 ${uploadResult.success
+                ? 'bg-green-50 border-green-300'
+                : 'bg-red-50 border-red-300'
+                }`}>
                 <div className="flex items-start gap-3">
                   {uploadResult.success ? (
                     <CheckCircle size={24} className="text-green-600 flex-shrink-0 mt-1" />
@@ -459,7 +336,7 @@ const BulkOperationsModal = ({
                     <h4 className="font-bold text-lg mb-2">
                       {uploadResult.success ? 'Upload Complete!' : 'Upload Failed'}
                     </h4>
-                    
+
                     {uploadResult.success && uploadResult.summary && (
                       <div className="space-y-2">
                         <div className="grid grid-cols-4 gap-4 text-sm">
@@ -499,8 +376,8 @@ const BulkOperationsModal = ({
                                 <div key={idx} className="text-sm py-1 border-b last:border-b-0">
                                   <span className="text-gray-500">Line {err.line}:</span>
                                   <span className="ml-2 text-orange-600">
-                                    {typeof err.error === 'string' 
-                                      ? err.error 
+                                    {typeof err.error === 'string'
+                                      ? err.error
                                       : Array.isArray(err.error)
                                         ? err.error.map(e => e.message || 'Validation error').join(', ')
                                         : 'Validation error'
@@ -516,8 +393,8 @@ const BulkOperationsModal = ({
 
                     {uploadResult.error && (
                       <p className="text-red-600">
-                        {typeof uploadResult.error === 'string' 
-                          ? uploadResult.error 
+                        {typeof uploadResult.error === 'string'
+                          ? uploadResult.error
                           : uploadResult.error?.message || 'An error occurred during upload'
                         }
                       </p>
@@ -532,7 +409,6 @@ const BulkOperationsModal = ({
           <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-200">
             <h4 className="font-semibold text-blue-900 mb-2">📋 Instructions</h4>
             <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-              {isSuperAdmin && <li className="font-semibold text-yellow-700">Select the target school{needsBranch ? ' and branch' : ''} first</li>}
               <li>Download the CSV template to see the required format</li>
               <li>Fill in your data following the template structure</li>
               <li>Save the file and upload it using the drag-and-drop zone</li>

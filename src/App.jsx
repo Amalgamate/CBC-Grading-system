@@ -3,9 +3,21 @@ import { useAuth } from './hooks/useAuth';
 import Auth from './pages/Auth';
 // Import the refactored version
 import CBCGradingSystem from './components/CBCGrading/CBCGradingSystem';
+import EDucoreLanding from './components/EDucore/EDucoreLanding2';
+import Registration from './components/EDucore/RegistrationFull';
+import SuperAdminDashboard from './components/EDucore/SuperAdminDashboard';
 
 export default function App() {
   const { isAuthenticated, user, login, logout } = useAuth();
+  const [entryView, setEntryView] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const v = params.get('view');
+      return v || 'landing';
+    } catch {
+      return 'landing';
+    }
+  });
   
   // Load branding settings from localStorage
   const [brandingSettings, setBrandingSettings] = useState(() => {
@@ -22,11 +34,11 @@ export default function App() {
       logoUrl: savedLogo || '/logo-zawadi.png',
       faviconUrl: savedFavicon || '/favicon.png',
       brandColor: savedBrandColor || '#1e3a8a',
-      welcomeTitle: savedWelcomeTitle || 'Welcome to Zawadi JRN Academy',
-      welcomeMessage: savedWelcomeMessage || 'Empowering education through innovative learning management.',
-      onboardingTitle: savedOnboardingTitle || 'Join Our Community',
-      onboardingMessage: savedOnboardingMessage || 'Start your journey with us today. Create an account to access powerful tools for managing learning and assessment with ease.',
-      schoolName: savedSchoolName || 'Zawadi JRN'
+      welcomeTitle: savedWelcomeTitle || 'Welcome to EDucore V1',
+      welcomeMessage: savedWelcomeMessage || 'Unified education management for schools and institutions.',
+      onboardingTitle: savedOnboardingTitle || 'Create Your EDucore Account',
+      onboardingMessage: savedOnboardingMessage || 'Sign up to access powerful tools for managing learning and assessment.',
+      schoolName: savedSchoolName || 'EDucore'
     };
   });
 
@@ -70,11 +82,29 @@ export default function App() {
     setFavicon(brandingSettings.faviconUrl);
   }, [brandingSettings.faviconUrl]);
 
+  useEffect(() => {
+    let title = 'EDucore V1';
+    if (!isAuthenticated) {
+      if (entryView === 'landing') title = 'EDucore V1 — Home';
+      else if (entryView === 'get-started') title = 'EDucore V1 — Get Started';
+      else if (entryView === 'auth') title = 'EDucore V1 — Login';
+    } else {
+      if (entryView === 'superadmin') title = 'EDucore V1 — Super Admin';
+      else title = `${(user && (user.school?.name || user.schoolName)) || brandingSettings.schoolName || 'EDucore V1'} — Dashboard`;
+    }
+    document.title = title;
+  }, [isAuthenticated, entryView, user, brandingSettings.schoolName]);
+
   const handleAuthSuccess = (userData) => {
     // userData should contain: { email, name, role, id, firstName, lastName }
     // Token is already stored in localStorage by LoginForm
     const token = localStorage.getItem('token') || localStorage.getItem('authToken') || 'temp-token';
     login(userData, token);
+    if (userData?.role === 'SUPER_ADMIN') {
+      setEntryView('superadmin');
+    } else {
+      setEntryView('app');
+    }
   };
 
   const handleLogout = () => {
@@ -82,15 +112,45 @@ export default function App() {
   };
 
   if (!isAuthenticated) {
+    if (entryView === 'landing') {
+      return (
+        <EDucoreLanding
+          onLoginClick={() => setEntryView('auth')}
+          onGetStartedClick={() => setEntryView('get-started')}
+          isAuthenticated={false}
+          onOpenAppClick={() => setEntryView('app')}
+        />
+      );
+    }
+    if (entryView === 'get-started') {
+      return <Registration />;
+    }
     return <Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} />;
   }
 
   return (
-    <CBCGradingSystem 
-      user={user} 
-      onLogout={handleLogout} 
-      brandingSettings={brandingSettings} 
-      setBrandingSettings={setBrandingSettings} 
-    />
+    entryView === 'landing' ? (
+      <EDucoreLanding
+        onLoginClick={() => setEntryView('auth')}
+        onGetStartedClick={() => setEntryView('get-started')}
+        isAuthenticated={true}
+        onOpenAppClick={() => setEntryView('app')}
+      />
+    ) : (
+      entryView === 'get-started' ? (
+        <Registration />
+      ) : (
+        entryView === 'superadmin' ? (
+          <SuperAdminDashboard onLogout={handleLogout} />
+        ) : (
+          <CBCGradingSystem 
+            user={user} 
+            onLogout={handleLogout} 
+            brandingSettings={brandingSettings} 
+            setBrandingSettings={setBrandingSettings} 
+          />
+        )
+      )
+    )
   );
 }

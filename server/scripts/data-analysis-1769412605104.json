@@ -1,0 +1,120 @@
+{
+  "timestamp": "2026-01-26T07:30:05.102Z",
+  "database": "zawadi_db?schema=public",
+  "summary": {
+    "totalSchools": 3,
+    "totalBranches": 1,
+    "totalUsers": 244,
+    "totalLearners": 328,
+    "totalClasses": 0,
+    "totalAssessments": 11
+  },
+  "tableCounts": [
+    {
+      "table": "schools",
+      "count": 3,
+      "hasSchoolId": false,
+      "hasBranchId": false
+    },
+    {
+      "table": "branches",
+      "count": 1,
+      "hasSchoolId": true,
+      "hasBranchId": false
+    },
+    {
+      "table": "users",
+      "count": 244,
+      "hasSchoolId": true,
+      "hasBranchId": true
+    },
+    {
+      "table": "learners",
+      "count": 328,
+      "hasSchoolId": true,
+      "hasBranchId": true
+    },
+    {
+      "table": "classes",
+      "count": 0,
+      "hasSchoolId": false,
+      "hasBranchId": true
+    },
+    {
+      "table": "formative_assessments",
+      "count": 3,
+      "hasSchoolId": false,
+      "hasBranchId": false
+    },
+    {
+      "table": "summative_tests",
+      "count": 3,
+      "hasSchoolId": false,
+      "hasBranchId": false
+    },
+    {
+      "table": "summative_results",
+      "count": 5,
+      "hasSchoolId": false,
+      "hasBranchId": false
+    },
+    {
+      "table": "attendances",
+      "count": 0,
+      "hasSchoolId": false,
+      "hasBranchId": false
+    },
+    {
+      "table": "stream_configs",
+      "count": 2,
+      "hasSchoolId": true,
+      "hasBranchId": false
+    }
+  ],
+  "orphanedData": [
+    {
+      "table": "users",
+      "issue": "Non-admin users without school assignment",
+      "count": 8,
+      "examples": [
+        {
+          "id": "24f257bb-d7d5-41e8-bbb0-ac6dcfe6c9d7",
+          "email": "receptionist@local.test",
+          "role": "RECEPTIONIST"
+        },
+        {
+          "id": "2a9277ea-bb05-4f1f-96db-7fbb87582989",
+          "email": "admin@local.test",
+          "role": "ADMIN"
+        },
+        {
+          "id": "40609c65-95c8-4ac0-b274-b786f2100336",
+          "email": "accountant@local.test",
+          "role": "ACCOUNTANT"
+        },
+        {
+          "id": "91476845-8b4d-444a-bc82-2eed1f24a8f6",
+          "email": "john.doe@example.com",
+          "role": "ADMIN"
+        },
+        {
+          "id": "98c60cac-6060-46c4-bc27-773e25cf293d",
+          "email": "info@amalgamate.co.ke",
+          "role": "ADMIN"
+        }
+      ]
+    }
+  ],
+  "tenantIntegrity": {
+    "formativeAssessmentsWithoutSchool": 0,
+    "summativeTestsWithoutSchool": 1,
+    "summativeResultsWithoutSchool": 0,
+    "classesWithoutBranch": 0,
+    "learnersWithoutSchool": 0
+  },
+  "recommendations": [
+    "⚠️  Fix orphaned data before proceeding with Phase 2 migration",
+    "⚠️  Some summative tests have invalid creator references - clean up before migration",
+    "⚠️  8 non-admin users are not assigned to schools - assign them before migration"
+  ]
+}

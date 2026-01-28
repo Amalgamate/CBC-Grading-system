@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, CheckCircle, Building2, ChevronRight, ChevronLeft } from 'lucide-react';
+import { API_BASE_URL } from '../../services/api';
 
 export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brandingSettings }) {
   const [currentStep, setCurrentStep] = useState(1);
@@ -77,7 +78,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
   const getPasswordStrength = (password) => {
     if (!password) return { strength: 0, label: '', color: '' };
-    
+
     let strength = 0;
     if (password.length >= 8) strength++;
     if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
@@ -104,7 +105,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
         newErrors.email = 'Please enter a valid email';
       }
-      
+
       // Validate phone number
       const selectedCountry = africanCountries.find(c => c.code === countryCode);
       if (!phoneNumber.trim()) {
@@ -160,14 +161,14 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateStep(currentStep)) return;
-    
+
     setIsLoading(true);
-    
+
     try {
       console.log('📤 Sending registration request...');
-      
+
       const requestBody = {
         firstName: formData.fullName.split(' ')[0],
         lastName: formData.fullName.split(' ').slice(1).join(' ') || formData.fullName.split(' ')[0],
@@ -176,11 +177,11 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
         phone: formData.phone,
         role: formData.role.toUpperCase()
       };
-      
+
       console.log('📋 Request data:', requestBody);
-      
+
       // Call backend API for registration
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -189,20 +190,20 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
       });
 
       console.log('📥 Response status:', response.status);
-      
+
       const data = await response.json();
       console.log('📦 Response data:', data);
 
       if (response.ok) {
         console.log('✅ Registration successful!');
-        
+
         // Show success toast
         const toast = document.createElement('div');
         toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in';
         toast.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span>Registration successful! Redirecting...</span>';
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
-        
+
         // Redirect to verification
         setTimeout(() => {
           onRegisterSuccess({
@@ -214,14 +215,14 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
         }, 1000);
       } else {
         console.error('❌ Registration failed:', data.message);
-        
+
         // Show error toast
         const toast = document.createElement('div');
         toast.className = 'fixed top-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in';
         toast.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg><span>${data.message || 'Registration failed'}</span>`;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 5000);
-        
+
         setErrors({
           email: data.message || 'Registration failed. Please try again.'
         });
@@ -229,14 +230,14 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
       }
     } catch (error) {
       console.error('💥 Registration error:', error);
-      
+
       // Show error toast
       const toast = document.createElement('div');
       toast.className = 'fixed top-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in';
       toast.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg><span>Unable to connect to server. Please check your connection.</span>';
       document.body.appendChild(toast);
       setTimeout(() => toast.remove(), 5000);
-      
+
       setErrors({
         email: 'Unable to connect to server. Please try again.'
       });
@@ -267,7 +268,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -277,7 +278,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
   // Get step titles
   const getStepTitle = () => {
-    switch(currentStep) {
+    switch (currentStep) {
       case 1: return 'Personal Information';
       case 2: return 'Account Security';
       case 3: return 'School Details';
@@ -286,7 +287,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
   };
 
   const getStepSubtitle = () => {
-    switch(currentStep) {
+    switch (currentStep) {
       case 1: return 'Let\'s start with your basic information';
       case 2: return 'Secure your account with a strong password';
       case 3: return 'Tell us about your school';
@@ -298,9 +299,9 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
     <div className="w-full h-screen overflow-hidden">
       {/* Two Column Layout - Full Screen */}
       <div className="bg-white h-full flex flex-col lg:flex-row">
-        
+
         {/* Left Column - Branding Area */}
-        <div 
+        <div
           className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative overflow-hidden"
           style={{ backgroundColor: brandingSettings?.brandColor || '#1e3a8a' }}
         >
@@ -316,9 +317,9 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
             <div className="max-w-md text-center space-y-8">
               {/* Logo */}
               <div className="mb-12">
-                <img 
-                  src={brandingSettings?.logoUrl || '/logo-zawadi.png'} 
-                  alt="School Logo" 
+                <img
+                  src={brandingSettings?.logoUrl || '/logo-zawadi.png'}
+                  alt="School Logo"
                   className="w-48 h-48 object-contain mx-auto drop-shadow-2xl"
                   onError={(e) => {
                     e.target.onerror = null;
@@ -326,7 +327,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                   }}
                 />
               </div>
-              
+
               {/* Onboarding Message */}
               <div className="space-y-6">
                 <h2 className="text-4xl font-bold drop-shadow-md">
@@ -347,7 +348,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                       <p className="text-blue-100 text-sm">Track formative and summative assessments effortlessly</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start gap-3 text-left">
                     <div className="flex-shrink-0 w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mt-0.5">
                       <CheckCircle size={18} />
@@ -357,7 +358,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                       <p className="text-blue-100 text-sm">Generate comprehensive reports with just a few clicks</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start gap-3 text-left">
                     <div className="flex-shrink-0 w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mt-0.5">
                       <CheckCircle size={18} />
@@ -395,24 +396,21 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                 {[1, 2, 3].map((step, index) => (
                   <React.Fragment key={step}>
                     <div className="flex flex-col items-center">
-                      <div className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold transition ${
-                        step < currentStep ? 'bg-green-500 text-white' :
+                      <div className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold transition ${step < currentStep ? 'bg-green-500 text-white' :
                         step === currentStep ? 'bg-blue-600 text-white' :
-                        'bg-gray-200 text-gray-500'
-                      }`}>
+                          'bg-gray-200 text-gray-500'
+                        }`}>
                         {step < currentStep ? <CheckCircle size={20} /> : step}
                       </div>
-                      <span className={`text-xs mt-2 ${
-                        step === currentStep ? 'font-semibold text-blue-600' : 'text-gray-600'
-                      }`}>
+                      <span className={`text-xs mt-2 ${step === currentStep ? 'font-semibold text-blue-600' : 'text-gray-600'
+                        }`}>
                         {step === 1 ? 'Personal' : step === 2 ? 'Security' : 'School'}
                       </span>
                     </div>
                     {index < 2 && (
                       <div className="flex-1 flex items-center" style={{ marginTop: '20px' }}>
-                        <div className={`w-full h-1 transition ${
-                          step < currentStep ? 'bg-green-500' : 'bg-gray-200'
-                        }`} />
+                        <div className={`w-full h-1 transition ${step < currentStep ? 'bg-green-500' : 'bg-gray-200'
+                          }`} />
                       </div>
                     )}
                   </React.Fragment>
@@ -437,9 +435,8 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="fullName"
                         value={formData.fullName}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                          errors.fullName ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.fullName ? 'border-red-500' : 'border-gray-300'
+                          }`}
                         placeholder="John Doe"
                       />
                     </div>
@@ -464,9 +461,8 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                          errors.email ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.email ? 'border-red-500' : 'border-gray-300'
+                          }`}
                         placeholder="you@example.com"
                       />
                     </div>
@@ -510,9 +506,8 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                           type="tel"
                           value={phoneNumber}
                           onChange={handlePhoneChange}
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                            errors.phone ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.phone ? 'border-red-500' : 'border-gray-300'
+                            }`}
                           placeholder="712345678"
                           maxLength={africanCountries.find(c => c.code === countryCode)?.length || 10}
                         />
@@ -544,9 +539,8 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="username"
                         value={formData.username}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                          errors.username ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.username ? 'border-red-500' : 'border-gray-300'
+                          }`}
                         placeholder="johndoe"
                       />
                     </div>
@@ -571,9 +565,8 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                          errors.password ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.password ? 'border-red-500' : 'border-gray-300'
+                          }`}
                         placeholder="Enter a strong password"
                       />
                       <button
@@ -588,12 +581,11 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                       <div className="mt-2">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs text-gray-600">Password strength:</span>
-                          <span className={`text-xs font-semibold ${
-                            passwordStrength.strength === 4 ? 'text-green-600' :
+                          <span className={`text-xs font-semibold ${passwordStrength.strength === 4 ? 'text-green-600' :
                             passwordStrength.strength === 3 ? 'text-blue-600' :
-                            passwordStrength.strength === 2 ? 'text-yellow-600' :
-                            'text-red-600'
-                          }`}>
+                              passwordStrength.strength === 2 ? 'text-yellow-600' :
+                                'text-red-600'
+                            }`}>
                             {passwordStrength.label}
                           </span>
                         </div>
@@ -626,9 +618,8 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                          errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                          }`}
                         placeholder="Re-enter your password"
                       />
                       <button
@@ -665,9 +656,8 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="schoolName"
                         value={formData.schoolName}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                          errors.schoolName ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.schoolName ? 'border-red-500' : 'border-gray-300'
+                          }`}
                         placeholder="Zawadi JRN Academy"
                       />
                     </div>
@@ -738,14 +728,13 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                     Back
                   </button>
                 )}
-                
+
                 {currentStep < totalSteps ? (
                   <button
                     type="button"
                     onClick={handleNext}
-                    className={`flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 focus:ring-4 focus:ring-blue-300 transition-all shadow-lg ${
-                      currentStep === 1 ? 'flex-1' : 'flex-1'
-                    }`}
+                    className={`flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 focus:ring-4 focus:ring-blue-300 transition-all shadow-lg ${currentStep === 1 ? 'flex-1' : 'flex-1'
+                      }`}
                   >
                     Next
                     <ChevronRight size={20} />

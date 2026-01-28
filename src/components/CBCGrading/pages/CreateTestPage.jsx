@@ -9,7 +9,8 @@ const CreateTestPage = ({ onSave, onCancel, initialData, availableGrades }) => {
     month: new Date().toLocaleString('default', { month: 'long' }),
     grade: '',
     term: 'Term 1',
-    learningArea: '',
+    subject: '',
+    performanceScale: '',
     year: new Date().getFullYear().toString(),
     date: new Date().toISOString().split('T')[0],
     duration: 60,
@@ -26,15 +27,15 @@ const CreateTestPage = ({ onSave, onCancel, initialData, availableGrades }) => {
     const fetchScales = async () => {
       try {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
-        let schoolId = user?.school?.id || user?.schoolId || localStorage.getItem('schoolId');
-        
+        let schoolId = user?.school?.id || user?.schoolId || localStorage.getItem('currentSchoolId');
+
         // Fallback to default school if no schoolId found
         if (!schoolId) {
           schoolId = 'default-school-e082e9a4';
         }
-        
+
         console.log('🏫 Fetching scales for schoolId:', schoolId);
-        
+
         const systems = await gradingAPI.getSystems(schoolId);
         const relevantScales = systems ? systems.filter(s => s.type === 'SUMMATIVE') : [];
         setScales(relevantScales.length > 0 ? relevantScales : systems || []);
@@ -57,20 +58,20 @@ const CreateTestPage = ({ onSave, onCancel, initialData, availableGrades }) => {
     const getScaleGrade = (scale) => {
       // First try the grade field
       if (scale.grade) return scale.grade;
-      
+
       // Then try to extract from name (e.g., "PLAYGROUP - MATH" -> "PLAYGROUP")
       const nameParts = scale.name.split(' - ');
       if (nameParts.length > 1) {
         const possibleGrade = nameParts[0].trim();
         // Check if it looks like a grade
-        if (possibleGrade.includes('GRADE') || 
-            possibleGrade.includes('PLAYGROUP') || 
-            possibleGrade.includes('PP') ||
-            possibleGrade.includes('PRE-PRIMARY')) {
+        if (possibleGrade.includes('GRADE') ||
+          possibleGrade.includes('PLAYGROUP') ||
+          possibleGrade.includes('PP') ||
+          possibleGrade.includes('PRE-PRIMARY')) {
           return possibleGrade;
         }
       }
-      
+
       // Default category for scales without a clear grade
       return 'General Scales';
     };
@@ -90,7 +91,7 @@ const CreateTestPage = ({ onSave, onCancel, initialData, availableGrades }) => {
     // we rely on the render order. The render uses Object.entries().
     // We can't easily force order in a plain object, but we can return the object as is.
     // The key change here is REMOVING the filtering that hid other grades' scales.
-    
+
     return grouped;
   }, [formData.grade, scales]);
 
@@ -100,22 +101,23 @@ const CreateTestPage = ({ onSave, onCancel, initialData, availableGrades }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     console.log('=== SUBMITTING TEST FORM ===');
     console.log('Form Data:', formData);
-    
+
     // Validation
-    if (!formData.title || !formData.grade || !formData.learningArea) {
+    if (!formData.title || !formData.grade || !formData.performanceScale || !formData.subject) {
       console.log('Validation failed:');
       console.log('- Title:', formData.title);
       console.log('- Grade:', formData.grade);
-      console.log('- Learning Area:', formData.learningArea);
-      alert('Please fill in all required fields (Test Name, Grade, Performance Level Scale)');
-      return; 
+      console.log('- Subject:', formData.subject);
+      console.log('- Scale:', formData.performanceScale);
+      alert('Please fill in all required fields (Test Name, Grade, Subject, Performance Level Scale)');
+      return;
     }
-    
+
     console.log('Validation passed, calling onSave...');
-    
+
     try {
       await onSave(formData);
       console.log('✅ Save successful!');
@@ -130,7 +132,7 @@ const CreateTestPage = ({ onSave, onCancel, initialData, availableGrades }) => {
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={onCancel}
             className="p-2 hover:bg-gray-200 rounded-full text-gray-600 transition-colors"
           >
@@ -145,11 +147,11 @@ const CreateTestPage = ({ onSave, onCancel, initialData, availableGrades }) => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Card Header */}
           <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
-             <h2 className="text-sm font-semibold text-gray-600">Test Details</h2>
+            <h2 className="text-sm font-semibold text-gray-600">Test Details</h2>
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            
+
             {/* Test Name */}
             <div className="space-y-1">
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -167,7 +169,7 @@ const CreateTestPage = ({ onSave, onCancel, initialData, availableGrades }) => {
 
             {/* Grid Layout for other fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              
+
               {/* Type */}
               <div className="space-y-1">
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -179,10 +181,12 @@ const CreateTestPage = ({ onSave, onCancel, initialData, availableGrades }) => {
                     onChange={(e) => handleChange('testType', e.target.value)}
                     className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-semibold text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all appearance-none cursor-pointer"
                   >
-                    <option value="Monthly Test">Monthly Test</option>
-                    <option value="Tunner-Up">Tunner-Up</option>
+                    <option value="Opener">Opener</option>
                     <option value="Midterm">Midterm</option>
-                    <option value="End of the Term">End of the Term</option>
+                    <option value="End Term">End Term</option>
+                    <option value="Monthly">Monthly</option>
+                    <option value="Weekly">Weekly</option>
+                    <option value="Random">Random</option>
                   </select>
                   <div className="absolute right-3 top-3 pointer-events-none text-gray-400">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -203,7 +207,7 @@ const CreateTestPage = ({ onSave, onCancel, initialData, availableGrades }) => {
                         const newMonth = e.target.value;
                         const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
                         const monthIndex = months.indexOf(newMonth);
-                        
+
                         setFormData(prev => {
                           const updates = { month: newMonth };
                           if (monthIndex >= 0) {
@@ -243,7 +247,7 @@ const CreateTestPage = ({ onSave, onCancel, initialData, availableGrades }) => {
                       <option key={g} value={g}>{g}</option>
                     ))}
                   </select>
-                   <div className="absolute right-3 top-3 pointer-events-none text-gray-400">
+                  <div className="absolute right-3 top-3 pointer-events-none text-gray-400">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                   </div>
                 </div>
@@ -264,22 +268,49 @@ const CreateTestPage = ({ onSave, onCancel, initialData, availableGrades }) => {
                     <option value="Term 2">Term 2</option>
                     <option value="Term 3">Term 3</option>
                   </select>
-                   <div className="absolute right-3 top-3 pointer-events-none text-gray-400">
+                  <div className="absolute right-3 top-3 pointer-events-none text-gray-400">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* Subject / Learning Area */}
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
+                Learning Area (Subject)<span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.subject}
+                  onChange={(e) => handleChange('subject', e.target.value)}
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-semibold text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all appearance-none cursor-pointer"
+                  required
+                >
+                  <option value="">Select Learning Area</option>
+                  <option value="Mathematics Activities">Mathematics Activities</option>
+                  <option value="English Activities">English Activities</option>
+                  <option value="Kiswahili Activities">Kiswahili Activities</option>
+                  <option value="Environmental Activities">Environmental Activities</option>
+                  <option value="Religious Education">Religious Education</option>
+                  <option value="Creative Arts">Creative Arts</option>
+                  <option value="Physical Education">Physical Education</option>
+                </select>
+                <div className="absolute right-3 top-3 pointer-events-none text-gray-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+              </div>
+            </div>
+
             {/* Performance Level Scale - Full Width */}
             <div className="space-y-1 pt-2">
-               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
                 Performance Level Scale
               </label>
               <div className="relative">
                 <select
-                  value={formData.learningArea}
-                  onChange={(e) => handleChange('learningArea', e.target.value)}
+                  value={formData.performanceScale}
+                  onChange={(e) => handleChange('performanceScale', e.target.value)}
                   className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-semibold text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all appearance-none cursor-pointer"
                   required
                 >
@@ -287,20 +318,20 @@ const CreateTestPage = ({ onSave, onCancel, initialData, availableGrades }) => {
                   {Object.keys(filteredAndGroupedScales).length > 0 ? (
                     Object.entries(filteredAndGroupedScales)
                       .sort(([gradeA], [gradeB]) => {
-                         // Prioritize the selected grade group
-                         if (formData.grade) {
-                           const normSelected = formData.grade.toUpperCase().replace(/[\s-]/g, '');
-                           const normA = gradeA.toUpperCase().replace(/[\s-]/g, '');
-                           const normB = gradeB.toUpperCase().replace(/[\s-]/g, '');
-                           
-                           if (normA === normSelected) return -1;
-                           if (normB === normSelected) return 1;
-                           
-                           // Also try partial match
-                           if (normA.includes(normSelected)) return -1;
-                           if (normB.includes(normSelected)) return 1;
-                         }
-                         return gradeA.localeCompare(gradeB);
+                        // Prioritize the selected grade group
+                        if (formData.grade) {
+                          const normSelected = formData.grade.toUpperCase().replace(/[\s-]/g, '');
+                          const normA = gradeA.toUpperCase().replace(/[\s-]/g, '');
+                          const normB = gradeB.toUpperCase().replace(/[\s-]/g, '');
+
+                          if (normA === normSelected) return -1;
+                          if (normB === normSelected) return 1;
+
+                          // Also try partial match
+                          if (normA.includes(normSelected)) return -1;
+                          if (normB.includes(normSelected)) return 1;
+                        }
+                        return gradeA.localeCompare(gradeB);
                       })
                       .map(([grade, gradeScales]) => (
                         <optgroup key={grade} label={grade}>
@@ -313,7 +344,7 @@ const CreateTestPage = ({ onSave, onCancel, initialData, availableGrades }) => {
                     <option disabled>No scales available for this grade</option>
                   )}
                 </select>
-                 <div className="absolute right-3 top-3 pointer-events-none text-gray-400">
+                <div className="absolute right-3 top-3 pointer-events-none text-gray-400">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                 </div>
               </div>

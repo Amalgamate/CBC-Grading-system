@@ -76,3 +76,6 @@ backup_removed/
 
 # Misc local temp
 temp_login.json
+#
+# PROTECTED SNAPSHOTS (do not remove during cleanup)
+!USERS_SNAPSHOT__PROTECTED__.txt

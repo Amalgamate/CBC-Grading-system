@@ -19,15 +19,23 @@ export class LearnerController {
   async getAllLearners(req: AuthRequest, res: Response) {
     const currentUserRole = req.user!.role;
     const currentUserId = req.user!.userId;
-    
+
     // Query parameters for filtering
     const { grade, stream, status, search, page = 1, limit = 50 } = req.query;
-    
+
     const skip = (Number(page) - 1) * Number(limit);
-    
+
     // Build where clause based on role
-    let whereClause: any = {};
-    
+    let whereClause: any = { archived: false };
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      whereClause.schoolId = req.user.schoolId;
+    }
+    if (req.user?.branchId) {
+      whereClause.branchId = req.user.branchId;
+    }
+
     if (currentUserRole === 'PARENT') {
       // Parents can only see their own children
       whereClause.parentId = currentUserId;
@@ -37,12 +45,12 @@ export class LearnerController {
       // For now, teachers can see all active learners
       whereClause.status = 'ACTIVE';
     }
-    
+
     // Apply filters
     if (grade) whereClause.grade = grade as Grade;
     if (stream) whereClause.stream = String(stream);
     if (status) whereClause.status = status as LearnerStatus;
-    
+
     // Search by name or admission number
     if (search) {
       whereClause.OR = [
@@ -94,30 +102,41 @@ export class LearnerController {
    * Get learner statistics
    * Access: SUPER_ADMIN, ADMIN, HEAD_TEACHER
    */
-  async getLearnerStats(_req: AuthRequest, res: Response) {
+  async getLearnerStats(req: AuthRequest, res: Response) {
+    const whereClause: any = {};
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      whereClause.schoolId = req.user.schoolId;
+    }
+    if (req.user?.branchId) {
+      whereClause.branchId = req.user.branchId;
+    }
+
     // Get counts by status
     const statusCounts = await prisma.learner.groupBy({
       by: ['status'],
       _count: true,
+      where: whereClause,
     });
 
     // Get counts by grade
     const gradeCounts = await prisma.learner.groupBy({
       by: ['grade'],
       _count: true,
-      where: { status: 'ACTIVE' },
+      where: { ...whereClause, status: 'ACTIVE' },
     });
 
     // Get counts by gender
     const genderCounts = await prisma.learner.groupBy({
       by: ['gender'],
       _count: true,
-      where: { status: 'ACTIVE' },
+      where: { ...whereClause, status: 'ACTIVE' },
     });
 
     // Total learners
-    const total = await prisma.learner.count();
-    const active = await prisma.learner.count({ where: { status: 'ACTIVE' } });
+    const total = await prisma.learner.count({ where: whereClause });
+    const active = await prisma.learner.count({ where: { ...whereClause, status: 'ACTIVE' } });
 
     res.json({
       success: true,
@@ -168,6 +187,16 @@ export class LearnerController {
       throw new ApiError(404, 'Learner not found');
     }
 
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      if (learner.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to learner');
+      }
+      if (req.user.branchId && learner.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to learner');
+      }
+    }
+
     // Check access rights
     if (currentUserRole === 'PARENT' && learner.parentId !== currentUserId) {
       throw new ApiError(403, 'You can only access your own children');
@@ -185,14 +214,19 @@ export class LearnerController {
    */
   async getLearnerByAdmissionNumber(req: AuthRequest, res: Response) {
     const { admissionNumber } = req.params;
-    const { schoolId } = req.query;
+    let { schoolId } = req.query;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      schoolId = req.user.schoolId;
+    }
 
     if (!schoolId) {
       throw new ApiError(400, 'schoolId is required');
     }
 
     const learner = await prisma.learner.findUnique({
-      where: { 
+      where: {
         schoolId_admissionNumber: {
           schoolId: schoolId as string,
           admissionNumber
@@ -227,8 +261,8 @@ export class LearnerController {
    */
   async createLearner(req: AuthRequest, res: Response) {
     const currentUserId = req.user!.userId;
-    
-    const {
+
+    let {
       schoolId,
       branchId,
       admissionNumber,
@@ -256,6 +290,23 @@ export class LearnerController {
       specialNeeds,
     } = req.body;
 
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      schoolId = req.user.schoolId;
+
+      if (req.user.branchId) {
+        branchId = req.user.branchId;
+      } else {
+        // Verify branch belongs to school
+        if (branchId) {
+          const branch = await prisma.branch.findUnique({ where: { id: branchId } });
+          if (!branch || branch.schoolId !== schoolId) {
+            throw new ApiError(400, 'Invalid branch for this school');
+          }
+        }
+      }
+    }
+
     // Validate required fields
     if (!schoolId || !branchId || !admissionNumber || !firstName || !lastName || !dateOfBirth || !gender || !grade) {
       throw new ApiError(400, 'Missing required fields: schoolId, branchId, admissionNumber, firstName, lastName, dateOfBirth, gender, grade');
@@ -263,7 +314,7 @@ export class LearnerController {
 
     // Check if admission number already exists within school
     const existing = await prisma.learner.findUnique({
-      where: { 
+      where: {
         schoolId_admissionNumber: {
           schoolId,
           admissionNumber
@@ -298,7 +349,7 @@ export class LearnerController {
         dateOfBirth: new Date(dateOfBirth),
         gender: gender as Gender,
         grade: grade as Grade,
-        stream: stream as any,
+        stream: (stream as any) || 'A',
         parentId,
         guardianName,
         guardianPhone,
@@ -350,6 +401,16 @@ export class LearnerController {
       throw new ApiError(404, 'Learner not found');
     }
 
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId) {
+      if (learner.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to learner');
+      }
+      if (req.user.branchId && learner.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to learner');
+      }
+    }
+
     const {
       firstName,
       lastName,
@@ -391,7 +452,7 @@ export class LearnerController {
 
     // Build update data
     const updateData: any = { updatedBy: currentUserId };
-    
+
     if (firstName) updateData.firstName = firstName;
     if (lastName) updateData.lastName = lastName;
     if (middleName !== undefined) updateData.middleName = middleName;
@@ -448,26 +509,51 @@ export class LearnerController {
   async deleteLearner(req: AuthRequest, res: Response) {
     const { id } = req.params;
     const currentUserId = req.user!.userId;
+    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
 
     const learner = await prisma.learner.findUnique({ where: { id } });
     if (!learner) {
       throw new ApiError(404, 'Learner not found');
     }
 
-    // Soft delete - mark as inactive
-    await prisma.learner.update({
-      where: { id },
-      data: {
-        status: 'DROPPED_OUT',
-        exitDate: new Date(),
-        updatedBy: currentUserId,
-      },
-    });
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId) {
+      if (learner.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to learner');
+      }
+      if (req.user.branchId && learner.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to learner');
+      }
+    }
 
-    res.json({
-      success: true,
-      message: 'Learner deleted successfully',
-    });
+    if (isSuperAdmin) {
+      // Hard delete for Super Admin
+      await prisma.learner.delete({
+        where: { id }
+      });
+
+      res.json({
+        success: true,
+        message: 'Learner permanently deleted by Super Admin',
+      });
+    } else {
+      // Soft delete - mark as archived
+      await prisma.learner.update({
+        where: { id },
+        data: {
+          archived: true,
+          archivedAt: new Date(),
+          archivedBy: currentUserId,
+          status: 'DROPPED_OUT', // Maintain existing status logic
+          exitDate: new Date(),
+        },
+      });
+
+      res.json({
+        success: true,
+        message: 'Learner archived successfully',
+      });
+    }
   }
 
   /**
@@ -482,6 +568,14 @@ export class LearnerController {
       grade: grade as Grade,
       status: status as LearnerStatus,
     };
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      whereClause.schoolId = req.user.schoolId;
+    }
+    if (req.user?.branchId) {
+      whereClause.branchId = req.user.branchId;
+    }
 
     if (stream) {
       whereClause.stream = stream as any;
@@ -538,6 +632,16 @@ export class LearnerController {
       throw new ApiError(404, 'Learner not found');
     }
 
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      if (learner.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to learner');
+      }
+      if (req.user.branchId && learner.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to learner');
+      }
+    }
+
     // Update learner with photo
     const updatedLearner = await prisma.learner.update({
       where: { id },
@@ -576,6 +680,16 @@ export class LearnerController {
     const learner = await prisma.learner.findUnique({ where: { id } });
     if (!learner) {
       throw new ApiError(404, 'Learner not found');
+    }
+
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId) {
+      if (learner.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to learner');
+      }
+      if (req.user.branchId && learner.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to learner');
+      }
     }
 
     // Remove photo
@@ -625,5 +739,90 @@ export class LearnerController {
       data: learners,
       count: learners.length,
     });
+  }
+
+  /**
+   * Get learners with birthdays in the current week
+   * Access: All authenticated staff
+   */
+  async getUpcomingBirthdays(req: AuthRequest, res: Response) {
+    try {
+      const schoolId = req.user?.schoolId;
+
+      const where: any = {
+        status: 'ACTIVE',
+        archived: false
+      };
+
+      if (schoolId) {
+        where.schoolId = schoolId;
+      }
+
+      // Fetch learners for the current school
+      const learners = await prisma.learner.findMany({
+        where,
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          dateOfBirth: true,
+          grade: true,
+          stream: true,
+          admissionNumber: true
+        }
+      });
+
+      const now = new Date();
+      // Set to midnight for easier comparison
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const nextWeek = new Date(today);
+      nextWeek.setDate(today.getDate() + 7);
+
+      const upcoming = learners.filter(l => {
+        if (!l.dateOfBirth) return false;
+
+        const dob = new Date(l.dateOfBirth);
+        // Normalize birthday to current year
+        const bdayThisYear = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+        // Also check next year (for late December to January transition)
+        const bdayNextYear = new Date(today.getFullYear() + 1, dob.getMonth(), dob.getDate());
+
+        return (bdayThisYear >= today && bdayThisYear <= nextWeek) ||
+          (bdayNextYear >= today && bdayNextYear <= nextWeek);
+      }).map(l => {
+        const dob = new Date(l.dateOfBirth!);
+        let bday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+        if (bday < today) {
+          bday = new Date(today.getFullYear() + 1, dob.getMonth(), dob.getDate());
+        }
+
+        const diffTime = bday.getTime() - today.getTime();
+        const daysUntil = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        return {
+          id: l.id,
+          name: `${l.firstName} ${l.lastName}`,
+          admissionNumber: l.admissionNumber,
+          dateOfBirth: l.dateOfBirth,
+          grade: l.grade,
+          stream: l.stream,
+          daysUntil,
+          turningAge: bday.getFullYear() - dob.getFullYear(),
+          isToday: daysUntil === 0
+        };
+      }).sort((a, b) => a.daysUntil - b.daysUntil);
+
+      res.json({
+        success: true,
+        data: upcoming
+      });
+    } catch (error: any) {
+      console.error('Error fetching birthdays:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch upcoming birthdays',
+        error: error.message
+      });
+    }
   }
 }

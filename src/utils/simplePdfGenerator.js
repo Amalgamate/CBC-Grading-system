@@ -39,8 +39,8 @@ const convertImageToBase64 = async (url) => {
  * @returns {Promise<Object>} Result object with success status
  */
 export const generatePDFFromElement = async (
-  elementId, 
-  filename, 
+  elementId,
+  filename,
   options = {}
 ) => {
   const {
@@ -52,7 +52,7 @@ export const generatePDFFromElement = async (
 
   try {
     if (onProgress) onProgress('Preparing report...');
-    
+
     const element = document.getElementById(elementId);
     if (!element) {
       throw new Error(`Element with ID "${elementId}" not found`);
@@ -103,7 +103,7 @@ export const generatePDFFromElement = async (
     // Download PDF
     if (onProgress) onProgress('Downloading...');
     pdf.save(filename);
-    
+
     if (onProgress) onProgress('Complete!');
     return { success: true };
   } catch (error) {
@@ -132,7 +132,7 @@ export const generateCustomPDF = async (elementId, filename, options = {}) => {
 
   try {
     if (onProgress) onProgress('Preparing report...');
-    
+
     const element = document.getElementById(elementId);
     if (!element) {
       throw new Error(`Element with ID "${elementId}" not found`);
@@ -151,7 +151,7 @@ export const generateCustomPDF = async (elementId, filename, options = {}) => {
     if (onProgress) onProgress('Creating PDF...');
     const pdf = new jsPDF(orientation, 'mm', format);
     const imgData = canvas.toDataURL('image/png');
-    
+
     // Calculate dimensions
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
@@ -177,7 +177,7 @@ export const generateCustomPDF = async (elementId, filename, options = {}) => {
     // Download PDF
     if (onProgress) onProgress('Downloading...');
     pdf.save(filename);
-    
+
     if (onProgress) onProgress('Complete!');
     return { success: true };
   } catch (error) {
@@ -197,11 +197,18 @@ export const generateCustomPDF = async (elementId, filename, options = {}) => {
  * @returns {Promise<Object>} Result object
  */
 export const generatePDFWithLetterhead = async (
-  elementId, 
-  filename, 
+  elementId,
+  filename,
   schoolInfo = {},
   options = {}
 ) => {
+  const {
+    orientation = 'portrait',
+    scale = 2,
+    multiPage = true,
+    onProgress = null
+  } = options;
+
   const {
     schoolName = 'Zawadi JRN Academy',
     address = 'P.O. Box 1234, Nairobi, Kenya',
@@ -209,7 +216,8 @@ export const generatePDFWithLetterhead = async (
     email = 'info@zawadijrn.ac.ke',
     website = 'www.zawadijrn.ac.ke',
     logoUrl = '/logo-zawadi.png',
-    brandColor = '#1e3a8a'
+    brandColor = '#1e3a8a',
+    skipLetterhead = false
   } = schoolInfo;
 
   try {
@@ -261,16 +269,21 @@ export const generatePDFWithLetterhead = async (
     // Clone element content
     if (options.onProgress) options.onProgress('Preparing document layout...', 20);
     const contentClone = element.cloneNode(true);
-    
+
     // Assemble wrapper
-    wrapper.innerHTML = letterhead;
+    if (skipLetterhead) {
+      wrapper.innerHTML = '';
+      wrapper.style.padding = '0'; // Let the element handle its own padding
+    } else {
+      wrapper.innerHTML = letterhead;
+    }
     wrapper.appendChild(contentClone);
 
     // Temporarily add to document
     wrapper.style.position = 'absolute';
     wrapper.style.left = '-9999px';
     wrapper.style.top = '0';
-    wrapper.style.width = '210mm'; // Force A4 width for consistency
+    wrapper.style.width = orientation === 'landscape' ? '297mm' : '210mm';
     document.body.appendChild(wrapper);
 
     // Generate PDF from wrapper
@@ -290,24 +303,30 @@ export const generatePDFWithLetterhead = async (
     document.body.removeChild(wrapper);
 
     // Create PDF
-    if (options.onProgress) options.onProgress('Compiling PDF pages...', 70);
+    if (onProgress) onProgress('Compiling PDF pages...', 70);
     const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const imgWidth = 210;
-    const pageHeight = 297;
+
+    // PDF Dimensions
+    const pdf = new jsPDF(orientation, 'mm', 'a4');
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+    // Scale image to fit page width
+    const imgWidth = pdfWidth;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
     let heightLeft = imgHeight;
     let position = 0;
 
+
     // Add pages
     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
+    heightLeft -= pdfHeight;
 
     while (heightLeft > 0) {
       position = heightLeft - imgHeight;
       pdf.addPage();
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      heightLeft -= pdfHeight;
     }
 
     // Add footer with page numbers
@@ -317,31 +336,34 @@ export const generatePDFWithLetterhead = async (
       pdf.setPage(i);
       pdf.setFontSize(8);
       pdf.setTextColor(128, 128, 128); // Gray text
-      
+
       // Footer Line
       pdf.setDrawColor(230, 230, 230);
-      pdf.line(10, pdf.internal.pageSize.getHeight() - 15, 200, pdf.internal.pageSize.getHeight() - 15);
+      pdf.line(10, pdfHeight - 15, pdfWidth - 10, pdfHeight - 15);
+
 
       // Page Number
       pdf.text(
         `Page ${i} of ${totalPages}`,
-        pdf.internal.pageSize.getWidth() - 20,
-        pdf.internal.pageSize.getHeight() - 10,
+        pdfWidth - 20,
+        pdfHeight - 10,
         { align: 'right' }
       );
-      
+
+
       // Generation Date & Copyright
       pdf.text(
         `Generated: ${new Date().toLocaleString('en-GB')} | © ${new Date().getFullYear()} ${schoolName}`,
         10,
-        pdf.internal.pageSize.getHeight() - 10
+        pdfHeight - 10
       );
+
     }
 
     // Download
     if (options.onProgress) options.onProgress('Finalizing download...', 100);
     pdf.save(filename);
-    
+
     return { success: true };
   } catch (error) {
     console.error('PDF generation with letterhead error:', error);
@@ -408,7 +430,7 @@ export const batchGeneratePDFs = async (
 
   for (let i = 0; i < learners.length; i++) {
     const learner = learners[i];
-    
+
     if (onProgress) {
       onProgress(`Processing ${learner.firstName} ${learner.lastName} (${i + 1}/${learners.length})`);
     }
@@ -416,7 +438,7 @@ export const batchGeneratePDFs = async (
     try {
       // Generate report HTML
       const reportHTML = reportGenerator(learner);
-      
+
       // Create temporary element
       const tempDiv = document.createElement('div');
       tempDiv.id = `temp-report-${learner.id}`;
@@ -452,10 +474,11 @@ export const batchGeneratePDFs = async (
   return results;
 };
 
-export default {
+const simplePdf = {
   generatePDFFromElement,
   generateCustomPDF,
   generatePDFWithLetterhead,
   quickPrint,
   batchGeneratePDFs
 };
+export default simplePdf;

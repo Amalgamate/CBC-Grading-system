@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, AlertCircle, Check, AlertTriangle, Users, BookOpen } from 'lucide-react';
+import { X, Save, AlertCircle, Check, AlertTriangle, BookOpen } from 'lucide-react';
 import api from '../../../services/api';
 
 const AssignClassModal = ({ isOpen, onClose, teacher, onAssign }) => {

@@ -11,22 +11,23 @@ import csvParser from 'csv-parser';
 import { Parser } from 'json2csv';
 import { Readable } from 'stream';
 import { z } from 'zod';
-import { authenticate, requireSchool } from '../../middleware/auth.middleware';
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // Configure multer for file uploads
-const upload = multer({ 
+const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
 // Validation schema for learner CSV data
 const learnerSchema = z.object({
-  'Leaner Name': z.string().min(1, 'Name is required'),
+  'Learner Name': z.string().optional(),
+  'Leaner Name': z.string().optional(),
   'Adm No': z.string().min(1, 'Admission number is required'),
   'Class': z.string().min(1, 'Class is required'),
+  'Stream': z.string().optional(),
   'Term': z.string().optional(),
   'Year': z.string().optional(),
   'Parent/Guardian': z.string().optional(),
@@ -34,6 +35,9 @@ const learnerSchema = z.object({
   'Phone 2': z.string().optional(),
   'Reg Date': z.string().optional(),
   'Bal Due': z.string().optional(),
+}).refine(data => data['Learner Name'] || data['Leaner Name'], {
+  message: "Learner Name is required",
+  path: ['Learner Name']
 });
 
 /**
@@ -43,74 +47,105 @@ const learnerSchema = z.object({
  * Now automatically uses the logged-in user's school and branch!
  * Optional: Can override branchId in request body for admins
  */
-router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequest, res: Response) => {
+router.post('/upload', upload.single('file'), async (req: AuthRequest, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Get school and branch from authenticated user OR request body
-    // SUPER_ADMIN must provide schoolId and branchId in request
-    let schoolId = req.body.schoolId || req.query.schoolId || req.user!.schoolId;
-    let branchId = req.body.branchId || req.query.branchId || req.user!.branchId;
+    // Get school and branch from headers (preferred), request body, or user token
+    let schoolId = (req.headers['x-school-id'] as string) || req.body.schoolId || req.user!.schoolId;
+    let branchId = (req.headers['x-branch-id'] as string) || req.body.branchId || req.user!.branchId;
+
+    // Clean up empty strings from headers
+    if (schoolId === '') schoolId = req.user!.schoolId || undefined;
+    if (branchId === '') branchId = req.user!.branchId || undefined;
 
     // For non-SUPER_ADMIN users, require school association
     if (!schoolId && req.user!.role !== 'SUPER_ADMIN') {
       return res.status(403).json({
         error: 'School association required',
-        message: 'Please contact administrator to assign you to a school'
+        message: 'Please contact administrator to assign you to a school',
       });
     }
 
-    // SUPER_ADMIN must provide both schoolId and branchId
-    if (req.user!.role === 'SUPER_ADMIN' && (!schoolId || !branchId)) {
-      const schools = await prisma.school.findMany({
-        include: {
-          branches: {
-            select: { id: true, name: true, code: true }
-          }
-        }
-      });
+    // SUPER_ADMIN auto-resolution and validation
+    if (req.user!.role === 'SUPER_ADMIN') {
+      if (!schoolId) {
+        const schools = await prisma.school.findMany({ select: { id: true, name: true } });
+        return res.status(400).json({
+          error: 'School context required',
+          message: 'Please select a school context from the header before uploading',
+          availableSchools: schools,
+        });
+      }
 
-      return res.status(400).json({
-        error: 'School and Branch required for SUPER_ADMIN',
-        message: 'Please specify which school and branch to upload learners to',
-        availableSchools: schools.map(s => ({
-          id: s.id,
-          name: s.name,
-          branches: s.branches
-        })),
-        note: 'Include schoolId and branchId in request body or query parameters'
-      });
+      // If branchId is provided, verify it belongs to the school. 
+      // If NOT or if MISSING, auto-resolve to avoid "Invalid branch context" for Super Admins.
+      if (branchId) {
+        const validBranch = await prisma.branch.findFirst({
+          where: { id: branchId, schoolId },
+        });
+
+        if (!validBranch) {
+          console.log(`- Super Admin: Provided branchId ${branchId} is invalid for school ${schoolId}. Auto-resolving...`);
+          branchId = undefined; // Force auto-resolution below
+        }
+      }
+
+      // If branchId is missing or was invalidated, try to pick the first branch of this school
+      if (!branchId) {
+        let schoolBranches = await prisma.branch.findMany({
+          where: { schoolId },
+          orderBy: { createdAt: 'asc' },
+        });
+
+        if (schoolBranches.length > 0) {
+          branchId = schoolBranches[0].id;
+          console.log(`- Super Admin: Auto-resolved branchId to ${schoolBranches[0].name} (${branchId})`);
+        } else {
+          // AUTO-PROVISION: If no branches exist, create a default one for the school
+          const newBranch = await prisma.branch.create({
+            data: {
+              name: 'Main Branch',
+              code: 'MAIN',
+              schoolId: schoolId!,
+              active: true,
+            },
+          });
+          branchId = newBranch.id;
+          console.log(`- Super Admin: Auto-provisioned branch 'Main Branch' for school ${schoolId}`);
+        }
+      }
     }
 
     if (!branchId) {
-      // For users without a specific branch, they must specify which branch
+      // General fallback for users without a branch (should not happen for valid school admins)
       const branches = await prisma.branch.findMany({
         where: { schoolId },
-        select: { id: true, name: true, code: true }
+        select: { id: true, name: true, code: true },
       });
 
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Branch ID required',
         message: 'Please specify which branch to upload learners to',
         availableBranches: branches,
-        note: 'Include branchId in request body or query parameter'
       });
     }
 
-    // Verify branch belongs to user's school
+    // Final verification of branch context
     const branch = await prisma.branch.findFirst({
-      where: { 
+      where: {
         id: branchId,
-        schoolId 
-      }
+        schoolId,
+      },
     });
 
     if (!branch) {
-      return res.status(403).json({ 
-        error: 'Invalid branch',
-        message: 'Branch does not exist or does not belong to your school'
+      return res.status(403).json({
+        error: 'Invalid branch context',
+        message: 'The selected branch does not exist or does not belong to the selected school',
+        debug: { schoolId, branchId }
       });
     }
 
@@ -126,7 +161,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
 
     // Parse CSV
     const stream = Readable.from(req.file.buffer.toString());
-    
+
     await new Promise((resolve, reject) => {
       stream
         .pipe(csvParser())
@@ -161,7 +196,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
     for (const item of results) {
       try {
         const csvData = item.data;
-        
+
         // Map CSV grade to enum
         const gradeMap: { [key: string]: Grade } = {
           'Play Group': 'PLAYGROUP',
@@ -179,19 +214,21 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
         };
 
         const grade = gradeMap[csvData['Class']] || 'GRADE_1';
-        
+
         // Split name into first and last
-        const nameParts = csvData['Leaner Name'].trim().split(' ');
+        const rawName = csvData['Learner Name'] || csvData['Leaner Name'] || '';
+        const nameParts = rawName.trim().split(' ');
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || nameParts[0];
 
         // Handle Parent/Guardian creation or linking
         let parentId: string | undefined;
         const parentName = csvData['Parent/Guardian'];
-        const parentPhone = csvData['Phone 1'];
+        const parentPhone = csvData['Phone 1'] ? String(csvData['Phone 1']).trim() : null;
 
         if (parentPhone) {
-          // Check if parent already exists by phone within the same school context
+          // Check if parent already exists by phone (scoped to school for multi-tenant safety, 
+          // though usually users are global. Let's check globally first as phone is a good identifier)
           const existingParent = await prisma.user.findFirst({
             where: {
               phone: parentPhone,
@@ -201,19 +238,35 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
 
           if (existingParent) {
             parentId = existingParent.id;
+            // Optionally update school association if missing
+            if (!existingParent.schoolId) {
+              await prisma.user.update({
+                where: { id: parentId },
+                data: { schoolId }
+              });
+            }
           } else if (parentName) {
-            // Create new parent user
-            const nameParts = parentName.split(' ');
+            // Create new parent user with robust details
+            const nameParts = parentName.trim().split(' ');
             const pFirstName = nameParts[0] || 'Parent';
             const pLastName = nameParts.slice(1).join(' ') || 'Guardian';
-            const cleanPhone = parentPhone.replace(/[^0-9]/g, '');
-            const email = `parent${cleanPhone}@zawadi.com`; // Placeholder email
 
-            // Create parent user
+            // Clean phone for email generation: remove non-digits
+            const cleanPhone = parentPhone.replace(/\D/g, '');
+            // Generate a unique email if we don't have one (Prisma User model requires email)
+            const email = `parent.${cleanPhone || Math.random().toString(36).substring(7)}@edu-core.test`;
+
+            // Final check to ensure email doesn't exist
+            const emailCheck = await prisma.user.findUnique({ where: { email } });
+            const finalEmail = emailCheck ? `parent.${cleanPhone}.${Date.now()}@edu-core.test` : email;
+
+            const bcrypt = await import('bcryptjs');
+            const hashedPassword = await bcrypt.hash('Parent@123', 10);
+
             const newParent = await prisma.user.create({
               data: {
-                email,
-                password: await import('bcryptjs').then(b => b.hash('password123', 10)), // Default password
+                email: finalEmail,
+                password: hashedPassword,
                 firstName: pFirstName,
                 lastName: pLastName,
                 phone: parentPhone,
@@ -223,6 +276,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
               }
             });
             parentId = newParent.id;
+            console.log(`- Created new parent: ${pFirstName} ${pLastName} (${finalEmail})`);
           }
         }
 
@@ -236,7 +290,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
             const month = parseInt(dateParts[1], 10) - 1; // Month is 0-indexed
             const year = parseInt(dateParts[2], 10);
             const parsedDate = new Date(year, month, day);
-            
+
             // Validate the date
             if (!isNaN(parsedDate.getTime())) {
               admissionDate = parsedDate;
@@ -248,7 +302,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
 
         // Check if admission number already exists within school
         const existing = await prisma.learner.findUnique({
-          where: { 
+          where: {
             schoolId_admissionNumber: {
               schoolId: schoolId,
               admissionNumber: csvData['Adm No']
@@ -261,12 +315,12 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
           await prisma.learner.update({
             where: { id: existing.id },
             data: {
-                parentId: parentId, // Update link
-                guardianName: csvData['Parent/Guardian'] || undefined,
-                guardianPhone: csvData['Phone 1'] || undefined,
+              parentId: parentId, // Update link
+              guardianName: csvData['Parent/Guardian'] || undefined,
+              guardianPhone: csvData['Phone 1'] || undefined,
             }
           });
-          
+
           updated.push({
             line: item.line,
             id: existing.id,
@@ -285,6 +339,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
               dateOfBirth: new Date(2010, 0, 1), // Default DOB - should be updated later
               gender: 'MALE', // Default gender - should be updated later
               grade,
+              stream: csvData['Stream'] || 'A',
               status: 'ACTIVE',
               admissionDate,
               guardianName: csvData['Parent/Guardian'] || undefined,
@@ -340,7 +395,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
 
   } catch (error) {
     console.error('Bulk upload error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to process upload',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -351,7 +406,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
  * GET /api/bulk/learners/export
  * Export learners to CSV (scoped to user's school)
  */
-router.get('/export', authenticate, requireSchool, async (req: AuthRequest, res: Response) => {
+router.get('/export', async (req: AuthRequest, res: Response) => {
   try {
     const { grade, status, branchId } = req.query;
     const schoolId = req.user!.schoolId!;
@@ -382,7 +437,7 @@ router.get('/export', authenticate, requireSchool, async (req: AuthRequest, res:
     // Transform data for CSV
     const csvData = learners.map((learner, index) => ({
       'ID': index + 1,
-      'Leaner Name': `${learner.firstName} ${learner.lastName}`,
+      'Learner Name': `${learner.firstName} ${learner.lastName}`,
       'Adm No': learner.admissionNumber,
       'Class': learner.grade.replace('_', ' '),
       'Branch': learner.branch.name,
@@ -391,7 +446,7 @@ router.get('/export', authenticate, requireSchool, async (req: AuthRequest, res:
       'Parent/Guardian': learner.guardianName || '',
       'Phone 1': learner.guardianPhone || '',
       'Phone 2': '',
-      'Reg Date': learner.admissionDate ? 
+      'Reg Date': learner.admissionDate ?
         new Date(learner.admissionDate).toLocaleDateString('en-GB').replace(/\//g, '/') : '',
       'Bal Due': '0.00'
     }));
@@ -399,7 +454,7 @@ router.get('/export', authenticate, requireSchool, async (req: AuthRequest, res:
     // Generate CSV
     const parser = new Parser({
       fields: [
-        'ID', 'Leaner Name', 'Adm No', 'Class', 'Branch', 'Term', 'Year',
+        'ID', 'Learner Name', 'Adm No', 'Class', 'Branch', 'Term', 'Year',
         'Parent/Guardian', 'Phone 1', 'Phone 2', 'Reg Date', 'Bal Due'
       ]
     });
@@ -412,7 +467,7 @@ router.get('/export', authenticate, requireSchool, async (req: AuthRequest, res:
 
   } catch (error) {
     console.error('Export error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to export data',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -442,7 +497,7 @@ router.get('/template', (_req: Request, res: Response) => {
 
   const parser = new Parser({
     fields: [
-      'ID', 'Leaner Name', 'Adm No', 'Class', 'Term', 'Year',
+      'ID', 'Learner Name', 'Adm No', 'Class', 'Term', 'Year',
       'Parent/Guardian', 'Phone 1', 'Phone 2', 'Reg Date', 'Bal Due'
     ]
   });

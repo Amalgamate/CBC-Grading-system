@@ -3,11 +3,12 @@
  * Modern, intuitive design with data visualizations
  */
 
-import React, { useState } from 'react';
-import { 
-  Users, 
-  GraduationCap, 
-  BookOpen, 
+import React, { useEffect, useState } from 'react';
+import { API_BASE_URL } from '../../../../services/api';
+import {
+  Users,
+  GraduationCap,
+  BookOpen,
   UserCheck,
   Calendar,
   Award,
@@ -58,7 +59,7 @@ const DoughnutChart = ({ data, title, size = 200 }) => {
             );
           })}
         </svg>
-        
+
         {/* Center Text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <div className="text-3xl font-bold text-gray-900">{total}</div>
@@ -71,8 +72,8 @@ const DoughnutChart = ({ data, title, size = 200 }) => {
         {data.map((item, index) => (
           <div key={index} className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded-full" 
+              <div
+                className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: item.color }}
               />
               <span className="text-gray-700">{item.label}</span>
@@ -108,16 +109,15 @@ const ModernStatsCard = ({ title, value, change, icon: Icon, color, trend, subti
             <Icon className="w-6 h-6 text-white" />
           </div>
           {change && (
-            <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${
-              trend === 'up' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-            }`}>
+            <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${trend === 'up' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              }`}>
               {trend === 'up' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
               {change}
             </div>
           )}
         </div>
       </div>
-      
+
       <div className="p-5">
         <div className="text-3xl font-bold text-gray-900 mb-1">{value}</div>
         <div className="text-sm font-semibold text-gray-700 mb-1">{title}</div>
@@ -147,9 +147,36 @@ const QuickActionButton = ({ icon: Icon, label, color, onClick }) => {
   );
 };
 
-const AdminDashboard = ({ learners = [], pagination, teachers = [] }) => {
+const AdminDashboard = ({ learners = [], pagination, teachers = [], user }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [timeFilter, setTimeFilter] = useState('today'); // today, week, month, term
+  const [trialInfo, setTrialInfo] = useState(null);
+
+  useEffect(() => {
+    const schoolId = user?.school?.id || user?.schoolId || localStorage.getItem('currentSchoolId');
+    if (!schoolId) return;
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    fetch(`${API_BASE_URL}/schools/${schoolId}`, {
+      headers: { Authorization: token ? `Bearer ${token}` : '' },
+    })
+      .then(res => res.json())
+      .then(data => {
+        const school = data?.data;
+        if (!school) return;
+        const start = school.trialStart ? new Date(school.trialStart) : null;
+        const days = school.trialDays || 30;
+        let remaining = null;
+        if (start) {
+          const diff = Math.floor((Date.now() - start.getTime()) / (1000 * 60 * 60 * 24));
+          remaining = Math.max(days - diff, 0);
+        }
+        setTrialInfo({
+          status: school.status || (school.active ? 'ACTIVE' : 'INACTIVE'),
+          remainingDays: remaining,
+        });
+      })
+      .catch(() => { });
+  }, [user]);
 
   // Calculate statistics
   const stats = {
@@ -202,6 +229,34 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [] }) => {
 
   return (
     <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+      {trialInfo && trialInfo.status === 'TRIAL' && (
+        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-3">
+          <AlertCircle className="text-yellow-700" />
+          <div>
+            <p className="text-sm font-semibold text-yellow-900">
+              Trial Active
+            </p>
+            <p className="text-xs text-yellow-800">
+              {typeof trialInfo.remainingDays === 'number'
+                ? `${trialInfo.remainingDays} day(s) remaining`
+                : 'Trial in progress'}
+            </p>
+          </div>
+        </div>
+      )}
+      {trialInfo && trialInfo.status === 'INACTIVE' && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+          <AlertCircle className="text-red-700" />
+          <div>
+            <p className="text-sm font-semibold text-red-900">
+              School Inactive
+            </p>
+            <p className="text-xs text-red-800">
+              Trial expired. Please contact Super Admin to approve payment.
+            </p>
+          </div>
+        </div>
+      )}
       {/* Compact Actions Toolbar */}
       <div className="flex justify-end gap-3">
         <select
@@ -214,7 +269,7 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [] }) => {
           <option value="month">This Month</option>
           <option value="term">This Term</option>
         </select>
-        
+
         <button
           onClick={handleRefresh}
           disabled={refreshing}
@@ -236,7 +291,7 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [] }) => {
           color="blue"
           subtitle={`${stats.activeStudents} active`}
         />
-        
+
         <ModernStatsCard
           title="Teaching Staff"
           value={stats.totalTeachers}
@@ -246,7 +301,7 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [] }) => {
           color="green"
           subtitle={`${stats.activeTeachers} active`}
         />
-        
+
         <ModernStatsCard
           title="Attendance Today"
           value={`${stats.avgAttendance}%`}
@@ -256,7 +311,7 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [] }) => {
           color="purple"
           subtitle={`${stats.presentToday}/${stats.totalStudents} present`}
         />
-        
+
         <ModernStatsCard
           title="Active Classes"
           value={stats.totalClasses}
@@ -274,8 +329,8 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [] }) => {
             <h3 className="text-lg font-bold text-gray-900">Students by Grade</h3>
             <Eye className="w-5 h-5 text-gray-400" />
           </div>
-          <DoughnutChart 
-            data={studentsByGrade} 
+          <DoughnutChart
+            data={studentsByGrade}
             title="Students"
             size={180}
           />
@@ -287,8 +342,8 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [] }) => {
             <h3 className="text-lg font-bold text-gray-900">Today's Attendance</h3>
             <Calendar className="w-5 h-5 text-gray-400" />
           </div>
-          <DoughnutChart 
-            data={attendanceData} 
+          <DoughnutChart
+            data={attendanceData}
             title="Total"
             size={180}
           />
@@ -300,8 +355,8 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [] }) => {
             <h3 className="text-lg font-bold text-gray-900">Staff Distribution</h3>
             <Users className="w-5 h-5 text-gray-400" />
           </div>
-          <DoughnutChart 
-            data={staffData} 
+          <DoughnutChart
+            data={staffData}
             title="Staff"
             size={180}
           />
@@ -313,8 +368,8 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [] }) => {
             <h3 className="text-lg font-bold text-gray-900">CBC Performance</h3>
             <Award className="w-5 h-5 text-gray-400" />
           </div>
-          <DoughnutChart 
-            data={assessmentData} 
+          <DoughnutChart
+            data={assessmentData}
             title="Students"
             size={180}
           />
@@ -331,25 +386,25 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [] }) => {
               icon={Users}
               label="Add Student"
               color="blue"
-              onClick={() => {}}
+              onClick={() => { }}
             />
             <QuickActionButton
               icon={GraduationCap}
               label="Add Teacher"
               color="green"
-              onClick={() => {}}
+              onClick={() => { }}
             />
             <QuickActionButton
               icon={BookOpen}
               label="New Class"
               color="purple"
-              onClick={() => {}}
+              onClick={() => { }}
             />
             <QuickActionButton
               icon={Download}
               label="Reports"
               color="orange"
-              onClick={() => {}}
+              onClick={() => { }}
             />
           </div>
         </div>
@@ -362,7 +417,7 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [] }) => {
               View All
             </button>
           </div>
-          
+
           <div className="space-y-3">
             <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
               <div className="bg-green-100 p-2 rounded-lg">
@@ -465,28 +520,28 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [] }) => {
           <h3 className="text-lg font-bold text-gray-900 mb-4">Upcoming Events</h3>
           <div className="space-y-3">
             {[
-              { 
+              {
                 title: 'Parent-Teacher Meeting',
                 date: 'Jan 25, 2026',
                 time: '2:00 PM',
                 type: 'meeting',
                 color: 'blue'
               },
-              { 
+              {
                 title: 'End of Term Exams',
                 date: 'Feb 1-5, 2026',
                 time: 'All Week',
                 type: 'exam',
                 color: 'purple'
               },
-              { 
+              {
                 title: 'Sports Day',
                 date: 'Feb 10, 2026',
                 time: '9:00 AM',
                 type: 'event',
                 color: 'green'
               },
-              { 
+              {
                 title: 'Report Card Distribution',
                 date: 'Feb 12, 2026',
                 time: '10:00 AM',

@@ -30,6 +30,16 @@ export class AttendanceController {
       throw new ApiError(404, 'Learner not found');
     }
 
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+        if (learner.schoolId !== req.user.schoolId) {
+            throw new ApiError(403, 'Unauthorized access to learner');
+        }
+        if (req.user.branchId && learner.branchId !== req.user.branchId) {
+            throw new ApiError(403, 'Unauthorized access to learner');
+        }
+    }
+
     // Parse date
     const attendanceDate = new Date(date);
     attendanceDate.setHours(0, 0, 0, 0);
@@ -113,6 +123,29 @@ export class AttendanceController {
 
     if (!attendanceRecords || !Array.isArray(attendanceRecords) || !date) {
       throw new ApiError(400, 'Missing required fields: attendanceRecords (array), date');
+    }
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+        // If classId is provided, verify it belongs to tenant
+        if (classId) {
+            const classObj = await prisma.class.findUnique({ 
+                where: { id: classId },
+                include: { branch: true }
+            });
+            
+            if (!classObj) {
+                throw new ApiError(404, 'Class not found');
+            }
+
+            if (classObj.branch.schoolId !== req.user.schoolId) {
+                throw new ApiError(403, 'Unauthorized access to class');
+            }
+
+            if (req.user.branchId && classObj.branchId !== req.user.branchId) {
+                throw new ApiError(403, 'Unauthorized access to class');
+            }
+        }
     }
 
     const attendanceDate = new Date(date);
@@ -216,6 +249,16 @@ export class AttendanceController {
     if (classId) whereClause.classId = classId;
     if (status) whereClause.status = status as AttendanceStatus;
 
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+        whereClause.learner = {
+            schoolId: req.user.schoolId
+        };
+        if (req.user.branchId) {
+            whereClause.learner.branchId = req.user.branchId;
+        }
+    }
+
     const attendance = await prisma.attendance.findMany({
       where: whereClause,
       include: {
@@ -278,6 +321,16 @@ export class AttendanceController {
 
     if (classId) whereClause.classId = classId;
     if (learnerId) whereClause.learnerId = learnerId;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+        whereClause.learner = {
+            schoolId: req.user.schoolId
+        };
+        if (req.user.branchId) {
+            whereClause.learner.branchId = req.user.branchId;
+        }
+    }
 
     // Get counts by status
     const statusCounts = await prisma.attendance.groupBy({
@@ -344,6 +397,22 @@ export class AttendanceController {
       }
     }
 
+    // Phase 5: Tenant Scoping (for non-parents)
+    if (currentUserRole !== 'PARENT' && req.user?.schoolId) {
+        const learner = await prisma.learner.findUnique({ where: { id: learnerId } });
+        
+        if (!learner) {
+             throw new ApiError(404, 'Learner not found');
+        }
+
+        if (learner.schoolId !== req.user.schoolId) {
+             throw new ApiError(403, 'Unauthorized access to learner');
+        }
+        if (req.user.branchId && learner.branchId !== req.user.branchId) {
+             throw new ApiError(403, 'Unauthorized access to learner');
+        }
+    }
+
     const whereClause: any = { learnerId };
 
     if (startDate && endDate) {
@@ -396,6 +465,26 @@ export class AttendanceController {
 
     if (!classId || !date) {
       throw new ApiError(400, 'Missing required parameters: classId, date');
+    }
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+        const classObj = await prisma.class.findUnique({ 
+             where: { id: classId as string },
+             include: { branch: true }
+        });
+        
+        if (!classObj) {
+            throw new ApiError(404, 'Class not found');
+        }
+
+        if (classObj.branch.schoolId !== req.user.schoolId) {
+            throw new ApiError(403, 'Unauthorized access to class');
+        }
+
+        if (req.user.branchId && classObj.branchId !== req.user.branchId) {
+            throw new ApiError(403, 'Unauthorized access to class');
+        }
     }
 
     const queryDate = new Date(date as string);

@@ -27,9 +27,7 @@ export const getCurrentAcademicYear = () => {
 export const getAcademicYearOptions = () => {
   const currentYear = getCurrentAcademicYear();
   const years = [];
-  
-  // Previous 2 years, current year, next 2 years
-  for (let i = -2; i <= 2; i++) {
+  for (let i = -10; i <= 10; i++) {
     const year = currentYear + i;
     years.push({
       value: year,
@@ -64,9 +62,10 @@ export const isValidAcademicYear = (year) => {
   return year >= (currentYear - 10) && year <= (currentYear + 10);
 };
 
-export default {
+const academicYearConfig = {
   getCurrentAcademicYear,
   getAcademicYearOptions,
   formatAcademicYear,
   isValidAcademicYear
 };
+export default academicYearConfig;

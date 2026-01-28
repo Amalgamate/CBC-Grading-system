@@ -5,9 +5,8 @@
 
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth.middleware';
-import { PrismaClient, Term, DetailedRubricRating } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { Term, DetailedRubricRating } from '@prisma/client';
+import prisma from '../config/database';
 
 // ============================================
 // CORE COMPETENCIES
@@ -46,9 +45,17 @@ export const createOrUpdateCompetencies = async (req: AuthRequest, res: Response
       });
     }
 
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      const learner = await prisma.learner.findUnique({ where: { id: learnerId }, select: { schoolId: true } });
+      if (!learner || learner.schoolId !== req.user.schoolId) {
+        return res.status(403).json({ success: false, message: 'Unauthorized access to learner' });
+      }
+    }
+
     // Validate required fields
-    if (!learnerId || !term || !academicYear || !communication || !criticalThinking || 
-        !creativity || !collaboration || !citizenship || !learningToLearn) {
+    if (!learnerId || !term || !academicYear || !communication || !criticalThinking ||
+      !creativity || !collaboration || !citizenship || !learningToLearn) {
       return res.status(400).json({
         success: false,
         message: 'All competency ratings are required'
@@ -134,10 +141,18 @@ export const createOrUpdateCompetencies = async (req: AuthRequest, res: Response
  * Get Core Competencies for a Learner
  * GET /api/cbc/competencies/:learnerId?term=TERM_1&academicYear=2026
  */
-export const getCompetenciesByLearner = async (req: Request, res: Response) => {
+export const getCompetenciesByLearner = async (req: AuthRequest, res: Response) => {
   try {
     const { learnerId } = req.params;
     const { term, academicYear } = req.query;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      const learner = await prisma.learner.findUnique({ where: { id: learnerId }, select: { schoolId: true } });
+      if (!learner || learner.schoolId !== req.user.schoolId) {
+        return res.status(403).json({ success: false, message: 'Unauthorized access to learner' });
+      }
+    }
 
     if (!term || !academicYear) {
       return res.status(400).json({
@@ -219,9 +234,17 @@ export const createOrUpdateValues = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      const learner = await prisma.learner.findUnique({ where: { id: learnerId }, select: { schoolId: true } });
+      if (!learner || learner.schoolId !== req.user.schoolId) {
+        return res.status(403).json({ success: false, message: 'Unauthorized access to learner' });
+      }
+    }
+
     // Validate required fields
-    if (!learnerId || !term || !academicYear || !love || !responsibility || 
-        !respect || !unity || !peace || !patriotism || !integrity) {
+    if (!learnerId || !term || !academicYear || !love || !responsibility ||
+      !respect || !unity || !peace || !patriotism || !integrity) {
       return res.status(400).json({
         success: false,
         message: 'All value ratings are required'
@@ -293,10 +316,18 @@ export const createOrUpdateValues = async (req: AuthRequest, res: Response) => {
  * Get Values Assessment for a Learner
  * GET /api/cbc/values/:learnerId?term=TERM_1&academicYear=2026
  */
-export const getValuesByLearner = async (req: Request, res: Response) => {
+export const getValuesByLearner = async (req: AuthRequest, res: Response) => {
   try {
     const { learnerId } = req.params;
     const { term, academicYear } = req.query;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      const learner = await prisma.learner.findUnique({ where: { id: learnerId }, select: { schoolId: true } });
+      if (!learner || learner.schoolId !== req.user.schoolId) {
+        return res.status(403).json({ success: false, message: 'Unauthorized access to learner' });
+      }
+    }
 
     if (!term || !academicYear) {
       return res.status(400).json({
@@ -369,6 +400,14 @@ export const createCoCurricular = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      const learner = await prisma.learner.findUnique({ where: { id: learnerId }, select: { schoolId: true } });
+      if (!learner || learner.schoolId !== req.user.schoolId) {
+        return res.status(403).json({ success: false, message: 'Unauthorized access to learner' });
+      }
+    }
+
     if (!learnerId || !term || !academicYear || !activityName || !activityType || !performance) {
       return res.status(400).json({
         success: false,
@@ -419,13 +458,21 @@ export const createCoCurricular = async (req: AuthRequest, res: Response) => {
  * Get Co-Curricular Activities for a Learner
  * GET /api/cbc/cocurricular/:learnerId?term=TERM_1&academicYear=2026
  */
-export const getCoCurricularByLearner = async (req: Request, res: Response) => {
+export const getCoCurricularByLearner = async (req: AuthRequest, res: Response) => {
   try {
     const { learnerId } = req.params;
     const { term, academicYear } = req.query;
 
-    const whereClause: any = { learnerId };
-    
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      const learner = await prisma.learner.findUnique({ where: { id: learnerId }, select: { schoolId: true } });
+      if (!learner || learner.schoolId !== req.user.schoolId) {
+        return res.status(403).json({ success: false, message: 'Unauthorized access to learner' });
+      }
+    }
+
+    const whereClause: any = { learnerId, archived: false };
+
     if (term) whereClause.term = term as Term;
     if (academicYear) whereClause.academicYear = parseInt(academicYear as string);
 
@@ -471,10 +518,26 @@ export const getCoCurricularByLearner = async (req: Request, res: Response) => {
  * Update Co-Curricular Activity
  * PUT /api/cbc/cocurricular/:id
  */
-export const updateCoCurricular = async (req: Request, res: Response) => {
+export const updateCoCurricular = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      const activity = await prisma.coCurricularActivity.findUnique({
+        where: { id },
+        include: { learner: { select: { schoolId: true } } }
+      });
+
+      if (!activity) {
+        return res.status(404).json({ success: false, message: 'Activity not found' });
+      }
+
+      if (activity.learner.schoolId !== req.user.schoolId) {
+        return res.status(403).json({ success: false, message: 'Unauthorized access to activity' });
+      }
+    }
 
     delete updateData.id;
     delete updateData.createdAt;
@@ -513,24 +576,41 @@ export const updateCoCurricular = async (req: Request, res: Response) => {
  * Delete Co-Curricular Activity
  * DELETE /api/cbc/cocurricular/:id
  */
-export const deleteCoCurricular = async (req: Request, res: Response) => {
+export const deleteCoCurricular = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
 
-    await prisma.coCurricularActivity.delete({
-      where: { id }
-    });
+    if (isSuperAdmin) {
+      await prisma.coCurricularActivity.delete({
+        where: { id }
+      });
 
-    res.json({
-      success: true,
-      message: 'Co-curricular activity deleted successfully'
-    });
+      res.json({
+        success: true,
+        message: 'Co-curricular activity permanently deleted by Super Admin'
+      });
+    } else {
+      await prisma.coCurricularActivity.update({
+        where: { id },
+        data: {
+          archived: true,
+          archivedAt: new Date(),
+          archivedBy: req.user?.userId
+        }
+      });
+
+      res.json({
+        success: true,
+        message: 'Co-curricular activity archived successfully'
+      });
+    }
 
   } catch (error: any) {
     console.error('Error deleting co-curricular activity:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete co-curricular activity',
+      message: 'Failed to process delete request',
       error: error.message
     });
   }
@@ -630,10 +710,18 @@ export const saveReportComments = async (req: Request, res: Response) => {
  * Get Termly Report Comments for a Learner
  * GET /api/cbc/comments/:learnerId?term=TERM_1&academicYear=2026
  */
-export const getCommentsByLearner = async (req: Request, res: Response) => {
+export const getCommentsByLearner = async (req: AuthRequest, res: Response) => {
   try {
     const { learnerId } = req.params;
     const { term, academicYear } = req.query;
+
+    // Phase 5: Tenant Scoping
+    if (req.user?.schoolId) {
+      const learner = await prisma.learner.findUnique({ where: { id: learnerId }, select: { schoolId: true } });
+      if (!learner || learner.schoolId !== req.user.schoolId) {
+        return res.status(403).json({ success: false, message: 'Unauthorized access to learner' });
+      }
+    }
 
     if (!term || !academicYear) {
       return res.status(400).json({

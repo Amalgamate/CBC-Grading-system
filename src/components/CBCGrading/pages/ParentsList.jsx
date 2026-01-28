@@ -47,7 +47,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
   };
 
   // Filter parents (fallback for client-side if onFetchParents is not provided)
-  const filteredParents = onFetchParents ? parents : parents.filter(p => 
+  const filteredParents = onFetchParents ? parents : parents.filter(p =>
     p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.phone?.includes(searchTerm)
@@ -62,7 +62,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
 
     // Format phone number (remove spaces, dashes, etc.)
     let phoneNumber = String(parent.phone).replace(/[\s()-]/g, '');
-    
+
     // Ensure it starts with country code
     if (!phoneNumber.startsWith('+')) {
       // Assume Kenya country code if not specified
@@ -94,7 +94,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
       {/* Compact Quick Actions Toolbar */}
       <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
         <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
-          
+
           {/* Search */}
           <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto flex-1">
             <div className="relative flex-grow md:max-w-md">
@@ -107,7 +107,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            
+
             {/* Reset Button */}
             {searchTerm && (
               <button
@@ -131,7 +131,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
             </div>
 
             {/* Bulk Operations removed as Parents are now managed via Student Upload */}
-            <button 
+            <button
               onClick={onAddParent}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
             >
@@ -216,11 +216,10 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                     <button
                       onClick={() => handleWhatsAppMessage(parent)}
                       disabled={!parent.phone}
-                      className={`p-1.5 rounded-lg transition ${
-                        parent.phone
+                      className={`p-1.5 rounded-lg transition ${parent.phone
                           ? 'text-green-600 hover:bg-green-50'
                           : 'text-gray-300 cursor-not-allowed'
-                      }`}
+                        }`}
                       title={parent.phone ? 'Send WhatsApp message' : 'No phone number'}
                     >
                       <MessageCircle size={16} />
@@ -228,16 +227,16 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1">
-                      <button 
+                      <button
                         onClick={() => onViewParent(parent)}
                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
                         title="View Details"
                       >
                         <Eye size={16} />
                       </button>
-                      
+
                       {!currentUserIsTeacher && (
-                        <button 
+                        <button
                           onClick={() => onEditParent(parent)}
                           className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition"
                           title="Edit"
@@ -248,7 +247,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
 
                       {/* Archive button for teachers, Delete for admins */}
                       {currentUserIsTeacher ? (
-                        <button 
+                        <button
                           onClick={() => onArchiveParent && onArchiveParent(parent.id)}
                           className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition"
                           title="Archive Parent"
@@ -256,7 +255,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                           <Archive size={16} />
                         </button>
                       ) : canDelete ? (
-                        <button 
+                        <button
                           onClick={() => onDeleteParent(parent.id)}
                           className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
                           title="Delete"
@@ -264,7 +263,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                           <Trash2 size={16} />
                         </button>
                       ) : (
-                        <button 
+                        <button
                           disabled
                           className="p-1.5 text-gray-300 cursor-not-allowed rounded-lg"
                           title="No permission to delete"
@@ -278,7 +277,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
               ))}
             </tbody>
           </table>
-          
+
           {/* Pagination Controls */}
           {pagination && pagination.totalPages > 1 && (
             <div className="bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-between">
@@ -289,22 +288,20 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                 <button
                   onClick={() => handlePageChange(pagination.page - 1)}
                   disabled={pagination.page === 1}
-                  className={`p-2 rounded-lg border ${
-                    pagination.page === 1 
-                      ? 'border-gray-200 text-gray-400 cursor-not-allowed' 
+                  className={`p-2 rounded-lg border ${pagination.page === 1
+                      ? 'border-gray-200 text-gray-400 cursor-not-allowed'
                       : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <ChevronLeft size={20} />
                 </button>
                 <button
                   onClick={() => handlePageChange(pagination.page + 1)}
                   disabled={pagination.page === pagination.totalPages}
-                  className={`p-2 rounded-lg border ${
-                    pagination.page === pagination.totalPages 
-                      ? 'border-gray-200 text-gray-400 cursor-not-allowed' 
+                  className={`p-2 rounded-lg border ${pagination.page === pagination.totalPages
+                      ? 'border-gray-200 text-gray-400 cursor-not-allowed'
                       : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <ChevronRight size={20} />
                 </button>
@@ -320,7 +317,6 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
         onClose={() => setShowBulkModal(false)}
         title="Bulk Parent Operations"
         entityType="parents"
-        userRole={currentUser?.role}
         onUploadComplete={() => {
           setShowBulkModal(false);
           if (onRefresh) onRefresh();

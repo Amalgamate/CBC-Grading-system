@@ -8,6 +8,7 @@
 import { Router } from 'express';
 import { ClassController } from '../controllers/class.controller';
 import { authenticate } from '../middleware/auth.middleware';
+import { requireTenant } from '../middleware/tenant.middleware';
 import { requirePermission, requireRole, auditLog } from '../middleware/permissions.middleware';
 import { asyncHandler } from '../utils/async.util';
 
@@ -19,12 +20,7 @@ const classController = new ClassController();
  * @desc    Get all classes
  * @access  SUPER_ADMIN, ADMIN, HEAD_TEACHER, TEACHER
  */
-router.get(
-  '/',
-  authenticate,
-  requirePermission('VIEW_ALL_LEARNERS'),
-  asyncHandler(classController.getAllClasses.bind(classController))
-);
+router.get('/', authenticate, requireTenant, requirePermission('VIEW_ALL_LEARNERS'), asyncHandler(classController.getAllClasses.bind(classController)));
 
 /**
  * @route   GET /api/classes/:id
@@ -34,6 +30,7 @@ router.get(
 router.get(
   '/:id',
   authenticate,
+  requireTenant,
   requirePermission('VIEW_ALL_LEARNERS'),
   asyncHandler(classController.getClassById.bind(classController))
 );
@@ -46,6 +43,7 @@ router.get(
 router.post(
   '/',
   authenticate,
+  requireTenant,
   requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
   auditLog('CREATE_CLASS'),
   asyncHandler(classController.createClass.bind(classController))
@@ -59,6 +57,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
+  requireTenant,
   requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
   auditLog('UPDATE_CLASS'),
   asyncHandler(classController.updateClass.bind(classController))
@@ -72,6 +71,7 @@ router.put(
 router.post(
   '/enroll',
   authenticate,
+  requireTenant,
   requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
   auditLog('ENROLL_LEARNER'),
   asyncHandler(classController.enrollLearner.bind(classController))
@@ -85,6 +85,7 @@ router.post(
 router.post(
   '/unenroll',
   authenticate,
+  requireTenant,
   requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
   auditLog('UNENROLL_LEARNER'),
   asyncHandler(classController.unenrollLearner.bind(classController))
@@ -95,11 +96,7 @@ router.post(
  * @desc    Get learner's current class
  * @access  SUPER_ADMIN, ADMIN, HEAD_TEACHER, TEACHER, PARENT
  */
-router.get(
-  '/learner/:learnerId',
-  authenticate,
-  asyncHandler(classController.getLearnerClass.bind(classController))
-);
+router.get('/learner/:learnerId', authenticate, requireTenant, asyncHandler(classController.getLearnerClass.bind(classController)));
 
 /**
  * @route   POST /api/classes/assign-teacher
@@ -109,6 +106,7 @@ router.get(
 router.post(
   '/assign-teacher',
   authenticate,
+  requireTenant,
   requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
   auditLog('ASSIGN_TEACHER'),
   asyncHandler(classController.assignTeacher.bind(classController))
@@ -122,6 +120,7 @@ router.post(
 router.post(
   '/unassign-teacher',
   authenticate,
+  requireTenant,
   requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
   auditLog('UNASSIGN_TEACHER'),
   asyncHandler(classController.unassignTeacher.bind(classController))
@@ -135,6 +134,7 @@ router.post(
 router.get(
   '/teacher/:teacherId/workload',
   authenticate,
+  requireTenant,
   requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
   asyncHandler(classController.getTeacherWorkload.bind(classController))
 );

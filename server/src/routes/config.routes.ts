@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { configController } from '../controllers/config.controller';
 import { authenticate } from '../middleware/auth.middleware';
+import { requireTenant, enforceSchoolConsistency } from '../middleware/tenant.middleware';
 import {
   validateTermConfig,
   validateAggregationConfig,
@@ -15,8 +16,7 @@ import {
 
 const router = Router();
 
-// Apply authentication to all routes
-router.use(authenticate);
+// router.use(enforceSchoolConsistency);
 
 // ============================================
 // TERM CONFIGURATION ROUTES
@@ -26,19 +26,19 @@ router.use(authenticate);
  * GET /api/config/term/:schoolId
  * Get all term configurations for a school
  */
-router.get('/term/:schoolId', configController.getTermConfigs);
+router.get('/term/:schoolId', enforceSchoolConsistency, configController.getTermConfigs);
 
 /**
  * GET /api/config/term/:schoolId/:term/:year
  * Get specific term configuration (creates default if missing)
  */
-router.get('/term/:schoolId/:term/:year', configController.getSpecificTermConfig);
+router.get('/term/:schoolId/:term/:year', enforceSchoolConsistency, configController.getSpecificTermConfig);
 
 /**
  * GET /api/config/term/active/:schoolId
  * Get active term configuration
  */
-router.get('/term/active/:schoolId', configController.getActiveTermConfig);
+router.get('/term/active/:schoolId', enforceSchoolConsistency, configController.getActiveTermConfig);
 
 /**
  * POST /api/config/term
@@ -70,7 +70,7 @@ router.put(
  * GET /api/config/aggregation/:schoolId
  * Get all aggregation configurations for a school
  */
-router.get('/aggregation/:schoolId', configController.getAggregationConfigs);
+router.get('/aggregation/:schoolId', enforceSchoolConsistency, configController.getAggregationConfigs);
 
 /**
  * GET /api/config/aggregation/:schoolId/:assessmentType
@@ -79,6 +79,7 @@ router.get('/aggregation/:schoolId', configController.getAggregationConfigs);
  */
 router.get(
   '/aggregation/:schoolId/:assessmentType',
+  enforceSchoolConsistency,
   configController.getSpecificAggregationConfig
 );
 
@@ -118,7 +119,7 @@ router.delete('/aggregation/:id', configController.deleteAggregationConfig);
  * GET /api/config/streams/:schoolId
  * Get all stream configurations for a school
  */
-router.get('/streams/:schoolId', configController.getStreamConfigs);
+router.get('/streams/:schoolId', enforceSchoolConsistency, configController.getStreamConfigs);
 
 /**
  * POST /api/config/streams
@@ -137,10 +138,16 @@ router.delete('/streams/:id', configController.deleteStreamConfig);
 // ============================================
 
 /**
+ * GET /api/config/grades
+ * Get list of all available grades (Enum)
+ */
+router.get('/grades', configController.getGrades);
+
+/**
  * GET /api/config/summary/:schoolId
  * Get configuration summary for dashboard
  */
-router.get('/summary/:schoolId', configController.getConfigurationSummary);
+router.get('/summary/:schoolId', enforceSchoolConsistency, configController.getConfigurationSummary);
 
 /**
  * GET /api/config/strategies

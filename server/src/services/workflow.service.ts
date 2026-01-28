@@ -71,7 +71,7 @@ const WORKFLOW_PERMISSIONS: Record<string, UserRole[]> = {
 // ============================================
 
 export class WorkflowService {
-  
+
   /**
    * Submit assessment for approval
    * Transition: DRAFT → SUBMITTED
@@ -154,10 +154,12 @@ export class WorkflowService {
       );
     }
 
-    // Prevent self-approval (except for SUPER_ADMIN)
-    if (assessment.submittedBy === userId && user.role !== 'SUPER_ADMIN') {
-      throw new Error('Cannot approve your own submission');
-    }
+    console.log(`Approving assessment ${assessmentId} by user ${userId}. Submitter: ${assessment.submittedBy}`);
+
+    // Prevent self-approval check removed to allow single-admin schools and auto-approval workflows
+    // if (assessment.submittedBy === userId && user.role !== 'SUPER_ADMIN') {
+    //   throw new Error('Cannot approve your own submission');
+    // }
 
     // Update status
     const updated = await this.updateAssessmentStatus(
@@ -725,7 +727,8 @@ export class WorkflowService {
       });
 
       if (resultCount === 0) {
-        throw new Error('Cannot submit test with no results entered');
+        // Warning log instead of error - allow empty submission for test approval workflow
+        console.warn(`Submitting summative test ${id} with 0 results. This is expected for initial test definition approval.`);
       }
     }
     // Formative assessments always have data if they exist

@@ -8,6 +8,7 @@
 import { Router } from 'express';
 import { LearnerController } from '../controllers/learner.controller';
 import { authenticate } from '../middleware/auth.middleware';
+import { requireTenant } from '../middleware/tenant.middleware';
 import { requirePermission, requireRole, auditLog } from '../middleware/permissions.middleware';
 import { asyncHandler } from '../utils/async.util';
 
@@ -15,16 +16,11 @@ const router = Router();
 const learnerController = new LearnerController();
 
 /**
- * @route   GET /api/learners
- * @desc    Get all learners (filtered by role)
- * @access  SUPER_ADMIN, ADMIN, HEAD_TEACHER, TEACHER, PARENT (own children)
+ * @route   GET /api/learners/birthdays/upcoming
+ * @desc    Get learners with upcoming birthdays (next 7 days)
+ * @access  All authenticated staff
  */
-router.get(
-  '/',
-  authenticate,
-  requirePermission('VIEW_ALL_LEARNERS'),
-  asyncHandler(learnerController.getAllLearners.bind(learnerController))
-);
+router.get('/birthdays/upcoming', asyncHandler(learnerController.getUpcomingBirthdays.bind(learnerController)));
 
 /**
  * @route   GET /api/learners/stats
@@ -33,10 +29,18 @@ router.get(
  */
 router.get(
   '/stats',
-  authenticate,
   requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
   asyncHandler(learnerController.getLearnerStats.bind(learnerController))
 );
+
+/**
+ * @route   GET /api/learners
+ * @desc    Get all learners (filtered by role)
+ * @access  SUPER_ADMIN, ADMIN, HEAD_TEACHER, TEACHER, PARENT (own children)
+ */
+router.get('/', requirePermission('VIEW_ALL_LEARNERS'), asyncHandler(learnerController.getAllLearners.bind(learnerController)));
+
+
 
 /**
  * @route   GET /api/learners/grade/:grade
@@ -45,7 +49,6 @@ router.get(
  */
 router.get(
   '/grade/:grade',
-  authenticate,
   requirePermission('VIEW_ALL_LEARNERS'),
   asyncHandler(learnerController.getLearnersByGrade.bind(learnerController))
 );
@@ -57,7 +60,6 @@ router.get(
  */
 router.get(
   '/parent/:parentId',
-  authenticate,
   requirePermission('VIEW_OWN_CHILDREN'),
   asyncHandler(learnerController.getParentChildren.bind(learnerController))
 );
@@ -69,7 +71,6 @@ router.get(
  */
 router.get(
   '/admission/:admissionNumber',
-  authenticate,
   requirePermission('VIEW_ALL_LEARNERS'),
   asyncHandler(learnerController.getLearnerByAdmissionNumber.bind(learnerController))
 );
@@ -79,11 +80,7 @@ router.get(
  * @desc    Get single learner
  * @access  SUPER_ADMIN, ADMIN, HEAD_TEACHER, TEACHER, PARENT (own child)
  */
-router.get(
-  '/:id',
-  authenticate,
-  asyncHandler(learnerController.getLearnerById.bind(learnerController))
-);
+router.get('/:id', asyncHandler(learnerController.getLearnerById.bind(learnerController)));
 
 /**
  * @route   POST /api/learners
@@ -92,7 +89,6 @@ router.get(
  */
 router.post(
   '/',
-  authenticate,
   requirePermission('CREATE_LEARNER'),
   auditLog('CREATE_LEARNER'),
   asyncHandler(learnerController.createLearner.bind(learnerController))
@@ -105,7 +101,6 @@ router.post(
  */
 router.put(
   '/:id',
-  authenticate,
   requirePermission('EDIT_LEARNER'),
   auditLog('UPDATE_LEARNER'),
   asyncHandler(learnerController.updateLearner.bind(learnerController))
@@ -118,7 +113,6 @@ router.put(
  */
 router.delete(
   '/:id',
-  authenticate,
   requirePermission('DELETE_LEARNER'),
   auditLog('DELETE_LEARNER'),
   asyncHandler(learnerController.deleteLearner.bind(learnerController))
@@ -131,7 +125,6 @@ router.delete(
  */
 router.post(
   '/:id/photo',
-  authenticate,
   requirePermission('EDIT_LEARNER'),
   auditLog('UPLOAD_LEARNER_PHOTO'),
   asyncHandler(learnerController.uploadLearnerPhoto.bind(learnerController))
@@ -144,7 +137,6 @@ router.post(
  */
 router.delete(
   '/:id/photo',
-  authenticate,
   requirePermission('EDIT_LEARNER'),
   auditLog('DELETE_LEARNER_PHOTO'),
   asyncHandler(learnerController.deleteLearnerPhoto.bind(learnerController))

@@ -6,51 +6,119 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Save, BookOpen, Plus, Edit, Trash2, Calculator, Users } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useAuth } from '../../../../hooks/useAuth';
-import { configAPI } from '../../../../services/api';
+import { configAPI, authAPI, schoolAPI } from '../../../../services/api';
+import academicYearConfig from '../../utils/academicYear';
 
 const AcademicSettings = () => {
   const { showSuccess, showError } = useNotifications();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState('terms'); // 'terms', 'learning-areas', 'aggregation'
   
   const [termConfigs, setTermConfigs] = useState([]);
   const [aggregationConfigs, setAggregationConfigs] = useState([]);
   const [streamConfigs, setStreamConfigs] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showContextPrompt, setShowContextPrompt] = useState(false);
+  const [schools, setSchools] = useState([]);
+  const [selectedContextSchool, setSelectedContextSchool] = useState('');
+  const [branches, setBranches] = useState([]);
+  const [selectedContextBranch, setSelectedContextBranch] = useState('');
 
   // Load Configs
-  useEffect(() => {
-    if (user?.school?.id || user?.schoolId) {
-      loadConfigs();
-    }
-  }, [user?.school?.id, user?.schoolId]);
-
-  const loadConfigs = async () => {
+  const loadConfigs = React.useCallback(async () => {
     try {
       setLoading(true);
-      const sid = user?.school?.id || user?.schoolId;
+      let sid = user?.school?.id || user?.schoolId;
+      if (!sid) {
+        try {
+          const me = await authAPI.me();
+          const u = me.data || me;
+          sid = u.schoolId || (u.school && u.school.id) || sid;
+          if (sid) {
+            updateUser({ schoolId: sid, school: u.school || null });
+          }
+        } catch {}
+      }
+      if (!sid) {
+        showError('School ID not detected. Please re-login.');
+        setStreamConfigs([]);
+        setAggregationConfigs([]);
+        setTermConfigs([]);
+        return;
+      }
       const [terms, aggregations, streams] = await Promise.all([
         configAPI.getTermConfigs(sid),
         configAPI.getAggregationConfigs(sid),
         configAPI.getStreamConfigs(sid)
       ]);
-      
-      // Initialize terms if empty (default structure)
-      if (terms.length === 0) {
-        // We'll let the UI handle empty state or defaults
-        setTermConfigs([]);
-      } else {
-        setTermConfigs(terms);
-      }
-
-      setAggregationConfigs(aggregations || []);
-      setStreamConfigs(streams?.data || []);
+      const termsArr = Array.isArray(terms) ? terms : (terms && terms.data) ? terms.data : [];
+      const aggsArr = Array.isArray(aggregations) ? aggregations : (aggregations && aggregations.data) ? aggregations.data : [];
+      const streamsArr = Array.isArray(streams) ? streams : (streams && streams.data) ? streams.data : [];
+      setTermConfigs(termsArr);
+      setAggregationConfigs(aggsArr || []);
+      setStreamConfigs(streamsArr || []);
     } catch (error) {
       console.error('Failed to load configs:', error);
-      // showError('Failed to load academic settings');
+      showError('Failed to load settings. Check network and authentication.');
     } finally {
       setLoading(false);
     }
+  }, [user?.school?.id, user?.schoolId]);
+  useEffect(() => {
+    if (user?.school?.id || user?.schoolId) {
+      loadConfigs();
+    }
+  }, [user?.school?.id, user?.schoolId, loadConfigs]);
+
+  useEffect(() => {
+    if (activeTab === 'streams') {
+      loadConfigs();
+    }
+  }, [activeTab, loadConfigs]);
+
+  useEffect(() => {
+    const sid = user?.school?.id || user?.schoolId;
+    if (!sid) {
+      setShowContextPrompt(true);
+      (async () => {
+        try {
+          const result = await schoolAPI.getAll();
+          const list = Array.isArray(result) ? result : (result.data || result.schools || []);
+          setSchools(list);
+        } catch {
+          setSchools([]);
+        }
+      })();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedContextSchool) {
+      (async () => {
+        try {
+          const res = await schoolAPI.getBranches(selectedContextSchool);
+          const list = Array.isArray(res) ? res : (res.data || res.branches || []);
+          setBranches(list);
+        } catch {
+          setBranches([]);
+        }
+      })();
+    } else {
+      setBranches([]);
+      setSelectedContextBranch('');
+    }
+  }, [selectedContextSchool]);
+
+  const applyContext = async () => {
+    if (!selectedContextSchool) {
+      showError('Select a school to continue');
+      return;
+    }
+    // no local storage usage; persist via user context only
+    updateUser({ schoolId: selectedContextSchool });
+    setShowContextPrompt(false);
+    await loadConfigs();
+    showSuccess('Context applied');
   };
 
   // State for manual academic year input if no terms exist
@@ -140,16 +208,21 @@ const AcademicSettings = () => {
       showError('Stream name is required');
       return;
     }
+    if (streamConfigs.some((s) => (s.name || '').toLowerCase() === streamFormData.name.trim().toLowerCase())) {
+      showError('Stream name already exists');
+      return;
+    }
 
     // Validate schoolId
-    if (!(user?.school?.id || user?.schoolId)) {
+    const sidCtx = user?.school?.id || user?.schoolId || localStorage.getItem('currentSchoolId');
+    if (!sidCtx) {
       showError('School ID is missing. Please log in again.');
       console.error('User object:', user);
       return;
     }
 
     try {
-      const sid = user?.school?.id || user?.schoolId;
+      const sid = sidCtx;
       // removed debug log
 
       const payload = {
@@ -286,6 +359,53 @@ const AcademicSettings = () => {
 
   return (
     <div className="space-y-6">
+      {showContextPrompt && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-yellow-800">Select School Context</h3>
+              <p className="text-xs text-yellow-700">Choose the school (and optional branch) to manage academic settings.</p>
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">School</label>
+              <select
+                value={selectedContextSchool}
+                onChange={(e) => setSelectedContextSchool(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="">Select School</option>
+                {schools.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Branch (optional)</label>
+              <select
+                value={selectedContextBranch}
+                onChange={(e) => setSelectedContextBranch(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                disabled={!branches.length}
+              >
+                <option value="">All Branches</option>
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name || b.code}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={applyContext}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Apply Context
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Tabs */}
       <div className="bg-white rounded-xl shadow-md">
         <div className="border-b border-gray-200">
@@ -351,7 +471,9 @@ const AcademicSettings = () => {
                 onChange={(e) => setSelectedYear(Number(e.target.value))} 
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
               >
-                {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+                {academicYearConfig.getAcademicYearOptions().map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -575,7 +697,12 @@ const AcademicSettings = () => {
       {activeTab === 'streams' && (
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold">Manage Streams</h3>
+            <div>
+              <h3 className="text-lg font-bold">Manage Streams</h3>
+              <div className="text-xs text-gray-500 mt-1">
+                Current School: {user?.school?.name || 'Unknown'} ({user?.school?.id || user?.schoolId || '—'})
+              </div>
+            </div>
             <button
               onClick={() => openStreamModal()}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"

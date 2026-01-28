@@ -6,6 +6,7 @@
 import express from 'express';
 import * as assessmentController from '../controllers/assessmentController';
 import { authenticate } from '../middleware/auth.middleware';
+import { requireTenant } from '../middleware/tenant.middleware';
 
 const router = express.Router();
 
@@ -13,95 +14,52 @@ const router = express.Router();
 // FORMATIVE ASSESSMENT ROUTES
 // ============================================
 
-// Create or update formative assessment
-router.post(
-  '/formative',
-  authenticate,
-  assessmentController.createFormativeAssessment
-);
+router.post('/formative', authenticate, requireTenant, assessmentController.createFormativeAssessment);
 
-// Get all formative assessments (with filters)
-router.get(
-  '/formative',
-  authenticate,
-  assessmentController.getFormativeAssessments
-);
+router.get('/formative', authenticate, requireTenant, assessmentController.getFormativeAssessments);
 
-// Get formative assessments for a specific learner
 router.get(
   '/formative/learner/:learnerId',
   authenticate,
+  requireTenant,
   assessmentController.getFormativeByLearner
 );
 
-// Delete formative assessment
-router.delete(
-  '/formative/:id',
-  authenticate,
-  assessmentController.deleteFormativeAssessment
-);
+router.delete('/formative/:id', authenticate, requireTenant, assessmentController.deleteFormativeAssessment);
 
 // ============================================
 // SUMMATIVE TEST ROUTES
 // ============================================
 
-// Create summative test
-router.post(
-  '/tests',
-  authenticate,
-  assessmentController.createSummativeTest
-);
+router.post('/tests', authenticate, requireTenant, assessmentController.createSummativeTest);
 
-// Get all summative tests (with filters)
-router.get(
-  '/tests',
-  authenticate,
-  assessmentController.getSummativeTests
-);
+router.get('/tests', authenticate, requireTenant, assessmentController.getSummativeTests);
 
-// Get single summative test with results
-router.get(
-  '/tests/:id',
-  authenticate,
-  assessmentController.getSummativeTest
-);
+router.get('/tests/:id', authenticate, requireTenant, assessmentController.getSummativeTest);
 
-// Update summative test
-router.put(
-  '/tests/:id',
-  authenticate,
-  assessmentController.updateSummativeTest
-);
+router.put('/tests/:id', authenticate, requireTenant, assessmentController.updateSummativeTest);
 
-// Delete summative test
-router.delete(
-  '/tests/:id',
-  authenticate,
-  assessmentController.deleteSummativeTest
-);
+router.delete('/tests/:id', authenticate, requireTenant, assessmentController.deleteSummativeTest);
 
 // ============================================
 // SUMMATIVE RESULT ROUTES
 // ============================================
 
-// Record summative result (marks)
-router.post(
-  '/summative/results',
-  authenticate,
-  assessmentController.recordSummativeResult
-);
+router.post('/summative/results', authenticate, requireTenant, assessmentController.recordSummativeResult);
 
-// Get summative results for a learner
+router.post('/summative/results/bulk', authenticate, requireTenant, assessmentController.recordSummativeResultsBulk);
+
 router.get(
   '/summative/results/learner/:learnerId',
   authenticate,
+  requireTenant,
   assessmentController.getSummativeByLearner
 );
 
-// Get all results for a specific test
 router.get(
   '/summative/results/test/:testId',
   authenticate,
+  requireTenant,
   assessmentController.getTestResults
 );
 

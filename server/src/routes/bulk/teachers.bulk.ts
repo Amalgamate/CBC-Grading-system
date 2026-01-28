@@ -12,12 +12,11 @@ import { Parser } from 'json2csv';
 import { Readable } from 'stream';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { authenticate, requireSchool } from '../../middleware/auth.middleware';
 
 const router = Router();
 const prisma = new PrismaClient();
 
-const upload = multer({ 
+const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }
 });
@@ -38,15 +37,14 @@ const teacherSchema = z.object({
  * POST /api/bulk/teachers/upload
  * Now automatically uses the logged-in user's school!
  */
-router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequest, res: Response) => {
+router.post('/upload', upload.single('file'), async (req: AuthRequest, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Get school from authenticated user OR request body
-    // SUPER_ADMIN must provide schoolId in request
-    const schoolId = req.body.schoolId || req.query.schoolId || req.user!.schoolId;
+    // Get school from headers (preferred), request body, or user token
+    const schoolId = req.headers['x-school-id'] as string || req.body.schoolId || req.query.schoolId || req.user!.schoolId;
 
     // For non-SUPER_ADMIN users, require school association
     if (!schoolId && req.user!.role !== 'SUPER_ADMIN') {
@@ -70,9 +68,13 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
       });
     }
 
+    // Get branch from headers (preferred), request body, or user token
+    const branchIdFromContext = req.headers['x-branch-id'] as string || req.body.branchId || req.user!.branchId;
+
     console.log('Teacher upload request:');
     console.log('- File:', req.file.originalname);
     console.log('- School:', schoolId);
+    console.log('- Default Branch Context:', branchIdFromContext);
     console.log('- User:', req.user!.email);
 
     const results: any[] = [];
@@ -80,7 +82,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
     let lineNumber = 1;
 
     const stream = Readable.from(req.file.buffer.toString());
-    
+
     await new Promise((resolve, reject) => {
       stream
         .pipe(csvParser())
@@ -128,8 +130,8 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
           continue;
         }
 
-        // Resolve branch if Branch Code is provided
-        let branchId = null;
+        // Resolve branch: CSV 'Branch Code' takes precedence, then header context
+        let branchId = branchIdFromContext || null;
         if (csvData['Branch Code']) {
           const branch = await prisma.branch.findFirst({
             where: {
@@ -210,7 +212,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
 
   } catch (error) {
     console.error('Bulk upload error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to process upload',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -221,7 +223,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
  * GET /api/bulk/teachers/export
  * Export teachers (scoped to user's school)
  */
-router.get('/export', authenticate, requireSchool, async (req: AuthRequest, res: Response) => {
+router.get('/export', async (req: AuthRequest, res: Response) => {
   try {
     const { role, status } = req.query;
     const schoolId = req.user!.schoolId!;
@@ -259,13 +261,13 @@ router.get('/export', authenticate, requireSchool, async (req: AuthRequest, res:
       'Branch Code': teacher.branch?.code || '',
       'Subjects': '',
       'Status': teacher.status,
-      'Created Date': teacher.createdAt ? 
+      'Created Date': teacher.createdAt ?
         new Date(teacher.createdAt).toLocaleDateString('en-GB') : ''
     }));
 
     const parser = new Parser({
       fields: [
-        'ID', 'Staff ID', 'First Name', 'Last Name', 'Email', 
+        'ID', 'Staff ID', 'First Name', 'Last Name', 'Email',
         'Phone', 'Role', 'Branch', 'Branch Code', 'Subjects', 'Status', 'Created Date'
       ]
     });
@@ -277,7 +279,7 @@ router.get('/export', authenticate, requireSchool, async (req: AuthRequest, res:
 
   } catch (error) {
     console.error('Export error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to export data',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -305,7 +307,7 @@ router.get('/template', (_req: Request, res: Response) => {
 
   const parser = new Parser({
     fields: [
-      'ID', 'Staff ID', 'First Name', 'Last Name', 'Email', 
+      'ID', 'Staff ID', 'First Name', 'Last Name', 'Email',
       'Phone', 'Role', 'Branch Code', 'Subjects', 'Status'
     ]
   });

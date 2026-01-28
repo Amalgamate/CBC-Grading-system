@@ -11,16 +11,16 @@ import { useAuth } from '../../../hooks/useAuth';
 import { configAPI } from '../../../services/api';
 import BulkOperationsModal from '../shared/bulk/BulkOperationsModal';
 
-const LearnersList = ({ 
-  learners, 
+const LearnersList = ({
+  learners,
   loading,
   pagination,
   onFetchLearners,
-  onAddLearner, 
-  onEditLearner, 
-  onViewLearner, 
-  onMarkAsExited, 
-  onDeleteLearner, 
+  onAddLearner,
+  onEditLearner,
+  onViewLearner,
+  onMarkAsExited,
+  onDeleteLearner,
   onRefresh,
   onBulkDelete
 }) => {
@@ -175,7 +175,7 @@ const LearnersList = ({
       {/* Compact Quick Actions Toolbar */}
       <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
         <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
-          
+
           {/* Search and Filters */}
           <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto flex-1">
             {/* Search */}
@@ -251,7 +251,7 @@ const LearnersList = ({
                 <option value="GRADUATED">Graduated</option>
                 <option value="SUSPENDED">Suspended</option>
               </select>
-              
+
               {/* Reset Button */}
               {(searchTerm || filterGrade !== 'all' || filterStatus !== 'all' || filterStream !== 'all') && (
                 <button
@@ -278,7 +278,7 @@ const LearnersList = ({
             {canCreateLearner ? (
               <>
                 <div className="relative">
-                  <button 
+                  <button
                     onClick={() => setShowQuickActions(!showQuickActions)}
                     className="p-2 bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 rounded-lg transition"
                     title="Quick Actions"
@@ -287,8 +287,8 @@ const LearnersList = ({
                   </button>
                   {showQuickActions && (
                     <>
-                      <div 
-                        className="fixed inset-0 z-10" 
+                      <div
+                        className="fixed inset-0 z-10"
                         onClick={() => setShowQuickActions(false)}
                       />
                       <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 z-20 py-1">
@@ -307,7 +307,7 @@ const LearnersList = ({
                   )}
                 </div>
 
-                <button 
+                <button
                   onClick={onAddLearner}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
                 >
@@ -318,7 +318,7 @@ const LearnersList = ({
               </>
             ) : (
               <div className="relative group">
-                <button 
+                <button
                   disabled
                   className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-400 border border-gray-200 rounded-lg cursor-not-allowed"
                 >
@@ -374,8 +374,8 @@ const LearnersList = ({
         <EmptyState
           icon={Users}
           title="No Students Found"
-          message={searchTerm || filterGrade !== 'all' || filterStatus !== 'all' 
-            ? "No students match your search criteria." 
+          message={searchTerm || filterGrade !== 'all' || filterStatus !== 'all'
+            ? "No students match your search criteria."
             : "No students have been added yet."}
           actionText={!searchTerm && filterGrade === 'all' && filterStatus === 'all' && canCreateLearner ? "Add Your First Student" : null}
           onAction={canCreateLearner ? onAddLearner : undefined}
@@ -432,34 +432,34 @@ const LearnersList = ({
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1">
-                      <button 
+                      <button
                         onClick={() => onViewLearner(learner)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition" 
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
                         title="View Details"
                       >
                         <Eye size={16} />
                       </button>
                       {!isTeacher && (
                         <>
-                          <button 
+                          <button
                             onClick={() => onEditLearner(learner)}
-                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition" 
+                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition"
                             title="Edit"
                           >
                             <Edit size={16} />
                           </button>
                           {learner.status === 'Active' && (
-                            <button 
+                            <button
                               onClick={() => onMarkAsExited(learner.id)}
-                              className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition" 
+                              className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition"
                               title="Mark as Exited"
                             >
                               <LogOut size={16} />
                             </button>
                           )}
-                          <button 
+                          <button
                             onClick={() => handleIndividualDelete(learner.id)}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition" 
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
                             title="Delete"
                           >
                             <Trash2 size={16} />
@@ -472,7 +472,7 @@ const LearnersList = ({
               ))}
             </tbody>
           </table>
-          
+
           {/* Pagination Controls */}
           {pagination && pagination.pages > 1 && (
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
@@ -511,7 +511,6 @@ const LearnersList = ({
         onClose={() => setShowBulkModal(false)}
         title="Bulk Student Operations"
         entityType="learners"
-        userRole={user?.role}
         onUploadComplete={() => {
           setShowBulkModal(false);
           if (onRefresh) onRefresh();

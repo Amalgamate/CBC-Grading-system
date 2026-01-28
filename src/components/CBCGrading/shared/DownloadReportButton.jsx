@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Loader2, CheckCircle, AlertCircle, FileText } from 'lucide-react';
+import { Download, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
 /**
  * Professional Download Button with Animation States

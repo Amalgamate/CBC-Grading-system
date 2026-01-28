@@ -20,21 +20,26 @@ export class UserController {
   async getAllUsers(req: AuthRequest, res: Response) {
     const currentUserRole = req.user!.role;
     const includeArchived = req.query.includeArchived === 'true';
-    
+
     let users;
-    
+
     if (currentUserRole === 'HEAD_TEACHER') {
       // HEAD_TEACHER can only see teachers in their department
       // TODO: Filter by department when department model is implemented
       const whereClause: any = {
         role: { in: ['TEACHER', 'HEAD_TEACHER'] }
       };
-      
+
+      // Phase 5: Tenant Scoping
+      if (req.user?.schoolId) {
+        whereClause.schoolId = req.user.schoolId;
+      }
+
       // Exclude archived users by default
       if (!includeArchived) {
         whereClause.archived = false;
       }
-      
+
       users = await prisma.user.findMany({
         where: whereClause,
         select: {
@@ -53,12 +58,17 @@ export class UserController {
     } else {
       // SUPER_ADMIN and ADMIN see all users
       const whereClause: any = {};
-      
+
+      // Phase 5: Tenant Scoping
+      if (req.user?.schoolId) {
+        whereClause.schoolId = req.user.schoolId;
+      }
+
       // Exclude archived users by default
       if (!includeArchived) {
         whereClause.archived = false;
       }
-      
+
       users = await prisma.user.findMany({
         where: whereClause,
         select: {
@@ -115,8 +125,8 @@ export class UserController {
     }
 
     // Check if user can access this profile
-    const canAccess = 
-      currentUserId === id || 
+    const canAccess =
+      currentUserId === id ||
       ['SUPER_ADMIN', 'ADMIN'].includes(currentUserRole);
 
     if (!canAccess) {
@@ -138,6 +148,12 @@ export class UserController {
   async createUser(req: AuthRequest, res: Response) {
     const { email, password, firstName, lastName, middleName, phone, role } = req.body;
     const currentUserRole = req.user!.role;
+
+    // Determine schoolId
+    let schoolId = req.body.schoolId;
+    if (req.user?.schoolId) {
+      schoolId = req.user.schoolId;
+    }
 
     // Validate required fields
     if (!email || !password || !firstName || !lastName || !role) {
@@ -189,7 +205,8 @@ export class UserController {
         phone: phone || null,
         role: role as Role,
         status: 'ACTIVE',
-        emailVerified: false
+        emailVerified: false,
+        schoolId, // Add schoolId
       },
       select: {
         id: true,
@@ -227,6 +244,11 @@ export class UserController {
       throw new ApiError(404, 'User not found');
     }
 
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId && targetUser.schoolId !== req.user.schoolId) {
+      throw new ApiError(403, 'Unauthorized access to user');
+    }
+
     // Check permissions
     const isSelfUpdate = currentUserId === id;
     const canUpdate = isSelfUpdate || ['SUPER_ADMIN', 'ADMIN'].includes(currentUserRole);
@@ -240,7 +262,7 @@ export class UserController {
       if (isSelfUpdate) {
         throw new ApiError(403, 'You cannot change your own role');
       }
-      
+
       if (!canManageRole(currentUserRole, role as Role)) {
         throw new ApiError(403, `You cannot assign role: ${role}`);
       }
@@ -257,12 +279,12 @@ export class UserController {
 
     // Build update data
     const updateData: any = {};
-    
+
     if (firstName) updateData.firstName = firstName;
     if (lastName) updateData.lastName = lastName;
     if (middleName !== undefined) updateData.middleName = middleName;
     if (phone !== undefined) updateData.phone = phone;
-    
+
     // Only admins can change role and status
     if (!isSelfUpdate && ['SUPER_ADMIN', 'ADMIN'].includes(currentUserRole)) {
       if (role) updateData.role = role as Role;
@@ -383,6 +405,11 @@ export class UserController {
       throw new ApiError(404, 'User not found');
     }
 
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId && targetUser.schoolId !== req.user.schoolId) {
+      throw new ApiError(403, 'Unauthorized access to user');
+    }
+
     // Check if archived
     if (!targetUser.archived) {
       throw new ApiError(400, 'User is not archived');
@@ -417,12 +444,17 @@ export class UserController {
 
   /**
    * Delete user (hard delete)
-   * Access: SUPER_ADMIN, ADMIN (cannot delete self or higher roles)
+   * Access: SUPER_ADMIN ONLY
    */
   async deleteUser(req: AuthRequest, res: Response) {
     const { id } = req.params;
     const currentUserId = req.user!.userId;
     const currentUserRole = req.user!.role;
+
+    // ONLY Super Admin can hard delete
+    if (currentUserRole !== 'SUPER_ADMIN') {
+      throw new ApiError(403, 'Permission denied: Only SUPER_ADMIN can permanently delete records');
+    }
 
     // Prevent self-deletion
     if (currentUserId === id) {
@@ -435,17 +467,12 @@ export class UserController {
       throw new ApiError(404, 'User not found');
     }
 
-    // Check if current user can delete target user
-    if (!canManageRole(currentUserRole, targetUser.role as Role)) {
-      throw new ApiError(403, `You cannot delete users with role: ${targetUser.role}`);
-    }
-
     // Delete user
     await prisma.user.delete({ where: { id } });
 
     res.json({
       success: true,
-      message: `User ${targetUser.email} deleted successfully`
+      message: `User ${targetUser.email} permanently deleted by Super Admin`
     });
   }
 
@@ -458,7 +485,7 @@ export class UserController {
     const currentUserRole = req.user!.role;
     const includeArchived = req.query.includeArchived === 'true';
     const search = req.query.search as string;
-    
+
     // Pagination parameters
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
@@ -476,7 +503,7 @@ export class UserController {
     }
 
     const whereClause: any = { role: role as Role };
-    
+
     // Exclude archived users by default
     if (!includeArchived) {
       whereClause.archived = false;
@@ -534,6 +561,11 @@ export class UserController {
   async getUserStats(req: AuthRequest, res: Response) {
     const currentUserRole = req.user!.role;
 
+    const whereClause: any = {};
+    if (req.user?.schoolId) {
+      whereClause.schoolId = req.user.schoolId;
+    }
+
     const stats: any = {
       role: currentUserRole,
       timestamp: new Date()
@@ -543,7 +575,8 @@ export class UserController {
       // Get all user counts by role
       const userCounts = await prisma.user.groupBy({
         by: ['role'],
-        _count: true
+        _count: true,
+        where: whereClause
       });
 
       stats.usersByRole = userCounts.reduce((acc, item) => {
@@ -557,7 +590,7 @@ export class UserController {
     if (currentUserRole === 'HEAD_TEACHER') {
       // Get teacher counts
       const teacherCount = await prisma.user.count({
-        where: { role: 'TEACHER' }
+        where: { role: 'TEACHER', ...whereClause }
       });
       stats.teachers = teacherCount;
     }

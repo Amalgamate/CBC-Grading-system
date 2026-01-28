@@ -24,10 +24,14 @@ const CommunicationSettings = () => {
   });
 
   const [smsSettings, setSmsSettings] = useState({
-    provider: 'africastalking',
+    provider: 'mobilesasa',
+    baseUrl: 'https://api.mobilesasa.com',
     apiKey: '',
-    username: '',
-    senderId: 'ZAWADI'
+    senderId: 'ZAWADI',
+    customName: '',
+    customBaseUrl: '',
+    customAuthHeader: 'Authorization',
+    customToken: ''
   });
 
   const [mpesaSettings, setMpesaSettings] = useState({
@@ -189,41 +193,7 @@ const CommunicationSettings = () => {
             </div>
           </div>
 
-          {/* Test Email */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <TestTube size={20} className="text-blue-600" />
-              Test Email
-            </h3>
-            <div className="space-y-4">
-              <input
-                type="email"
-                value={testContact}
-                onChange={(e) => setTestContact(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
-                placeholder="test@example.com"
-              />
-              <button
-                onClick={handleTestEmail}
-                disabled={testing}
-                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-              >
-                {testing ? <Loader size={20} className="animate-spin" /> : <Send size={20} />}
-                {testing ? 'Sending...' : 'Send Test Email'}
-              </button>
-              {testResult && (
-                <div className={`p-4 rounded-lg border ${testResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                  <div className="flex items-start gap-3">
-                    {testResult.success ? <CheckCircle className="text-green-600" size={20} /> : <XCircle className="text-red-600" size={20} />}
-                    <div>
-                      <p className="font-semibold">{testResult.message}</p>
-                      <p className="text-xs text-gray-600 mt-1">{testResult.timestamp}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          {/* Test Email removed */}
         </div>
       )}
 
@@ -240,49 +210,109 @@ const CommunicationSettings = () => {
                   onChange={(e) => setSmsSettings({...smsSettings, provider: e.target.value})}
                   className="w-full px-4 py-2 border rounded-lg"
                 >
-                  <option value="africastalking">Africa's Talking (KES 0.80/SMS)</option>
-                  <option value="twilio">Twilio ($0.0075/SMS)</option>
+                  <option value="mobilesasa">MobileSasa (Default)</option>
+                  <option value="custom">Custom Provider</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">Username</label>
-                <input
-                  type="text"
-                  value={smsSettings.username}
-                  onChange={(e) => setSmsSettings({...smsSettings, username: e.target.value})}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  placeholder="sandbox"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">API Key</label>
-                <input
-                  type="password"
-                  value={smsSettings.apiKey}
-                  onChange={(e) => setSmsSettings({...smsSettings, apiKey: e.target.value})}
-                  className="w-full px-4 py-2 border rounded-lg"
-                />
-                <a 
-                  href="https://account.africastalking.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:underline mt-1 inline-block"
-                >
-                  Get API Key →
-                </a>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">Sender ID</label>
-                <input
-                  type="text"
-                  value={smsSettings.senderId}
-                  onChange={(e) => setSmsSettings({...smsSettings, senderId: e.target.value.toUpperCase()})}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  maxLength={11}
-                  placeholder="ZAWADI"
-                />
-                <p className="text-xs text-gray-600 mt-1">Max 11 characters</p>
-              </div>
+              {smsSettings.provider === 'mobilesasa' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">API Base URL</label>
+                    <input
+                      type="text"
+                      value={smsSettings.baseUrl}
+                      onChange={(e) => setSmsSettings({...smsSettings, baseUrl: e.target.value})}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      placeholder="https://api.mobilesasa.com"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      Use endpoints: <span className="font-mono">/v1/send/message</span> (send SMS), <span className="font-mono">/v1/msisdns/load-details</span> (validate phone)
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">API Key / Token</label>
+                    <input
+                      type="password"
+                      value={smsSettings.apiKey}
+                      onChange={(e) => setSmsSettings({...smsSettings, apiKey: e.target.value})}
+                      className="w-full px-4 py-2 border rounded-lg"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      Sent as <span className="font-mono">Authorization: Bearer &lt;token&gt;</span> with <span className="font-mono">Accept</span> and <span className="font-mono">Content-Type</span> set to <span className="font-mono">application/json</span>.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">Sender ID</label>
+                    <input
+                      type="text"
+                      value={smsSettings.senderId}
+                      onChange={(e) => setSmsSettings({...smsSettings, senderId: e.target.value.toUpperCase()})}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      maxLength={11}
+                      placeholder="ZAWADI"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">Max 11 characters</p>
+                  </div>
+                </>
+              )}
+              {smsSettings.provider === 'custom' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">Provider Name</label>
+                    <input
+                      type="text"
+                      value={smsSettings.customName}
+                      onChange={(e) => setSmsSettings({...smsSettings, customName: e.target.value})}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      placeholder="MySMSProvider"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">API Base URL</label>
+                    <input
+                      type="text"
+                      value={smsSettings.customBaseUrl}
+                      onChange={(e) => setSmsSettings({...smsSettings, customBaseUrl: e.target.value})}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      placeholder="https://api.example.com"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Auth Header</label>
+                      <input
+                        type="text"
+                        value={smsSettings.customAuthHeader}
+                        onChange={(e) => setSmsSettings({...smsSettings, customAuthHeader: e.target.value})}
+                        className="w-full px-4 py-2 border rounded-lg"
+                        placeholder="Authorization"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Token / API Key</label>
+                      <input
+                        type="password"
+                        value={smsSettings.customToken}
+                        onChange={(e) => setSmsSettings({...smsSettings, customToken: e.target.value})}
+                        className="w-full px-4 py-2 border rounded-lg"
+                        placeholder="Bearer xxxxxx or APIKey"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">Sender ID</label>
+                    <input
+                      type="text"
+                      value={smsSettings.senderId}
+                      onChange={(e) => setSmsSettings({...smsSettings, senderId: e.target.value.toUpperCase()})}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      maxLength={11}
+                      placeholder="ZAWADI"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">Max 11 characters</p>
+                  </div>
+                </>
+              )}
               <button
                 onClick={() => handleSave('SMS')}
                 className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold mt-4"
@@ -306,6 +336,13 @@ const CommunicationSettings = () => {
                 className="w-full px-4 py-2 border rounded-lg"
                 placeholder="254712345678"
               />
+              <textarea
+                value={testResult?.messagePreview || ''}
+                onChange={(e) => setTestResult({ ...(testResult || {}), messagePreview: e.target.value })}
+                className="w-full px-4 py-2 border rounded-lg"
+                placeholder="Enter a test message"
+                rows={3}
+              />
               <button
                 onClick={handleTestSMS}
                 disabled={testing}
@@ -321,10 +358,19 @@ const CommunicationSettings = () => {
                     <div>
                       <p className="font-semibold">{testResult.message}</p>
                       <p className="text-xs text-gray-600 mt-1">{testResult.timestamp}</p>
+                      {testResult.messagePreview && (
+                        <p className="text-xs text-gray-600 mt-2">
+                          Preview: <span className="font-mono">{testResult.messagePreview}</span>
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
               )}
+              <p className="text-xs text-gray-600">
+                For MobileSasa JSON API, send POST to <span className="font-mono">{smsSettings.baseUrl || 'https://api.mobilesasa.com'}/v1/send/message</span> with body 
+                <span className="font-mono">{" { senderID, message, phone } "}</span>.
+              </p>
             </div>
           </div>
         </div>

@@ -5,81 +5,77 @@
  * Focus mode: Only showing Students, Tutors, Parents, Assessment, and Settings
  */
 
-import React, { useMemo } from 'react';
-import { 
-  Menu, X, Home, Users, Settings, 
+import React, { useMemo, useState } from 'react';
+import {
+  Menu, X, Home, Users, Settings,
   BarChart3, ChevronDown, GraduationCap, ClipboardList, Megaphone, UserPlus, HelpCircle, DollarSign,
   UserCog, BookOpen, Bus, Fingerprint, Calendar, BookMarked
 } from 'lucide-react';
 import { usePermissions } from '../../../hooks/usePermissions';
 
 // Modules to focus on - others will be hidden
-const focusModules = ['dashboard', 'learners', 'teachers', 'parents', 'assessment', 'settings'];
+const focusModules = ['dashboard', 'learners', 'teachers', 'parents', 'assessment', 'communications', 'settings'];
 
 // Define all navigation sections with their required permissions
 const allNavSections = [
-  { 
-    id: 'dashboard', 
-    label: 'Dashboard', 
-    icon: Home, 
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: Home,
     items: [],
     permission: null // Always visible
   },
-  { 
-    id: 'learners', 
-    label: 'Students', 
+  {
+    id: 'learners',
+    label: 'Students',
     icon: Users,
     permission: null, // Section visible to TEACHER, ADMIN, etc.
     items: [
       { id: 'learners-list', label: 'Students List', path: 'learners-list', permission: 'VIEW_ALL_LEARNERS' },
       { id: 'learners-admissions', label: 'Admissions', path: 'learners-admissions', permission: 'CREATE_LEARNER' },
-      { id: 'learners-transfers-in', label: 'Transfers In', path: 'learners-transfers-in', permission: 'CREATE_LEARNER' },
-      { id: 'learners-exited', label: 'Exited Students', path: 'learners-exited', permission: 'VIEW_ALL_LEARNERS' },
-      { id: 'learners-promotion', label: 'Promotion', path: 'learners-promotion', permission: 'PROMOTE_LEARNER' },
-      { id: 'learners-transfer-out', label: 'Transfer Out', path: 'learners-transfer-out', permission: 'TRANSFER_LEARNER' }
+      { id: 'learners-promotion', label: 'Promotion', path: 'learners-promotion', permission: 'PROMOTE_LEARNER' }
     ]
   },
-  { 
-    id: 'teachers', 
-    label: 'Tutors', 
+  {
+    id: 'teachers',
+    label: 'Tutors',
     icon: GraduationCap,
     permission: 'MANAGE_TEACHERS', // Only admins can manage teachers - HIDDEN FROM TEACHERS
     items: [
       { id: 'teachers-list', label: 'Tutors List', path: 'teachers-list', permission: 'MANAGE_TEACHERS' }
     ]
   },
-  { 
-    id: 'parents', 
-    label: 'Parents', 
+  {
+    id: 'parents',
+    label: 'Parents',
     icon: UserPlus,
     permission: 'VIEW_ALL_USERS', // Teachers can view parents
     items: [
       { id: 'parents-list', label: 'Parents List', path: 'parents-list', permission: 'VIEW_ALL_USERS' }
     ]
   },
-  { 
-    id: 'assessment', 
-    label: 'Assessment', 
+  {
+    id: 'assessment',
+    label: 'Assessment',
     icon: BarChart3,
     permission: 'ACCESS_ASSESSMENT_MODULE', // Only teachers, admins, head teachers
     items: [
-      {
-        id: 'group-formative',
-        label: 'Formative',
-        type: 'group',
-        items: [
-          { id: 'assess-formative', label: 'Assessments', path: 'assess-formative', permission: 'ACCESS_ASSESSMENT_MODULE' },
-          { id: 'assess-formative-report', label: 'Reports', path: 'assess-formative-report', permission: 'ACCESS_ASSESSMENT_MODULE' },
-        ]
-      },
       {
         id: 'group-summative',
         label: 'Summative',
         type: 'group',
         items: [
-          { id: 'assess-summative-tests', label: 'Tests', path: 'assess-summative-tests', permission: 'ACCESS_ASSESSMENT_MODULE' },
           { id: 'assess-summative-assessment', label: 'Assessments', path: 'assess-summative-assessment', permission: 'ACCESS_ASSESSMENT_MODULE' },
           { id: 'assess-summative-report', label: 'Reports', path: 'assess-summative-report', permission: 'ACCESS_ASSESSMENT_MODULE' },
+        ]
+      },
+      {
+        id: 'group-formative',
+        label: 'Formative',
+        type: 'group',
+        items: [
+          { id: 'assess-formative', label: 'Assessments', path: 'assess-formative', permission: 'ACCESS_ASSESSMENT_MODULE', greyedOut: true },
+          { id: 'assess-formative-report', label: 'Reports', path: 'assess-formative-report', permission: 'ACCESS_ASSESSMENT_MODULE', greyedOut: true },
         ]
       },
       {
@@ -87,16 +83,15 @@ const allNavSections = [
         label: 'General',
         type: 'group',
         items: [
-          { id: 'assess-summary-report', label: 'Summary Report', path: 'assess-summary-report', permission: 'ACCESS_ASSESSMENT_MODULE' },
-          { id: 'assess-termly-report', label: 'Termly Report', path: 'assess-termly-report', permission: 'ACCESS_ASSESSMENT_MODULE' },
+          { id: 'assess-summative-tests', label: 'Tests', path: 'assess-summative-tests', permission: 'ACCESS_ASSESSMENT_MODULE' },
           { id: 'assess-performance-scale', label: 'Performance Scale', path: 'assess-performance-scale', permission: 'ACCESS_ASSESSMENT_MODULE' }
         ]
       }
     ]
   },
-  { 
-    id: 'learning-hub', 
-    label: 'Learning Hub', 
+  {
+    id: 'learning-hub',
+    label: 'Learning Hub',
     icon: BookMarked,
     permission: null, // Teachers can create, students/parents can view
     items: [
@@ -106,16 +101,16 @@ const allNavSections = [
       { id: 'learning-hub-library', label: 'Resource Library', path: 'learning-hub-library', permission: null }
     ]
   },
-  { 
-    id: 'timetable', 
-    label: 'Timetable', 
+  {
+    id: 'timetable',
+    label: 'Timetable',
     icon: Calendar,
     permission: null, // Teachers need to see their timetable
     items: []
   },
-  { 
-    id: 'attendance', 
-    label: 'Attendance', 
+  {
+    id: 'attendance',
+    label: 'Attendance',
     icon: ClipboardList,
     permission: null, // Teachers can mark attendance
     items: [
@@ -123,9 +118,9 @@ const allNavSections = [
       { id: 'attendance-reports', label: 'Attendance Reports', path: 'attendance-reports', permission: 'GENERATE_ATTENDANCE_REPORTS' }
     ]
   },
-  { 
-    id: 'communications', 
-    label: 'Communications', 
+  {
+    id: 'communications',
+    label: 'Communications',
     icon: Megaphone,
     permission: null, // All roles can access communications
     items: [
@@ -133,9 +128,9 @@ const allNavSections = [
       { id: 'comm-messages', label: 'Messages', path: 'comm-messages', permission: 'VIEW_INBOX' }
     ]
   },
-  { 
-    id: 'fees', 
-    label: 'Fee Management', 
+  {
+    id: 'fees',
+    label: 'Fee Management',
     icon: DollarSign,
     permission: 'FEE_MANAGEMENT', // Only admins and accountants
     items: [
@@ -145,9 +140,9 @@ const allNavSections = [
       { id: 'fees-statements', label: 'Student Statements', path: 'fees-statements', permission: 'FEE_MANAGEMENT' }
     ]
   },
-  { 
-    id: 'hr', 
-    label: 'Human Resources', 
+  {
+    id: 'hr',
+    label: 'Human Resources',
     icon: UserCog,
     permission: 'HR_MANAGEMENT', // Only admins and HR personnel
     items: [
@@ -158,9 +153,9 @@ const allNavSections = [
       { id: 'hr-documents', label: 'Staff Documents', path: 'hr-documents', permission: 'HR_MANAGEMENT', comingSoon: true }
     ]
   },
-  { 
-    id: 'library', 
-    label: 'Library Management', 
+  {
+    id: 'library',
+    label: 'Library Management',
     icon: BookOpen,
     permission: 'LIBRARY_MANAGEMENT', // Admins and librarians
     items: [
@@ -171,9 +166,9 @@ const allNavSections = [
       { id: 'library-members', label: 'Member Management', path: 'library-members', permission: 'LIBRARY_MANAGEMENT', comingSoon: true }
     ]
   },
-  { 
-    id: 'transport', 
-    label: 'Transport & Hostel', 
+  {
+    id: 'transport',
+    label: 'Transport & Hostel',
     icon: Bus,
     permission: 'TRANSPORT_MANAGEMENT', // Admins and transport managers
     items: [
@@ -185,9 +180,9 @@ const allNavSections = [
       { id: 'transport-reports', label: 'Transport Reports', path: 'transport-reports', permission: 'TRANSPORT_MANAGEMENT', comingSoon: true }
     ]
   },
-  { 
-    id: 'biometric', 
-    label: 'Biometric Attendance', 
+  {
+    id: 'biometric',
+    label: 'Biometric Attendance',
     icon: Fingerprint,
     permission: 'BIOMETRIC_ATTENDANCE', // Admins and attendance managers
     items: [
@@ -198,16 +193,16 @@ const allNavSections = [
       { id: 'biometric-api', label: 'API Integration', path: 'biometric-api', permission: 'BIOMETRIC_ATTENDANCE', comingSoon: true }
     ]
   },
-  { 
-    id: 'help', 
-    label: 'Help & Support', 
+  {
+    id: 'help',
+    label: 'Help & Support',
     icon: HelpCircle,
     permission: null, // Always visible
     items: []
   },
-  { 
-    id: 'settings', 
-    label: 'Settings', 
+  {
+    id: 'settings',
+    label: 'Settings',
     icon: Settings,
     permission: 'SCHOOL_SETTINGS', // Only ADMIN and SUPER_ADMIN
     items: [
@@ -221,16 +216,39 @@ const allNavSections = [
   }
 ];
 
-const Sidebar = ({ 
-  sidebarOpen, 
-  setSidebarOpen, 
-  currentPage, 
+const Sidebar = ({
+  sidebarOpen,
+  setSidebarOpen,
+  currentPage,
   onNavigate,
   expandedSections,
   toggleSection,
   brandingSettings
 }) => {
   const { can } = usePermissions();
+  const [expandedSubSections, setExpandedSubSections] = useState({
+    'group-summative': true,
+    'group-formative': false,
+    'group-general': true
+  });
+
+  const toggleSubSection = (id) => {
+    setExpandedSubSections(prev => {
+      const isOpening = !prev[id];
+      if (isOpening) {
+        // Close all other sub-sections
+        const newState = Object.keys(prev).reduce((acc, key) => {
+          acc[key] = false;
+          return acc;
+        }, {});
+        newState[id] = true;
+        return newState;
+      } else {
+        // Just toggling off
+        return { ...prev, [id]: false };
+      }
+    });
+  };
 
   // Filter navigation sections based on user permissions AND focus modules
   const navSections = useMemo(() => {
@@ -258,7 +276,7 @@ const Sidebar = ({
         if (!focusModules.includes(section.id)) {
           return false; // Hide non-focus modules
         }
-        
+
         // If section has permission requirement, check it
         if (section.permission && !can(section.permission)) {
           return false;
@@ -282,10 +300,10 @@ const Sidebar = ({
       {/* Logo/Brand */}
       <div className="p-4 border-b border-blue-700">
         <div className="flex items-center gap-3">
-          <img 
-            src={brandingSettings?.logoUrl || '/logo-zawadi.png'} 
-            alt="School Logo" 
-            className="w-10 h-10 object-contain" 
+          <img
+            src={brandingSettings?.logoUrl || '/logo-zawadi.png'}
+            alt="School Logo"
+            className="w-10 h-10 object-contain"
             onError={(e) => { e.target.src = '/logo-zawadi.png'; }}
           />
           {sidebarOpen && (
@@ -302,22 +320,21 @@ const Sidebar = ({
           <div key={section.id}>
             {section.items.length > 0 ? (
               <>
-                <button 
-                  onClick={() => toggleSection(section.id)} 
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition ${
-                    section.id === 'assessment' 
-                      ? (expandedSections[section.id] ? 'bg-yellow-600 text-gray-900 font-bold shadow-lg' : 'bg-yellow-500 text-gray-900 font-bold hover:bg-yellow-600 shadow-md')
-                      : (expandedSections[section.id] ? 'bg-blue-700' : 'text-blue-100 hover:bg-blue-700')
-                  }`}
+                <button
+                  onClick={() => toggleSection(section.id)}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition ${section.id === 'assessment'
+                    ? (expandedSections[section.id] ? 'bg-yellow-600 text-gray-900 font-bold shadow-lg' : 'bg-yellow-500 text-gray-900 font-bold hover:bg-yellow-600 shadow-md')
+                    : (expandedSections[section.id] ? 'bg-blue-700' : 'text-blue-100 hover:bg-blue-700')
+                    }`}
                 >
                   <div className="flex items-center gap-3 flex-1">
                     <section.icon size={20} className={section.id === 'assessment' ? 'text-gray-900' : ''} />
                     {sidebarOpen && <span className={`text-sm font-semibold ${section.id === 'assessment' ? 'text-gray-900' : ''}`}>{section.label}</span>}
                   </div>
                   {sidebarOpen && (
-                    <ChevronDown 
-                      size={16} 
-                      className={`transition ${expandedSections[section.id] ? 'rotate-180' : ''} ${section.id === 'assessment' ? 'text-gray-900' : ''}`} 
+                    <ChevronDown
+                      size={16}
+                      className={`transition ${expandedSections[section.id] ? 'rotate-180' : ''} ${section.id === 'assessment' ? 'text-gray-900' : ''}`}
                     />
                   )}
                 </button>
@@ -327,57 +344,61 @@ const Sidebar = ({
                       if (item.type === 'group') {
                         return (
                           <div key={item.id} className="mb-2 mt-1">
-                            <div className={`px-3 py-1 text-[10px] uppercase font-bold tracking-wider mb-1 ${
-                                section.id === 'assessment' ? 'text-gray-900 opacity-60' : 'text-blue-300'
-                            }`}>
-                              {item.label}
-                            </div>
-                            <div className="space-y-1 pl-2 border-l-2 border-white/10 ml-2">
-                              {item.items.map(subItem => (
-                                <button 
-                                  key={subItem.id} 
-                                  onClick={() => subItem.comingSoon ? null : onNavigate(subItem.path)} 
-                                  className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between ${
-                                    subItem.comingSoon
-                                      ? 'text-blue-300 cursor-not-allowed opacity-60'
+                            <button
+                              onClick={() => toggleSubSection(item.id)}
+                              className={`w-full flex items-center justify-between px-3 py-1 text-[10px] uppercase font-bold tracking-wider mb-1 transition-colors hover:text-white ${section.id === 'assessment' ? 'text-gray-900 opacity-60' : 'text-blue-300'
+                                }`}
+                            >
+                              <span>{item.label}</span>
+                              <ChevronDown size={10} className={`transition-transform duration-200 ${expandedSubSections[item.id] ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {expandedSubSections[item.id] && (
+                              <div className="space-y-1 pl-2 border-l-2 border-white/10 ml-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                {item.items.map(subItem => (
+                                  <button
+                                    key={subItem.id}
+                                    onClick={() => (subItem.comingSoon || subItem.greyedOut) ? null : onNavigate(subItem.path)}
+                                    className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between ${subItem.comingSoon || subItem.greyedOut
+                                      ? 'text-blue-300 cursor-not-allowed opacity-40 grayscale'
                                       : section.id === 'assessment'
-                                        ? (currentPage === subItem.path 
-                                            ? 'bg-yellow-600 text-gray-900 font-bold shadow-md' 
-                                            : 'bg-yellow-500/20 text-yellow-100 hover:bg-yellow-500/30 border border-yellow-500/30')
-                                        : (currentPage === subItem.path 
-                                            ? 'bg-blue-500 text-white font-semibold' 
-                                            : 'text-blue-100 hover:bg-blue-700')
-                                  }`}
-                                  disabled={subItem.comingSoon}
-                                >
-                                  <span>{subItem.label}</span>
-                                  {subItem.comingSoon && (
-                                    <span className="text-[10px] bg-yellow-500 text-blue-900 px-2 py-0.5 rounded-full font-bold">
-                                      Soon
-                                    </span>
-                                  )}
-                                </button>
-                              ))}
-                            </div>
+                                        ? (currentPage === subItem.path
+                                          ? 'bg-yellow-600 text-gray-900 font-bold shadow-md'
+                                          : 'bg-yellow-500/20 text-yellow-100 hover:bg-yellow-500/30 border border-yellow-500/30')
+                                        : (currentPage === subItem.path
+                                          ? 'bg-blue-500 text-white font-semibold'
+                                          : 'text-blue-100 hover:bg-blue-700')
+                                      }`}
+                                    disabled={subItem.comingSoon || subItem.greyedOut}
+                                  >
+                                    <span>{subItem.label}</span>
+                                    {subItem.comingSoon && (
+                                      <span className="text-[10px] bg-yellow-500 text-blue-900 px-2 py-0.5 rounded-full font-bold">
+                                        Soon
+                                      </span>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         );
                       }
                       return (
-                        <button 
-                          key={item.id} 
-                          onClick={() => item.comingSoon ? null : onNavigate(item.path)} 
-                          className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between ${
-                            item.comingSoon
-                              ? 'text-blue-300 cursor-not-allowed opacity-60'
-                              : section.id === 'assessment'
-                                ? (currentPage === item.path 
-                                    ? 'bg-yellow-600 text-gray-900 font-bold shadow-md' 
-                                    : 'bg-yellow-500/20 text-yellow-100 hover:bg-yellow-500/30 border border-yellow-500/30')
-                                : (currentPage === item.path 
-                                    ? 'bg-blue-500 text-white font-semibold' 
-                                    : 'text-blue-100 hover:bg-blue-700')
-                          }`}
-                          disabled={item.comingSoon}
+                        <button
+                          key={item.id}
+                          onClick={() => (item.comingSoon || item.greyedOut) ? null : onNavigate(item.path)}
+                          className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between ${item.comingSoon || item.greyedOut
+                            ? 'text-blue-300 cursor-not-allowed opacity-40 grayscale'
+                            : section.id === 'assessment'
+                              ? (currentPage === item.path
+                                ? 'bg-yellow-600 text-gray-900 font-bold shadow-md'
+                                : 'bg-yellow-500/20 text-yellow-100 hover:bg-yellow-500/30 border border-yellow-500/30')
+                              : (currentPage === item.path
+                                ? 'bg-blue-500 text-white font-semibold'
+                                : 'text-blue-100 hover:bg-blue-700')
+                            }`}
+                          disabled={item.comingSoon || item.greyedOut}
                         >
                           <span>{item.label}</span>
                           {item.comingSoon && (
@@ -392,13 +413,12 @@ const Sidebar = ({
                 )}
               </>
             ) : (
-              <button 
-                onClick={() => onNavigate(section.id)} 
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                  currentPage === section.id 
-                    ? 'bg-blue-500' 
-                    : 'text-blue-100 hover:bg-blue-700'
-                }`}
+              <button
+                onClick={() => onNavigate(section.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${currentPage === section.id
+                  ? 'bg-blue-500'
+                  : 'text-blue-100 hover:bg-blue-700'
+                  }`}
               >
                 <section.icon size={20} />
                 {sidebarOpen && <span className="text-sm font-semibold">{section.label}</span>}
@@ -409,8 +429,8 @@ const Sidebar = ({
       </nav>
 
       {/* Toggle Button */}
-      <button 
-        onClick={() => setSidebarOpen(!sidebarOpen)} 
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
         className="p-4 border-t border-blue-700 hover:bg-blue-700 transition"
       >
         {sidebarOpen ? <X size={20} /> : <Menu size={20} />}

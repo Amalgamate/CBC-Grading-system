@@ -6,25 +6,29 @@
 import React from 'react';
 import { CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
 
-const Toast = ({ show, message, type = 'success', onClose }) => {
+const Toast = ({ show, message, type = 'success', onClose, duration = 3000 }) => {
   if (!show) return null;
 
   const styles = {
     success: {
-      bg: 'bg-green-600',
-      icon: CheckCircle
+      bg: 'bg-gradient-to-r from-green-500 to-emerald-600',
+      icon: CheckCircle,
+      ringColor: 'ring-green-500'
     },
     error: {
-      bg: 'bg-red-600',
-      icon: XCircle
+      bg: 'bg-gradient-to-r from-red-500 to-rose-600',
+      icon: XCircle,
+      ringColor: 'ring-red-500'
     },
     warning: {
-      bg: 'bg-orange-600',
-      icon: AlertCircle
+      bg: 'bg-gradient-to-r from-orange-500 to-amber-600',
+      icon: AlertCircle,
+      ringColor: 'ring-orange-500'
     },
     info: {
-      bg: 'bg-blue-600',
-      icon: Info
+      bg: 'bg-gradient-to-r from-blue-500 to-cyan-600',
+      icon: Info,
+      ringColor: 'ring-blue-500'
     }
   };
 
@@ -32,14 +36,17 @@ const Toast = ({ show, message, type = 'success', onClose }) => {
   const Icon = config.icon;
 
   return (
-    <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-lg shadow-lg transition ${config.bg} text-white z-50 animate-slide-up`}>
-      <div className="flex items-center gap-3">
-        <Icon size={20} />
-        <span className="font-medium">{message}</span>
+    <div className={`fixed bottom-6 right-6 max-w-md px-6 py-4 rounded-xl shadow-2xl transition ${config.bg} text-white z-50 animate-slide-up ring-4 ${config.ringColor} ring-opacity-50`}>
+      <div className="flex items-start gap-3">
+        <Icon size={24} className="flex-shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <span className="font-medium text-sm leading-relaxed">{message}</span>
+        </div>
         {onClose && (
           <button 
             onClick={onClose}
-            className="ml-2 hover:opacity-80 transition"
+            className="ml-2 hover:opacity-80 transition text-white text-xl leading-none flex-shrink-0"
+            aria-label="Close notification"
           >
             ×
           </button>

@@ -26,6 +26,7 @@ import SummativeReport from './pages/SummativeReport';
 import TermlyReport from './pages/TermlyReport';
 import SummaryReportPage from './pages/reports/SummaryReportPage';
 import PerformanceScale from './pages/PerformanceScale';
+import { authAPI, API_BASE_URL } from '../../services/api';
 import NoticesPage from './pages/NoticesPage';
 import MessagesPage from './pages/MessagesPage';
 import HelpPage from './pages/HelpPage';
@@ -56,11 +57,14 @@ import { useNotifications } from './hooks/useNotifications';
 
 // Utils
 import { PAGE_TITLES } from './utils/constants';
+import { clearAllSchoolData } from '../../utils/schoolDataCleanup';
+import { logDataIntegrity, verifyDataIntegrity } from '../../utils/dataIntegrityCheck';
 
 export default function CBCGradingSystem({ user, onLogout, brandingSettings, setBrandingSettings }) {
   // UI State
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  
+  const [pageParams, setPageParams] = useState({});
+
   // Initialize from localStorage or default to 'dashboard'
   const [currentPage, setCurrentPage] = useState(() => {
     try {
@@ -74,7 +78,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   const [expandedSections, setExpandedSections] = useState(() => {
     try {
       const saved = localStorage.getItem('cbc_expanded_sections');
-      return saved ? JSON.parse(saved) : { 
+      return saved ? JSON.parse(saved) : {
         dashboard: true,
         learners: false,
         teachers: false,
@@ -85,7 +89,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
         settings: false
       };
     } catch (e) {
-      return { 
+      return {
         dashboard: true,
         learners: false,
         teachers: false,
@@ -106,6 +110,40 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       console.error('Failed to save page state', e);
     }
   }, [currentPage]);
+
+  React.useEffect(() => {
+    const schoolId = (user && (user.school?.id || user.schoolId)) || localStorage.getItem('currentSchoolId');
+    const lastSchoolId = localStorage.getItem('cbc_last_school_id');
+    if (!schoolId) return;
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    const onEnterNewSchool = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/schools/${schoolId}`, {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : '',
+            'X-School-Id': schoolId,
+          },
+        });
+        const json = await res.json();
+        const school = json?.data || json;
+        const branches = Array.isArray(school?.branches) ? school.branches : [];
+        const learnersCount = (school?._count && school._count.learners) || 0;
+        const isBlank = (branches.length === 0) && learnersCount === 0;
+        if (isBlank) {
+          setCurrentPage('settings-school');
+          setExpandedSections(prev => ({ ...prev, settings: true }));
+          try {
+            localStorage.setItem('cbc_current_page', 'settings-school');
+          } catch { }
+        }
+      } catch { }
+    };
+    // Redirect to settings if switching to a different or fresh school
+    if (lastSchoolId !== schoolId) {
+      localStorage.setItem('cbc_last_school_id', schoolId);
+      onEnterNewSchool();
+    }
+  }, [user]);
 
   // Persist expandedSections changes
   React.useEffect(() => {
@@ -175,12 +213,36 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
 
   // Handlers
   const toggleSection = (section) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    setExpandedSections(prev => {
+      const isOpening = !prev[section];
+      if (isOpening) {
+        // Close all other sections
+        const newState = Object.keys(prev).reduce((acc, key) => {
+          acc[key] = false;
+          return acc;
+        }, {});
+        newState[section] = true;
+        return newState;
+      } else {
+        // Just toggling off
+        return { ...prev, [section]: false };
+      }
+    });
+  };
+
+  const handleNavigate = (page, params = {}) => {
+    setPageParams(params);
+    setCurrentPage(page);
   };
 
   const handleLogout = () => {
     setConfirmAction(() => () => {
       setShowConfirmDialog(false);
+
+      // Clear all school-specific data from localStorage
+      const result = clearAllSchoolData();
+      console.log('Logout cleanup:', result);
+
       onLogout();
     });
     setShowConfirmDialog(true);
@@ -248,7 +310,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
     setShowConfirmDialog(true);
   };
 
-  const handleBulkDeleteLearners = async (learnerIds) => {
+  const handleBulkDeleteLearners = React.useCallback(async (learnerIds) => {
     const result = await bulkDeleteLearners(learnerIds);
     if (result.success) {
       const count = learnerIds.length;
@@ -256,7 +318,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
     } else {
       showSuccess(result.error || 'Error deleting students');
     }
-  };
+  }, [bulkDeleteLearners, showSuccess]);
 
   const handleAddTeacher = () => {
     setEditingTeacher(null);
@@ -372,10 +434,10 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
 
   // Render Current Page
   const renderPage = () => {
-    switch(currentPage) {
+    switch (currentPage) {
       case 'dashboard':
         return <RoleDashboard learners={learners} pagination={pagination} teachers={teachers} user={user} />;
-      
+
       // Learners Module
       case 'learners-list':
         return (
@@ -390,6 +452,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
             onMarkAsExited={handleMarkAsExited}
             onDeleteLearner={handleDeleteLearner}
             onBulkDelete={handleBulkDeleteLearners}
+            onRefresh={fetchLearners}
           />
         );
       case 'learners-admissions':
@@ -402,7 +465,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
         return <PromotionPage learners={learners} />;
       case 'learners-transfer-out':
         return <TransferOutPage learners={learners} />;
-      
+
       // Teachers Module
       case 'teachers-list':
         return (
@@ -414,7 +477,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
             onDeleteTeacher={handleDeleteTeacher}
           />
         );
-      
+
       // Parents Module
       case 'parents-list':
         return (
@@ -429,48 +492,48 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
             onArchiveParent={handleArchiveParent}
           />
         );
-      
+
       // Timetable Module
       case 'timetable':
         return <TimetablePage />;
-      
+
       // Attendance Module
       case 'attendance-daily':
         return <DailyAttendance learners={learners} />;
       case 'attendance-reports':
         return <AttendanceReports learners={learners} />;
-      
+
       // Assessment Module
       case 'assess-formative':
         return <FormativeAssessment learners={learners} />;
       case 'assess-formative-report':
         return <FormativeReport learners={learners} />;
       case 'assess-summative-tests':
-        return <SummativeTests />;
+        return <SummativeTests onNavigate={handleNavigate} />;
       case 'assess-summative-assessment':
-        return <SummativeAssessment learners={learners} />;
+        return <SummativeAssessment learners={learners} initialTestId={pageParams.initialTestId} />;
       case 'assess-summative-report':
-        return <SummativeReport learners={learners} brandingSettings={brandingSettings} />;
+        return <SummativeReport learners={learners} onFetchLearners={fetchLearners} brandingSettings={brandingSettings} />;
       case 'assess-summary-report':
         return <SummaryReportPage />;
       case 'assess-termly-report':
         return <TermlyReport learners={learners} />;
       case 'assess-performance-scale':
         return <PerformanceScale />;
-      
+
       // Learning Hub Module (Placeholder)
       case 'learning-hub-materials':
       case 'learning-hub-assignments':
       case 'learning-hub-lesson-plans':
       case 'learning-hub-library':
         return <LearningHubPage />;
-      
+
       // Communications Module
       case 'comm-notices':
         return <NoticesPage />;
       case 'comm-messages':
         return <MessagesPage />;
-      
+
       // Fee Management Module
       case 'fees-structure':
         return <FeeStructurePage />;
@@ -480,11 +543,11 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
         return <FeeReportsPage />;
       case 'fees-statements':
         return <StudentStatementsPage />;
-      
+
       // Help Module
       case 'help':
         return <HelpPage />;
-      
+
       // Settings Module
       case 'settings-school':
         return <SchoolSettings brandingSettings={brandingSettings} setBrandingSettings={setBrandingSettings} />;
@@ -498,7 +561,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
         return <BackupSettings />;
       case 'settings-communication':
         return <CommunicationSettings />;
-      
+
       default:
         return (
           <EmptyState
@@ -597,8 +660,8 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
         show={showConfirmDialog}
         title="Confirm Action"
         message={
-          currentPage === 'dashboard' && confirmAction 
-            ? "Are you sure you want to logout?" 
+          currentPage === 'dashboard' && confirmAction
+            ? "Are you sure you want to logout?"
             : "Are you sure you want to proceed with this action?"
         }
         confirmText="Confirm"

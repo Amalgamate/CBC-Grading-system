@@ -10,9 +10,9 @@ import React, { createContext, useState, useEffect, useCallback } from 'react';
 export const AuthContext = createContext({
   isAuthenticated: false,
   user: null,
-  login: () => {},
-  logout: () => {},
-  updateUser: () => {},
+  login: () => { },
+  logout: () => { },
+  updateUser: () => { },
 });
 
 export const AuthProvider = ({ children }) => {
@@ -26,17 +26,25 @@ export const AuthProvider = ({ children }) => {
       try {
         const token = localStorage.getItem('token');
         const storedUser = localStorage.getItem('user');
-        
+
         if (token && storedUser) {
           const parsedUser = JSON.parse(storedUser);
           setUser(parsedUser);
           setIsAuthenticated(true);
+
+          // Ensure currentSchoolId is set if user has a school
+          const schoolId = parsedUser.schoolId || (parsedUser.school && parsedUser.school.id);
+          if (schoolId && !localStorage.getItem('currentSchoolId')) {
+            localStorage.setItem('currentSchoolId', schoolId);
+          }
+          // Note: Super Admins can have currentSchoolId when they use the school switcher
         }
       } catch (error) {
         console.error('Error restoring auth state:', error);
         // Clear invalid data
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('currentSchoolId');
       } finally {
         setLoading(false);
       }
@@ -49,10 +57,17 @@ export const AuthProvider = ({ children }) => {
     try {
       // Store token
       localStorage.setItem('token', token);
-      
+
       // Store user data
       localStorage.setItem('user', JSON.stringify(userData));
-      
+
+      // Store current school ID for easy access
+      const schoolId = userData.schoolId || (userData.school && userData.school.id);
+      if (schoolId) {
+        localStorage.setItem('currentSchoolId', schoolId);
+      }
+      // Note: Super Admins can switch schools using the school switcher
+
       setUser(userData);
       setIsAuthenticated(true);
     } catch (error) {
@@ -66,7 +81,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('refreshToken');
-    
+    localStorage.removeItem('currentSchoolId');
+
     setUser(null);
     setIsAuthenticated(false);
   }, []);
@@ -79,14 +95,14 @@ export const AuthProvider = ({ children }) => {
     });
   }, []);
 
-  const value = {
+  const value = React.useMemo(() => ({
     isAuthenticated,
     user,
     loading,
     login,
     logout,
     updateUser,
-  };
+  }), [isAuthenticated, user, loading, login, logout, updateUser]);
 
   return (
     <AuthContext.Provider value={value}>

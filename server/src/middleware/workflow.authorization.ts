@@ -183,17 +183,17 @@ export const checkNotPublishedOrLocked = async (
 
     // Check if published or locked
     const restrictedStatuses: AssessmentStatus[] = ['PUBLISHED', 'LOCKED'];
-    
+
     if (restrictedStatuses.includes(assessment.status)) {
       // Allow HEAD_TEACHER and ADMIN to edit published (but not locked)
-      if (assessment.status === 'PUBLISHED' && 
-          (userRole === 'HEAD_TEACHER' || userRole === 'ADMIN')) {
+      if (assessment.status === 'PUBLISHED' &&
+        (userRole === 'HEAD_TEACHER' || userRole === 'ADMIN')) {
         return next();
       }
 
       // Allow ADMIN to edit locked
-      if (assessment.status === 'LOCKED' && 
-          (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN')) {
+      if (assessment.status === 'LOCKED' &&
+        (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN')) {
         return next();
       }
 
@@ -260,12 +260,13 @@ export const preventSelfApproval = async (
     }
 
     // Check if user is trying to approve their own submission
-    if (assessment.submittedBy === userId) {
+    // Bypass for SUPER_ADMIN to allow self-approval of their own tests
+    if (assessment.submittedBy === userId && req.user?.role !== 'SUPER_ADMIN') {
       return res.status(403).json({
         success: false,
         error: {
           code: 'SELF_APPROVAL_NOT_ALLOWED',
-          message: 'You cannot approve your own submission'
+          message: 'You cannot approve your own submission. Please have another administrator review and approve this assessment.'
         }
       });
     }
