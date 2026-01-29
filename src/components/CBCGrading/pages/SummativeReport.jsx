@@ -9,25 +9,20 @@ import { useNotifications } from '../hooks/useNotifications';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import api, { configAPI } from '../../../services/api';
+import { TERMS } from '../../../constants/terms';
+import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
+import { useLearnerSelection } from '../hooks/useLearnerSelection';
 
 const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) => {
   const { showSuccess, showError } = useNotifications();
 
-  console.log('🔍 SummativeReport Props Received:');
-  console.log('   learners:', learners?.length || 0, 'items');
-  console.log('   onFetchLearners:', typeof onFetchLearners);
-  console.log('   user:', user?.id ? 'Loaded' : 'Not loaded');
-  if (learners?.length > 0) {
-    console.log('   Sample learner:', learners[0]);
-  }
+  // Use centralized hooks for assessment state management
+  const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
+  const selection = useLearnerSelection(learners || [], { status: ['ACTIVE', 'Active'] });
 
   const [selectedType, setSelectedType] = useState('LEARNER_REPORT');
-  const [selectedGrade, setSelectedGrade] = useState('all');
-  const [selectedStream, setSelectedStream] = useState('all');
-  const [selectedTerm, setSelectedTerm] = useState('TERM_1');
   const [selectedTestGroups, setSelectedTestGroups] = useState([]);  // ← Now ARRAY for multi-select
   const [selectedTestIds, setSelectedTestIds] = useState([]);         // ← Now ARRAY for multi-select
-  const [selectedLearnerId, setSelectedLearnerId] = useState('');
   const [availableTests, setAvailableTests] = useState([]);
   const [streamConfigs, setStreamConfigs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -48,54 +43,20 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     { value: 'GRADE_ANALYSIS_REPORT', label: 'Grade Analysis Report' }
   ];
 
-  const grades = [
-    { value: 'all', label: 'Select Grade' },
-    { value: 'PP1', label: 'PP1' },
-    { value: 'PP2', label: 'PP2' },
-    { value: 'GRADE_1', label: 'Grade 1' },
-    { value: 'GRADE_2', label: 'Grade 2' },
-    { value: 'GRADE_3', label: 'Grade 3' },
-    { value: 'GRADE_4', label: 'Grade 4' },
-    { value: 'GRADE_5', label: 'Grade 5' },
-    { value: 'GRADE_6', label: 'Grade 6' },
-    { value: 'GRADE_7', label: 'Grade 7' },
-    { value: 'GRADE_8', label: 'Grade 8' },
-    { value: 'GRADE_9', label: 'Grade 9' },
-  ];
+  // Use grades, terms, streams, and selection from setup/selection hooks
+  const grades = setup.grades || [];
+  const setSelectedGrade = setup.updateGrade;
+  const selectedGrade = setup.selectedGrade;
+  const setSelectedTerm = setup.updateTerm;
+  const selectedTerm = setup.selectedTerm;
+  const terms = setup.terms;
+  const academicYear = setup.academicYear;
+  const setSelectedStream = setup.updateStream;
+  const selectedStream = setup.selectedStream;
+  const selectedLearnerId = selection.selectedLearnerId;
+  const setSelectedLearnerId = selection.selectLearner;
 
-  // Build available grades from actual learners data
-  const availableGrades = useMemo(() => {
-    const uniqueGrades = new Set(learners?.map(l => l.grade)?.filter(g => g));
-    console.log('📚 Available grades in system:', Array.from(uniqueGrades));
-    
-    // Create options from actual data + static list
-    const staticGrades = [
-      { value: 'all', label: 'Select Grade' },
-    ];
-    
-    // Add dynamic grades from learners
-    uniqueGrades.forEach(grade => {
-      if (!staticGrades.find(g => g.value === grade)) {
-        staticGrades.push({ value: grade, label: grade });
-      }
-    });
-    
-    // Add common grades if not in data
-    const commonGrades = ['PP1', 'PP2', 'GRADE_1', 'GRADE_2', 'GRADE_3', 'GRADE_4', 'GRADE_5', 'GRADE_6', 'GRADE_7', 'GRADE_8', 'GRADE_9'];
-    commonGrades.forEach(grade => {
-      if (!staticGrades.find(g => g.value === grade)) {
-        staticGrades.push({ value: grade, label: grade });
-      }
-    });
-    
-    return staticGrades;
-  }, [learners]);
-
-  const terms = [
-    { value: 'TERM_1', label: 'Term 1' },
-    { value: 'TERM_2', label: 'Term 2' },
-    { value: 'TERM_3', label: 'Term 3' }
-  ];
+  // availableGrades is now setup.grades
 
   // Fetch learners on component mount
   useEffect(() => {
@@ -176,8 +137,8 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
   useEffect(() => {
     const fetchTests = async () => {
       try {
-        const params = { term: selectedTerm, academicYear: 2026 };
-        if (selectedGrade !== 'all') params.grade = selectedGrade;
+        const params = { term: setup.selectedTerm, academicYear: setup.academicYear };
+        if (setup.selectedGrade && setup.selectedGrade !== 'all') params.grade = setup.selectedGrade;
         const res = await api.assessments.getTests(params);
         if (res.success) {
           setAvailableTests(res.data || []);
@@ -188,7 +149,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       }
     };
     fetchTests();
-  }, [selectedGrade, selectedTerm]);
+  }, [setup.selectedGrade, setup.selectedTerm, setup.academicYear]);
 
   // Derive unique test groups (testType) from available tests
   const availableTestGroups = useMemo(() => {
@@ -450,7 +411,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
         // Build query parameters
         const queryParams = {
           term: selectedTerm && selectedTerm !== 'all' ? selectedTerm : undefined,
-          academicYear: 2026
+          academicYear: academicYear
         };
 
         // Remove undefined values
@@ -559,13 +520,10 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           <label className="block text-sm font-semibold text-gray-700 mb-2">Grade</label>
           <select
             value={selectedGrade}
-            onChange={(e) => {
-              console.log('🎓 Grade changed to:', e.target.value);
-              setSelectedGrade(e.target.value);
-            }}
+            onChange={(e) => setSelectedGrade(e.target.value)}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
           >
-            {availableGrades.map(g => (
+            {grades.map(g => (
               <option key={g.value} value={g.value}>
                 {g.label}
               </option>

@@ -10,38 +10,51 @@ import { useNotifications } from '../hooks/useNotifications';
 import api, { workflowAPI } from '../../../services/api';
 import SmartLearnerSearch from '../shared/SmartLearnerSearch';
 import { getCurrentAcademicYear } from '../utils/academicYear';
+import { TERMS } from '../../../constants/terms';
+import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
+import { useLearnerSelection } from '../hooks/useLearnerSelection';
 
 const FormativeAssessment = ({ learners }) => {
   const { showSuccess, showError } = useNotifications();
+  
+  // Use centralized hooks for assessment state management
+  const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
+  const selection = useLearnerSelection(learners || [], { status: ['ACTIVE', 'Active'] });
   
   // View State
   const [viewMode, setViewMode] = useState('setup'); // 'setup' | 'assess' | 'review'
   
   // Data State
-  const [grades, setGrades] = useState([]);
   const [loadingGrades, setLoadingGrades] = useState(false);
-  const [academicYear] = useState(getCurrentAcademicYear());
 
-  // Context State (Step 1)
-  const [selectedGrade, setSelectedGrade] = useState('');
-  const [selectedTerm, setSelectedTerm] = useState('TERM_1');
+  // Context State (Step 1) - FormativeAssessment specific
   const [selectedArea, setSelectedArea] = useState('Mathematics');
   const [strand, setStrand] = useState('Numbers');
   const [subStrand, setSubStrand] = useState('Addition and Subtraction');
-  
+
   // New Fields for Assessment Metadata
   const [assessmentTitle, setAssessmentTitle] = useState('');
   const [assessmentType, setAssessmentType] = useState('QUIZ');
   const [assessmentWeight, setAssessmentWeight] = useState(1.0);
   const [maxScore, setMaxScore] = useState(null);
-  
+
   // Assessment State (Step 2)
-  const [searchLearnerId, setSearchLearnerId] = useState(null);
   const [assessments, setAssessments] = useState({});
   const [savedAssessments, setSavedAssessments] = useState({});
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [sendingWhatsApp, setSendingWhatsApp] = useState({});
+
+  // Use grades and selection from setup hook
+  const grades = setup.grades || [];
+  const setSelectedGrade = setup.updateGrade;
+  const selectedGrade = setup.selectedGrade;
+  const setSelectedTerm = setup.updateTerm;
+  const selectedTerm = setup.selectedTerm;
+  const terms = setup.terms;
+  const academicYear = setup.academicYear;
+  const searchLearnerId = selection.selectedLearnerId;
+  const setSearchLearnerId = selection.selectLearner;
 
   const learningAreas = [
     'Mathematics', 
@@ -55,57 +68,7 @@ const FormativeAssessment = ({ learners }) => {
   ];
 
   // Fetch Grades from DB
-  React.useEffect(() => {
-    const fetchGrades = async () => {
-      try {
-        setLoadingGrades(true);
-        // Fetch all active classes to derive available grades
-        const response = await api.classes.getAll({ active: true });
-        if (response.success) {
-          // Extract unique grades from classes
-          const uniqueGrades = [...new Set(response.data.map(c => c.grade))];
-          
-          // Sort grades based on logical order
-          const gradeOrder = [
-            'CRECHE', 'RECEPTION', 'TRANSITION', 'PLAYGROUP', 
-            'PP1', 'PP2', 
-            'GRADE_1', 'GRADE_2', 'GRADE_3', 'GRADE_4', 'GRADE_5', 'GRADE_6', 
-            'GRADE_7', 'GRADE_8', 'GRADE_9', 'GRADE_10', 'GRADE_11', 'GRADE_12'
-          ];
-          
-          const sortedGrades = uniqueGrades.sort((a, b) => {
-            return gradeOrder.indexOf(a) - gradeOrder.indexOf(b);
-          });
-
-          // Format for dropdown
-          const formattedGrades = sortedGrades.map(g => ({
-            value: g,
-            label: g.replace('GRADE_', 'Grade ').replace('PP', 'PP') // Basic formatting
-          }));
-          
-          setGrades(formattedGrades);
-          
-          // Set default grade if none selected
-          if (formattedGrades.length > 0) {
-            setSelectedGrade(prev => prev || formattedGrades[0].value);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching grades:', error);
-        showError('Failed to load grades from database');
-      } finally {
-        setLoadingGrades(false);
-      }
-    };
-
-    fetchGrades();
-  }, []);
-
-  const terms = [
-    { value: 'TERM_1', label: 'Term 1' },
-    { value: 'TERM_2', label: 'Term 2' },
-    { value: 'TERM_3', label: 'Term 3' }
-  ];
+  // Grades are now managed by setup hook
 
   // Filter learners by selected grade
   const classLearners = learners?.filter(l => 
@@ -148,8 +111,6 @@ const FormativeAssessment = ({ learners }) => {
     if (id) {
       const learner = learners.find(l => l.id === id);
       if (learner && learner.grade !== selectedGrade) {
-        // If learner is in different grade, we might need to warn user or switch context
-        // For this wizard, it's safer to warn as switching grade resets context
         if (viewMode === 'assess') {
            showError(`Learner is in ${learner.grade}. Please switch grade in Setup step.`);
         } else {

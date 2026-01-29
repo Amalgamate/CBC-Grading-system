@@ -9,151 +9,115 @@ import { useNotifications } from '../hooks/useNotifications';
 import api from '../../../services/api';
 import SmartLearnerSearch from '../shared/SmartLearnerSearch';
 import { getCurrentAcademicYear } from '../utils/academicYear';
+import { TERMS } from '../../../constants/terms';
+import { CBC_RATINGS, getRatingByValue } from '../../../constants/ratings';
+import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
+import { useLearnerSelection } from '../hooks/useLearnerSelection';
+import { useRatings } from '../hooks/useRatings';
+import { validateCompetenciesAssessment, formatValidationErrors } from '../../../utils/validation/assessmentValidators';
 
 const CoreCompetenciesAssessment = ({ learners }) => {
   const { showSuccess, showError } = useNotifications();
 
-  // View State
-  const [viewMode, setViewMode] = useState('setup'); // 'setup' | 'assess'
-
-  // Form state
-  const [selectedLearnerId, setSelectedLearnerId] = useState('');
-  const [selectedTerm, setSelectedTerm] = useState('TERM_1');
-  const [academicYear, setAcademicYear] = useState(getCurrentAcademicYear());
-  const [saving, setSaving] = useState(false);
-
-  // Competencies state
-  const [competencies, setCompetencies] = useState({
+  // Use centralized hooks for assessment state management
+  const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
+  const selection = useLearnerSelection(learners || [], { status: ['ACTIVE', 'Active'] });
+  const ratings = useRatings({
     communication: 'ME1',
-    communicationComment: '',
     criticalThinking: 'ME1',
-    criticalThinkingComment: '',
     creativity: 'ME1',
-    creativityComment: '',
     collaboration: 'ME1',
-    collaborationComment: '',
     citizenship: 'ME1',
-    citizenshipComment: '',
-    learningToLearn: 'ME1',
-    learningToLearnComment: ''
+    learningToLearn: 'ME1'
   });
 
-  const terms = [
-    { value: 'TERM_1', label: 'Term 1' },
-    { value: 'TERM_2', label: 'Term 2' },
-    { value: 'TERM_3', label: 'Term 3' }
-  ];
+  // View state for setup/assess workflow
+  const [viewMode, setViewMode] = useState('setup');
+  const [saving, setSaving] = useState(false);
 
-  const ratings = [
-    { value: 'EE1', label: 'EE1 - Outstanding (90-100%)', color: 'green' },
-    { value: 'EE2', label: 'EE2 - Very High (75-89%)', color: 'green' },
-    { value: 'ME1', label: 'ME1 - High Average (58-74%)', color: 'blue' },
-    { value: 'ME2', label: 'ME2 - Average (41-57%)', color: 'blue' },
-    { value: 'AE1', label: 'AE1 - Low Average (31-40%)', color: 'yellow' },
-    { value: 'AE2', label: 'AE2 - Below Average (21-30%)', color: 'yellow' },
-    { value: 'BE1', label: 'BE1 - Low (11-20%)', color: 'red' },
-    { value: 'BE2', label: 'BE2 - Very Low (1-10%)', color: 'red' }
-  ];
 
+  // Competency definitions (component-specific)
   const competencyDefinitions = {
-    communication: {
-      name: 'Communication',
-      description: 'Ability to listen, speak, read, write and use language effectively',
-      icon: '💬'
-    },
-    criticalThinking: {
-      name: 'Critical Thinking',
-      description: 'Ability to think logically, analyze and solve problems',
-      icon: '🧠'
-    },
-    creativity: {
-      name: 'Creativity & Imagination',
-      description: 'Ability to use imagination and innovation to create new things',
-      icon: '🎨'
-    },
-    collaboration: {
-      name: 'Collaboration',
-      description: 'Ability to work effectively with others',
-      icon: '🤝'
-    },
-    citizenship: {
-      name: 'Citizenship',
-      description: 'Understanding rights, responsibilities and participating in society',
-      icon: '🏛️'
-    },
-    learningToLearn: {
-      name: 'Learning to Learn',
-      description: 'Ability to pursue and persist in learning independently',
-      icon: '📚'
-    }
+    communication: { name: 'Communication', description: 'Ability to listen, speak, read, write and use language effectively', icon: '💬' },
+    criticalThinking: { name: 'Critical Thinking', description: 'Ability to think logically, analyze and solve problems', icon: '🧠' },
+    creativity: { name: 'Creativity & Imagination', description: 'Ability to use imagination and innovation to create new things', icon: '🎨' },
+    collaboration: { name: 'Collaboration', description: 'Ability to work effectively with others', icon: '🤝' },
+    citizenship: { name: 'Citizenship', description: 'Understanding rights, responsibilities and participating in society', icon: '🏛️' },
+    learningToLearn: { name: 'Learning to Learn', description: 'Ability to pursue and persist in learning independently', icon: '📚' }
   };
 
-  const selectedLearner = learners?.find(l => l.id === selectedLearnerId);
-
+  // Load existing competencies when learner/term changes
   const loadExistingCompetencies = useCallback(async () => {
+    if (!selection.selectedLearnerId || !setup.selectedTerm) return;
+
     try {
-      const response = await api.cbc.getCompetencies(selectedLearnerId, {
-        term: selectedTerm,
-        academicYear
+      const response = await api.cbc.getCompetencies(selection.selectedLearnerId, {
+        term: setup.selectedTerm,
+        academicYear: setup.academicYear
       });
 
       if (response.success && response.data) {
-        setCompetencies({
+        ratings.setRatings({
           communication: response.data.communication || 'ME1',
-          communicationComment: response.data.communicationComment || '',
           criticalThinking: response.data.criticalThinking || 'ME1',
-          criticalThinkingComment: response.data.criticalThinkingComment || '',
           creativity: response.data.creativity || 'ME1',
-          creativityComment: response.data.creativityComment || '',
           collaboration: response.data.collaboration || 'ME1',
-          collaborationComment: response.data.collaborationComment || '',
           citizenship: response.data.citizenship || 'ME1',
-          citizenshipComment: response.data.citizenshipComment || '',
-          learningToLearn: response.data.learningToLearn || 'ME1',
-          learningToLearnComment: response.data.learningToLearnComment || ''
+          learningToLearn: response.data.learningToLearn || 'ME1'
         });
+        // Load individual comments
+        if (response.data.communicationComment) ratings.setComment('communication', response.data.communicationComment);
+        if (response.data.criticalThinkingComment) ratings.setComment('criticalThinking', response.data.criticalThinkingComment);
+        if (response.data.creativityComment) ratings.setComment('creativity', response.data.creativityComment);
+        if (response.data.collaborationComment) ratings.setComment('collaboration', response.data.collaborationComment);
+        if (response.data.citizenshipComment) ratings.setComment('citizenship', response.data.citizenshipComment);
+        if (response.data.learningToLearnComment) ratings.setComment('learningToLearn', response.data.learningToLearnComment);
         showSuccess('Loaded existing assessment');
       }
     } catch (error) {
       console.log('No existing assessment found');
-      // Reset to defaults
-      setCompetencies({
-        communication: 'ME1',
-        communicationComment: '',
-        criticalThinking: 'ME1',
-        criticalThinkingComment: '',
-        creativity: 'ME1',
-        creativityComment: '',
-        collaboration: 'ME1',
-        collaborationComment: '',
-        citizenship: 'ME1',
-        citizenshipComment: '',
-        learningToLearn: 'ME1',
-        learningToLearnComment: ''
-      });
     }
-  }, [selectedLearnerId, selectedTerm, academicYear, showSuccess]);
+  }, [selection.selectedLearnerId, setup.selectedTerm, setup.academicYear, ratings, showSuccess]);
 
-  // Load existing competencies when learner/term changes
   useEffect(() => {
-    if (selectedLearnerId && selectedTerm) {
+    if (viewMode === 'assess') {
       loadExistingCompetencies();
     }
-  }, [selectedLearnerId, selectedTerm, academicYear, loadExistingCompetencies]);
+  }, [viewMode, loadExistingCompetencies]);
 
+  // Save competencies assessment
   const handleSave = async () => {
-    if (!selectedLearnerId) {
+    if (!selection.selectedLearnerId) {
       showError('Please select a learner');
+      return;
+    }
+
+    // Validate before saving
+    const validationError = validateCompetenciesAssessment({
+      learnerId: selection.selectedLearnerId,
+      term: setup.selectedTerm,
+      academicYear: setup.academicYear,
+      ratings: ratings.ratings
+    });
+
+    if (validationError.length > 0) {
+      showError(formatValidationErrors(validationError)[0].message);
       return;
     }
 
     setSaving(true);
     try {
       const response = await api.cbc.saveCompetencies({
-        learnerId: selectedLearnerId,
-        term: selectedTerm,
-        academicYear,
-        ...competencies
+        learnerId: selection.selectedLearnerId,
+        term: setup.selectedTerm,
+        academicYear: setup.academicYear,
+        ...ratings.ratings,
+        communicationComment: ratings.comments.communication || '',
+        criticalThinkingComment: ratings.comments.criticalThinking || '',
+        creativityComment: ratings.comments.creativity || '',
+        collaborationComment: ratings.comments.collaboration || '',
+        citizenshipComment: ratings.comments.citizenship || '',
+        learningToLearnComment: ratings.comments.learningToLearn || ''
       });
 
       if (response.success) {
@@ -168,8 +132,9 @@ const CoreCompetenciesAssessment = ({ learners }) => {
     }
   };
 
+  // Start assessment after learner selection
   const handleStartAssessment = () => {
-    if (!selectedLearnerId) {
+    if (!selection.selectedLearnerId) {
       showError('Please select a learner first');
       return;
     }
@@ -177,13 +142,7 @@ const CoreCompetenciesAssessment = ({ learners }) => {
     window.scrollTo(0, 0);
   };
 
-  const updateCompetency = (field, value) => {
-    setCompetencies(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
+  // Get color for rating display
   const getRatingColor = (rating) => {
     if (rating.startsWith('EE')) return 'bg-green-100 border-green-300 text-green-800';
     if (rating.startsWith('ME')) return 'bg-blue-100 border-blue-300 text-blue-800';
@@ -210,9 +169,9 @@ const CoreCompetenciesAssessment = ({ learners }) => {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Select Learner</label>
               <SmartLearnerSearch
-                learners={learners?.filter(l => l.status === 'ACTIVE' || l.status === 'Active') || []}
-                selectedLearnerId={selectedLearnerId}
-                onSelect={setSelectedLearnerId}
+                learners={selection.filteredLearners}
+                selectedLearnerId={selection.selectedLearnerId}
+                onSelect={selection.selectLearner}
                 placeholder="Search by name, adm no..."
               />
             </div>
@@ -221,11 +180,11 @@ const CoreCompetenciesAssessment = ({ learners }) => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Term</label>
                 <select
-                  value={selectedTerm}
-                  onChange={(e) => setSelectedTerm(e.target.value)}
+                  value={setup.selectedTerm}
+                  onChange={(e) => setup.updateTerm(e.target.value)}
                   className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                 >
-                  {terms.map(t => (
+                  {setup.terms.map(t => (
                     <option key={t.value} value={t.value}>{t.label}</option>
                   ))}
                 </select>
@@ -235,8 +194,8 @@ const CoreCompetenciesAssessment = ({ learners }) => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Year</label>
                 <input
                   type="number"
-                  value={academicYear}
-                  onChange={(e) => setAcademicYear(parseInt(e.target.value))}
+                  value={setup.academicYear}
+                  onChange={(e) => setup.updateAcademicYear(parseInt(e.target.value))}
                   className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                 />
               </div>
@@ -246,7 +205,7 @@ const CoreCompetenciesAssessment = ({ learners }) => {
           <div className="flex justify-end pt-6 border-t border-gray-100">
             <button
               onClick={handleStartAssessment}
-              disabled={!selectedLearnerId}
+              disabled={!selection.selectedLearnerId}
               className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               Start Assessment
@@ -257,22 +216,22 @@ const CoreCompetenciesAssessment = ({ learners }) => {
       )}
 
       {/* ASSESS MODE */}
-      {viewMode === 'assess' && selectedLearner && (
+      {viewMode === 'assess' && selection.selectedLearner && (
         <>
           {/* Compact Context Header */}
           <div className="bg-white rounded-xl shadow-sm p-4 border border-purple-100 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-4 z-20">
              <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                {selectedLearner.firstName[0]}{selectedLearner.lastName[0]}
+                {selection.selectedLearner.firstName[0]}{selection.selectedLearner.lastName[0]}
               </div>
               <div>
                 <h3 className="font-bold text-gray-800 text-lg line-clamp-1">
-                  {selectedLearner.firstName} {selectedLearner.lastName}
+                  {selection.selectedLearner.firstName} {selection.selectedLearner.lastName}
                 </h3>
                 <div className="flex items-center gap-3 text-sm text-gray-500 font-medium">
-                  <span>{selectedLearner.admissionNumber}</span>
+                  <span>{selection.selectedLearner.admissionNumber}</span>
                   <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs">
-                    {terms.find(t => t.value === selectedTerm)?.label} {academicYear}
+                    {setup.terms.find(t => t.value === setup.selectedTerm)?.label} {setup.academicYear}
                   </span>
                 </div>
               </div>
@@ -315,11 +274,11 @@ const CoreCompetenciesAssessment = ({ learners }) => {
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Rating</label>
                     <select
-                      value={competencies[key]}
-                      onChange={(e) => updateCompetency(key, e.target.value)}
-                      className={`w-full px-4 py-2 border-2 rounded-lg focus:ring-2 focus:ring-purple-500 font-semibold ${getRatingColor(competencies[key])}`}
+                      value={ratings.ratings[key] || 'ME1'}
+                      onChange={(e) => ratings.setRating(key, e.target.value)}
+                      className={`w-full px-4 py-2 border-2 rounded-lg focus:ring-2 focus:ring-purple-500 font-semibold ${getRatingColor(ratings.ratings[key] || 'ME1')}`}
                     >
-                      {ratings.map(r => (
+                      {CBC_RATINGS.map(r => (
                         <option key={r.value} value={r.value}>{r.label}</option>
                       ))}
                     </select>
@@ -329,8 +288,8 @@ const CoreCompetenciesAssessment = ({ learners }) => {
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Observation / Comment</label>
                     <textarea
-                      value={competencies[`${key}Comment`]}
-                      onChange={(e) => updateCompetency(`${key}Comment`, e.target.value)}
+                      value={ratings.comments[key] || ''}
+                      onChange={(e) => ratings.setComment(key, e.target.value)}
                       placeholder="Add specific observations..."
                       rows={2}
                       className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 resize-none text-sm"
@@ -344,9 +303,7 @@ const CoreCompetenciesAssessment = ({ learners }) => {
           {/* Bottom Action Buttons */}
           <div className="flex justify-end gap-4 pb-12">
             <button
-              onClick={() => {
-                handleSave();
-              }}
+              onClick={handleSave}
               className="px-8 py-3 bg-white border-2 border-purple-100 text-purple-600 font-bold rounded-xl hover:bg-purple-50 transition"
             >
               Save & Stay
@@ -355,7 +312,7 @@ const CoreCompetenciesAssessment = ({ learners }) => {
               onClick={() => {
                 handleSave();
                 setViewMode('setup');
-                setSelectedLearnerId(''); // Reset for next learner
+                selection.clearSelection();
                 window.scrollTo(0, 0);
               }}
               className="px-8 py-3 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-900 transition flex items-center gap-2 shadow-lg"

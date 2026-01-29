@@ -11,56 +11,41 @@ import api from '../../../services/api';
 import DownloadReportButton from '../shared/DownloadReportButton';
 import SmartLearnerSearch from '../shared/SmartLearnerSearch';
 import { getCurrentAcademicYear } from '../utils/academicYear';
+import { TERMS } from '../../../constants/terms';
+import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
+import { useLearnerSelection } from '../hooks/useLearnerSelection';
 
 const TermlyReport = ({ learners, brandingSettings }) => {
+    // Use grades, terms, and selection from setup/selection hooks
+    const grades = setup.grades || [];
+    const setSelectedGrade = setup.updateGrade;
+    const selectedGrade = setup.selectedGrade;
+    const setSelectedTerm = setup.updateTerm;
+    const selectedTerm = setup.selectedTerm;
+    const terms = setup.terms;
+    const academicYear = setup.academicYear;
+    const filteredLearners = selection.filteredLearners;
+    const selectedLearnerId = selection.selectedLearnerId;
+    const setSelectedLearnerId = selection.selectLearner;
+    const selectedLearner = learners?.find(l => l.id === selectedLearnerId);
   const { showSuccess, showError } = useNotifications();
+  
+  // Use centralized hooks for assessment state management
+  const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
+  const selection = useLearnerSelection(learners || [], { status: ['ACTIVE', 'Active'] });
+  
   const [viewMode, setViewMode] = useState('setup'); // 'setup' | 'report'
-  const [selectedLearnerId, setSelectedLearnerId] = useState('');
-  const [selectedGrade, setSelectedGrade] = useState('all');
-  const [selectedTerm, setSelectedTerm] = useState('TERM_1');
-  const [academicYear] = useState(getCurrentAcademicYear());
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
-  
-  const grades = [
-    { value: 'all', label: 'All Classes' },
-    { value: 'PP1', label: 'PP1' },
-    { value: 'PP2', label: 'PP2' },
-    { value: 'GRADE_1', label: 'Grade 1' },
-    { value: 'GRADE_2', label: 'Grade 2' },
-    { value: 'GRADE_3', label: 'Grade 3' },
-    { value: 'GRADE_4', label: 'Grade 4' },
-    { value: 'GRADE_5', label: 'Grade 5' },
-    { value: 'GRADE_6', label: 'Grade 6' },
-    { value: 'GRADE_7', label: 'Grade 7' },
-    { value: 'GRADE_8', label: 'Grade 8' },
-    { value: 'GRADE_9', label: 'Grade 9' },
-  ];
-
-  const terms = [
-    { value: 'TERM_1', label: 'Term 1' },
-    { value: 'TERM_2', label: 'Term 2' },
-    { value: 'TERM_3', label: 'Term 3' }
-  ];
-
-  const filteredLearners = useMemo(() => {
-    let filtered = learners?.filter(l => l.status === 'ACTIVE' || l.status === 'Active') || [];
-    if (selectedGrade !== 'all') {
-      filtered = filtered.filter(l => l.grade === selectedGrade);
-    }
-    return filtered;
-  }, [learners, selectedGrade]);
-
-  const selectedLearner = learners?.find(l => l.id === selectedLearnerId);
 
   const fetchReportData = useCallback(async () => {
-    if (!selectedLearnerId) return;
+    if (!selection.selectedLearnerId) return;
     
     setLoading(true);
     try {
-      const response = await api.reports.getTermlyReport(selectedLearnerId, {
-        term: selectedTerm,
-        academicYear: academicYear
+      const response = await api.reports.getTermlyReport(selection.selectedLearnerId, {
+        term: setup.selectedTerm,
+        academicYear: setup.academicYear
       });
 
       if (response.success) {
@@ -76,7 +61,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
     } finally {
       setLoading(false);
     }
-  }, [selectedLearnerId, selectedTerm, showError]);
+  }, [selection.selectedLearnerId, setup.selectedTerm, setup.academicYear, showError]);
 
   const handleGenerateReport = () => {
     if (selectedLearner) {
@@ -99,11 +84,9 @@ const TermlyReport = ({ learners, brandingSettings }) => {
       showError('Please select a learner first');
       return { success: false, error: 'No learner selected' };
     }
-    
     try {
       // Generate filename
       const filename = `${selectedLearner.firstName}_${selectedLearner.lastName}_${selectedTerm.replace(' ', '_')}_Report.pdf`;
-      
       const schoolInfo = {
         schoolName: brandingSettings?.schoolName || 'Zawadi Junior School',
         address: 'P.O. Box 1234, Nairobi, Kenya',
@@ -113,7 +96,6 @@ const TermlyReport = ({ learners, brandingSettings }) => {
         logoUrl: brandingSettings?.logoUrl || '/logo-zawadi.png',
         brandColor: brandingSettings?.brandColor || '#1e3a8a'
       };
-
       // Generate PDF from the report content
       const result = await generatePDFWithLetterhead(
         'termly-report-content',
@@ -125,7 +107,6 @@ const TermlyReport = ({ learners, brandingSettings }) => {
           onProgress
         }
       );
-
       if (result.success) {
         showSuccess('Report downloaded successfully!');
         return { success: true };
@@ -186,7 +167,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
 
               <SmartLearnerSearch
                 learners={filteredLearners}
-                selectedLearnerId={parseInt(selectedLearnerId) || ''}
+                selectedLearnerId={selectedLearnerId}
                 onSelect={setSelectedLearnerId}
                 placeholder={selectedGrade === 'all' ? "Search all learners..." : `Search in ${grades.find(g => g.value === selectedGrade)?.label}...`}
               />

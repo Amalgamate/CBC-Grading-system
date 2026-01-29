@@ -11,58 +11,33 @@ import api from '../../../services/api';
 import { generatePDFWithLetterhead } from '../../../utils/simplePdfGenerator';
 import DownloadReportButton from '../shared/DownloadReportButton';
 import SmartLearnerSearch from '../shared/SmartLearnerSearch';
+import { TERMS } from '../../../constants/terms';
+import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
+import { useLearnerSelection } from '../hooks/useLearnerSelection';
 
 const FormativeReport = ({ learners, brandingSettings }) => {
   const { showSuccess, showError } = useNotifications();
   
+  // Use centralized hooks for assessment state management
+  const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
+  const selection = useLearnerSelection(learners || [], { status: ['ACTIVE', 'Active'] });
+  
   // UI State
   const [viewMode, setViewMode] = useState('setup'); // 'setup' or 'report'
-  const [selectedLearnerId, setSelectedLearnerId] = useState('');
-  const [selectedGrade, setSelectedGrade] = useState('all');
-  const [selectedTerm, setSelectedTerm] = useState('TERM_1');
   const [selectedArea, setSelectedArea] = useState('all');
   
   // Data State
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const grades = [
-    { value: 'all', label: 'All Classes' },
-    { value: 'PP1', label: 'PP1' },
-    { value: 'PP2', label: 'PP2' },
-    { value: 'GRADE_1', label: 'Grade 1' },
-    { value: 'GRADE_2', label: 'Grade 2' },
-    { value: 'GRADE_3', label: 'Grade 3' },
-    { value: 'GRADE_4', label: 'Grade 4' },
-    { value: 'GRADE_5', label: 'Grade 5' },
-    { value: 'GRADE_6', label: 'Grade 6' },
-    { value: 'GRADE_7', label: 'Grade 7' },
-    { value: 'GRADE_8', label: 'Grade 8' },
-    { value: 'GRADE_9', label: 'Grade 9' },
-  ];
-
-  const terms = [
-    { value: 'TERM_1', label: 'Term 1' },
-    { value: 'TERM_2', label: 'Term 2' },
-    { value: 'TERM_3', label: 'Term 3' }
-  ];
-
-  const filteredLearners = useMemo(() => {
-    let filtered = learners?.filter(l => l.status === 'ACTIVE' || l.status === 'Active') || [];
-    if (selectedGrade !== 'all') {
-      filtered = filtered.filter(l => l.grade === selectedGrade);
-    }
-    return filtered;
-  }, [learners, selectedGrade]);
-
   const fetchReportData = useCallback(async () => {
-    if (!selectedLearnerId) return;
+    if (!selection.selectedLearnerId) return;
     
     setLoading(true);
     try {
-      const response = await api.reports.getFormativeReport(selectedLearnerId, {
-        term: selectedTerm,
-        academicYear: 2026
+      const response = await api.reports.getFormativeReport(selection.selectedLearnerId, {
+        term: setup.selectedTerm,
+        academicYear: setup.academicYear
       });
 
       if (response.success) {
@@ -78,14 +53,14 @@ const FormativeReport = ({ learners, brandingSettings }) => {
     } finally {
       setLoading(false);
     }
-  }, [selectedLearnerId, selectedTerm, showError]);
+  }, [selection.selectedLearnerId, setup.selectedTerm, setup.academicYear, showError]);
 
   // Fetch report data when learner or term changes
   useEffect(() => {
-    if (selectedLearnerId && selectedTerm) {
+    if (selection.selectedLearnerId && setup.selectedTerm) {
       fetchReportData();
     }
-  }, [selectedLearnerId, selectedTerm, fetchReportData]);
+  }, [selection.selectedLearnerId, setup.selectedTerm, fetchReportData]);
 
   const handleDownloadPDF = async (onProgress) => {
     if (!reportData) {
@@ -94,7 +69,7 @@ const FormativeReport = ({ learners, brandingSettings }) => {
     }
 
     try {
-      const filename = `${reportData.learner.firstName}_${reportData.learner.lastName}_Formative_${selectedTerm}_Report.pdf`;
+      const filename = `${reportData.learner.firstName}_${reportData.learner.lastName}_Formative_${setup.selectedTerm}_Report.pdf`;
       
       const schoolInfo = {
         schoolName: brandingSettings?.schoolName || 'Zawadi JRN Academy',
@@ -167,7 +142,7 @@ const FormativeReport = ({ learners, brandingSettings }) => {
     : reportData?.assessments.filter(a => a.learningArea === selectedArea) || [];
 
   const handleReset = () => {
-    setSelectedLearnerId('');
+    selection.clearSelection();
     setReportData(null);
     setViewMode('setup');
   };
@@ -189,46 +164,23 @@ const FormativeReport = ({ learners, brandingSettings }) => {
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Select Learner</label>
-              
-              {/* Grade Filter Pills */}
-              <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-2 -mx-2 px-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
-                <div className="flex items-center justify-center min-w-[24px] text-gray-400">
-                  <Filter size={14} />
-                </div>
-                {grades.map(grade => (
-                  <button
-                    key={grade.value}
-                    onClick={() => {
-                        setSelectedGrade(grade.value);
-                        setSelectedLearnerId(''); // Clear selection on filter change
-                    }}
-                    className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                      selectedGrade === grade.value 
-                        ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-100' 
-                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
-                    }`}
-                  >
-                    {grade.label}
-                  </button>
-                ))}
-              </div>
 
               <SmartLearnerSearch
-                learners={filteredLearners}
-                selectedLearnerId={selectedLearnerId}
-                onSelect={setSelectedLearnerId}
-                placeholder={selectedGrade === 'all' ? "Search all learners..." : `Search in ${grades.find(g => g.value === selectedGrade)?.label}...`}
+                learners={selection.filteredLearners}
+                selectedLearnerId={selection.selectedLearnerId}
+                onSelect={selection.selectLearner}
+                placeholder="Search by name, adm no..."
               />
             </div>
             
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Academic Term</label>
               <select 
-                value={selectedTerm} 
-                onChange={(e) => setSelectedTerm(e.target.value)} 
+                value={setup.selectedTerm} 
+                onChange={(e) => setup.updateTerm(e.target.value)} 
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
               >
-                {terms.map(t => (
+                {setup.terms.map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
               </select>
@@ -260,7 +212,7 @@ const FormativeReport = ({ learners, brandingSettings }) => {
                 <div className="flex items-center gap-3 text-sm text-gray-500 font-medium">
                   <span>{reportData.learner.admissionNumber}</span>
                   <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">
-                    {terms.find(t => t.value === selectedTerm)?.label} 2026
+                    {setup.terms.find(t => t.value === setup.selectedTerm)?.label} {setup.academicYear}
                   </span>
                 </div>
               </div>
@@ -328,7 +280,7 @@ const FormativeReport = ({ learners, brandingSettings }) => {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-gray-500 uppercase">Term</p>
-                  <p className="text-gray-900 text-sm font-bold">{terms.find(t => t.value === selectedTerm)?.label} 2026</p>
+                  <p className="text-gray-900 text-sm font-bold">{setup.terms.find(t => t.value === setup.selectedTerm)?.label} 2026</p>
                 </div>
               </div>
             </div>

@@ -6,7 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   ArrowLeft, Building2, Users, Activity, FileText, Award,
-  Eye, EyeOff, Mail, Shield, AlertCircle, CheckCircle, XCircle, Clock
+  Eye, EyeOff, Mail, Shield, AlertCircle, CheckCircle, XCircle, Clock, Trash2
 } from 'lucide-react';
 import { schoolAPI, adminAPI, learnerAPI, assessmentAPI, userAPI } from '../../../services/api';
 
@@ -18,6 +18,8 @@ export default function SchoolDetails({ schoolId, onBack }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [showPasswords, setShowPasswords] = useState({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -27,19 +29,41 @@ export default function SchoolDetails({ schoolId, onBack }) {
       localStorage.setItem('currentSchoolId', schoolId);
 
       const [schoolRes, learnersRes, testsRes, usersRes] = await Promise.all([
-        schoolAPI.getById(schoolId),
+        schoolAPI.getById(schoolId).catch(() => ({})),
         learnerAPI.getAll().catch(() => ({ data: [] })),
         assessmentAPI.getTests().catch(() => ({ data: [] })),
         userAPI.getAll().catch(() => ({ data: [] }))
       ]);
 
-      setSchool(schoolRes.data || schoolRes);
-      setLearners(learnersRes.data || learnersRes || []);
-      setTests(testsRes.data || testsRes || []);
+      setSchool(schoolRes?.data || schoolRes || {});
       
-      // Filter users for this school
-      const allUsers = usersRes.data || usersRes || [];
-      setUsers(Array.isArray(allUsers) ? allUsers.filter(u => u.schoolId === schoolId) : []);
+      // Get learners data properly
+      let learnersData = [];
+      if (learnersRes?.data && Array.isArray(learnersRes.data)) {
+        learnersData = learnersRes.data;
+      } else if (Array.isArray(learnersRes)) {
+        learnersData = learnersRes;
+      }
+      setLearners(learnersData);
+      
+      // Get tests data properly
+      let testsData = [];
+      if (testsRes?.data && Array.isArray(testsRes.data)) {
+        testsData = testsRes.data;
+      } else if (Array.isArray(testsRes)) {
+        testsData = testsRes;
+      }
+      setTests(testsData);
+      
+      // Get users data properly - filter by school
+      let usersData = [];
+      if (usersRes?.data && Array.isArray(usersRes.data)) {
+        usersData = usersRes.data;
+      } else if (Array.isArray(usersRes)) {
+        usersData = usersRes;
+      }
+      // Filter users that belong to this school
+      setUsers(usersData.filter(u => u?.schoolId === schoolId || u?.school?.id === schoolId));
 
       // Restore previous context
       if (previousSchoolId) {
@@ -64,6 +88,24 @@ export default function SchoolDetails({ schoolId, onBack }) {
     }));
   };
 
+  const handleDeleteTest = async (testId, testTitle) => {
+    if (!window.confirm(`Are you sure you want to delete "${testTitle}"? This action cannot be undone.`)) {
+      return;
+    }
+    
+    setDeleting(true);
+    try {
+      await assessmentAPI.deleteTest(testId);
+      setTests(prev => prev.filter(t => t.id !== testId));
+      setShowDeleteConfirm(null);
+      alert(`Test "${testTitle}" deleted successfully!`);
+    } catch (error) {
+      alert(`Failed to delete test: ${error.message}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const getRoleBadge = (role) => {
     const colors = {
       SUPER_ADMIN: 'bg-purple-100 text-purple-800 border-purple-200',
@@ -84,6 +126,7 @@ export default function SchoolDetails({ schoolId, onBack }) {
     { id: 'overview', label: 'Overview', icon: Building2 },
     { id: 'users', label: 'Users', icon: Users, count: users.length },
     { id: 'learners', label: 'Learners', icon: FileText, count: learners.length },
+    { id: 'tests', label: 'Tests', icon: Award, count: tests.filter(t => t.testType || t.learningArea).length },
     { id: 'assessments', label: 'Assessments', icon: Award, count: tests.length }
   ];
 
@@ -400,6 +443,70 @@ export default function SchoolDetails({ schoolId, onBack }) {
           </div>
         )}
 
+        {/* Tests Tab */}
+        {activeTab === 'tests' && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">Summative Tests</h2>
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Title</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Grade</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Subject</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Term</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {tests.filter(t => t.testType || t.learningArea).slice(0, 50).length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="px-4 py-12 text-center">
+                          <Award className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                          <p className="text-sm text-gray-500 font-medium">No tests found</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      tests.filter(t => t.testType || t.learningArea).slice(0, 50).map((test) => (
+                        <tr key={test.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">{test.title || test.name}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{test.grade}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{test.learningArea}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{test.term}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`inline-flex px-2.5 py-1 rounded text-xs font-semibold ${
+                              test.published ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                            }`}>
+                              {test.published ? 'Published' : 'Draft'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              onClick={() => handleDeleteTest(test.id, test.title || test.name)}
+                              disabled={deleting}
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Delete test"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {tests.filter(t => t.testType || t.learningArea).length > 50 && (
+                <div className="mt-4 text-center text-sm text-gray-500">
+                  Showing 50 of {tests.filter(t => t.testType || t.learningArea).length} tests
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Assessments Tab */}
         {activeTab === 'assessments' && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -414,6 +521,7 @@ export default function SchoolDetails({ schoolId, onBack }) {
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Subject</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Term</th>
                       <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
@@ -429,6 +537,16 @@ export default function SchoolDetails({ schoolId, onBack }) {
                           }`}>
                             {test.published ? 'Published' : 'Draft'}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => handleDeleteTest(test.id, test.title || test.name)}
+                            disabled={deleting}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Delete assessment"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </td>
                       </tr>
                     ))}

@@ -10,144 +10,105 @@ import { useNotifications } from '../hooks/useNotifications';
 import api from '../../../services/api';
 import SmartLearnerSearch from '../shared/SmartLearnerSearch';
 import { getCurrentAcademicYear } from '../utils/academicYear';
+import { TERMS } from '../../../constants/terms';
+import { CBC_RATINGS, getRatingByValue } from '../../../constants/ratings';
+import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
+import { useLearnerSelection } from '../hooks/useLearnerSelection';
+import { useRatings } from '../hooks/useRatings';
+import { validateValuesAssessment, formatValidationErrors } from '../../../utils/validation/assessmentValidators';
 
 const ValuesAssessment = ({ learners }) => {
   const { showSuccess, showError } = useNotifications();
 
-  // View State
-  const [viewMode, setViewMode] = useState('setup'); // 'setup' | 'assess'
-
-  // Form state
-  const [selectedLearnerId, setSelectedLearnerId] = useState('');
-  const [selectedTerm, setSelectedTerm] = useState('TERM_1');
-  const [academicYear, setAcademicYear] = useState(getCurrentAcademicYear());
-  const [saving, setSaving] = useState(false);
-
-  // Values state
-  const [values, setValues] = useState({
+  // Use centralized hooks for assessment state management
+  const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
+  const selection = useLearnerSelection(learners || [], { status: ['ACTIVE', 'Active'] });
+  const ratings = useRatings({
     love: 'ME1',
     responsibility: 'ME1',
     respect: 'ME1',
     unity: 'ME1',
     peace: 'ME1',
     patriotism: 'ME1',
-    integrity: 'ME1',
-    comment: ''
+    integrity: 'ME1'
   });
 
-  const terms = [
-    { value: 'TERM_1', label: 'Term 1' },
-    { value: 'TERM_2', label: 'Term 2' },
-    { value: 'TERM_3', label: 'Term 3' }
-  ];
-
-  const ratings = [
-    { value: 'EE1', label: 'EE1 - Outstanding (90-100%)', color: 'green' },
-    { value: 'EE2', label: 'EE2 - Very High (75-89%)', color: 'green' },
-    { value: 'ME1', label: 'ME1 - High Average (58-74%)', color: 'blue' },
-    { value: 'ME2', label: 'ME2 - Average (41-57%)', color: 'blue' },
-    { value: 'AE1', label: 'AE1 - Low Average (31-40%)', color: 'yellow' },
-    { value: 'AE2', label: 'AE2 - Below Average (21-30%)', color: 'yellow' },
-    { value: 'BE1', label: 'BE1 - Low (11-20%)', color: 'red' },
-    { value: 'BE2', label: 'BE2 - Very Low (1-10%)', color: 'red' }
-  ];
-
+  // National values definitions (component-specific)
   const valueDefinitions = {
-    love: {
-      name: 'Love',
-      description: 'Showing care, compassion and kindness to others',
-      icon: '❤️'
-    },
-    responsibility: {
-      name: 'Responsibility',
-      description: 'Being accountable and reliable in duties and actions',
-      icon: '🎯'
-    },
-    respect: {
-      name: 'Respect',
-      description: 'Valuing others, their rights and dignity',
-      icon: '🙏'
-    },
-    unity: {
-      name: 'Unity',
-      description: 'Working together harmoniously with others',
-      icon: '🤲'
-    },
-    peace: {
-      name: 'Peace',
-      description: 'Promoting harmony and resolving conflicts peacefully',
-      icon: '☮️'
-    },
-    patriotism: {
-      name: 'Patriotism',
-      description: 'Love and loyalty to one\'s country',
-      icon: '🇰🇪'
-    },
-    integrity: {
-      name: 'Integrity',
-      description: 'Being honest and having strong moral principles',
-      icon: '⚖️'
-    }
+    love: { name: 'Love', description: 'Showing care, compassion and kindness to others', icon: '❤️' },
+    responsibility: { name: 'Responsibility', description: 'Being accountable and reliable in duties and actions', icon: '🎯' },
+    respect: { name: 'Respect', description: 'Valuing others, their rights and dignity', icon: '🙏' },
+    unity: { name: 'Unity', description: 'Working together harmoniously with others', icon: '🤲' },
+    peace: { name: 'Peace', description: 'Promoting harmony and resolving conflicts peacefully', icon: '☮️' },
+    patriotism: { name: 'Patriotism', description: 'Love and loyalty to one\'s country', icon: '🇰🇪' },
+    integrity: { name: 'Integrity', description: 'Being honest and having strong moral principles', icon: '⚖️' }
   };
-
-  const selectedLearner = learners?.find(l => l.id === selectedLearnerId);
 
   // Load existing values when learner/term changes
   const loadExistingValues = useCallback(async () => {
+    if (!selection.selectedLearnerId || !setup.selectedTerm) return;
+
     try {
-      const response = await api.cbc.getValues(selectedLearnerId, {
-        term: selectedTerm,
-        academicYear
+      const response = await api.cbc.getValues(selection.selectedLearnerId, {
+        term: setup.selectedTerm,
+        academicYear: setup.academicYear
       });
 
       if (response.success && response.data) {
-        setValues({
-          love: response.data.love,
-          responsibility: response.data.responsibility,
-          respect: response.data.respect,
-          unity: response.data.unity,
-          peace: response.data.peace,
-          patriotism: response.data.patriotism,
-          integrity: response.data.integrity,
-          comment: response.data.comment || ''
+        ratings.setRatings({
+          love: response.data.love || 'ME1',
+          responsibility: response.data.responsibility || 'ME1',
+          respect: response.data.respect || 'ME1',
+          unity: response.data.unity || 'ME1',
+          peace: response.data.peace || 'ME1',
+          patriotism: response.data.patriotism || 'ME1',
+          integrity: response.data.integrity || 'ME1'
         });
+        if (response.data.comment) {
+          ratings.setComment('general', response.data.comment);
+        }
         showSuccess('Loaded existing assessment');
       }
     } catch (error) {
       console.log('No existing assessment found');
-      // Reset to defaults
-      setValues({
-        love: 'ME1',
-        responsibility: 'ME1',
-        respect: 'ME1',
-        unity: 'ME1',
-        peace: 'ME1',
-        patriotism: 'ME1',
-        integrity: 'ME1',
-        comment: ''
-      });
+      // Silently fail - use defaults
     }
-  }, [selectedLearnerId, selectedTerm, academicYear, showSuccess]);
+  }, [selection.selectedLearnerId, setup.selectedTerm, setup.academicYear, ratings, showSuccess]);
 
   useEffect(() => {
-    if (selectedLearnerId && selectedTerm) {
+    if (viewMode === 'assess') {
       loadExistingValues();
     }
-  }, [selectedLearnerId, selectedTerm, academicYear, loadExistingValues]);
+  }, [viewMode, loadExistingValues]);
 
+  // Save values assessment
   const handleSave = async () => {
-    if (!selectedLearnerId) {
+    if (!selection.selectedLearnerId) {
       showError('Please select a learner');
+      return;
+    }
+
+    // Validate before saving
+    const validationError = validateValuesAssessment({
+      learnerId: selection.selectedLearnerId,
+      term: setup.selectedTerm,
+      academicYear: setup.academicYear,
+      ratings: ratings.ratings
+    });
+
+    if (validationError.length > 0) {
+      showError(formatValidationErrors(validationError)[0].message);
       return;
     }
 
     setSaving(true);
     try {
       const response = await api.cbc.saveValues({
-        learnerId: selectedLearnerId,
-        term: selectedTerm,
-        academicYear,
-        ...values
+        learnerId: selection.selectedLearnerId,
+        term: setup.selectedTerm,
+        academicYear: setup.academicYear,
+        ...ratings.ratings,
+        comment: ratings.comments.general || ''
       });
 
       if (response.success) {
@@ -162,8 +123,9 @@ const ValuesAssessment = ({ learners }) => {
     }
   };
 
+  // Start assessment after learner selection
   const handleStartAssessment = () => {
-    if (!selectedLearnerId) {
+    if (!selection.selectedLearnerId) {
       showError('Please select a learner first');
       return;
     }
@@ -171,13 +133,7 @@ const ValuesAssessment = ({ learners }) => {
     window.scrollTo(0, 0);
   };
 
-  const updateValue = (field, value) => {
-    setValues(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
+  // Get color for rating display
   const getRatingColor = (rating) => {
     if (rating.startsWith('EE')) return 'bg-green-100 border-green-300 text-green-800';
     if (rating.startsWith('ME')) return 'bg-blue-100 border-blue-300 text-blue-800';
@@ -204,9 +160,9 @@ const ValuesAssessment = ({ learners }) => {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Select Learner</label>
               <SmartLearnerSearch
-                learners={learners?.filter(l => l.status === 'ACTIVE' || l.status === 'Active') || []}
-                selectedLearnerId={selectedLearnerId}
-                onSelect={setSelectedLearnerId}
+                learners={selection.filteredLearners}
+                selectedLearnerId={selection.selectedLearnerId}
+                onSelect={selection.selectLearner}
                 placeholder="Search by name, adm no..."
               />
             </div>
@@ -215,11 +171,11 @@ const ValuesAssessment = ({ learners }) => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Term</label>
                 <select
-                  value={selectedTerm}
-                  onChange={(e) => setSelectedTerm(e.target.value)}
+                  value={setup.selectedTerm}
+                  onChange={(e) => setup.updateTerm(e.target.value)}
                   className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
                 >
-                  {terms.map(t => (
+                  {setup.terms.map(t => (
                     <option key={t.value} value={t.value}>{t.label}</option>
                   ))}
                 </select>
@@ -229,8 +185,8 @@ const ValuesAssessment = ({ learners }) => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Year</label>
                 <input
                   type="number"
-                  value={academicYear}
-                  onChange={(e) => setAcademicYear(parseInt(e.target.value))}
+                  value={setup.academicYear}
+                  onChange={(e) => setup.updateAcademicYear(parseInt(e.target.value))}
                   className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
                 />
               </div>
@@ -240,7 +196,7 @@ const ValuesAssessment = ({ learners }) => {
           <div className="flex justify-end pt-6 border-t border-gray-100">
             <button
               onClick={handleStartAssessment}
-              disabled={!selectedLearnerId}
+              disabled={!selection.selectedLearnerId}
               className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-rose-600 to-pink-600 text-white rounded-xl hover:from-rose-700 hover:to-pink-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               Start Assessment
@@ -251,22 +207,22 @@ const ValuesAssessment = ({ learners }) => {
       )}
 
       {/* ASSESS MODE */}
-      {viewMode === 'assess' && selectedLearner && (
+      {viewMode === 'assess' && selection.selectedLearner && (
         <>
           {/* Compact Context Header */}
           <div className="bg-white rounded-xl shadow-sm p-4 border border-rose-100 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-4 z-20">
              <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                {selectedLearner.firstName[0]}{selectedLearner.lastName[0]}
+                {selection.selectedLearner.firstName[0]}{selection.selectedLearner.lastName[0]}
               </div>
               <div>
                 <h3 className="font-bold text-gray-800 text-lg line-clamp-1">
-                  {selectedLearner.firstName} {selectedLearner.lastName}
+                  {selection.selectedLearner.firstName} {selection.selectedLearner.lastName}
                 </h3>
                 <div className="flex items-center gap-3 text-sm text-gray-500 font-medium">
-                  <span>{selectedLearner.admissionNumber}</span>
+                  <span>{selection.selectedLearner.admissionNumber}</span>
                   <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full text-xs">
-                    {terms.find(t => t.value === selectedTerm)?.label} {academicYear}
+                    {setup.terms.find(t => t.value === setup.selectedTerm)?.label} {setup.academicYear}
                   </span>
                 </div>
               </div>
@@ -306,11 +262,11 @@ const ValuesAssessment = ({ learners }) => {
 
                 <div>
                   <select
-                    value={values[key]}
-                    onChange={(e) => updateValue(key, e.target.value)}
-                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-rose-500 font-semibold text-sm transition-colors cursor-pointer appearance-none ${getRatingColor(values[key])}`}
+                    value={ratings.ratings[key] || 'ME1'}
+                    onChange={(e) => ratings.setRating(key, e.target.value)}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-rose-500 font-semibold text-sm transition-colors cursor-pointer appearance-none ${getRatingColor(ratings.ratings[key] || 'ME1')}`}
                   >
-                    {ratings.map(r => (
+                    {CBC_RATINGS.map(r => (
                       <option key={r.value} value={r.value}>{r.label}</option>
                     ))}
                   </select>
@@ -326,8 +282,8 @@ const ValuesAssessment = ({ learners }) => {
               General Observations
             </label>
             <textarea
-              value={values.comment}
-              onChange={(e) => updateValue('comment', e.target.value)}
+              value={ratings.comments.general || ''}
+              onChange={(e) => ratings.setComment('general', e.target.value)}
               placeholder="Add overall observations about the learner's demonstration of values..."
               rows={4}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-500 resize-none transition-all"
@@ -337,10 +293,7 @@ const ValuesAssessment = ({ learners }) => {
           {/* Bottom Actions */}
           <div className="flex justify-end gap-4 pb-12">
              <button
-              onClick={() => {
-                handleSave();
-                // Optional: Logic to go to next learner could be added here
-              }}
+              onClick={handleSave}
               className="px-8 py-3 bg-white border-2 border-rose-100 text-rose-600 font-bold rounded-xl hover:bg-rose-50 transition"
             >
               Save & Stay
@@ -349,7 +302,7 @@ const ValuesAssessment = ({ learners }) => {
               onClick={() => {
                 handleSave();
                 setViewMode('setup');
-                setSelectedLearnerId(''); // Reset for next learner
+                selection.clearSelection();
                 window.scrollTo(0, 0);
               }}
               className="px-8 py-3 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-900 transition flex items-center gap-2 shadow-lg"

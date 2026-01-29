@@ -9,9 +9,16 @@ import { useAuth } from '../../../hooks/useAuth';
 import { generatePDFWithLetterhead } from '../../../utils/simplePdfGenerator';
 import BulkMarkImportModal from '../shared/BulkMarkImportModal';
 import PDFPreviewModal from '../shared/PDFPreviewModal';
+import { getGradeColor } from '../../../utils/grading/colors';
+import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
+import { useLearnerSelection } from '../hooks/useLearnerSelection';
 
 const SummativeAssessment = ({ learners, initialTestId }) => {
   const { showSuccess, showError } = useNotifications();
+
+  // Use centralized hooks for assessment state management
+  const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
+  const selection = useLearnerSelection(learners || [], { status: ['ACTIVE', 'Active'] });
 
   // View State
   const [step, setStep] = useState(initialTestId ? 2 : 1); // 1: Setup, 2: Assess (Skip setup if test ID provided)
@@ -23,10 +30,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
 
-  // Selection State
-  const [selectedGrade, setSelectedGrade] = useState('');
-  const [selectedStream, setSelectedStream] = useState('');
-  const [selectedTerm, setSelectedTerm] = useState('');
+  // Test Selection State (using setup and selection hooks for grade/stream/term)
   const [selectedTestId, setSelectedTestId] = useState(initialTestId || '');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -303,11 +307,11 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
 
   const filteredTestsBySelection = useMemo(() =>
     tests.filter(t => {
-      if (selectedGrade && t.grade !== selectedGrade) return false;
-      if (selectedTerm && t.term !== selectedTerm) return false;
+      if (setup.selectedGrade && t.grade !== setup.selectedGrade) return false;
+      if (setup.selectedTerm && t.term !== setup.selectedTerm) return false;
       return true;
     }),
-    [tests, selectedGrade, selectedTerm]
+    [tests, setup.selectedGrade, setup.selectedTerm]
   );
 
   const availableLearningAreas = useMemo(() => {
@@ -337,8 +341,8 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
             limit: 1000 // Get all for the class
           };
 
-          if (selectedStream) {
-            params.stream = selectedStream;
+          if (setup.selectedStream) {
+            params.stream = setup.selectedStream;
           }
 
           const response = await learnerAPI.getAll(params);
@@ -355,7 +359,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
 
       fetchLearners();
     }
-  }, [step, selectedTest, selectedStream]);
+  }, [step, selectedTest, setup.selectedStream]);
 
   const filteredLearners = useMemo(() => {
     let result = fetchedLearners;
@@ -658,9 +662,9 @@ Are you sure you want to unlock this test?`;
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Grade</label>
             <select
-              value={selectedGrade}
+              value={setup.selectedGrade}
               onChange={(e) => {
-                setSelectedGrade(e.target.value);
+                setup.updateGrade(e.target.value);
                 setSelectedLearningArea('');
                 setSelectedTestId('');
               }}
@@ -676,8 +680,8 @@ Are you sure you want to unlock this test?`;
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Stream</label>
             <select
-              value={selectedStream}
-              onChange={(e) => setSelectedStream(e.target.value)}
+              value={setup.selectedStream}
+              onChange={(e) => setup.updateStream(e.target.value)}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
             >
               <option value="">Select Stream</option>
@@ -690,9 +694,9 @@ Are you sure you want to unlock this test?`;
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Academic Term</label>
             <select
-              value={selectedTerm}
+              value={setup.selectedTerm}
               onChange={(e) => {
-                setSelectedTerm(e.target.value);
+                setup.updateTerm(e.target.value);
                 setSelectedLearningArea('');
                 setSelectedTestId('');
               }}
@@ -716,10 +720,10 @@ Are you sure you want to unlock this test?`;
                 setSelectedTestId('');
               }}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-              disabled={!selectedGrade || !selectedTerm || availableLearningAreas.length === 0}
+              disabled={!setup.selectedGrade || !setup.selectedTerm || availableLearningAreas.length === 0}
             >
               <option value="">
-                {!selectedGrade || !selectedTerm
+                {!setup.selectedGrade || !setup.selectedTerm
                   ? 'Select Grade & Term first'
                   : availableLearningAreas.length === 0
                     ? 'No tests found for this period'
@@ -749,14 +753,14 @@ Are you sure you want to unlock this test?`;
           </div>
         </div>
 
-        {(tests.length === 0 || (selectedGrade && selectedTerm && filteredTestsBySelection.length === 0)) && !loading && (
+        {(tests.length === 0 || (setup.selectedGrade && setup.selectedTerm && filteredTestsBySelection.length === 0)) && !loading && (
           <div className="mb-8 p-6 bg-red-50 rounded-xl border border-red-100 italic">
             <EmptyState
               icon={Database}
-              title={tests.length === 0 ? "No Tests Found Globally" : `No Tests for ${selectedGrade.replace('_', ' ')}`}
+              title={tests.length === 0 ? "No Tests Found Globally" : `No Tests for ${setup.selectedGrade.replace('_', ' ')}`}
               message={tests.length === 0
                 ? "Your assessment repository is empty. You need to create and PUBLISH tests before they appear here."
-                : `There are no published or approved tests available for ${selectedGrade.replace('_', ' ')} in ${selectedTerm.replace('_', ' ')}. Check your test management to ensure they are finalized.`
+                : `There are no published or approved tests available for ${setup.selectedGrade.replace('_', ' ')} in ${setup.selectedTerm.replace('_', ' ')}. Check your test management to ensure they are finalized.`
               }
               actionText="Go to Test Management"
               onAction={() => window.location.hash = '#/assess-summative-tests'}
@@ -896,7 +900,7 @@ Are you sure you want to unlock this test?`;
           <div className="text-center py-3 mb-4">
             <h1 className="text-2xl font-bold text-[#1e3a8a] mb-2 leading-tight">Summative Assessment Results</h1>
             <p className="text-sm text-gray-600 font-medium">
-              {selectedTest?.learningArea} | {selectedTest?.grade?.replace('_', ' ')} | {selectedStream || 'All Streams'} | {selectedTest?.term?.replace('_', ' ')} {selectedTest?.academicYear || new Date().getFullYear()}
+              {selectedTest?.learningArea} | {selectedTest?.grade?.replace('_', ' ')} | {setup.selectedStream || 'All Streams'} | {selectedTest?.term?.replace('_', ' ')} {selectedTest?.academicYear || new Date().getFullYear()}
             </p>
             <p className="text-xs text-gray-500 mt-1">
               Total Marks: {selectedTest?.totalMarks} | Test Date: {selectedTest?.testDate ? new Date(selectedTest.testDate).toLocaleDateString() : 'N/A'}
@@ -1048,7 +1052,7 @@ Are you sure you want to unlock this test?`;
             }}>
               <h1 className="text-2xl font-bold text-[#1e3a8a] mb-1">Summative Assessment Results</h1>
               <p className="text-sm text-gray-600 font-medium">
-                {selectedTest?.learningArea} | {selectedTest?.grade?.replace('_', ' ')} | {selectedStream || 'All Streams'} | {selectedTest?.term?.replace('_', ' ')} {selectedTest?.academicYear || new Date().getFullYear()}
+                {selectedTest?.learningArea} | {selectedTest?.grade?.replace('_', ' ')} | {setup.selectedStream || 'All Streams'} | {selectedTest?.term?.replace('_', ' ')} {selectedTest?.academicYear || new Date().getFullYear()}
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 Total Marks: {selectedTest?.totalMarks} | Test Date: {selectedTest?.testDate ? new Date(selectedTest.testDate).toLocaleDateString() : 'N/A'}
@@ -1439,55 +1443,6 @@ const PieChart = ({ data }) => {
       </text>
     </g>
   );
-};
-
-// Helper function for grade colors - UNIVERSAL SOLUTION
-const getGradeColor = (grade) => {
-  // Normalize the grade string
-  const gradeUpper = String(grade).toUpperCase().trim();
-  
-  // Match specific grade numbers first (for different shades)
-  if (gradeUpper.includes('EXCEED')) {
-    if (gradeUpper.includes('1')) return '#059669'; // Dark Green - Exceeding Expectations 1
-    if (gradeUpper.includes('2')) return '#10b981'; // Light Green - Exceeding Expectations 2
-    return '#22c55e'; // Default green
-  }
-  if (gradeUpper.includes('MEET')) {
-    if (gradeUpper.includes('1')) return '#2563eb'; // Dark Blue - Meeting Expectations 1
-    if (gradeUpper.includes('2')) return '#60a5fa'; // Light Blue - Meeting Expectations 2
-    return '#3b82f6'; // Default blue
-  }
-  if (gradeUpper.includes('APPROACH')) {
-    if (gradeUpper.includes('1')) return '#ca8a04'; // Dark Yellow - Approaching Expectations 1
-    if (gradeUpper.includes('2')) return '#eab308'; // Light Yellow - Approaching Expectations 2
-    return '#fbbf24'; // Default yellow
-  }
-  if (gradeUpper.includes('BELOW')) {
-    if (gradeUpper.includes('1')) return '#ea580c'; // Dark Orange - Below Expectations 1
-    if (gradeUpper.includes('2')) return '#f97316'; // Light Orange - Below Expectations 2
-    return '#fb923c'; // Default orange
-  }
-  if (gradeUpper.includes('NOT') || gradeUpper.includes('NY')) return '#dc2626'; // Red
-  
-  // Fallback to exact matches for short codes
-  const colorMap = {
-    'EE': '#22c55e', 'EE1': '#059669', 'EE2': '#10b981',
-    'ME': '#3b82f6', 'ME1': '#2563eb', 'ME2': '#60a5fa',
-    'AE': '#eab308', 'AE1': '#ca8a04', 'AE2': '#eab308',
-    'BE': '#f97316', 'BE1': '#ea580c', 'BE2': '#f97316',
-    'NY': '#ef4444', 'NY1': '#dc2626', 'NY2': '#ef4444',
-    'EX': '#22c55e',
-    'VG': '#3b82f6',
-    'GO': '#eab308',
-    'AP': '#eab308',
-    'RE': '#ef4444',
-    'NI': '#ef4444',
-    'CE': '#22c55e',
-    'FE': '#3b82f6',
-    'OE': '#eab308',
-  };
-  
-  return colorMap[gradeUpper] || '#94a3b8'; // Gray default
 };
 
 export default SummativeAssessment;

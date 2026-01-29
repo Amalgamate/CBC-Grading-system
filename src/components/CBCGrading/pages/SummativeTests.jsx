@@ -146,6 +146,11 @@ const SummativeTests = ({ onNavigate }) => {
     setShowConfirm(true);
   };
 
+  const handleArchive = (id) => {
+    setTests(prev => prev.map(t => t.id === id ? { ...t, archived: true, status: 'ARCHIVED' } : t));
+    showSuccess('Test archived!');
+  };
+
   // eslint-disable-next-line no-unused-vars -- reserved for SummativeTestForm integration
   const handleSaveTest = async (formData) => {
     console.log('=== SAVING TEST ===');
@@ -622,6 +627,15 @@ const SummativeTests = ({ onNavigate }) => {
                         </button>
                       )}
 
+                      {/* Archive button for all tests */}
+                      <button
+                        onClick={() => handleArchive(test.id)}
+                        className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded-lg transition"
+                        title={test.archived ? "Archived" : "Archive"}
+                        disabled={test.archived}
+                      >
+                        <ClipboardList size={16} />
+                      </button>
                       {/* Always show delete for all tests to ensure cleanup is possible */}
                       <button onClick={() => handleDelete(test.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete">
                         <Trash2 size={16} />
