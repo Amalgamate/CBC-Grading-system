@@ -19,19 +19,20 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
 
   // Use centralized hooks for assessment state management
   const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
-  const selection = useLearnerSelection(learners || [], { status: ['ACTIVE', 'Active'] });
 
   const [selectedType, setSelectedType] = useState('LEARNER_REPORT');
-  const [selectedTestGroups, setSelectedTestGroups] = useState([]);  // ← Now ARRAY for multi-select
-  const [selectedTestIds, setSelectedTestIds] = useState([]);         // ← Now ARRAY for multi-select
+  const [selectedTestGroups, setSelectedTestGroups] = useState([]);
+  const [selectedTestIds, setSelectedTestIds] = useState([]);
   const [availableTests, setAvailableTests] = useState([]);
   const [streamConfigs, setStreamConfigs] = useState([]);
+  const [grades, setGrades] = useState([]);
+  const [availableStreams, setAvailableStreams] = useState([]);
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
-  const [showTestGroupOptions, setShowTestGroupOptions] = useState(false);  // ← Show/hide test group checkboxes
-  const [showTestOptions, setShowTestOptions] = useState(false);            // ← Show/hide test checkboxes
-  const [isExporting, setIsExporting] = useState(false);  // ← Track PDF export state
+  const [showTestGroupOptions, setShowTestGroupOptions] = useState(false);
+  const [showTestOptions, setShowTestOptions] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const reportRef = useRef(null);
 
   const reportTypes = [
@@ -44,20 +45,36 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     { value: 'GRADE_ANALYSIS_REPORT', label: 'Grade Analysis Report' }
   ];
 
-  // Use grades, terms, streams, and selection from setup/selection hooks
-  const grades = setup.grades || [];
-  const setSelectedGrade = setup.updateGrade;
-  const selectedGrade = setup.selectedGrade;
-  const setSelectedTerm = setup.updateTerm;
-  const selectedTerm = setup.selectedTerm;
+  // Local state for grade, stream, term selections (instead of relying on setup hook)
+  const [selectedGrade, setSelectedGrade] = useState('');
+  const [selectedStream, setSelectedStream] = useState('');
+  const [selectedTerm, setSelectedTerm] = useState('TERM_1');
+  
+  // Get terms from hook
   const terms = setup.terms;
   const academicYear = setup.academicYear;
-  const setSelectedStream = setup.updateStream;
-  const selectedStream = setup.selectedStream;
-  const selectedLearnerId = selection.selectedLearnerId;
-  const setSelectedLearnerId = selection.selectLearner;
 
-  // availableGrades is now setup.grades
+  // Selection mappings - use local state for learner selection
+  const [selectedLearnerId, setSelectedLearnerId] = useState('');
+  
+  // Filter learners by grade and stream
+  const filteredLearners = useMemo(() => {
+    if (!learners || learners.length === 0) return [];
+    
+    let filtered = [...learners];
+
+    // Filter by grade
+    if (selectedGrade && selectedGrade !== 'all') {
+      filtered = filtered.filter(l => l.grade === selectedGrade);
+    }
+
+    // Filter by stream
+    if (selectedStream && selectedStream !== 'all') {
+      filtered = filtered.filter(l => l.stream === selectedStream);
+    }
+
+    return filtered;
+  }, [learners, selectedGrade, selectedStream]);
 
   // Fetch learners on component mount
   useEffect(() => {
@@ -68,6 +85,44 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       console.warn('⚠️ onFetchLearners not available or not a function');
     }
   }, [onFetchLearners]);
+
+  // Fetch grades from backend (Source of Truth)
+  useEffect(() => {
+    const fetchGrades = async () => {
+      try {
+        const schoolId = user?.schoolId || user?.school?.id || localStorage.getItem('currentSchoolId');
+        
+        if (!schoolId) {
+          console.warn('⚠️ No school ID found - cannot fetch grades');
+          setGrades([]);
+          return;
+        }
+
+        console.log('🔄 Fetching grades for school:', schoolId);
+        const response = await configAPI.getGrades(schoolId);
+        
+        let gradesData = Array.isArray(response) ? response : (response?.data ? response.data : []);
+        
+        // If grades are strings, convert to objects with value and label
+        gradesData = gradesData.map(g => {
+          if (typeof g === 'string') {
+            return { value: g, label: g };
+          }
+          return { value: g.value || g.name || g, label: g.label || g.name || g };
+        });
+        
+        console.log('✅ Grades loaded:', gradesData.length);
+        setGrades(gradesData || []);
+      } catch (err) {
+        console.error('❌ Error fetching grades:', err);
+        setGrades([]);
+      }
+    };
+
+    if (user) {
+      fetchGrades();
+    }
+  }, [user]);
 
   // Fetch stream configurations from backend (Source of Truth)
   useEffect(() => {
@@ -524,11 +579,18 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             onChange={(e) => setSelectedGrade(e.target.value)}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
           >
-            {grades.map(g => (
-              <option key={g.value} value={g.value}>
-                {g.label}
-              </option>
-            ))}
+            <option value="">Select Grade</option>
+            <option value="all">All Grades</option>
+            {(grades || []).map(g => {
+              // Handle both string grades and object grades
+              const gradeValue = typeof g === 'string' ? g : (g.value || g.id || g.name);
+              const gradeLabel = typeof g === 'string' ? g : (g.label || g.name);
+              return (
+                <option key={gradeValue} value={gradeValue}>
+                  {gradeLabel}
+                </option>
+              );
+            })}
           </select>
         </div>
 
