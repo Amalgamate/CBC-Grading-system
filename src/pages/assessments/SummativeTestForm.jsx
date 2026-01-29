@@ -6,7 +6,7 @@ import {
   Check
 } from 'lucide-react';
 import api from '../../services/api';
-import { learningAreas } from '../../components/CBCGrading/data/learningAreas';
+import { getLearningAreasByGrade } from '../../constants/learningAreas';
 
 const SummativeTestForm = ({ onBack, onSuccess }) => {
 
@@ -438,10 +438,11 @@ const SummativeTestForm = ({ onBack, onSuccess }) => {
                   value={formData.learningArea}
                   onChange={(e) => handleInputChange('learningArea', e.target.value)}
                   className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.learningArea ? 'border-red-500' : 'border-gray-300'}`}
+                  disabled={!formData.grade}
                 >
-                  <option value="">Select Learning Area</option>
-                  {learningAreas.map(area => (
-                    <option key={area.id} value={area.name}>{area.name}</option>
+                  <option value="">{formData.grade ? 'Select Learning Area' : 'Select Grade first'}</option>
+                  {formData.grade && getLearningAreasByGrade(formData.grade).map(area => (
+                    <option key={area} value={area}>{area}</option>
                   ))}
                 </select>
                 {errors.learningArea && (

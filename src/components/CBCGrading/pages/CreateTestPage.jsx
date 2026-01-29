@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
 import { gradingAPI } from '../../../services/api';
+import { getLearningAreasByGrade } from '../../../constants/learningAreas';
 
 const CreateTestPage = ({ onSave, onCancel, initialData, availableGrades }) => {
   const [formData, setFormData] = useState({
@@ -286,15 +287,12 @@ const CreateTestPage = ({ onSave, onCancel, initialData, availableGrades }) => {
                   onChange={(e) => handleChange('subject', e.target.value)}
                   className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-semibold text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all appearance-none cursor-pointer"
                   required
+                  disabled={!formData.grade}
                 >
-                  <option value="">Select Learning Area</option>
-                  <option value="Mathematics Activities">Mathematics Activities</option>
-                  <option value="English Activities">English Activities</option>
-                  <option value="Kiswahili Activities">Kiswahili Activities</option>
-                  <option value="Environmental Activities">Environmental Activities</option>
-                  <option value="Religious Education">Religious Education</option>
-                  <option value="Creative Arts">Creative Arts</option>
-                  <option value="Physical Education">Physical Education</option>
+                  <option value="">{formData.grade ? 'Select Learning Area' : 'Select Grade first'}</option>
+                  {formData.grade && getLearningAreasByGrade(formData.grade).map(area => (
+                    <option key={area} value={area}>{area}</option>
+                  ))}
                 </select>
                 <div className="absolute right-3 top-3 pointer-events-none text-gray-400">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>

@@ -12,6 +12,7 @@ import api, { configAPI } from '../../../services/api';
 import { TERMS } from '../../../constants/terms';
 import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { useLearnerSelection } from '../hooks/useLearnerSelection';
+import { useLearningAreas } from '../hooks/useLearningAreas';
 
 const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) => {
   const { showSuccess, showError } = useNotifications();

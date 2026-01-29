@@ -12,6 +12,7 @@ import PDFPreviewModal from '../shared/PDFPreviewModal';
 import { getGradeColor } from '../../../utils/grading/colors';
 import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { useLearnerSelection } from '../hooks/useLearnerSelection';
+import { useLearningAreas } from '../hooks/useLearningAreas';
 
 const SummativeAssessment = ({ learners, initialTestId }) => {
   const { showSuccess, showError } = useNotifications();
@@ -19,6 +20,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
   // Use centralized hooks for assessment state management
   const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
   const selection = useLearnerSelection(learners || [], { status: ['ACTIVE', 'Active'] });
+  const learningAreasMgr = useLearningAreas(setup.selectedGrade);
 
   // View State
   const [step, setStep] = useState(initialTestId ? 2 : 1); // 1: Setup, 2: Assess (Skip setup if test ID provided)
@@ -315,9 +317,14 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
   );
 
   const availableLearningAreas = useMemo(() => {
-    const areas = [...new Set(filteredTestsBySelection.map(t => t.learningArea))].filter(Boolean).sort();
-    return areas;
-  }, [filteredTestsBySelection]);
+    // Get grade's learning areas first, then filter by what's available in tests
+    const gradeAreas = learningAreasMgr.flatLearningAreas;
+    if (gradeAreas.length === 0) return [];
+    
+    // Filter to only areas that have tests
+    const testsInThisGrade = filteredTestsBySelection.map(t => t.learningArea).filter(Boolean);
+    return gradeAreas.filter(area => testsInThisGrade.includes(area) || testsInThisGrade.length === 0);
+  }, [filteredTestsBySelection, learningAreasMgr.flatLearningAreas]);
 
   const finalTests = useMemo(() =>
     filteredTestsBySelection.filter(t => {

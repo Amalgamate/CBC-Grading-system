@@ -13,6 +13,7 @@ import { getCurrentAcademicYear } from '../utils/academicYear';
 import { TERMS } from '../../../constants/terms';
 import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { useLearnerSelection } from '../hooks/useLearnerSelection';
+import { useLearningAreas } from '../hooks/useLearningAreas';
 
 const FormativeAssessment = ({ learners }) => {
   const { showSuccess, showError } = useNotifications();
@@ -20,6 +21,7 @@ const FormativeAssessment = ({ learners }) => {
   // Use centralized hooks for assessment state management
   const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
   const selection = useLearnerSelection(learners || [], { status: ['ACTIVE', 'Active'] });
+  const learningAreas = useLearningAreas(setup.selectedGrade);
   
   // View State
   const [viewMode, setViewMode] = useState('setup'); // 'setup' | 'assess' | 'review'
@@ -56,7 +58,7 @@ const FormativeAssessment = ({ learners }) => {
   const searchLearnerId = selection.selectedLearnerId;
   const setSearchLearnerId = selection.selectLearner;
 
-  const learningAreas = [
+  const learningAreas_items = [
     'Mathematics', 
     'English Activities', 
     'Kiswahili Activities', 
@@ -107,7 +109,7 @@ const FormativeAssessment = ({ learners }) => {
   };
 
   const handleLearnerSelect = (id) => {
-    setSearchLearnerId(id);
+    selection.selectLearner(id);
     if (id) {
       const learner = learners.find(l => l.id === id);
       if (learner && learner.grade !== selectedGrade) {
@@ -402,13 +404,21 @@ const FormativeAssessment = ({ learners }) => {
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">Learning Area</label>
                   <select 
                     value={selectedArea} 
-                    onChange={(e) => setSelectedArea(e.target.value)} 
+                    onChange={(e) => {
+                      setSelectedArea(e.target.value);
+                      learningAreas.selectLearningArea(e.target.value);
+                    }} 
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm bg-white"
+                    disabled={!setup.selectedGrade}
                   >
-                    {learningAreas.map(a => (
+                    <option value="">Select a learning area</option>
+                    {learningAreas.flatLearningAreas.map(a => (
                       <option key={a} value={a}>{a}</option>
                     ))}
                   </select>
+                  {learningAreas.hasAreas && (
+                    <p className="text-xs text-gray-500 mt-1">{learningAreas.areaCount} learning areas available</p>
+                  )}
                 </div>
 
                 <div>

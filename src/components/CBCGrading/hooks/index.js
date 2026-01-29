@@ -6,3 +6,4 @@
 export { useAssessmentSetup } from './useAssessmentSetup';
 export { useLearnerSelection } from './useLearnerSelection';
 export { useRatings } from './useRatings';
+export { useLearningAreas } from './useLearningAreas';
