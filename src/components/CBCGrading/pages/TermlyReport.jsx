@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { FileText, Printer, Edit3, ArrowLeft, User, ArrowRight, Filter, Loader } from 'lucide-react';
+import { FileText, Printer, Edit3, User, ArrowRight, Filter } from 'lucide-react';
 import { generatePDFWithLetterhead } from '../../../utils/simplePdfGenerator';
 import { useNotifications } from '../hooks/useNotifications';
 import api from '../../../services/api';
@@ -18,7 +18,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
   const [selectedLearnerId, setSelectedLearnerId] = useState('');
   const [selectedGrade, setSelectedGrade] = useState('all');
   const [selectedTerm, setSelectedTerm] = useState('TERM_1');
-  const [academicYear, setAcademicYear] = useState(getCurrentAcademicYear());
+  const [academicYear] = useState(getCurrentAcademicYear());
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
   

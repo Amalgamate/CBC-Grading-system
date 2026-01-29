@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, Users } from 'lucide-react';
 import { authAPI, API_BASE_URL } from '../../services/api';
+import { getPortalSchoolId, setAdminSchoolId, setBranchId } from '../../services/tenantContext';
 
 export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword, onLoginSuccess, brandingSettings }) {
   const [formData, setFormData] = useState({
@@ -16,6 +17,38 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [branchOptions, setBranchOptions] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState('');
+
+  const assignFirstAvailableSchoolForSuperAdmin = async ({ token, userData }) => {
+    // Only applies when SUPER_ADMIN has no schoolId.
+    if (!token) return { schoolId: '', userData };
+    if (userData?.role !== 'SUPER_ADMIN') return { schoolId: userData?.schoolId || '', userData };
+    if (userData?.schoolId) return { schoolId: userData.schoolId, userData };
+
+    try {
+      const schoolsResponse = await fetch(`${API_BASE_URL}/admin/schools`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const schoolsData = await schoolsResponse.json();
+
+      if (schoolsData?.data && schoolsData.data.length > 0) {
+        const firstSchool = schoolsData.data.find((s) => s.active) || schoolsData.data[0];
+        const sid = firstSchool?.id || '';
+        if (sid) {
+          const updatedUserData = {
+            ...userData,
+            schoolId: sid,
+            school: firstSchool,
+          };
+          console.log('✅ Super Admin auto-assigned to school:', firstSchool.name);
+          return { schoolId: sid, userData: updatedUserData };
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not fetch schools for Super Admin:', error);
+    }
+
+    return { schoolId: '', userData };
+  };
 
   // Fetch seeded users for development
   useEffect(() => {
@@ -63,9 +96,11 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
     setIsLoading(true);
 
     try {
+      const tenantSchoolId = getPortalSchoolId() || undefined;
       const data = await authAPI.login({
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        ...(tenantSchoolId ? { tenantSchoolId } : {}),
       });
 
       // Store token
@@ -76,7 +111,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
         }
       }
 
-      const userData = {
+      let userData = {
         email: data.user.email,
         name: `${data.user.firstName} ${data.user.lastName}`,
         role: data.user.role,
@@ -93,32 +128,15 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
       let sid = data.user.schoolId || data.user.school?.id || '';
       const bid = data.user.branchId || data.user.branch?.id || '';
 
-      // SUPER ADMIN FIX: If Super Admin has no school, fetch and assign first available school
+      // SUPER_ADMIN: If they have no school, auto-assign first available school for switching UX.
       if (data.user.role === 'SUPER_ADMIN' && !sid) {
-        try {
-          // Fetch schools list
-          const schoolsResponse = await fetch(`${API_BASE_URL}/admin/schools`, {
-            headers: {
-              'Authorization': `Bearer ${data.token}`
-            }
-          });
-          const schoolsData = await schoolsResponse.json();
-
-          if (schoolsData.data && schoolsData.data.length > 0) {
-            // Get first active school
-            const firstSchool = schoolsData.data.find(s => s.active) || schoolsData.data[0];
-            sid = firstSchool.id;
-            userData.schoolId = sid;
-            userData.school = firstSchool;
-            console.log('✅ Super Admin auto-assigned to school:', firstSchool.name);
-          }
-        } catch (error) {
-          console.warn('⚠️ Could not fetch schools for Super Admin:', error);
-        }
+        const assigned = await assignFirstAvailableSchoolForSuperAdmin({ token: data.token, userData });
+        sid = assigned.schoolId || sid;
+        userData = assigned.userData || userData;
       }
 
-      if (sid) localStorage.setItem('currentSchoolId', sid);
-      if (bid) localStorage.setItem('currentBranchId', bid);
+      if (sid) setAdminSchoolId(sid);
+      if (bid) setBranchId(bid);
 
       onLoginSuccess(userData);
     } catch (error) {
@@ -145,7 +163,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
         localStorage.setItem('authToken', data.token);
       }
 
-      const userData = {
+      let userData = {
         email: data.user.email,
         name: `${data.user.firstName} ${data.user.lastName}`,
         role: data.user.role,
@@ -158,29 +176,15 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
         branch: data.user.branch || null
       };
 
-      // SUPER ADMIN FIX: Auto-assign first available school
+      // SUPER_ADMIN: Auto-assign first available school for switching UX.
       let sid = data.user.schoolId || data.user.school?.id || '';
-
       if (!sid) {
-        try {
-          const schoolsResponse = await fetch(`${API_BASE_URL}/admin/schools`, {
-            headers: { 'Authorization': `Bearer ${data.token}` }
-          });
-          const schoolsData = await schoolsResponse.json();
-
-          if (schoolsData.data && schoolsData.data.length > 0) {
-            const firstSchool = schoolsData.data.find(s => s.active) || schoolsData.data[0];
-            sid = firstSchool.id;
-            userData.schoolId = sid;
-            userData.school = firstSchool;
-            console.log('✅ Super Admin auto-assigned to school:', firstSchool.name);
-          }
-        } catch (error) {
-          console.warn('⚠️ Could not fetch schools for Super Admin:', error);
-        }
+        const assigned = await assignFirstAvailableSchoolForSuperAdmin({ token: data.token, userData });
+        sid = assigned.schoolId || sid;
+        userData = assigned.userData || userData;
       }
 
-      if (sid) localStorage.setItem('currentSchoolId', sid);
+      if (sid) setAdminSchoolId(sid);
 
       onLoginSuccess(userData);
     } catch (error) {
@@ -459,7 +463,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                     value={selectedBranch}
                     onChange={(e) => {
                       setSelectedBranch(e.target.value);
-                      localStorage.setItem('currentBranchId', e.target.value);
+                      setBranchId(e.target.value);
                     }}
                   >
                     <option value="">Choose a branch</option>

@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { FileText, Search, Loader, Printer, ArrowLeft, Download, Edit3, User, Filter } from 'lucide-react';
+import { FileText, Loader, Printer, Edit3, User, Filter } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import api from '../../../services/api';
 import { generatePDFWithLetterhead } from '../../../utils/simplePdfGenerator';

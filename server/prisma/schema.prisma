@@ -93,6 +93,9 @@ model User {
   approvedTests               SummativeTest[]         @relation("ApprovedTests")
   changeHistory               ChangeHistory[]
 
+  // For SummativeResultHistory
+  summativeResultHistories    SummativeResultHistory[] @relation("ChangedBy")
+  
   @@map("users")
   @@index([schoolId])
   @@index([branchId])
@@ -275,7 +278,8 @@ model School {
   learners                Learner[]
   admissionSequences      AdmissionSequence[]
   users                   User[]                @relation("SchoolUsers")
-  gradingSystems          GradingSystem[]
+  scaleGroups             ScaleGroup[]          @relation("SchoolScaleGroups")
+  gradingSystems          GradingSystem[]       @relation("SchoolGradingSystems")
   termConfigs             TermConfig[]
   aggregationConfigs      AggregationConfig[]
   streamConfigs           StreamConfig[]
@@ -636,6 +640,13 @@ enum TestStatus {
   FAIL
 }
 
+enum ModerationStatus {
+  PENDING     // Awaiting review by moderator
+  APPROVED    // Approved by moderator
+  REJECTED    // Rejected by moderator, needs revision
+  DRAFT       // Initial state, not yet submitted for moderation
+}
+
 // ============================================
 // FORMATIVE ASSESSMENT
 // ============================================
@@ -727,6 +738,7 @@ model SummativeTest {
   // Test Details
   title           String          // "End of Term 1 Mathematics"
   learningArea    String          // "Mathematics", "English", etc.
+  testType        String?         // NEW: Test grouping (OPENER, MIDTERM, END_TERM, MONTHLY, WEEKLY, RANDOM)
   
   // Academic Period
   term            Term            @default(TERM_1)
@@ -784,6 +796,7 @@ model SummativeTest {
   
   @@index([schoolId])
   @@index([branchId])
+  @@index([testType])             // NEW: Index for fast test grouping queries
 
   // Metadata
   createdAt       DateTime        @default(now())
@@ -900,6 +913,7 @@ model SummativeResult {
   percentage      Float           // Auto-calculated: (marksObtained / totalMarks) * 100
   grade           SummativeGrade  // A, B, C, D, E
   status          TestStatus      // PASS or FAIL
+  moderationStatus ModerationStatus @default(DRAFT) // New: Moderation workflow status
   
   // Position/Rank
   position        Int?            // Position in class
@@ -919,8 +933,12 @@ model SummativeResult {
   branchId          String?
   branch            Branch?     @relation(fields: [branchId], references: [id])
   
+  // History of changes to this result
+  resultHistory   SummativeResultHistory[]
+
   @@index([schoolId])
   @@index([branchId])
+  @@index([moderationStatus]) // New index for moderation status
 
   // Metadata
   createdAt       DateTime        @default(now())
@@ -935,6 +953,29 @@ model SummativeResult {
   @@index([learnerId])
   @@index([grade])
   @@index([status])
+}
+
+model SummativeResultHistory {
+  id              String        @id @default(uuid())
+  resultId        String        // Reference to the SummativeResult that was changed
+  result          SummativeResult @relation(fields: [resultId], references: [id])
+
+  // Details of the change
+  action          String        // e.g., "CREATE", "UPDATE", "DELETE"
+  field           String?       // Specific field changed (e.g., "marksObtained", "remarks")
+  oldValue        String?       @db.Text // JSON string of the old value
+  newValue        String?       @db.Text // JSON string of the new value
+  
+  changedBy       String        // ID of the user who made the change
+  changer         User          @relation("ChangedBy", fields: [changedBy], references: [id])
+  
+  changeTimestamp DateTime      @default(now())
+  reason          String?       @db.Text // Optional reason for the change
+
+  @@map("summative_result_history")
+  @@index([resultId])
+  @@index([changedBy])
+  @@index([changeTimestamp])
 }
 
 // ============================================
@@ -1401,33 +1442,67 @@ model MessageReceipt {
 // GRADING SYSTEM CONFIGURATION
 // ============================================
 
-model GradingSystem {
-  id            String   @id @default(uuid())
-  name          String   // e.g. "Standard Summative", "CBC Rubric"
-  type          String   // "SUMMATIVE" or "CBC"
+// Scale Group Model - Groups related grading systems
+model ScaleGroup {
+  id            String          @id @default(uuid())
+  name          String          // "Zawadi Internal Exams", "End of Term Exams"
+  description   String?         @db.Text
   
-  // New: Grade and subject specific scales
+  // Scope
+  schoolId      String
+  school        School          @relation("SchoolScaleGroups", fields: [schoolId], references: [id], onDelete: Cascade)
+  
+  // Status
+  active        Boolean         @default(true)
+  isDefault     Boolean         @default(false)
+  
+  // Relations
+  gradingSystems GradingSystem[] @relation("ScaleGroupSystems")
+  
+  // Metadata
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  archived      Boolean         @default(false)
+  archivedAt    DateTime?
+  archivedBy    String?
+  
+  @@unique([schoolId, name])
+  @@map("scale_groups")
+  @@index([schoolId])
+}
+
+model GradingSystem {
+  id            String      @id @default(uuid())
+  name          String      // e.g. "Grade 1 - All Subjects"
+  type          String      // "SUMMATIVE" or "CBC"
+  
+  // Scale Group association
+  scaleGroupId  String?
+  scaleGroup    ScaleGroup? @relation("ScaleGroupSystems", fields: [scaleGroupId], references: [id])
+  
+  // Grade and subject specific scales
   grade         Grade?   
-  learningArea  String?
+  learningArea  String?     // NULL = applies to ALL learning areas
 
   // Scope
   schoolId      String
-  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school        School      @relation("SchoolGradingSystems", fields: [schoolId], references: [id], onDelete: Cascade)
   
-  active        Boolean  @default(true)
-  archived      Boolean  @default(false)
+  active        Boolean     @default(true)
+  archived      Boolean     @default(false)
   archivedAt    DateTime?
   archivedBy    String?
-  isDefault     Boolean  @default(false)
+  isDefault     Boolean     @default(false)
   
   ranges        GradingRange[]
   summativeTests SummativeTest[]
   
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   @@map("grading_systems")
   @@index([schoolId])
+  @@index([scaleGroupId])
   @@index([grade])
 }
 

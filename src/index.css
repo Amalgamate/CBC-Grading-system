@@ -15,3 +15,70 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* 
+ * Print Styles for Summative Assessment PDF Report
+ * Add this to your index.css or create a separate print.css file
+ */
+
+@media print {
+  /* Hide interactive elements in print */
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Show PDF-only elements */
+  .print-only {
+    display: block !important;
+  }
+  
+  /* Force page breaks */
+  [style*="pageBreakAfter: always"],
+  [style*="page-break-after: always"] {
+    page-break-after: always !important;
+    break-after: always !important;
+  }
+  
+  /* Prevent breaking inside elements */
+  [style*="pageBreakInside: avoid"],
+  [style*="page-break-inside: avoid"] {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  
+  /* Ensure proper page margins */
+  @page {
+    margin: 20mm;
+    size: landscape; /* Match the PDF orientation */
+  }
+  
+  /* Body styling for print */
+  body {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+  
+  /* Ensure colors are printed */
+  * {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+}
+
+@media screen {
+  /* Hide PDF-only elements on screen */
+  .print-only {
+    display: none !important;
+  }
+}
+
+/* Optional: Utility classes for conditional display */
+.screen-only {
+  display: block;
+}
+
+@media print {
+  .screen-only {
+    display: none !important;
+  }
+}

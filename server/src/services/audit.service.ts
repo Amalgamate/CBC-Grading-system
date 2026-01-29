@@ -6,7 +6,7 @@ interface ChangeLogParams {
   schoolId: string;
   entityType: string;
   entityId: string;
-  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'ARCHIVE';
   userId: string;
   field?: string;
   oldValue?: string;

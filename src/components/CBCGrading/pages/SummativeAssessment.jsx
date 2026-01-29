@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
-  Save, Search, Loader, ArrowLeft, Lock, Printer
+  Save, Search, Loader, ArrowLeft, Lock, Printer, UploadCloud, Database
 } from 'lucide-react';
 import { assessmentAPI, gradingAPI, classAPI, configAPI, learnerAPI } from '../../../services/api';
 import { useNotifications } from '../hooks/useNotifications';
 import EmptyState from '../shared/EmptyState';
-import { Database, Plus } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import { generatePDFWithLetterhead } from '../../../utils/simplePdfGenerator';
+import BulkMarkImportModal from '../shared/BulkMarkImportModal';
+import PDFPreviewModal from '../shared/PDFPreviewModal';
 
 const SummativeAssessment = ({ learners, initialTestId }) => {
   const { showSuccess, showError } = useNotifications();
@@ -15,10 +16,12 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
   // View State
   const [step, setStep] = useState(initialTestId ? 2 : 1); // 1: Setup, 2: Assess (Skip setup if test ID provided)
   const [loading, setLoading] = useState(false);
-  const [loadingScale, setLoadingScale] = useState(false);
+  const [, setLoadingScale] = useState(false);
   const [lockingTest, setLockingTest] = useState(false);
   const [isTestLocked, setIsTestLocked] = useState(false);
   const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
+  const [showPDFPreview, setShowPDFPreview] = useState(false);
 
   // Selection State
   const [selectedGrade, setSelectedGrade] = useState('');
@@ -157,6 +160,51 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
     return { assessed: assessedCount, total: totalLearners, percentage, isComplete };
   }, [marks, fetchedLearners]);
 
+  // Calculate Statistics for PDF
+  const statistics = useMemo(() => {
+    const validMarks = Object.values(marks).filter(m => m !== null && m !== undefined && m !== '');
+    const numericMarks = validMarks.map(m => parseFloat(m));
+    
+    if (numericMarks.length === 0) {
+      return { sum: 0, average: 0, count: 0, min: 0, max: 0, gradeDistribution: {} };
+    }
+
+    const sum = numericMarks.reduce((acc, val) => acc + val, 0);
+    const average = sum / numericMarks.length;
+    const min = Math.min(...numericMarks);
+    const max = Math.max(...numericMarks);
+
+    // Calculate grade distribution if grading scale exists
+    const gradeDistribution = {};
+    if (gradingScale && gradingScale.ranges && selectedTest?.totalMarks) {
+      numericMarks.forEach(mark => {
+        const percentage = (mark / selectedTest.totalMarks) * 100;
+        const range = gradingScale.ranges.find(r =>
+          percentage >= r.minPercentage && percentage <= r.maxPercentage
+        );
+        if (range) {
+          const label = range.label || range.grade || 'Unknown';
+          gradeDistribution[label] = (gradeDistribution[label] || 0) + 1;
+        }
+      });
+    }
+
+    return { sum, average: average.toFixed(2), count: numericMarks.length, min, max, gradeDistribution };
+  }, [marks, gradingScale, selectedTest]);
+
+  // Chunk learners into pages of 15 for PDF
+  const learnersForPDF = useMemo(() => {
+    return fetchedLearners.sort((a, b) => a.firstName.localeCompare(b.firstName));
+  }, [fetchedLearners]);
+
+  const chunkedLearners = useMemo(() => {
+    const chunks = [];
+    for (let i = 0; i < learnersForPDF.length; i += 15) {
+      chunks.push(learnersForPDF.slice(i, i + 15));
+    }
+    return chunks;
+  }, [learnersForPDF]);
+
   // Load Grading Scale and Existing Results
   useEffect(() => {
     const loadTestDetails = async () => {
@@ -198,17 +246,30 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
           setIsTestLocked(test.locked === true);
         }
 
-        // 3. Fetch Existing Marks
-        const resultsResponse = await assessmentAPI.getTestResults(selectedTestId);
-        const results = resultsResponse.data || resultsResponse || [];
+        // 3. Fetch Existing Marks or Load from Draft
+        const draftKey = `draft-marks-${selectedTestId}`;
+        const savedDraft = localStorage.getItem(draftKey);
 
-        const existingMarks = {};
-        results.forEach(r => {
-          if (r.learnerId) {
-            existingMarks[r.learnerId] = r.marksObtained;
+        if (savedDraft) {
+          const userConfirmed = window.confirm('Found unsaved draft marks. Do you want to restore them?');
+          if (userConfirmed) {
+            setMarks(JSON.parse(savedDraft));
+            showSuccess('Draft marks restored successfully!');
+          } else {
+            localStorage.removeItem(draftKey);
           }
-        });
-        setMarks(existingMarks);
+        } else {
+          const resultsResponse = await assessmentAPI.getTestResults(selectedTestId);
+          const results = resultsResponse.data || resultsResponse || [];
+
+          const existingMarks = {};
+          results.forEach(r => {
+            if (r.learnerId) {
+              existingMarks[r.learnerId] = r.marksObtained;
+            }
+          });
+          setMarks(existingMarks);
+        }
 
       } catch (error) {
         console.error('Error loading test details:', error);
@@ -219,6 +280,23 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
 
     loadTestDetails();
   }, [selectedTestId, tests, schoolId]);
+
+  // Auto-save marks to localStorage every 30 seconds
+  useEffect(() => {
+    const draftKey = `draft-marks-${selectedTestId}`;
+    const autoSaveInterval = setInterval(() => {
+      if (Object.keys(marks).length > 0 && !isTestLocked) {
+        localStorage.setItem(draftKey, JSON.stringify(marks));
+        console.log('Draft marks auto-saved.');
+      }
+    }, 30000);
+    
+    return () => {
+      clearInterval(autoSaveInterval);
+      // Optionally clear draft when component unmounts or test changes
+      // localStorage.removeItem(draftKey);
+    };
+  }, [marks, selectedTestId, isTestLocked]);
 
   // Derived Data
   // Tests filtered list depends on selected grade/term
@@ -375,10 +453,54 @@ Are you sure you want to lock this test?`;
     }
   };
 
-  const handlePrintReport = async () => {
+  const handleUnlockTest = async () => {
+    // Confirm unlock action
+    const testName = selectedTest?.title || selectedTest?.name || 'this test';
+    const confirmMessage = `🔓 Unlock this test?
+
+Unlocking will allow marks to be modified again. Only proceed if you are authorized.
+
+Test: ${testName}
+
+Are you sure you want to unlock this test?`;
+    
+    const userConfirmed = window.confirm(confirmMessage);
+    
+    if (!userConfirmed) {
+      return;
+    }
+
+    try {
+      setLockingTest(true);
+
+      // Update test with unlock status
+      await assessmentAPI.updateTest(selectedTestId, {
+        locked: false,
+        lockedAt: null, // Clear locked info
+        lockedBy: null
+      });
+
+      setIsTestLocked(false);
+      showSuccess('✅ Test unlocked successfully!');
+    } catch (error) {
+      console.error('Unlock test error:', error);
+      showError('Failed to unlock test');
+    } finally {
+      setLockingTest(false);
+    }
+  };
+
+  const handlePrintReport = async (onProgress) => {
     try {
       setGeneratingPDF(true);
-      showSuccess('Generating PDF report...');
+      
+      if (onProgress) onProgress('Preparing report...', 10);
+
+      // Elements are already visible from the preview modal
+      // Just add a small delay to ensure everything is ready
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      if (onProgress) onProgress('Processing content...', 20);
 
       // Get school information from user context
       const schoolInfo = {
@@ -394,7 +516,6 @@ Are you sure you want to lock this test?`;
       // Generate filename
       const testName = (selectedTest?.title || selectedTest?.name || 'test').replace(/\s+/g, '_');
       const grade = selectedTest?.grade?.replace('_', '') || 'Grade';
-      const term = selectedTest?.term?.replace('_', '') || 'Term';
       const timestamp = new Date().toISOString().split('T')[0];
       const filename = `${grade}_${testName}_Results_${timestamp}.pdf`;
 
@@ -404,36 +525,45 @@ Are you sure you want to lock this test?`;
         filename,
         schoolInfo,
         {
-          orientation: 'landscape', // Changed to landscape for corporate design and better space utilization
+          orientation: 'landscape',
           scale: 2,
           multiPage: true,
           onProgress: (message, progress) => {
             console.log(`PDF Generation: ${message} (${progress}%)`);
+            if (onProgress) {
+              onProgress(message, progress);
+            }
           }
         }
       );
 
       if (result.success) {
+        if (onProgress) onProgress('Complete!', 100);
         showSuccess('✅ PDF report downloaded successfully!');
       } else {
         showError(`Failed to generate PDF: ${result.error}`);
       }
+      
+      return result;
     } catch (error) {
       console.error('Print report error:', error);
       showError('Failed to generate PDF report');
+      throw error;
     } finally {
       setGeneratingPDF(false);
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (marksToSaveOverride = null) => {
+    const currentMarksToSave = marksToSaveOverride || marks;
+
     // Check if test is locked
     if (isTestLocked) {
       showError('Cannot save: Test is locked');
       return;
     }
 
-    if (Object.keys(marks).length === 0) {
+    if (Object.keys(currentMarksToSave).length === 0) {
       showError('No marks entered to save');
       return;
     }
@@ -446,24 +576,19 @@ Are you sure you want to lock this test?`;
       const existingResults = existingResultsResponse.data || existingResultsResponse || [];
 
       if (existingResults.length > 0) {
-        // Check if any of these results are published
-        const publishedCount = existingResults.filter(r => 
-          r.status === 'PUBLISHED' || r.status === 'published'
-        ).length;
+        const publishedResultsCount = existingResults.filter(r => r.status === 'PUBLISHED').length;
 
-        let confirmMessage = '';
-        let confirmTitle = '';
+        let confirmTitle = 'Results Already Exist';
+        let confirmMessage = `Results already exist for ${existingResults.length} learner(s) in this test.\\n\\n`;
 
-        if (publishedCount > 0) {
+        if (publishedResultsCount > 0) {
           confirmTitle = '⚠️ Warning: Published Results Exist';
-          confirmMessage = `This test has ${publishedCount} published result(s). Overwriting will affect report cards and student records.\n\nExisting results: ${existingResults.length} learner(s)\nNew marks to save: ${Object.keys(marks).length} learner(s)\n\nAre you sure you want to overwrite these results?`;
-        } else {
-          confirmTitle = '⚠️ Results Already Exist';
-          confirmMessage = `Results already exist for ${existingResults.length} learner(s) in this test.\n\nDo you want to overwrite them with your current entries?`;
+          confirmMessage += `**${publishedResultsCount} result(s) are PUBLISHED.** Overwriting will affect report cards and student records.\\n\\n`;
         }
 
-        // Show confirmation dialog
-        const userConfirmed = window.confirm(`${confirmTitle}\n\n${confirmMessage}`);
+        confirmMessage += `New marks to save: ${Object.keys(currentMarksToSave).length} learner(s).\\n\\nAre you sure you want to overwrite these results?`;
+
+        const userConfirmed = window.confirm(`${confirmTitle}\\n\\n${confirmMessage}`);
         
         if (!userConfirmed) {
           setLoading(false);
@@ -471,18 +596,21 @@ Are you sure you want to lock this test?`;
           return;
         }
 
-        // User confirmed, show warning message
         showSuccess('Overwriting existing results...');
       }
 
       // Prepare bulk payload
-      const resultsToSave = Object.entries(marks).map(([learnerId, mark]) => {
-        let remarks = '-';
-        if (selectedTest?.totalMarks) {
+      const resultsToSave = Object.entries(currentMarksToSave).map(([learnerId, mark]) => {
+        // Find existing result to preserve remarks if not new mark
+        const existingResult = existingResults.find(r => r.learnerId === learnerId);
+        let remarks = existingResult?.remarks || '-'; // Use existing remarks if available
+        let teacherComment = existingResult?.teacherComment || `Score: ${mark}/${selectedTest?.totalMarks}`;
+
+        if (selectedTest?.totalMarks && mark !== null && mark !== undefined && mark !== '') {
           const percentage = (mark / selectedTest.totalMarks) * 100;
           if (gradingScale && gradingScale.ranges) {
             const range = gradingScale.ranges.find(r => percentage >= r.minPercentage && percentage <= r.maxPercentage);
-            remarks = range ? range.label : '-';
+            remarks = range ? range.label : remarks; // Update remarks only if a new range is found
           }
         }
 
@@ -490,7 +618,7 @@ Are you sure you want to lock this test?`;
           learnerId,
           marksObtained: mark,
           remarks,
-          teacherComment: `Score: ${mark}/${selectedTest?.totalMarks}`
+          teacherComment
         };
       });
 
@@ -501,6 +629,17 @@ Are you sure you want to lock this test?`;
       });
 
       showSuccess(`Successfully saved marks for ${resultsToSave.length} learner(s)!`);
+      // After successful save, refresh marks from backend to ensure consistency
+      const updatedResultsResponse = await assessmentAPI.getTestResults(selectedTestId);
+      const updatedResults = updatedResultsResponse.data || updatedResultsResponse || [];
+      const updatedMarks = {};
+      updatedResults.forEach(r => {
+        if (r.learnerId) {
+          updatedMarks[r.learnerId] = r.marksObtained;
+        }
+      });
+      setMarks(updatedMarks);
+      localStorage.removeItem(`draft-marks-${selectedTestId}`); // Clear draft after successful save
     } catch (error) {
       console.error('Save error:', error);
       showError('Failed to save marks');
@@ -691,12 +830,21 @@ Are you sure you want to lock this test?`;
         <div className="flex items-center gap-3">
           {/* Print Report Button */}
           <button
-            onClick={handlePrintReport}
+            onClick={() => setShowPDFPreview(true)}
             disabled={generatingPDF || filteredLearners.length === 0}
             className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {generatingPDF ? <Loader className="animate-spin" size={18} /> : <Printer size={18} />}
-            Print Report
+            <Printer size={18} />
+            Preview & Print
+          </button>
+          {/* Import Marks Button */}
+          <button
+            onClick={() => setShowBulkImportModal(true)}
+            disabled={isTestLocked || !selectedTestId || loading || loadingLearners}
+            className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <UploadCloud size={18} />
+            Import Marks
           </button>
           {/* Lock Test Button - Only shows at 100% and when unlocked */}
           {assessmentProgress.isComplete && !isTestLocked && (
@@ -709,6 +857,17 @@ Are you sure you want to lock this test?`;
               Lock Test
             </button>
           )}
+          {/* Unlock Test Button - Only shows when locked and for authorized roles */}
+          {isTestLocked && (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'HEAD_TEACHER') && (
+            <button
+              onClick={handleUnlockTest}
+              disabled={lockingTest}
+              className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold disabled:opacity-50"
+            >
+              {lockingTest ? <Loader className="animate-spin" size={18} /> : <Lock size={18} />}
+              Unlock Test
+            </button>
+          )}
           {/* Locked Indicator */}
           {isTestLocked && (
             <div className="flex items-center gap-2 px-6 py-2 bg-gray-100 border-2 border-gray-300 rounded-lg">
@@ -718,7 +877,7 @@ Are you sure you want to lock this test?`;
           )}
           {/* Save Button */}
           <button
-            onClick={handleSave}
+            onClick={() => handleSave()}
             disabled={loading || isTestLocked}
             className="flex items-center gap-2 px-6 py-2 bg-[#1e293b] text-white rounded-lg hover:bg-[#334155] transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -728,132 +887,297 @@ Are you sure you want to lock this test?`;
         </div>
       </div>
 
-      {/* PDF Export Content Wrapper - Landscape Corporate Design */}
+      {/* PDF Export Content Wrapper */}
       <div id="assessment-report-content" className="bg-white">
-        {/* Report Title - Centered */}
-        <div className="text-center py-3 mb-4">
-          <h1 className="text-2xl font-bold text-[#1e3a8a] mb-1">Summative Assessment Results</h1>
-          <p className="text-base text-gray-600 font-medium">
-            {selectedTest?.learningArea} - {selectedTest?.grade?.replace('_', ' ')}
-          </p>
-        </div>
+        
+        {/* PAGE 1: METRICS/STATISTICS PAGE (Print Only) */}
+        <div className="print-only px-5" style={{ pageBreakAfter: 'always', pageBreakInside: 'avoid' }}>
+          {/* Report Title */}
+          <div className="text-center py-3 mb-4">
+            <h1 className="text-2xl font-bold text-[#1e3a8a] mb-2 leading-tight">Summative Assessment Results</h1>
+            <p className="text-sm text-gray-600 font-medium">
+              {selectedTest?.learningArea} | {selectedTest?.grade?.replace('_', ' ')} | {selectedStream || 'All Streams'} | {selectedTest?.term?.replace('_', ' ')} {selectedTest?.academicYear || new Date().getFullYear()}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Total Marks: {selectedTest?.totalMarks} | Test Date: {selectedTest?.testDate ? new Date(selectedTest.testDate).toLocaleDateString() : 'N/A'}
+            </p>
+          </div>
 
-        {/* Assessment Info Grid - 4 Columns */}
-        <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded px-4 py-3 mb-3">
-          <div className="grid grid-cols-4 gap-4">
-            <div>
-              <div className="text-[10px] font-bold text-[#64748b] uppercase tracking-wide mb-0.5">Grade</div>
-              <div className="text-sm font-bold text-[#1e293b]">{selectedTest?.grade?.replace('_', ' ')}</div>
+          {/* Metrics Content */}
+          {gradingScale && Object.keys(statistics.gradeDistribution).length > 0 ? (
+            <div className="space-y-4">
+              
+              {/* TOP SECTION: METRICS CARDS (6 cards - Single Line) */}
+              <div className="grid grid-cols-6 gap-2 mb-4">
+                {/* Generate metric cards based on grade distribution */}
+                {Object.entries(statistics.gradeDistribution)
+                  .sort(([, a], [, b]) => b - a) // Sort by count descending
+                  .slice(0, 6) // Limit to 6 cards for the top row
+                  .map(([grade, count], idx) => {
+                    const gradeColor = getGradeColor(grade);
+                    const isGreen = idx % 2 === 0; // Alternate colors (green, blue, green, blue...)
+                    const cardColor = isGreen ? '#10b981' : '#3b82f6'; // Green or Blue
+                    const cardBgColor = isGreen ? '#ecfdf5' : '#eff6ff'; // Light green or light blue
+                    
+                    return (
+                      <div
+                        key={grade}
+                        className="rounded-lg p-2 border-2 shadow-sm"
+                        style={{
+                          backgroundColor: cardBgColor,
+                          borderColor: cardColor,
+                          borderRadius: '0.5rem'
+                        }}
+                      >
+                        {/* Grade Label */}
+                        <div className="text-[10px] font-semibold text-gray-700 mb-1">
+                          {grade}
+                        </div>
+                        
+                        {/* Count - Large Display */}
+                        <div className="text-2xl font-bold mb-0.5" style={{ color: cardColor }}>
+                          {count}
+                        </div>
+                        
+                        {/* Percentage */}
+                        <div className="text-[9px] text-gray-600">
+                          {((count / statistics.count) * 100).toFixed(1)}%
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              {/* MIDDLE SECTION: PIE CHART + LEGEND (Side by Side) */}
+              <div className="grid grid-cols-2 gap-4">
+                
+                {/* ============ LEFT: PIE CHART ============ */}
+                <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200 shadow-sm">
+                  <h3 className="text-lg font-bold text-center mb-3 text-[#1e3a8a]">
+                    Grade Distribution
+                  </h3>
+                  
+                  {/* Pie Chart */}
+                  <div className="flex justify-center items-center h-64">
+                    <svg width="280" height="280" viewBox="0 0 200 200">
+                      <PieChartWithLabels data={statistics.gradeDistribution} />
+                    </svg>
+                  </div>
+                </div>
+                
+                {/* ============ RIGHT: LEGEND + STATS ============ */}
+                <div className="space-y-3">
+                  {/* Legend Header */}
+                  <div className="bg-yellow-50 rounded-lg p-3 border-2 border-yellow-200">
+                    <h3 className="text-sm font-bold text-yellow-900 mb-3">Performance Scale</h3>
+                    
+                    {/* Grade Legend Items - Only Scale, No Metrics */}
+                    <div className="space-y-2">
+                      {Object.entries(statistics.gradeDistribution)
+                        .sort(([, a], [, b]) => b - a)
+                        .map(([grade, count]) => {
+                          const gradeColor = getGradeColor(grade);
+                          
+                          return (
+                            <div key={grade} className="flex items-center gap-3">
+                              <div
+                                className="w-5 h-5 rounded-full flex-shrink-0 shadow-sm"
+                                style={{ backgroundColor: gradeColor }}
+                              />
+                              <span className="text-xs font-semibold text-gray-800">
+                                {grade}
+                              </span>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                  
+                  {/* Summary Statistics */}
+                  <div className="bg-white rounded-lg p-3 border-2 border-gray-300 space-y-2">
+                    <div className="flex justify-between items-center pb-2 border-b border-gray-200">
+                      <span className="text-xs font-medium text-gray-600">Total Students:</span>
+                      <span className="text-lg font-bold text-blue-600">{statistics.count}</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-2 border-b border-gray-200">
+                      <span className="text-xs font-medium text-gray-600">Average Score:</span>
+                      <span className="text-lg font-bold text-green-600">{statistics.average}</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-2 border-b border-gray-200">
+                      <span className="text-xs font-medium text-gray-600">Highest:</span>
+                      <span className="text-lg font-bold text-emerald-600">{statistics.max}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-medium text-gray-600">Lowest:</span>
+                      <span className="text-lg font-bold text-orange-600">{statistics.min}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <div className="text-[10px] font-bold text-[#64748b] uppercase tracking-wide mb-0.5">Stream</div>
-              <div className="text-sm font-bold text-[#1e293b]">{selectedStream || 'All Streams'}</div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No performance data available yet. Complete the assessment to see statistics.</p>
             </div>
-            <div>
-              <div className="text-[10px] font-bold text-[#64748b] uppercase tracking-wide mb-0.5">Learning Area</div>
-              <div className="text-sm font-bold text-[#1e293b]">{selectedTest?.learningArea}</div>
-            </div>
-            <div>
-              <div className="text-[10px] font-bold text-[#64748b] uppercase tracking-wide mb-0.5">Total Marks</div>
-              <div className="text-sm font-bold text-[#1e293b]">{selectedTest?.totalMarks}</div>
-            </div>
+          )}
+
+          {/* Page 1 footer */}
+          <div className="text-right text-xs text-gray-500 mt-6">
+            Page 1 of {chunkedLearners.length + 1}
           </div>
         </div>
 
-        {/* Secondary Info - 3 Columns */}
-        <div className="bg-[#f1f5f9] rounded px-4 py-2.5 mb-4">
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <div className="text-[10px] font-bold text-[#64748b] uppercase tracking-wide mb-0.5">Term</div>
-              <div className="text-sm font-bold text-[#1e293b]">{selectedTest?.term?.replace('_', ' ')}</div>
+        {/* PAGES 2+: STUDENT RESULTS TABLES (10 per page) */}
+        {chunkedLearners.map((chunk, pageIndex) => (
+          <div 
+            key={pageIndex} 
+            className="px-5 print-only" 
+            style={{ 
+              pageBreakBefore: 'always',
+              pageBreakAfter: pageIndex === chunkedLearners.length - 1 ? 'auto' : 'always',
+              pageBreakInside: 'avoid'
+            }}
+          >
+            {/* Letterhead / Page Header - Fixed at top with proper spacing */}
+            <div className="text-center" style={{ 
+              paddingTop: '0.75rem',
+              paddingBottom: '0.75rem',
+              borderBottom: '3px solid #1e3a8a',
+              pageBreakInside: 'avoid',
+              marginBottom: '0.5rem'
+            }}>
+              <h1 className="text-2xl font-bold text-[#1e3a8a] mb-1">Summative Assessment Results</h1>
+              <p className="text-sm text-gray-600 font-medium">
+                {selectedTest?.learningArea} | {selectedTest?.grade?.replace('_', ' ')} | {selectedStream || 'All Streams'} | {selectedTest?.term?.replace('_', ' ')} {selectedTest?.academicYear || new Date().getFullYear()}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Total Marks: {selectedTest?.totalMarks} | Test Date: {selectedTest?.testDate ? new Date(selectedTest.testDate).toLocaleDateString() : 'N/A'}
+              </p>
             </div>
-            <div>
-              <div className="text-[10px] font-bold text-[#64748b] uppercase tracking-wide mb-0.5">Academic Year</div>
-              <div className="text-sm font-bold text-[#1e293b]">{selectedTest?.academicYear || new Date().getFullYear()}</div>
+
+            {/* Spacer for safe area - prevents table from touching footer */}
+            <div style={{ marginBottom: '1.5rem' }} />
+
+            {/* Table Container with safe padding */}
+            <div className="overflow-hidden" style={{ 
+              pageBreakInside: 'avoid',
+              paddingLeft: '0.5rem',
+              paddingRight: '0.5rem',
+              paddingBottom: '2rem'
+            }}>
+              <table className="w-full text-left border-collapse border border-gray-300" style={{ pageBreakInside: 'avoid' }}>
+                <thead className="bg-[#1e3a8a] text-white" style={{ pageBreakInside: 'avoid', pageBreakAfter: 'avoid' }}>
+                  <tr style={{ pageBreakInside: 'avoid' }}>
+                    <th className="px-2 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-10 border-r border-blue-700">No</th>
+                    <th className="px-2 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-20 border-r border-blue-700">Adm No</th>
+                    <th className="px-2 py-2 text-[9px] font-bold uppercase tracking-wide border-r border-blue-700">Student Name</th>
+                    <th className="px-2 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-20 border-r border-blue-700">Score</th>
+                    <th className="px-2 py-2 text-[9px] font-bold uppercase tracking-wide w-72">Performance Descriptor</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {chunk.map((learner, index) => {
+                    const globalIndex = pageIndex * 10 + index;
+                    const score = marks[learner.id];
+
+                    return (
+                      <tr key={learner.id} className={`${index % 2 === 1 ? 'bg-[#f8fafc]' : 'bg-white'}`} style={{ pageBreakInside: 'avoid' }}>
+                        <td className="px-2 py-1.5 text-xs text-center font-semibold text-gray-700 border-r border-gray-200">{globalIndex + 1}</td>
+                        <td className="px-2 py-1.5 text-xs text-center font-semibold text-gray-900 border-r border-gray-200">{learner.admissionNumber}</td>
+                        <td className="px-2 py-1.5 text-xs font-bold text-[#1e293b] border-r border-gray-200">
+                          {learner.firstName?.toUpperCase()} {learner.lastName?.toUpperCase()}
+                        </td>
+                        <td className="px-2 py-1.5 text-center border-r border-gray-200">
+                          <span className="inline-block font-bold text-sm text-gray-900">
+                            {score ?? '-'}
+                          </span>
+                        </td>
+                        <td className="px-2 py-1.5 text-[10px] text-[#475569] italic leading-snug">
+                          {getDescriptionForGrade(marks[learner.id], selectedTest?.totalMarks, learner.firstName)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                
+                {/* Summary row on LAST page only */}
+                {pageIndex === chunkedLearners.length - 1 && (
+                  <tfoot className="bg-gray-100 border-t-2 border-gray-400">
+                    <tr>
+                      <td colSpan="3" className="px-2 py-2 text-xs font-bold text-gray-800 text-right">
+                        Summary:
+                      </td>
+                      <td className="px-2 py-2 text-center border-r border-gray-300">
+                        <div className="text-[10px] font-bold text-gray-900">
+                          Avg: {statistics.average}
+                        </div>
+                      </td>
+                      <td className="px-2 py-2 text-[10px] text-gray-700">
+                        Total: <span className="font-bold">{statistics.count}</span> | 
+                        Sum: <span className="font-bold">{statistics.sum.toFixed(2)}</span> | 
+                        Range: <span className="font-bold">{statistics.min}-{statistics.max}</span>
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
             </div>
-            <div>
-              <div className="text-[10px] font-bold text-[#64748b] uppercase tracking-wide mb-0.5">Date Generated</div>
-              <div className="text-sm font-bold text-[#1e293b]">{new Date().toLocaleDateString('en-GB')}</div>
+            
+            {/* Page number */}
+            <div className="text-right text-xs text-gray-500 mt-2">
+              Page {pageIndex + 2} of {chunkedLearners.length + 1}
             </div>
           </div>
-        </div>
+        ))}
+      </div>
 
-      {/* Results Table - Corporate Design */}
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-        <div className="p-4 border-b border-gray-200 flex justify-end">
+      {/* INTERACTIVE TABLE FOR SCREEN (with search) - NOT printed */}
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 no-print">
+        <div className="p-3 border-b border-gray-200 flex justify-end">
           <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name or adm no..."
-              className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full pl-9 pr-4 py-1.5 border rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left border-collapse">
             <thead className="bg-[#1e3a8a] text-white">
               <tr>
-                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-center w-12">No</th>
-                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-center w-24">Adm No</th>
-                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide">Student Name</th>
-                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-center w-24">Score</th>
-                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wide w-80">Performance Descriptor</th>
+                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-10 border-r border-blue-700">No</th>
+                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-20 border-r border-blue-700">Adm No</th>
+                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide border-r border-blue-700">Student Name</th>
+                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-20 border-r border-blue-700">Score</th>
+                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide w-72">Performance Descriptor</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredLearners.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="5" className="px-6 py-6 text-center text-gray-500 text-sm">
                     No learners found for this grade/stream.
                   </td>
                 </tr>
               ) : (
                 filteredLearners.map((learner, index) => {
                   const score = marks[learner.id];
-                  const percentage = score ? (score / selectedTest?.totalMarks) * 100 : 0;
-                  let scoreBgColor = '#f8fafc';
-                  let scoreTextColor = '#1e293b';
-                  let scoreBorderColor = '#e2e8f0';
-                  
-                  if (percentage >= 70) {
-                    scoreBgColor = '#dcfce7';
-                    scoreTextColor = '#166534';
-                    scoreBorderColor = '#bbf7d0';
-                  } else if (percentage >= 50) {
-                    scoreBgColor = '#dbeafe';
-                    scoreTextColor = '#1e40af';
-                    scoreBorderColor = '#bfdbfe';
-                  } else if (percentage >= 25) {
-                    scoreBgColor = '#fef3c7';
-                    scoreTextColor = '#92400e';
-                    scoreBorderColor = '#fde68a';
-                  } else if (score) {
-                    scoreBgColor = '#fee2e2';
-                    scoreTextColor = '#991b1b';
-                    scoreBorderColor = '#fecaca';
-                  }
 
                   return (
                     <tr key={learner.id} className={`${index % 2 === 1 ? 'bg-[#f8fafc]' : 'bg-white'} hover:bg-[#f1f5f9] transition`}>
-                      <td className="px-4 py-3 text-sm text-center font-semibold text-gray-700">{index + 1}</td>
-                      <td className="px-4 py-3 text-sm text-center font-semibold text-gray-900">{learner.admissionNumber}</td>
-                      <td className="px-4 py-3 text-sm font-bold text-[#1e293b]">
+                      <td className="px-3 py-1.5 text-xs text-center font-semibold text-gray-700 border-r border-gray-200">{index + 1}</td>
+                      <td className="px-3 py-1.5 text-xs text-center font-semibold text-gray-900 border-r border-gray-200">{learner.admissionNumber}</td>
+                      <td className="px-3 py-1.5 text-xs font-bold text-[#1e293b] border-r border-gray-200">
                         {learner.firstName?.toUpperCase()} {learner.lastName?.toUpperCase()}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-3 py-1.5 text-center border-r border-gray-200">
                         {isTestLocked && score ? (
-                          <span 
-                            className="inline-block px-3 py-1 rounded font-bold text-sm"
-                            style={{ 
-                              backgroundColor: scoreBgColor, 
-                              color: scoreTextColor,
-                              border: `1px solid ${scoreBorderColor}`
-                            }}
-                          >
+                          <span className="inline-block font-bold text-sm text-gray-900">
                             {score}
                           </span>
                         ) : (
@@ -864,7 +1188,7 @@ Are you sure you want to lock this test?`;
                             value={marks[learner.id] ?? ''}
                             onChange={(e) => handleMarkChange(learner.id, e.target.value)}
                             disabled={isTestLocked}
-                            className={`w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none transition text-center font-semibold ${
+                            className={`w-full px-2 py-1 border rounded focus:ring-2 focus:ring-blue-500 outline-none transition text-center font-semibold text-xs ${
                               isTestLocked 
                                 ? 'bg-gray-100 border-gray-200 cursor-not-allowed text-gray-500' 
                                 : 'border-gray-300 bg-white'
@@ -873,7 +1197,7 @@ Are you sure you want to lock this test?`;
                           />
                         )}
                       </td>
-                      <td className="px-4 py-3 text-[11px] text-[#475569] italic leading-tight">
+                      <td className="px-3 py-1.5 text-[10px] text-[#475569] italic leading-snug">
                         {getDescriptionForGrade(marks[learner.id], selectedTest?.totalMarks, learner.firstName)}
                       </td>
                     </tr>
@@ -884,10 +1208,286 @@ Are you sure you want to lock this test?`;
           </table>
         </div>
       </div>
-      {/* End PDF Export Content Wrapper */}
-      </div>
+
+      {/* Bulk Mark Import Modal */}
+      <BulkMarkImportModal
+        show={showBulkImportModal}
+        onClose={() => setShowBulkImportModal(false)}
+        onImport={(importedMarks) => {
+          setMarks(prevMarks => ({ ...prevMarks, ...importedMarks }));
+          handleSave(importedMarks);
+          setShowBulkImportModal(false);
+        }}
+        learners={fetchedLearners}
+        totalMarks={selectedTest?.totalMarks}
+      />
+
+      {/* PDF Preview Modal */}
+      <PDFPreviewModal
+        show={showPDFPreview}
+        onClose={() => setShowPDFPreview(false)}
+        onGenerate={handlePrintReport}
+        contentElementId="assessment-report-content"
+        title={`${selectedTest?.learningArea || 'Assessment'} Results - ${selectedTest?.grade?.replace('_', ' ') || ''}`}
+      />
     </div>
   );
+};
+
+// ============================================
+// ENHANCED PIE CHART COMPONENT WITH LABELS
+// ============================================
+const PieChartWithLabels = ({ data }) => {
+  const total = Object.values(data).reduce((sum, val) => sum + val, 0);
+  let currentAngle = -90; // Start from top
+  
+  return (
+    <g>
+      {/* Draw pie slices with percentage labels */}
+      {Object.entries(data).map(([grade, count]) => {
+        const percentage = (count / total) * 100;
+        const angle = (percentage / 100) * 360;
+        const startAngle = currentAngle;
+        const endAngle = currentAngle + angle;
+        
+        // Calculate slice path
+        const startX = 100 + 85 * Math.cos((startAngle * Math.PI) / 180);
+        const startY = 100 + 85 * Math.sin((startAngle * Math.PI) / 180);
+        const endX = 100 + 85 * Math.cos((endAngle * Math.PI) / 180);
+        const endY = 100 + 85 * Math.sin((endAngle * Math.PI) / 180);
+        
+        const largeArcFlag = angle > 180 ? 1 : 0;
+        
+        const pathData = [
+          `M 100 100`,
+          `L ${startX} ${startY}`,
+          `A 85 85 0 ${largeArcFlag} 1 ${endX} ${endY}`,
+          `Z`
+        ].join(' ');
+        
+        // Calculate label position (middle of slice)
+        const middleAngle = (startAngle + endAngle) / 2;
+        const labelRadius = 60; // Position labels mid-way in slice
+        const labelX = 100 + labelRadius * Math.cos((middleAngle * Math.PI) / 180);
+        const labelY = 100 + labelRadius * Math.sin((middleAngle * Math.PI) / 180);
+        
+        currentAngle = endAngle;
+        
+        return (
+          <g key={grade}>
+            {/* Pie Slice */}
+            <path
+              d={pathData}
+              fill={getGradeColor(grade)}
+              stroke="#ffffff"
+              strokeWidth="2.5"
+              opacity="0.95"
+            />
+            
+            {/* Percentage Label (show if >= 5%) */}
+            {percentage >= 5 && (
+              <>
+                {/* White background circle for better readability */}
+                <circle
+                  cx={labelX}
+                  cy={labelY}
+                  r="12"
+                  fill="white"
+                  opacity="0.9"
+                />
+                
+                {/* Percentage Text */}
+                <text
+                  x={labelX}
+                  y={labelY + 1}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize="9"
+                  fontWeight="bold"
+                  fill={getGradeColor(grade)}
+                >
+                  {percentage.toFixed(0)}%
+                </text>
+              </>
+            )}
+          </g>
+        );
+      })}
+      
+      {/* Center Circle with Total Count */}
+      <circle 
+        cx="100" 
+        cy="100" 
+        r="32" 
+        fill="white" 
+        stroke="#cbd5e1" 
+        strokeWidth="3"
+        filter="drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
+      />
+      
+      {/* Total Number */}
+      <text 
+        x="100" 
+        y="95" 
+        textAnchor="middle" 
+        fontSize="16" 
+        fontWeight="bold" 
+        fill="#1e293b"
+      >
+        {total}
+      </text>
+      
+      {/* "Students" Label */}
+      <text 
+        x="100" 
+        y="108" 
+        textAnchor="middle" 
+        fontSize="8" 
+        fill="#64748b"
+        fontWeight="600"
+      >
+        Students
+      </text>
+    </g>
+  );
+};
+
+// Helper component for Pie Chart - ENHANCED with percentage labels
+const PieChart = ({ data }) => {
+  const total = Object.values(data).reduce((sum, val) => sum + val, 0);
+  let currentAngle = -90; // Start from top
+  
+  return (
+    <g>
+      {Object.entries(data).map(([grade, count]) => {
+        const percentage = (count / total) * 100;
+        const angle = (percentage / 100) * 360;
+        const startAngle = currentAngle;
+        const endAngle = currentAngle + angle;
+        
+        // Calculate slice path
+        const startX = 100 + 80 * Math.cos((startAngle * Math.PI) / 180);
+        const startY = 100 + 80 * Math.sin((startAngle * Math.PI) / 180);
+        const endX = 100 + 80 * Math.cos((endAngle * Math.PI) / 180);
+        const endY = 100 + 80 * Math.sin((endAngle * Math.PI) / 180);
+        
+        const largeArcFlag = angle > 180 ? 1 : 0;
+        
+        const pathData = [
+          `M 100 100`,
+          `L ${startX} ${startY}`,
+          `A 80 80 0 ${largeArcFlag} 1 ${endX} ${endY}`,
+          `Z`
+        ].join(' ');
+        
+        // Calculate label position (middle of slice)
+        const middleAngle = (startAngle + endAngle) / 2;
+        const labelRadius = 55;
+        const labelX = 100 + labelRadius * Math.cos((middleAngle * Math.PI) / 180);
+        const labelY = 100 + labelRadius * Math.sin((middleAngle * Math.PI) / 180);
+        
+        currentAngle = endAngle;
+        
+        return (
+          <g key={grade}>
+            {/* Pie slice with proper CBC color */}
+            <path
+              d={pathData}
+              fill={getGradeColor(grade)}
+              stroke="#ffffff"
+              strokeWidth="2.5"
+            />
+            
+            {/* Percentage label ON the slice (only if >= 5%) */}
+            {percentage >= 5 && (
+              <>
+                {/* White background for readability */}
+                <circle
+                  cx={labelX}
+                  cy={labelY}
+                  r="11"
+                  fill="white"
+                  fillOpacity="0.9"
+                />
+                {/* Percentage text */}
+                <text
+                  x={labelX}
+                  y={labelY + 1}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize="9"
+                  fontWeight="bold"
+                  fill="#1e293b"
+                >
+                  {percentage.toFixed(0)}%
+                </text>
+              </>
+            )}
+          </g>
+        );
+      })}
+      
+      {/* Center white circle */}
+      <circle cx="100" cy="100" r="32" fill="white" stroke="#e5e7eb" strokeWidth="2.5" />
+      
+      {/* Total count in center */}
+      <text x="100" y="95" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#1e293b">
+        {total}
+      </text>
+      <text x="100" y="108" textAnchor="middle" fontSize="9" fill="#64748b">
+        Students
+      </text>
+    </g>
+  );
+};
+
+// Helper function for grade colors - UNIVERSAL SOLUTION
+const getGradeColor = (grade) => {
+  // Normalize the grade string
+  const gradeUpper = String(grade).toUpperCase().trim();
+  
+  // Match specific grade numbers first (for different shades)
+  if (gradeUpper.includes('EXCEED')) {
+    if (gradeUpper.includes('1')) return '#059669'; // Dark Green - Exceeding Expectations 1
+    if (gradeUpper.includes('2')) return '#10b981'; // Light Green - Exceeding Expectations 2
+    return '#22c55e'; // Default green
+  }
+  if (gradeUpper.includes('MEET')) {
+    if (gradeUpper.includes('1')) return '#2563eb'; // Dark Blue - Meeting Expectations 1
+    if (gradeUpper.includes('2')) return '#60a5fa'; // Light Blue - Meeting Expectations 2
+    return '#3b82f6'; // Default blue
+  }
+  if (gradeUpper.includes('APPROACH')) {
+    if (gradeUpper.includes('1')) return '#ca8a04'; // Dark Yellow - Approaching Expectations 1
+    if (gradeUpper.includes('2')) return '#eab308'; // Light Yellow - Approaching Expectations 2
+    return '#fbbf24'; // Default yellow
+  }
+  if (gradeUpper.includes('BELOW')) {
+    if (gradeUpper.includes('1')) return '#ea580c'; // Dark Orange - Below Expectations 1
+    if (gradeUpper.includes('2')) return '#f97316'; // Light Orange - Below Expectations 2
+    return '#fb923c'; // Default orange
+  }
+  if (gradeUpper.includes('NOT') || gradeUpper.includes('NY')) return '#dc2626'; // Red
+  
+  // Fallback to exact matches for short codes
+  const colorMap = {
+    'EE': '#22c55e', 'EE1': '#059669', 'EE2': '#10b981',
+    'ME': '#3b82f6', 'ME1': '#2563eb', 'ME2': '#60a5fa',
+    'AE': '#eab308', 'AE1': '#ca8a04', 'AE2': '#eab308',
+    'BE': '#f97316', 'BE1': '#ea580c', 'BE2': '#f97316',
+    'NY': '#ef4444', 'NY1': '#dc2626', 'NY2': '#ef4444',
+    'EX': '#22c55e',
+    'VG': '#3b82f6',
+    'GO': '#eab308',
+    'AP': '#eab308',
+    'RE': '#ef4444',
+    'NI': '#ef4444',
+    'CE': '#22c55e',
+    'FE': '#3b82f6',
+    'OE': '#eab308',
+  };
+  
+  return colorMap[gradeUpper] || '#94a3b8'; // Gray default
 };
 
 export default SummativeAssessment;

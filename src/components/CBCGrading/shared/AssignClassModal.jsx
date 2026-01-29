@@ -7,7 +7,7 @@ const AssignClassModal = ({ isOpen, onClose, teacher, onAssign }) => {
   const [selectedClassId, setSelectedClassId] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetchingClasses, setFetchingClasses] = useState(false);
-  const [fetchingWorkload, setFetchingWorkload] = useState(false);
+  const [, setFetchingWorkload] = useState(false);
   const [error, setError] = useState(null);
   const [warning, setWarning] = useState(null);
   const [success, setSuccess] = useState(false);

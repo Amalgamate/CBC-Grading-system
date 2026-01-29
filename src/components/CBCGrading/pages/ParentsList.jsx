@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Upload, Edit, Trash2, Users, Mail, Phone, Eye, MessageCircle, Archive, Search, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Mail, Phone, Eye, MessageCircle, Archive, Search, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import EmptyState from '../shared/EmptyState';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { useAuth } from '../../../hooks/useAuth';
@@ -15,7 +15,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
   const [searchTerm, setSearchTerm] = useState('');
   const [showBulkModal, setShowBulkModal] = useState(false);
   const { can, isRole } = usePermissions();
-  const { user: currentUser } = useAuth(); // Auth context
+  useAuth(); // Auth context
   const currentUserIsTeacher = isRole('TEACHER');
 
   // Check if user can delete (only admins)

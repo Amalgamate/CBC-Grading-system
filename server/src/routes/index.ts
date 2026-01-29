@@ -22,6 +22,8 @@ import onboardingRoutes from './onboarding.routes';
 import { issueCsrfToken } from '../middleware/csrf.middleware';
 import { authenticate } from '../middleware/auth.middleware';
 import { requireTenant } from '../middleware/tenant.middleware';
+import tenantRoutes from './tenant.routes';
+import { enforcePortalTenantMatch } from '../middleware/portalTenant.middleware';
 
 const router = Router();
 
@@ -31,6 +33,7 @@ const router = Router();
 router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
 router.use('/onboarding', onboardingRoutes); // Public onboarding endpoints
+router.use('/tenants', tenantRoutes); // Public tenant branding endpoints
 router.get('/auth/csrf', issueCsrfToken);
 
 // ============================================
@@ -38,6 +41,7 @@ router.get('/auth/csrf', issueCsrfToken);
 // ============================================
 // These routes require authentication and proper trial status check
 router.use(authenticate);
+router.use(enforcePortalTenantMatch);
 
 // Admin routes must come BEFORE requireTenant middleware
 // because super admins need access to ALL schools

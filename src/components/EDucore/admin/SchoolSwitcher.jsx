@@ -82,36 +82,56 @@ const SchoolSwitcher = ({ currentSchool, onSchoolChange }) => {
               <div className="p-6 text-center text-gray-500 text-sm">No schools available</div>
             ) : (
               <div className="py-2">
-                {schools.map((school) => (
-                  <button
-                    key={school.id}
-                    onClick={() => handleSwitchSchool(school)}
-                    className={`w-full px-4 py-3 text-left hover:bg-indigo-50 transition-colors flex items-center justify-between group ${
-                      currentSchool?.id === school.id ? 'bg-indigo-50' : ''
-                    }`}
-                  >
-                    <div className="flex-1">
-                      <div className="font-semibold text-sm text-gray-900 group-hover:text-indigo-700">
-                        {school.name}
+                {schools.map((school) => {
+                  const isActive = school.active && school.status === 'ACTIVE';
+                  const isInactive = !school.active;
+                  const isTrial = school.status === 'TRIAL';
+                  
+                  return (
+                    <button
+                      key={school.id}
+                      onClick={() => handleSwitchSchool(school)}
+                      disabled={isInactive && school.status === 'DECLINED'}
+                      className={`w-full px-4 py-3 text-left hover:bg-indigo-50 transition-colors flex items-center justify-between group ${
+                        currentSchool?.id === school.id ? 'bg-indigo-50' : ''
+                      } ${isInactive && school.status === 'DECLINED' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <div className="flex-1">
+                        <div className="font-semibold text-sm text-gray-900 group-hover:text-indigo-700">
+                          {school.name}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {school.branches?.length || school._count?.branches || 0} branches • {school._count?.learners || 0} learners
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          {isActive && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                              ACTIVE
+                            </span>
+                          )}
+                          {isTrial && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                              TRIAL
+                            </span>
+                          )}
+                          {isInactive && school.status !== 'TRIAL' && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                              INACTIVE
+                            </span>
+                          )}
+                          {school.status === 'DECLINED' && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                              DECLINED
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        {school.branches?.length || school._count?.branches || 0} branches • {school._count?.learners || 0} learners
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          school.active 
-                            ? 'bg-green-100 text-green-700' 
-                            : 'bg-red-100 text-red-700'
-                        }`}>
-                          {school.status}
-                        </span>
-                      </div>
-                    </div>
-                    {currentSchool?.id === school.id && (
-                      <Check className="w-5 h-5 text-indigo-600 flex-shrink-0" />
-                    )}
-                  </button>
-                ))}
+                      {currentSchool?.id === school.id && (
+                        <Check className="w-5 h-5 text-indigo-600 flex-shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

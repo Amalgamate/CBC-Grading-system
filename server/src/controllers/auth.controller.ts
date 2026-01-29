@@ -111,7 +111,7 @@ export class AuthController {
   }
 
   async login(req: Request, res: Response) {
-    const { email, password } = req.body;
+    const { email, password, tenantSchoolId } = req.body;
 
     // Validate input
     if (!email || !password) {
@@ -152,6 +152,18 @@ export class AuthController {
     // Check if account is active
     if (user.status !== 'ACTIVE') {
       throw new ApiError(403, 'Account is not active');
+    }
+
+    // Tenant-first enforcement (Phase B):
+    // If login is initiated from a tenant-specific portal, ensure the user belongs to that tenant.
+    // SUPER_ADMIN is exempt (they can operate across schools).
+    if (tenantSchoolId && user.role !== 'SUPER_ADMIN') {
+      if (!user.schoolId) {
+        throw new ApiError(403, 'No school association found. Please contact support.');
+      }
+      if (user.schoolId !== tenantSchoolId) {
+        throw new ApiError(403, 'Wrong school portal for this account. Please use your school login link.');
+      }
     }
 
     // Generate tokens

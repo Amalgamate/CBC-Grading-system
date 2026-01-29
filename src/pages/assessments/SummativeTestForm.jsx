@@ -248,6 +248,7 @@ const SummativeTestForm = ({ onBack, onSuccess }) => {
       // Prepare test data
       const testData = {
         ...formData,
+        testType: formData.type,                   // NEW: Map 'type' to 'testType'
         totalMarks: parseInt(formData.totalMarks),
         passMarks: parseInt(formData.passMarks),
         duration: parseInt(formData.duration) || null,
@@ -286,6 +287,7 @@ const SummativeTestForm = ({ onBack, onSuccess }) => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars -- kept for future reset UI
   const resetForm = () => {
     setFormData({
       title: '',

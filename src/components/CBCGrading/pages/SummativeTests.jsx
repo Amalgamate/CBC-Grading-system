@@ -4,11 +4,10 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit, Trash2, Eye, X, Loader, Send, CheckCircle, XCircle, ClipboardList, Database, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Loader, Send, CheckCircle, XCircle, ClipboardList, Database } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useAuth } from '../../../hooks/useAuth';
 import { assessmentAPI, classAPI, workflowAPI } from '../../../services/api';
-import { learningAreas } from '../data/learningAreas';
 import SummativeTestForm from '../../../pages/assessments/SummativeTestForm';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import EmptyState from '../shared/EmptyState';
@@ -22,14 +21,14 @@ const SummativeTests = ({ onNavigate }) => {
   const [viewMode, setViewMode] = useState('list');
 
   const [selectedTest, setSelectedTest] = useState(null);
-  const [testData, setTestData] = useState({
+  const [, setTestData] = useState({
     title: '', grade: '', learningArea: '', term: 'Term 1',
     year: '2026', testType: 'End of Term', date: '', duration: 90, totalMarks: 100,
     passMarks: 50, instructions: '', weight: 1.0
   });
 
   const [tests, setTests] = useState([]);
-  const [availableGrades, setAvailableGrades] = useState([]);
+  const [, setAvailableGrades] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
 
   const [showConfirm, setShowConfirm] = useState(false);
@@ -118,22 +117,36 @@ const SummativeTests = ({ onNavigate }) => {
     const test = tests.find(t => t.id === id);
     setConfirmConfig({
       title: 'Delete Assessment',
-      message: `Are you sure you want to delete "${test?.title || 'this test'}"? This action is permanent.`,
+      message: `Are you sure you want to delete "${test?.title || 'this test'}"?\n\nIf this test has associated results, it will be archived instead of permanently deleted.`,
       confirmText: 'Delete Test',
       onConfirm: async () => {
         try {
           setShowConfirm(false);
-          await assessmentAPI.deleteTest(id);
-          setTests(prev => prev.filter(t => t.id !== id));
-          showSuccess('Test record deleted successfully!');
+          const response = await assessmentAPI.deleteTest(id);
+          if (response.success) {
+            if (response.message.includes('archived')) {
+              showSuccess(response.message);
+              // Update the test status to archived in the frontend state
+              setTests(prev => prev.map(t => t.id === id ? { ...t, archived: true, status: 'ARCHIVED' } : t));
+            } else {
+              showSuccess('Test permanently deleted successfully!');
+              setTests(prev => prev.filter(t => t.id !== id));
+            }
+          } else {
+            showError(response.message || 'Failed to delete test');
+          }
         } catch (error) {
-          showError('Database Error: Failed to delete test');
+          console.error('Error deleting test:', error);
+          showError('Failed to delete test: ' + error.message);
+        } finally {
+          fetchTests(); // Refresh the list to reflect any changes, including archival
         }
       }
     });
     setShowConfirm(true);
   };
 
+  // eslint-disable-next-line no-unused-vars -- reserved for SummativeTestForm integration
   const handleSaveTest = async (formData) => {
     console.log('=== SAVING TEST ===');
     console.log('View mode:', viewMode);
@@ -253,10 +266,29 @@ const SummativeTests = ({ onNavigate }) => {
 
   const handlePublish = async (test) => {
     try {
+      const existingResultsResponse = await assessmentAPI.getTestResults(test.id);
+      const existingResults = existingResultsResponse.data || existingResultsResponse || [];
+
+      if (existingResults.length > 0) {
+        // If results exist, do not allow direct publishing, instead, show an error and suggest locking
+        showError(
+          `Cannot publish test with ${existingResults.length} existing results. \n\n` +
+          `Please lock the test from the assessment entry page if you want to finalize it, \n` +
+          `or delete all results first to allow editing.`
+        );
+        return;
+      }
+
+      // Proceed with publishing if no results exist
       await workflowAPI.publish('summative', test.id);
-      setTests(prev => prev.map(t => t.id === test.id ? { ...t, status: 'Published' } : t));
-      showSuccess(`${test.title} published successfully!`);
+      
+      // After publishing, automatically lock the test to prevent further edits to its structure
+      await assessmentAPI.updateTest(test.id, { locked: true });
+
+      setTests(prev => prev.map(t => t.id === test.id ? { ...t, status: 'Published', locked: true } : t));
+      showSuccess(`${test.title} published and locked successfully!`);
     } catch (error) {
+      console.error('Error publishing test:', error);
       showError('Failed to publish test');
     }
   };
@@ -264,18 +296,49 @@ const SummativeTests = ({ onNavigate }) => {
   const handleBulkDelete = async () => {
     setConfirmConfig({
       title: 'Bulk Delete Assessments',
-      message: `You are about to permanently delete ${selectedIds.length} summative tests. Proceed?`,
+      message: `You are about to delete ${selectedIds.length} summative tests.\n\nTests with associated results will be archived, while those without will be permanently deleted.`,
       confirmText: 'Bulk Delete',
       onConfirm: async () => {
         try {
           setShowConfirm(false);
           setLoading(true);
-          await Promise.all(selectedIds.map(id => assessmentAPI.deleteTest(id)));
-          showSuccess(`Operation Complete: Deleted ${selectedIds.length} tests successfully!`);
+          const deletePromises = selectedIds.map(id => assessmentAPI.deleteTest(id));
+          const responses = await Promise.allSettled(deletePromises);
+
+          let deletedCount = 0;
+          let archivedCount = 0;
+          let failedCount = 0;
+
+          responses.forEach(result => {
+            if (result.status === 'fulfilled') {
+              const response = result.value;
+              if (response.success) {
+                if (response.message.includes('archived')) {
+                  archivedCount++;
+                } else {
+                  deletedCount++;
+                }
+              } else {
+                failedCount++;
+                console.error('Failed to process test:', response.message);
+              }
+            } else {
+              failedCount++;
+              console.error('Error during bulk delete operation:', result.reason);
+            }
+          });
+
+          let finalMessage = `Bulk Operation Complete:\n\n`;
+          if (deletedCount > 0) finalMessage += `✅ Permanently deleted ${deletedCount} test(s).\n`;
+          if (archivedCount > 0) finalMessage += `📦 Archived ${archivedCount} test(s) (had existing results).\n`;
+          if (failedCount > 0) finalMessage += `❌ Failed to process ${failedCount} test(s).\n`;
+
+          showSuccess(finalMessage);
           setSelectedIds([]);
           fetchTests();
         } catch (error) {
-          showError('Operational Failure: Failed to delete some tests');
+          console.error('Bulk delete operation failed:', error);
+          showError('Operational Failure: Failed to complete bulk delete');
           fetchTests();
         } finally {
           setLoading(false);
@@ -313,32 +376,45 @@ const SummativeTests = ({ onNavigate }) => {
     const canSubmit = ['TEACHER', 'HEAD_TEACHER', 'ADMIN', 'SUPER_ADMIN'].includes(user?.role);
     const canApprove = ['HEAD_TEACHER', 'ADMIN', 'SUPER_ADMIN'].includes(user?.role);
     const canPublish = ['ADMIN', 'HEAD_TEACHER', 'SUPER_ADMIN'].includes(user?.role);
+    const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(user?.role);
 
     try {
       if (status === 'DRAFT' && canSubmit) {
-        // Only SUPER_ADMIN can auto-approve their own new tests
-        if (user?.role === 'SUPER_ADMIN') {
+        // Admins can auto-approve their own tests
+        if (isAdmin) {
           // Submit first
-          await workflowAPI.submit({ assessmentId: test.id, assessmentType: 'summative', comments: 'Auto-submitted by Super Admin' });
+          await workflowAPI.submit({ assessmentId: test.id, assessmentType: 'summative', comments: 'Auto-submitted by Admin' });
           // Then Approve
-          await workflowAPI.approve('summative', test.id, { comments: 'Self-approved by Super Admin' });
+          await workflowAPI.approve('summative', test.id, { comments: 'Self-approved by Admin' });
 
           setTests(prev => prev.map(t => t.id === test.id ? { ...t, status: 'Approved' } : t));
           showSuccess(`${test.title} auto-approved!`);
         } else {
-          // All other roles (Teachers, Admins, Head Teachers) must submit for approval
+          // Teachers and Head Teachers must submit for approval
           await workflowAPI.submit({ assessmentId: test.id, assessmentType: 'summative', comments: 'Submitted for approval' });
           setTests(prev => prev.map(t => t.id === test.id ? { ...t, status: 'Submitted' } : t));
           showSuccess(`${test.title} submitted for review!`);
         }
       } else if (status === 'SUBMITTED' && canApprove) {
-        // Check if user is trying to approve their own
-        if (test.submittedBy === user?.userId && user?.role !== 'SUPER_ADMIN') {
-          showError('You cannot approve your own test. Please wait for another administrator to review it.');
+        // All admins can approve their own tests, others cannot
+        const isOwnTest = test.submittedBy === user?.userId;
+        
+        // Debug logging
+        console.log('=== APPROVAL CHECK DEBUG ===');
+        console.log('User ID:', user?.userId);
+        console.log('User Role:', user?.role);
+        console.log('Test submittedBy:', test.submittedBy);
+        console.log('Is own test:', isOwnTest);
+        console.log('Is admin:', isAdmin);
+        console.log('Can approve:', canApprove);
+        console.log('==========================');
+        
+        if (isOwnTest && !isAdmin) {
+          showError('You cannot approve your own test. Please wait for an administrator to review it.');
           return;
         }
 
-        await workflowAPI.approve('summative', test.id, { comments: 'Approved' });
+        await workflowAPI.approve('summative', test.id, { comments: isAdmin && isOwnTest ? 'Self-approved by Admin' : 'Approved' });
         setTests(prev => prev.map(t => t.id === test.id ? { ...t, status: 'Approved' } : t));
         showSuccess(`${test.title} approved!`);
       } else if (status === 'APPROVED' && canPublish) {
@@ -499,7 +575,7 @@ const SummativeTests = ({ onNavigate }) => {
                             <Edit size={16} />
                           </button>
 
-                          {user?.role === 'SUPER_ADMIN' ? (
+                          {['ADMIN', 'SUPER_ADMIN'].includes(user?.role) ? (
                             <button onClick={() => handleAutoApprove(test)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition" title="Auto Approve Now">
                               <CheckCircle size={16} />
                             </button>
@@ -523,8 +599,8 @@ const SummativeTests = ({ onNavigate }) => {
 
                       {['SUBMITTED', 'submitted'].includes(test.status) && (['ADMIN', 'SUPER_ADMIN', 'HEAD_TEACHER'].includes(user?.role)) && (
                         <>
-                          {/* Only show approve button if it's not their own OR they are Super Admin */}
-                          {(test.submittedBy !== user?.userId || user?.role === 'SUPER_ADMIN') ? (
+                          {/* Only show approve button if it's not their own OR they are Admin/Super Admin */}
+                          {(test.submittedBy !== user?.userId || ['ADMIN', 'SUPER_ADMIN'].includes(user?.role)) ? (
                             <button onClick={() => handleApprove(test)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition" title="Approve">
                               <CheckCircle size={16} />
                             </button>

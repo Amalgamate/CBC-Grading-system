@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, LogOut, Zap, ChevronDown, ClipboardList, BarChart3, MessageSquare, Calendar, Building2, MapPin, Cake } from 'lucide-react';
+import { Bell, LogOut, Zap, ChevronDown, ClipboardList, BarChart3, MessageSquare, Calendar, Building2, Cake } from 'lucide-react';
 import { usePermissions } from '../../../hooks/usePermissions';
 import api, { schoolAPI } from '../../../services/api';
 
@@ -12,7 +12,7 @@ const Header = ({ user, onLogout, brandingSettings, title }) => {
   const [loadingSchools, setLoadingSchools] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [birthdays, setBirthdays] = useState([]);
-  const [loadingBirthdays, setLoadingBirthdays] = useState(false);
+  const [, setLoadingBirthdays] = useState(false);
 
   const notificationRef = useRef(null);
 

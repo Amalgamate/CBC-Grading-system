@@ -50,6 +50,7 @@ const CommunicationSettings = () => {
     showSuccess(`${type} settings saved!`);
   };
 
+  // eslint-disable-next-line no-unused-vars -- kept for future Test Email UI
   const handleTestEmail = async () => {
     if (!testContact.includes('@')) {
       showError('Enter valid email');

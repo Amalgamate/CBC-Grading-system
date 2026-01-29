@@ -511,6 +511,7 @@ export const createSummativeTest = async (req: AuthRequest, res: Response) => {
     const {
       title,
       learningArea = 'General',
+      testType,                    // NEW: Test grouping type
       term,
       academicYear,
       grade,
@@ -571,6 +572,7 @@ export const createSummativeTest = async (req: AuthRequest, res: Response) => {
       data: {
         title,
         learningArea,
+        testType,                    // NEW: Save test grouping type
         term,
         academicYear: parseInt(academicYear),
         grade,
@@ -822,9 +824,27 @@ export const updateSummativeTest = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    // If the test is locked, prevent any updates unless the update specifically changes the `locked` status to false.
+    // Super Admins can always update.
+    if (existingTest.locked && updateData.locked !== false && req.user?.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ success: false, message: 'Test is locked and cannot be updated.' });
+    }
+
     const test = await prisma.summativeTest.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...updateData,
+        // Set lockedAt and lockedBy if setting to locked
+        ...(updateData.locked === true && !existingTest.locked && {
+          lockedAt: new Date(),
+          lockedBy: userId
+        }),
+        // Clear lockedAt and lockedBy if setting to unlocked
+        ...(updateData.locked === false && existingTest.locked && {
+          lockedAt: null,
+          lockedBy: null
+        }),
+      },
       include: {
         creator: {
           select: {
@@ -874,11 +894,47 @@ export const deleteSummativeTest = async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
     const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
 
+    // Phase 5: Check ownership
+    const existingTest = await prisma.summativeTest.findUnique({
+      where: { id },
+      include: {
+        results: { select: { id: true } } // Fetch only IDs of results
+      }
+    });
+
+    if (!existingTest) {
+      return res.status(404).json({ success: false, message: 'Test not found' });
+    }
+
+    if (req.user?.schoolId && existingTest.schoolId !== req.user.schoolId && !isSuperAdmin) {
+      return res.status(403).json({ success: false, message: 'Unauthorized access to test' });
+    }
+
+    // Prevent hard delete if results exist, unless Super Admin
+    if (existingTest.results.length > 0 && !isSuperAdmin) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete test "${existingTest.title}" because it has ${existingTest.results.length} associated results. Please archive it instead.`
+      });
+    }
+
     if (isSuperAdmin) {
-      // Hard delete for Super Admin
+      // Super Admin can hard delete
       await prisma.summativeTest.delete({
         where: { id }
       });
+
+      // Audit Log
+      if (req.user?.schoolId && userId) {
+        await auditService.logChange({
+          schoolId: req.user.schoolId,
+          entityType: 'SummativeTest',
+          entityId: id,
+          action: 'DELETE',
+          userId: userId,
+          reason: 'Test permanently deleted by Super Admin'
+        });
+      }
 
       res.json({
         success: true,
@@ -892,13 +948,26 @@ export const deleteSummativeTest = async (req: AuthRequest, res: Response) => {
           archived: true,
           archivedAt: new Date(),
           archivedBy: userId,
-          active: false
+          active: false, // Also mark as inactive
+          status: 'ARCHIVED' as any // Set status to archived
         }
       });
 
+      // Audit Log
+      if (req.user?.schoolId && userId) {
+        await auditService.logChange({
+          schoolId: req.user.schoolId,
+          entityType: 'SummativeTest',
+          entityId: id,
+          action: 'ARCHIVE',
+          userId: userId,
+          reason: 'Test archived (soft delete)'
+        });
+      }
+
       res.json({
         success: true,
-        message: 'Test archived successfully'
+        message: 'Test archived successfully (soft deleted)'
       });
     }
 
@@ -939,14 +1008,6 @@ export const recordSummativeResult = async (req: AuthRequest, res: Response) => 
       });
     }
 
-    // Validate required fields
-    if (!testId || !learnerId || marksObtained === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields: testId, learnerId, marksObtained'
-      });
-    }
-
     // Get test details to calculate percentage and get scale context
     const test = await prisma.summativeTest.findUnique({
       where: { id: testId }
@@ -956,6 +1017,15 @@ export const recordSummativeResult = async (req: AuthRequest, res: Response) => 
       return res.status(404).json({
         success: false,
         message: 'Test not found'
+      });
+    }
+
+    // Validate marksObtained against test.totalMarks
+    const parsedMarks = parseInt(marksObtained);
+    if (isNaN(parsedMarks) || parsedMarks < 0 || parsedMarks > test.totalMarks) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid marks obtained. Must be a number between 0 and ${test.totalMarks}.`
       });
     }
 
@@ -972,7 +1042,7 @@ export const recordSummativeResult = async (req: AuthRequest, res: Response) => 
     const ranges = gradingSystem?.ranges;
 
     // Calculate percentage, grade, and status
-    const percentage = (parseInt(marksObtained) / test.totalMarks) * 100;
+    const percentage = (parsedMarks / test.totalMarks) * 100;
     const { grade, status } = calculateGradeAndStatus(percentage, test.passMarks, ranges);
 
     // Check if result already exists
@@ -986,13 +1056,24 @@ export const recordSummativeResult = async (req: AuthRequest, res: Response) => 
     });
 
     let result: any;
+    let actionType: 'CREATE' | 'UPDATE';
+    let oldValues: any = {};
+    let newValues: any = { marksObtained: parsedMarks, remarks, teacherComment };
 
     if (existingResult) {
+      actionType = 'UPDATE';
+      // Capture old values for audit
+      oldValues = {
+        marksObtained: existingResult.marksObtained,
+        remarks: existingResult.remarks,
+        teacherComment: existingResult.teacherComment,
+      };
+
       // Update existing result
       result = await prisma.summativeResult.update({
         where: { id: existingResult.id },
         data: {
-          marksObtained: parseInt(marksObtained),
+          marksObtained: parsedMarks,
           percentage,
           grade,
           status,
@@ -1020,12 +1101,13 @@ export const recordSummativeResult = async (req: AuthRequest, res: Response) => 
         }
       });
     } else {
+      actionType = 'CREATE';
       // Create new result
       result = await prisma.summativeResult.create({
         data: {
           testId,
           learnerId,
-          marksObtained: parseInt(marksObtained),
+          marksObtained: parsedMarks,
           percentage,
           grade,
           status,
@@ -1086,6 +1168,21 @@ export const recordSummativeResult = async (req: AuthRequest, res: Response) => 
               passMarks: true
             }
           }
+        }
+      });
+    }
+
+    // Record history of the change
+    if (recordedBy) {
+      await prisma.summativeResultHistory.create({
+        data: {
+          resultId: result.id,
+          action: actionType,
+          field: 'marksObtained', // We are primarily tracking mark changes
+          oldValue: oldValues.marksObtained ? String(oldValues.marksObtained) : null,
+          newValue: String(newValues.marksObtained),
+          changedBy: recordedBy,
+          reason: `Summative result ${actionType.toLowerCase()} via API`
         }
       });
     }
@@ -1225,8 +1322,21 @@ export const recordSummativeResultsBulk = async (req: AuthRequest, res: Response
     }
 
     // Get test details
-    const test = await prisma.summativeTest.findUnique({ where: { id: testId } });
+    const test = await prisma.summativeTest.findUnique({
+      where: { id: testId },
+      select: { id: true, totalMarks: true, passMarks: true, scaleId: true, schoolId: true, branchId: true, locked: true }
+    });
     if (!test) return res.status(404).json({ success: false, message: 'Test not found' });
+
+    // Check if test is locked
+    // Allow Super Admin to override lock
+    if (test.locked && req.user?.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ success: false, message: 'Test is locked and results cannot be modified.' });
+    }
+
+    // Check if any results currently exist for this test. If not, this is the first save.
+    const existingResultsCount = await prisma.summativeResult.count({ where: { testId } });
+    const isFirstSave = existingResultsCount === 0;
 
     // Fetch appropriate grading system: Specific Scale ID -> School Default Summative
     let gradingSystem;
@@ -1243,10 +1353,20 @@ export const recordSummativeResultsBulk = async (req: AuthRequest, res: Response
     // Process all results in a transaction for data integrity
     await prisma.$transaction(async (tx) => {
       for (const item of results) {
-        // Skip invalid marks
-        if (item.marksObtained === undefined || item.marksObtained === null || item.marksObtained === '') continue;
+        // Skip invalid marks - also perform validation
+        if (item.marksObtained === undefined || item.marksObtained === null || item.marksObtained === '') {
+          console.warn(`Skipping learner ${item.learnerId} due to missing marks.`);
+          continue;
+        }
 
         const marks = Number(item.marksObtained);
+        if (isNaN(marks) || marks < 0 || marks > test.totalMarks) {
+          console.warn(`Skipping learner ${item.learnerId} due to invalid marks: ${item.marksObtained}. Must be between 0 and ${test.totalMarks}.`);
+          // Optionally, you might want to throw an error here to fail the whole transaction
+          // or collect errors and return them to the client.
+          continue; // Skip this individual invalid entry
+        }
+
         // Calculate percentage, grade, and status
         const percentage = (marks / test.totalMarks) * 100;
         const { grade, status } = calculateGradeAndStatus(percentage, test.passMarks, ranges);
@@ -1259,8 +1379,30 @@ export const recordSummativeResultsBulk = async (req: AuthRequest, res: Response
           if (matchedRange) remarks = matchedRange.label;
         }
 
+        const existingIndividualResult = await tx.summativeResult.findUnique({
+          where: {
+            testId_learnerId: {
+              testId,
+              learnerId: item.learnerId
+            }
+          },
+          select: { id: true, marksObtained: true, remarks: true, teacherComment: true, schoolId: true }
+        });
+
+        let actionType: 'CREATE' | 'UPDATE' = existingIndividualResult ? 'UPDATE' : 'CREATE';
+        let oldValues: any = {};
+        let newValues: any = { marksObtained: marks, remarks, teacherComment: item.teacherComment };
+
+        if (existingIndividualResult) {
+          oldValues = {
+            marksObtained: existingIndividualResult.marksObtained,
+            remarks: existingIndividualResult.remarks,
+            teacherComment: existingIndividualResult.teacherComment,
+          };
+        }
+
         // Upsert result
-        await tx.summativeResult.upsert({
+        const updatedResult = await tx.summativeResult.upsert({
           where: {
             testId_learnerId: {
               testId,
@@ -1290,6 +1432,21 @@ export const recordSummativeResultsBulk = async (req: AuthRequest, res: Response
             teacherComment: item.teacherComment
           }
         });
+
+        // Record history of the change for bulk operation
+        if (recordedBy) {
+          await tx.summativeResultHistory.create({
+            data: {
+              resultId: updatedResult.id,
+              action: actionType,
+              field: 'marksObtained',
+              oldValue: oldValues.marksObtained ? String(oldValues.marksObtained) : null,
+              newValue: String(newValues.marksObtained),
+              changedBy: recordedBy,
+              reason: `Summative result ${actionType.toLowerCase()} via bulk API`
+            }
+          });
+        }
       }
     });
 
@@ -1316,6 +1473,15 @@ export const recordSummativeResultsBulk = async (req: AuthRequest, res: Response
     );
 
     await Promise.all(updatePromises);
+
+    // If this was the first save, lock the test (Gap 7.1)
+    if (isFirstSave) {
+      await prisma.summativeTest.update({
+        where: { id: testId },
+        data: { locked: true, lockedAt: new Date(), lockedBy: recordedBy }
+      });
+      console.log(`🔒 Test ${testId} automatically locked after first results recorded.`);
+    }
 
     res.json({
       success: true,

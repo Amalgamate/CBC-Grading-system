@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Calendar, Download, FileText, CheckCircle, XCircle, Clock, Users, User } from 'lucide-react';
+import { Calendar, Download, FileText, CheckCircle, XCircle, Clock, Users } from 'lucide-react';
 import StatsCard from '../shared/StatsCard';
 import EmptyState from '../shared/EmptyState';
 import { useAttendance } from '../hooks/useAttendance';

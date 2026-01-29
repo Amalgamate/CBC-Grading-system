@@ -1,3 +1,0 @@
--- THIS MIGRATION HAS BEEN SUPERSEDED BY 20260121_add_school_and_admission
--- This directory is kept for reference only and should not be applied
--- All functionality has been merged into the complete migration above

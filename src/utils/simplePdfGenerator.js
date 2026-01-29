@@ -204,8 +204,6 @@ export const generatePDFWithLetterhead = async (
 ) => {
   const {
     orientation = 'portrait',
-    scale = 2,
-    multiPage = true,
     onProgress = null
   } = options;
 
@@ -225,6 +223,28 @@ export const generatePDFWithLetterhead = async (
     if (!element) {
       throw new Error(`Element with ID "${elementId}" not found`);
     }
+
+    // CRITICAL FIX: Make print-only elements visible before capturing
+    const printOnlyElements = element.querySelectorAll('.print-only');
+    const noPrintElements = element.querySelectorAll('.no-print');
+    
+    // Store original styles
+    const originalStyles = new Map();
+    printOnlyElements.forEach(el => {
+      originalStyles.set(el, {
+        display: el.style.display,
+        visibility: el.style.visibility
+      });
+      el.style.display = 'block';
+      el.style.visibility = 'visible';
+    });
+    
+    // Hide no-print elements
+    const noPrintOriginalStyles = new Map();
+    noPrintElements.forEach(el => {
+      noPrintOriginalStyles.set(el, el.style.display);
+      el.style.display = 'none';
+    });
 
     // Convert logo to Base64 to ensure it renders correctly in PDF
     // html2canvas often fails with external images or relative paths if not preloaded
@@ -270,6 +290,22 @@ export const generatePDFWithLetterhead = async (
     if (options.onProgress) options.onProgress('Preparing document layout...', 20);
     const contentClone = element.cloneNode(true);
 
+    // CRITICAL: Make print-only visible in the CLONE
+    const clonedPrintOnly = contentClone.querySelectorAll('.print-only');
+    console.log('PDF Generator: Found', clonedPrintOnly.length, 'print-only elements in clone');
+    
+    clonedPrintOnly.forEach(el => {
+      el.style.setProperty('display', 'block', 'important');
+      el.style.setProperty('visibility', 'visible', 'important');
+      el.style.setProperty('opacity', '1', 'important');
+    });
+
+    // Hide no-print in the clone
+    const clonedNoPrint = contentClone.querySelectorAll('.no-print');
+    clonedNoPrint.forEach(el => {
+      el.style.setProperty('display', 'none', 'important');
+    });
+
     // Assemble wrapper
     if (skipLetterhead) {
       wrapper.innerHTML = '';
@@ -286,6 +322,9 @@ export const generatePDFWithLetterhead = async (
     wrapper.style.width = orientation === 'landscape' ? '297mm' : '210mm';
     document.body.appendChild(wrapper);
 
+    // Add a small delay to ensure styles are applied
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     // Generate PDF from wrapper
     if (options.onProgress) options.onProgress('Rendering high-quality image...', 40);
     const canvas = await html2canvas(wrapper, {
@@ -301,6 +340,17 @@ export const generatePDFWithLetterhead = async (
 
     // Remove temporary wrapper
     document.body.removeChild(wrapper);
+
+    // Restore original styles
+    printOnlyElements.forEach(el => {
+      const original = originalStyles.get(el);
+      el.style.display = original.display;
+      el.style.visibility = original.visibility;
+    });
+    
+    noPrintElements.forEach(el => {
+      el.style.display = noPrintOriginalStyles.get(el);
+    });
 
     // Create PDF
     if (onProgress) onProgress('Compiling PDF pages...', 70);

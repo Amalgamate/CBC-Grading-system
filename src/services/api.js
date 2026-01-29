@@ -4,6 +4,8 @@
  * Base URL: http://localhost:5000/api
  */
 
+import { getPortalSchoolId, isStoredUserSuperAdmin } from './tenantContext';
+
 export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 /**
@@ -48,9 +50,11 @@ const ensureSchoolId = () => {
  */
 const fetchWithAuth = async (url, options = {}) => {
   const token = getAuthToken();
+  const isSuperAdmin = isStoredUserSuperAdmin();
 
-  // IMPROVED: Use ensureSchoolId to auto-recover missing school ID
-  const currentSchoolId = ensureSchoolId();
+  // Only SUPER_ADMIN uses header-based school switching.
+  const currentSchoolId = isSuperAdmin ? ensureSchoolId() : null;
+  const portalSchoolId = getPortalSchoolId();
 
   const defaultHeaders = {
     'Content-Type': 'application/json',
@@ -60,10 +64,13 @@ const fetchWithAuth = async (url, options = {}) => {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   }
 
-  // Add school context if available (works for both super admins and regular users)
-  if (currentSchoolId) {
-    defaultHeaders['X-School-Id'] = currentSchoolId;
-  }
+  // SECURITY: Do not send X-School-Id for normal users.
+  // Non-super-admin tenant context is derived from JWT on the server.
+  if (isSuperAdmin && currentSchoolId) defaultHeaders['X-School-Id'] = currentSchoolId;
+
+  // Consistency check: if UI is inside /t/:schoolId portal, send it so backend can reject mismatches.
+  // This header must never be used to resolve tenant.
+  if (!isSuperAdmin && portalSchoolId) defaultHeaders['X-Portal-School-Id'] = portalSchoolId;
 
   const response = await fetch(`${API_BASE_URL}${url}`, {
     ...options,
@@ -134,6 +141,16 @@ export const authAPI = {
       throw new Error(data.message || 'Login failed');
     }
 
+    return data;
+  },
+  /**
+   * Fetch public tenant branding info.
+   * @param {string} schoolId
+   */
+  tenantPublic: async (schoolId) => {
+    const response = await fetch(`${API_BASE_URL}/tenants/public/${schoolId}`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Failed to load tenant');
     return data;
   },
 
@@ -460,6 +477,16 @@ export const schoolAPI = {
       headers: {
         'X-School-Id': id,
       },
+    });
+  },
+  
+  /**
+   * Provision a new school with admin user (complete setup)
+   */
+  provision: async (data) => {
+    return fetchWithAuth('/schools/provision', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   },
 };
@@ -1438,6 +1465,48 @@ export const gradingAPI = {
     return fetchWithAuth(`/grading/range/${id}`, {
       method: 'DELETE',
     });
+  },
+
+  // Scale Group endpoints
+  getScaleGroups: async () => {
+    return fetchWithAuth('/grading/scale-groups');
+  },
+
+  getScaleGroupById: async (id) => {
+    return fetchWithAuth(`/grading/scale-groups/${id}`);
+  },
+
+  createScaleGroup: async (data) => {
+    return fetchWithAuth('/grading/scale-groups', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateScaleGroup: async (id, data) => {
+    return fetchWithAuth(`/grading/scale-groups/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteScaleGroup: async (id) => {
+    return fetchWithAuth(`/grading/scale-groups/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  generateGradesForGroup: async (id, data) => {
+    return fetchWithAuth(`/grading/scale-groups/${id}/generate-grades`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  getScaleForTest: async (groupId, grade, learningArea) => {
+    const params = new URLSearchParams({ grade });
+    if (learningArea) params.append('learningArea', learningArea);
+    return fetchWithAuth(`/grading/scale-groups/${groupId}/for-test?${params.toString()}`);
   }
 };
 

@@ -5,8 +5,8 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  FileText, Download, TrendingUp, TrendingDown, 
-  DollarSign, AlertCircle, CheckCircle, RefreshCw, User
+  FileText, Download, TrendingUp, TrendingDown,
+  DollarSign, AlertCircle, CheckCircle, RefreshCw,
 } from 'lucide-react';
 import LoadingSpinner from '../shared/LoadingSpinner';
 import { useNotifications } from '../hooks/useNotifications';

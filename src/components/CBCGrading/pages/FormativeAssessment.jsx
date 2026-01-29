@@ -4,13 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  CheckCircle, Send, Save, Search, 
-  ArrowRight, ArrowLeft, Edit3, 
-  FileText, Users, BarChart2, Check, Loader, Lock
-} from 'lucide-react';
+import { CheckCircle, Check, Send, Save, ArrowRight, Edit3, FileText, Users, BarChart2 } from 'lucide-react';
 import RatingSelector from '../shared/RatingSelector';
-import RatingBadge from '../shared/RatingBadge';
 import { useNotifications } from '../hooks/useNotifications';
 import api, { workflowAPI } from '../../../services/api';
 import SmartLearnerSearch from '../shared/SmartLearnerSearch';
@@ -25,7 +20,7 @@ const FormativeAssessment = ({ learners }) => {
   // Data State
   const [grades, setGrades] = useState([]);
   const [loadingGrades, setLoadingGrades] = useState(false);
-  const [academicYear, setAcademicYear] = useState(getCurrentAcademicYear());
+  const [academicYear] = useState(getCurrentAcademicYear());
 
   // Context State (Step 1)
   const [selectedGrade, setSelectedGrade] = useState('');

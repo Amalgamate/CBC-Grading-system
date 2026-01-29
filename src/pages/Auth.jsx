@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import LoginForm from '../components/auth/LoginForm';
 import RegisterForm from '../components/auth/RegisterForm';
 import ForgotPasswordForm from '../components/auth/ForgotPasswordForm';
@@ -6,27 +7,51 @@ import ResetPasswordForm from '../components/auth/ResetPasswordForm';
 import EmailVerificationForm from '../components/auth/EmailVerificationForm';
 import WelcomeScreen from '../components/auth/WelcomeScreen';
 
-export default function Auth({ onAuthSuccess, brandingSettings }) {
-  const [currentView, setCurrentView] = useState('login'); // login, register, forgot-password, reset-password, verify-email, welcome
-  const [userData, setUserData] = useState(null);
+const AUTH_VIEWS = ['login', 'register', 'forgot-password', 'reset-password', 'verify-email', 'welcome'];
+const FULL_VIEWS = ['login', 'register', 'verify-email', 'welcome', 'forgot-password'];
+
+function showBlobBackground(view) {
+  return !FULL_VIEWS.includes(view);
+}
+
+function Auth({ onAuthSuccess, brandingSettings, basePath = '/auth' }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const pathname = location.pathname;
+  const state = location.state || {};
+
+  const view = useMemo(() => {
+    const base = basePath.replace(/\/$/, '');
+    const suf = pathname.startsWith(base) ? pathname.slice(base.length) || '/' : '/';
+    const seg = suf.split('/').filter(Boolean)[0] || 'login';
+    if (AUTH_VIEWS.includes(seg)) return seg;
+    return 'login';
+  }, [pathname, basePath]);
+
+  const userData = state.userData || null;
+
+  const toLogin = () => navigate(`${basePath}/login`);
+  const toRegister = () => navigate(`${basePath}/register`);
+  const toForgotPassword = () => navigate(`${basePath}/forgot-password`);
 
   const handleLoginSuccess = (user) => {
-    setUserData(user);
     onAuthSuccess(user);
   };
 
   const handleRegisterSuccess = (user) => {
-    setUserData(user);
-    setCurrentView('verify-email');
+    navigate(`${basePath}/verify-email`, { state: { userData: user }, replace: true });
   };
 
   const handleVerifySuccess = () => {
-    setCurrentView('welcome');
+    if (!userData) {
+      toLogin();
+      return;
+    }
+    navigate(`${basePath}/welcome`, { state: { userData }, replace: true });
   };
 
   const handleResetSuccess = () => {
-    setCurrentView('login');
-    // Show success toast
+    navigate(`${basePath}/login`, { replace: true });
     const toast = document.createElement('div');
     toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50';
     toast.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span>Password reset successful! Please sign in.</span>';
@@ -35,61 +60,48 @@ export default function Auth({ onAuthSuccess, brandingSettings }) {
   };
 
   const handleGetStarted = () => {
-    onAuthSuccess(userData);
+    if (userData) onAuthSuccess(userData);
+    else toLogin();
   };
 
+  if ((view === 'verify-email' || view === 'welcome') && !userData) {
+    toLogin();
+    return null;
+  }
+
+  const layoutClass = showBlobBackground(view) ? 'bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100 flex items-center justify-center p-4' : '';
+  const contentClass = FULL_VIEWS.includes(view) ? 'w-full h-screen' : 'relative z-10 w-full flex items-center justify-center';
+
   return (
-    <div className={`min-h-screen ${
-      currentView === 'login' || currentView === 'register' || currentView === 'verify-email' || currentView === 'welcome' || currentView === 'forgot-password'
-        ? '' 
-        : 'bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100 flex items-center justify-center p-4'
-    }`}>
-      {/* Animated Background Elements - Only show for wrapped views */}
-      {currentView !== 'login' && currentView !== 'register' && currentView !== 'verify-email' && currentView !== 'welcome' && currentView !== 'forgot-password' && (
+    <div className={`min-h-screen ${layoutClass}`}>
+      {showBlobBackground(view) && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
-          <div className="absolute top-40 right-10 w-72 h-72 bg-cyan-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
-          <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob" />
+          <div className="absolute top-40 right-10 w-72 h-72 bg-cyan-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000" />
+          <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000" />
         </div>
       )}
-
-      {/* Content */}
-      <div className={`${
-        currentView === 'login' || currentView === 'register' || currentView === 'verify-email' || currentView === 'welcome' || currentView === 'forgot-password'
-          ? 'w-full h-screen' 
-          : 'relative z-10 w-full flex items-center justify-center'
-      }`}>
-        {currentView === 'login' && (
+      <div className={contentClass}>
+        {view === 'login' && (
           <LoginForm
-            onSwitchToRegister={() => setCurrentView('register')}
-            onSwitchToForgotPassword={() => setCurrentView('forgot-password')}
+            onSwitchToRegister={toRegister}
+            onSwitchToForgotPassword={toForgotPassword}
             onLoginSuccess={handleLoginSuccess}
             brandingSettings={brandingSettings}
           />
         )}
-
-        {currentView === 'register' && (
+        {view === 'register' && (
           <RegisterForm
-            onSwitchToLogin={() => setCurrentView('login')}
+            onSwitchToLogin={toLogin}
             onRegisterSuccess={handleRegisterSuccess}
             brandingSettings={brandingSettings}
           />
         )}
-
-        {currentView === 'forgot-password' && (
-          <ForgotPasswordForm
-            onSwitchToLogin={() => setCurrentView('login')}
-            brandingSettings={brandingSettings}
-          />
+        {view === 'forgot-password' && (
+          <ForgotPasswordForm onSwitchToLogin={toLogin} brandingSettings={brandingSettings} />
         )}
-
-        {currentView === 'reset-password' && (
-          <ResetPasswordForm
-            onResetSuccess={handleResetSuccess}
-          />
-        )}
-
-        {currentView === 'verify-email' && (
+        {view === 'reset-password' && <ResetPasswordForm onResetSuccess={handleResetSuccess} />}
+        {view === 'verify-email' && (
           <EmailVerificationForm
             email={userData?.email}
             phone={userData?.phone}
@@ -97,8 +109,7 @@ export default function Auth({ onAuthSuccess, brandingSettings }) {
             brandingSettings={brandingSettings}
           />
         )}
-
-        {currentView === 'welcome' && (
+        {view === 'welcome' && (
           <WelcomeScreen
             user={userData}
             onGetStarted={handleGetStarted}
@@ -106,25 +117,18 @@ export default function Auth({ onAuthSuccess, brandingSettings }) {
           />
         )}
       </div>
-
-
-
       <style>{`
         @keyframes blob {
           0%, 100% { transform: translate(0, 0) scale(1); }
           33% { transform: translate(30px, -50px) scale(1.1); }
           66% { transform: translate(-20px, 20px) scale(0.9); }
         }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
+        .animate-blob { animation: blob 7s infinite; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
       `}</style>
     </div>
   );
 }
+
+export default Auth;

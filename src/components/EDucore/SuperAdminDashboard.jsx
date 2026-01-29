@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { School, RefreshCw, CheckCircle2, Search, Activity, Users, Building2, CreditCard, LayoutDashboard, Bell, Settings, FileText, Calendar, BookOpen, Award, Shield, X, LogOut, Loader2 } from 'lucide-react';
+import { School, RefreshCw, Activity, CreditCard, LayoutDashboard, Bell, Settings, FileText, X, LogOut, Loader2 } from 'lucide-react';
 import { adminAPI } from '../../services/api';
 import Overview from './admin/Overview';
 import Schools from './admin/Schools';

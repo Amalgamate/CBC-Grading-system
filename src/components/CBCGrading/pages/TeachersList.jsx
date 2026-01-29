@@ -17,7 +17,7 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [selectedTeacherForAssignment, setSelectedTeacherForAssignment] = useState(null);
-  const { user } = useAuth();
+  useAuth();
 
   // Filter teachers
   const filteredTeachers = teachers.filter(t => {

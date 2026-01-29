@@ -260,8 +260,9 @@ export const preventSelfApproval = async (
     }
 
     // Check if user is trying to approve their own submission
-    // Bypass for SUPER_ADMIN to allow self-approval of their own tests
-    if (assessment.submittedBy === userId && req.user?.role !== 'SUPER_ADMIN') {
+    // Bypass for ADMIN and SUPER_ADMIN to allow self-approval of their own tests
+    const isAdmin = req.user?.role === 'ADMIN' || req.user?.role === 'SUPER_ADMIN';
+    if (assessment.submittedBy === userId && !isAdmin) {
       return res.status(403).json({
         success: false,
         error: {

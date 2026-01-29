@@ -26,7 +26,7 @@ import SummativeReport from './pages/SummativeReport';
 import TermlyReport from './pages/TermlyReport';
 import SummaryReportPage from './pages/reports/SummaryReportPage';
 import PerformanceScale from './pages/PerformanceScale';
-import { authAPI, API_BASE_URL } from '../../services/api';
+import { API_BASE_URL } from '../../services/api';
 import NoticesPage from './pages/NoticesPage';
 import MessagesPage from './pages/MessagesPage';
 import HelpPage from './pages/HelpPage';
@@ -58,7 +58,6 @@ import { useNotifications } from './hooks/useNotifications';
 // Utils
 import { PAGE_TITLES } from './utils/constants';
 import { clearAllSchoolData } from '../../utils/schoolDataCleanup';
-import { logDataIntegrity, verifyDataIntegrity } from '../../utils/dataIntegrityCheck';
 
 export default function CBCGradingSystem({ user, onLogout, brandingSettings, setBrandingSettings }) {
   // UI State
@@ -513,7 +512,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       case 'assess-summative-assessment':
         return <SummativeAssessment learners={learners} initialTestId={pageParams.initialTestId} />;
       case 'assess-summative-report':
-        return <SummativeReport learners={learners} onFetchLearners={fetchLearners} brandingSettings={brandingSettings} />;
+        return <SummativeReport learners={learners} onFetchLearners={fetchLearners} brandingSettings={brandingSettings} user={user} />;
       case 'assess-summary-report':
         return <SummaryReportPage />;
       case 'assess-termly-report':

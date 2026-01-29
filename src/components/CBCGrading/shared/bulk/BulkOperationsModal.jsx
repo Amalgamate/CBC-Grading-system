@@ -4,9 +4,9 @@
  * Enhanced with school/branch selector for SUPER_ADMIN
  */
 
-import React, { useState, useRef, useEffect } from 'react';
-import { X, Upload, Download, FileDown, AlertCircle, CheckCircle, Loader, Building2, MapPin } from 'lucide-react';
-import { schoolAPI, API_BASE_URL } from '../../../../services/api';
+import React, { useState, useRef } from 'react';
+import { X, Upload, Download, FileDown, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { API_BASE_URL } from '../../../../services/api';
 
 const BulkOperationsModal = ({
   isOpen,

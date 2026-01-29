@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, Building2, Users, CheckCircle2, TrendingUp, BarChart3, Clock, Globe } from 'lucide-react';
+import { Activity, Building2, CheckCircle2, TrendingUp, BarChart3, Clock, Globe } from 'lucide-react';
 import { adminAPI } from '../../../services/api';
 
 const LightStatCard = ({ title, value, icon: Icon, color, subtitle }) => {

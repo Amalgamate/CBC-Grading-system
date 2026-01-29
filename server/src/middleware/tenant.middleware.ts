@@ -13,13 +13,30 @@ export const requireTenant = (req: AuthRequest, _res: Response, next: NextFuncti
     return next(new ApiError(401, 'Authentication required'));
   }
 
-  // 2. Extract context from JWT or headers
-  // JWT is primary, headers are fallback (especially for SUPER_ADMIN)
-  const schoolId = req.user.schoolId || req.header('X-School-Id') || req.header('x-school-id');
-  const branchId = req.user.branchId || req.header('X-Branch-Id') || req.header('x-branch-id');
+  // 2. Extract context
+  // SECURITY RULE:
+  // - Non-super-admin users are tenant-bound by JWT only (headers must not override).
+  // - SUPER_ADMIN may provide tenant context via headers for admin tooling / switching.
+  const headerSchoolId = req.header('X-School-Id') || req.header('x-school-id');
+  const headerBranchId = req.header('X-Branch-Id') || req.header('x-branch-id');
+
+  const isSuperAdmin = req.user.role === 'SUPER_ADMIN';
+
+  const schoolId = isSuperAdmin ? (req.user.schoolId || headerSchoolId) : req.user.schoolId;
+  const branchId = isSuperAdmin ? (req.user.branchId || headerBranchId) : req.user.branchId;
+
+  // If a non-super-admin sends a different header tenant, treat as tampering / bug.
+  if (!isSuperAdmin) {
+    if (headerSchoolId && req.user.schoolId && headerSchoolId !== req.user.schoolId) {
+      return next(new ApiError(403, 'Tenant mismatch: invalid X-School-Id for this token.'));
+    }
+    if (headerBranchId && req.user.branchId && headerBranchId !== req.user.branchId) {
+      return next(new ApiError(403, 'Tenant mismatch: invalid X-Branch-Id for this token.'));
+    }
+  }
 
   // 3. Check for schoolId
-  if (!schoolId && req.user.role !== 'SUPER_ADMIN') {
+  if (!schoolId && !isSuperAdmin) {
     return next(new ApiError(403, 'No school association found. Please contact support.'));
   }
 
@@ -29,14 +46,11 @@ export const requireTenant = (req: AuthRequest, _res: Response, next: NextFuncti
     branchId: branchId
   };
 
-  // 5. Back-fill req.user for controllers that depend on it
-  if (req.user) {
-    if (!req.user.schoolId && schoolId) {
-      req.user.schoolId = schoolId;
-    }
-    if (!req.user.branchId && branchId) {
-      req.user.branchId = branchId;
-    }
+  // 5. Back-fill req.user for downstream code paths that depend on it.
+  // Only SUPER_ADMIN may receive tenant context from headers.
+  if (isSuperAdmin) {
+    if (!req.user.schoolId && schoolId) req.user.schoolId = schoolId;
+    if (!req.user.branchId && branchId) req.user.branchId = branchId;
   }
 
   next();
@@ -50,9 +64,13 @@ export const tenantResolver = (req: Request, _res: Response, next: NextFunction)
   const anyReq = req as any;
   const user = anyReq.user || {};
 
-  // Prefer JWT over headers
-  const schoolId = user.schoolId || req.header('X-School-Id') || req.header('x-school-id');
-  const branchId = user.branchId || req.header('X-Branch-Id') || req.header('x-branch-id');
+  // Prefer JWT over headers. For non-super-admin, headers must not override.
+  const headerSchoolId = req.header('X-School-Id') || req.header('x-school-id');
+  const headerBranchId = req.header('X-Branch-Id') || req.header('x-branch-id');
+  const isSuperAdmin = user.role === 'SUPER_ADMIN';
+
+  const schoolId = isSuperAdmin ? (user.schoolId || headerSchoolId) : user.schoolId;
+  const branchId = isSuperAdmin ? (user.branchId || headerBranchId) : user.branchId;
 
   anyReq.tenant = { schoolId, branchId };
   next();
