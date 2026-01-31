@@ -6,6 +6,7 @@
 
 import { PrismaClient, AssessmentStatus, UserRole } from '@prisma/client';
 import { auditService } from './audit.service';
+import { SmsService } from './sms.service';
 
 const prisma = new PrismaClient();
 
@@ -297,6 +298,13 @@ export class WorkflowService {
       schoolId: assessment.schoolId || this.getSchoolIdFromAssessment(assessment)
     });
 
+    // Trigger SMS notification for summative tests
+    if (assessmentType === 'summative') {
+      this.triggerSmsNotification(assessmentId, userId).catch(err => {
+        console.error(`[WorkflowService] SMS notification background task failed: ${err.message}`);
+      });
+    }
+
     return updated;
   }
 
@@ -534,6 +542,48 @@ export class WorkflowService {
   }
 
   /**
+   * Bulk approve assessments
+   * Transition: SUBMITTED → APPROVED
+   */
+  async approveAssessmentsBulk(params: {
+    ids: string[];
+    assessmentType: 'formative' | 'summative';
+    userId: string;
+    comments?: string;
+  }): Promise<{ approved: number; errors: string[] }> {
+    const { ids, assessmentType, userId, comments } = params;
+
+    // Check user permission
+    const user = await this.getUser(userId);
+    if (!WORKFLOW_PERMISSIONS.approve.includes(user.role)) {
+      throw new Error(
+        `Role ${user.role} is not permitted to approve assessments`
+      );
+    }
+
+    let approved = 0;
+    const errors: string[] = [];
+
+    // Process each assessment
+    // Note: Individual processing ensures all side effects like statusHistory and audit logs are correct
+    for (const id of ids) {
+      try {
+        await this.approveAssessment({
+          assessmentId: id,
+          assessmentType,
+          userId,
+          comments
+        });
+        approved++;
+      } catch (error: any) {
+        errors.push(`ID ${id}: ${error.message}`);
+      }
+    }
+
+    return { approved, errors };
+  }
+
+  /**
    * Bulk lock all assessments for a term
    * Used at end of term to lock everything at once
    */
@@ -763,6 +813,71 @@ export class WorkflowService {
   ): Promise<void> {
     // TODO: Implement notification system
     console.log(`Notification: Assessment ${assessment.id} ${status} by ${approver.firstName}${reason ? `: ${reason}` : ''}`);
+  }
+
+  /**
+   * Background task to trigger SMS notifications for a published test
+   */
+  private async triggerSmsNotification(testId: string, performedBy: string): Promise<void> {
+    try {
+      console.log(`[WorkflowService] Triggering SMS notifications for test ${testId}`);
+
+      // 1. Get test with results and learner parent info
+      const test = await prisma.summativeTest.findUnique({
+        where: { id: testId },
+        include: {
+          results: {
+            include: {
+              learner: {
+                include: {
+                  parent: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (!test || !test.results || test.results.length === 0) {
+        console.log(`[WorkflowService] No results found for test ${testId}, skipping notifications`);
+        return;
+      }
+
+      // 2. Get school ID
+      const schoolId = test.schoolId || (test as any).results[0]?.learner?.schoolId;
+      if (!schoolId) {
+        console.warn(`[WorkflowService] School ID not found for test ${testId}, cannot send SMS`);
+        return;
+      }
+
+      const notificationPromises = test.results.map(async (result) => {
+        const learner = result.learner;
+        const parent = (learner as any)?.parent;
+
+        if (!parent || !parent.phone) {
+          return;
+        }
+
+        return SmsService.sendAssessmentReport({
+          learnerId: learner.id,
+          learnerName: `${learner.firstName} ${learner.lastName}`,
+          learnerGrade: learner.grade,
+          parentPhone: parent.phone,
+          parentName: `${parent.firstName} ${parent.lastName}`,
+          term: test.term as string,
+          totalTests: 1,
+          schoolId,
+          sentByUserId: performedBy
+        });
+      });
+
+      const results = await Promise.all(notificationPromises);
+      const successful = results.filter(r => r && r.success).length;
+      console.log(`[WorkflowService] SMS notifications sent: ${successful}/${results.length}`);
+
+    } catch (error: any) {
+      console.error(`[WorkflowService] Error in triggerSmsNotification: ${error.message}`);
+    }
   }
 }
 

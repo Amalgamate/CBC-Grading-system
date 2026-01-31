@@ -8,27 +8,31 @@
  * Early Childhood Development (ECD) - Nursery/Kindergarten
  */
 export const ECD_LEARNING_AREAS = [
-  'Mathematics Activities',
-  'English Activities',
-  'Kiswahili Activities',
+  'Mathematical Activities',
+  'English Language Activities',
+  'Kiswahili Language Activities',
   'Environmental Activities',
   'Religious Education',
   'Creative Arts & Sports',
-  'Play-Based Learning'
+  'Play-Based Learning',
+  'Music Activities'
 ];
 
 /**
  * Primary Education - Grades 1-3 (Lower Primary)
  */
 export const LOWER_PRIMARY_LEARNING_AREAS = [
-  'Mathematics',
-  'English Activities',
-  'Kiswahili Activities',
+  'Mathematical Activities',
+  'English Language Activities',
+  'Kiswahili Language Activities',
   'Environmental Activities',
   'Integrated Science',
   'Social Studies',
   'Creative Arts & Sports',
-  'Religious Education'
+  'Religious Education',
+  'Mathematics',
+  'English Activities',
+  'Kiswahili Activities'
 ];
 
 /**
@@ -38,12 +42,13 @@ export const UPPER_PRIMARY_LEARNING_AREAS = [
   'Mathematics',
   'English Language',
   'Kiswahili Lugha',
-  'Science',
+  'Science & Technology',
   'Social Studies',
   'Creative Arts',
   'Physical Education',
   'Integrated Science',
-  'Religious Education'
+  'Religious Education',
+  'Science'
 ];
 
 /**
@@ -53,13 +58,14 @@ export const LOWER_SECONDARY_LEARNING_AREAS = [
   'Mathematics',
   'English Language',
   'Kiswahili Lugha',
-  'Science',
+  'Science & Technology',
   'Social Studies',
   'Creative Arts and Sports',
   'Pre-Technical Studies',
   'Integrated Science',
   'IRE',
-  'CRE'
+  'CRE',
+  'Science'
 ];
 
 /**
@@ -99,23 +105,23 @@ export const GRADE_LEARNING_AREAS_MAP = {
   'KINDERGARTEN': ECD_LEARNING_AREAS,
   'PLAYGROUP': ECD_LEARNING_AREAS,
   'CRECHE': ECD_LEARNING_AREAS,
-  
+
   // Lower Primary
   'PP1': LOWER_PRIMARY_LEARNING_AREAS,
   'PP2': LOWER_PRIMARY_LEARNING_AREAS,
   'GRADE_1': LOWER_PRIMARY_LEARNING_AREAS,
   'GRADE_2': LOWER_PRIMARY_LEARNING_AREAS,
   'GRADE_3': LOWER_PRIMARY_LEARNING_AREAS,
-  
+
   // Upper Primary
   'GRADE_4': UPPER_PRIMARY_LEARNING_AREAS,
   'GRADE_5': UPPER_PRIMARY_LEARNING_AREAS,
   'GRADE_6': UPPER_PRIMARY_LEARNING_AREAS,
-  
+
   // Lower Secondary
   'GRADE_7': LOWER_SECONDARY_LEARNING_AREAS,
   'GRADE_8': LOWER_SECONDARY_LEARNING_AREAS,
-  
+
   // Upper Secondary
   'GRADE_9': UPPER_SECONDARY_LEARNING_AREAS,
   'GRADE_10': UPPER_SECONDARY_LEARNING_AREAS,
@@ -136,7 +142,7 @@ export const GRADE_LEARNING_AREAS_MAP = {
  */
 export const getLearningAreasByGrade = (grade) => {
   if (!grade) return [];
-  
+
   const gradeUpper = String(grade).toUpperCase().trim();
   return GRADE_LEARNING_AREAS_MAP[gradeUpper] || [];
 };
@@ -168,9 +174,9 @@ export const getAllLearningAreas = () => {
  */
 export const isValidLearningAreaForGrade = (grade, learningArea) => {
   if (!grade || !learningArea) return false;
-  
+
   const areas = getLearningAreasByGrade(grade);
-  return areas.some(area => 
+  return areas.some(area =>
     area.toLowerCase() === learningArea.toLowerCase()
   );
 };
@@ -193,7 +199,7 @@ export const isValidLearningAreaForGrade = (grade, learningArea) => {
  */
 export const getGroupedLearningAreas = (grade) => {
   const areas = getLearningAreasByGrade(grade);
-  
+
   const grouped = {
     'Core Academics': [],
     'Languages': [],
@@ -211,10 +217,10 @@ export const getGroupedLearningAreas = (grade) => {
   const technicalKeywords = ['computer', 'coding', 'robotics', 'technical', 'pre-technical'];
   const creativeKeywords = ['creative', 'arts', 'sports', 'physical', 'education'];
   const religionKeywords = ['cre', 'ire', 'hre', 'religious', 'education'];
-  
+
   areas.forEach(area => {
     const areaLower = area.toLowerCase();
-    
+
     if (religionKeywords.some(k => areaLower.includes(k))) {
       grouped['Religious Education'].push(area);
     } else if (languageKeywords.some(k => areaLower.includes(k))) {

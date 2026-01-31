@@ -5,10 +5,10 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import { 
-  getLearningAreasByGrade, 
+import {
+  getLearningAreasByGrade,
   getGroupedLearningAreas,
-  isValidLearningAreaForGrade 
+  isValidLearningAreaForGrade
 } from '../../../constants/learningAreas';
 
 /**
@@ -22,18 +22,18 @@ import {
  */
 export const useLearningAreas = (selectedGrade = '', options = {}) => {
   const { grouped = false } = options;
-  
+
   // Selected learning area state
   const [selectedLearningArea, setSelectedLearningArea] = useState('');
 
   // Get available learning areas for the selected grade
   const availableLearningAreas = useMemo(() => {
     if (!selectedGrade) return [];
-    
+
     if (grouped) {
       return getGroupedLearningAreas(selectedGrade);
     }
-    
+
     return getLearningAreasByGrade(selectedGrade);
   }, [selectedGrade, grouped]);
 
@@ -77,7 +77,7 @@ export const useLearningAreas = (selectedGrade = '', options = {}) => {
   // Get the selected learning area object (with metadata if available)
   const getSelectedAreaInfo = useCallback(() => {
     if (!selectedLearningArea) return null;
-    
+
     return {
       area: selectedLearningArea,
       grade: selectedGrade,
@@ -88,10 +88,14 @@ export const useLearningAreas = (selectedGrade = '', options = {}) => {
   // Filter another list by compatible learning areas
   const filterByLearningArea = useCallback((items, areaField = 'learningArea') => {
     if (!selectedLearningArea) return items;
-    
-    return items.filter(item => 
-      item[areaField]?.toLowerCase() === selectedLearningArea.toLowerCase()
-    );
+
+    const normalizedSelected = selectedLearningArea.toLowerCase().trim();
+
+    return items.filter(item => {
+      const value = item[areaField];
+      if (!value) return false;
+      return String(value).toLowerCase().trim() === normalizedSelected;
+    });
   }, [selectedLearningArea]);
 
   return {
@@ -99,12 +103,12 @@ export const useLearningAreas = (selectedGrade = '', options = {}) => {
     selectedLearningArea,
     availableLearningAreas,
     flatLearningAreas,
-    
+
     // Setters
     selectLearningArea,
     setSelectedLearningArea,
     handleGradeChange,
-    
+
     // Utilities
     getAreasForDisplay,
     getGroupedAreasForDisplay,

@@ -4,11 +4,12 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit, Trash2, Eye, Loader, Send, CheckCircle, XCircle, ClipboardList, Database } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Loader, Send, CheckCircle, XCircle, ClipboardList, Database, ChevronDown, ChevronRight, ListChecks, Trash, Search, Download, Printer, Filter, AlertCircle } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useAuth } from '../../../hooks/useAuth';
 import { assessmentAPI, classAPI, workflowAPI } from '../../../services/api';
 import SummativeTestForm from '../../../pages/assessments/SummativeTestForm';
+import BulkCreateTest from './BulkCreateTest';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import EmptyState from '../shared/EmptyState';
 
@@ -99,7 +100,7 @@ const SummativeTests = ({ onNavigate }) => {
       testType: 'End of Term', date: new Date().toISOString().split('T')[0],
       duration: 60, totalMarks: 100, passMarks: 40, instructions: '', weight: 1.0
     });
-    setViewMode('create');
+    setViewMode('bulk_create');
   };
 
   const handleEdit = (test) => {
@@ -114,24 +115,28 @@ const SummativeTests = ({ onNavigate }) => {
   };
 
   const handleDelete = async (id) => {
-    const test = tests.find(t => t.id === id);
+    // Check if id is an object (test) or just id string
+    const testId = typeof id === 'object' ? id.id : id;
+    const test = tests.find(t => t.id === testId);
+
     setConfirmConfig({
       title: 'Delete Assessment',
       message: `Are you sure you want to delete "${test?.title || 'this test'}"?\n\nIf this test has associated results, it will be archived instead of permanently deleted.`,
       confirmText: 'Delete Test',
       onConfirm: async () => {
+        // Close FIRST to prevent stuck popup
+        setShowConfirm(false);
         try {
-          setShowConfirm(false);
-          const response = await assessmentAPI.deleteTest(id);
+          const response = await assessmentAPI.deleteTest(testId);
           if (response.success) {
             if (response.message.includes('archived')) {
               showSuccess(response.message);
-              // Update the test status to archived in the frontend state
-              setTests(prev => prev.map(t => t.id === id ? { ...t, archived: true, status: 'ARCHIVED' } : t));
+              setTests(prev => prev.map(t => t.id === testId ? { ...t, archived: true, status: 'ARCHIVED' } : t));
             } else {
               showSuccess('Test permanently deleted successfully!');
-              setTests(prev => prev.filter(t => t.id !== id));
+              setTests(prev => prev.filter(t => t.id !== testId));
             }
+            setSelectedIds(prev => prev.filter(i => i !== testId));
           } else {
             showError(response.message || 'Failed to delete test');
           }
@@ -139,12 +144,58 @@ const SummativeTests = ({ onNavigate }) => {
           console.error('Error deleting test:', error);
           showError('Failed to delete test: ' + error.message);
         } finally {
-          fetchTests(); // Refresh the list to reflect any changes, including archival
+          fetchTests();
         }
       }
     });
     setShowConfirm(true);
   };
+
+  const getStatusBadgeStyles = (status) => {
+    const s = status?.toUpperCase();
+    switch (s) {
+      case 'PUBLISHED': return 'bg-green-100 text-green-800 border-green-200';
+      case 'APPROVED': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'SUBMITTED': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'ARCHIVED': return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-orange-100 text-orange-800 border-orange-200';
+    }
+  };
+
+  const [expandedGrades, setExpandedGrades] = useState([]);
+  const toggleGrade = (grade) => {
+    setExpandedGrades(prev =>
+      prev.includes(grade) ? prev.filter(g => g !== grade) : [...prev, grade]
+    );
+  };
+
+  const formatGradeDisplay = (grade) => {
+    return grade?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown Grade';
+  };
+
+  const groupedData = useMemo(() => {
+    const grouped = {};
+    tests.forEach(test => {
+      const gradeKey = test.grade || 'UNASSIGNED';
+      if (!grouped[gradeKey]) {
+        grouped[gradeKey] = {};
+      }
+
+      // Group by "Series" which is the prefix of the title before the first parenthesis
+      // E.g., "Term 1 Opening (Math)" -> "Term 1 Opening"
+      const seriesMatch = (test.title || test.name || '').match(/^(.*) \(/);
+      const seriesName = seriesMatch ? seriesMatch[1] : (test.title || test.name || 'Individual Tests');
+
+      if (!grouped[gradeKey][seriesName]) {
+        grouped[gradeKey][seriesName] = {
+          name: seriesName,
+          tests: []
+        };
+      }
+      grouped[gradeKey][seriesName].tests.push(test);
+    });
+    return grouped;
+  }, [tests]);
 
   const handleArchive = (id) => {
     setTests(prev => prev.map(t => t.id === id ? { ...t, archived: true, status: 'ARCHIVED' } : t));
@@ -286,7 +337,7 @@ const SummativeTests = ({ onNavigate }) => {
 
       // Proceed with publishing if no results exist
       await workflowAPI.publish('summative', test.id);
-      
+
       // After publishing, automatically lock the test to prevent further edits to its structure
       await assessmentAPI.updateTest(test.id, { locked: true });
 
@@ -298,73 +349,54 @@ const SummativeTests = ({ onNavigate }) => {
     }
   };
 
+  const toggleSelect = (id) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
   const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
     setConfirmConfig({
-      title: 'Bulk Delete Assessments',
-      message: `You are about to delete ${selectedIds.length} summative tests.\n\nTests with associated results will be archived, while those without will be permanently deleted.`,
-      confirmText: 'Bulk Delete',
+      title: 'Bulk Delete Tests',
+      message: `Are you sure you want to delete ${selectedIds.length} selected tests? Tests with recorded results will be archived instead of permanently deleted.`,
       onConfirm: async () => {
+        setShowConfirm(false);
         try {
-          setShowConfirm(false);
-          setLoading(true);
-          const deletePromises = selectedIds.map(id => assessmentAPI.deleteTest(id));
-          const responses = await Promise.allSettled(deletePromises);
-
-          let deletedCount = 0;
-          let archivedCount = 0;
-          let failedCount = 0;
-
-          responses.forEach(result => {
-            if (result.status === 'fulfilled') {
-              const response = result.value;
-              if (response.success) {
-                if (response.message.includes('archived')) {
-                  archivedCount++;
-                } else {
-                  deletedCount++;
-                }
-              } else {
-                failedCount++;
-                console.error('Failed to process test:', response.message);
-              }
-            } else {
-              failedCount++;
-              console.error('Error during bulk delete operation:', result.reason);
-            }
-          });
-
-          let finalMessage = `Bulk Operation Complete:\n\n`;
-          if (deletedCount > 0) finalMessage += `✅ Permanently deleted ${deletedCount} test(s).\n`;
-          if (archivedCount > 0) finalMessage += `📦 Archived ${archivedCount} test(s) (had existing results).\n`;
-          if (failedCount > 0) finalMessage += `❌ Failed to process ${failedCount} test(s).\n`;
-
-          showSuccess(finalMessage);
+          const response = await assessmentAPI.deleteTestsBulk(selectedIds);
+          showSuccess(response.message || 'Bulk action completed');
           setSelectedIds([]);
           fetchTests();
         } catch (error) {
-          console.error('Bulk delete operation failed:', error);
-          showError('Operational Failure: Failed to complete bulk delete');
-          fetchTests();
-        } finally {
-          setLoading(false);
+          console.error('Bulk delete failed:', error);
+          showError('Failed to process bulk deletion: ' + error.message);
         }
       }
     });
     setShowConfirm(true);
   };
 
-  const toggleSelectAll = () => {
-    if (selectedIds.length === tests.length && tests.length > 0) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(tests.map(t => t.id));
-    }
-  };
+  const handleBulkApprove = async () => {
+    if (selectedIds.length === 0) return;
 
-  const toggleSelect = (id) => {
-    setSelectedIds(prev =>
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
+    setConfirmConfig({
+      title: 'Bulk Approve Tests',
+      message: `Are you sure you want to approve ${selectedIds.length} selected tests? Only tests in 'Submitted' status can be approved.`,
+      onConfirm: async () => {
+        setShowConfirm(false);
+        try {
+          const response = await workflowAPI.approveBulk(selectedIds, 'summative', 'Bulk approved by Admin');
+          showSuccess(response.message || 'Bulk approval completed');
+          setSelectedIds([]);
+          fetchTests();
+        } catch (error) {
+          console.error('Bulk approve failed:', error);
+          showError('Failed to process bulk approval: ' + (error.details || error.message));
+        }
+      }
+    });
+    setShowConfirm(true);
   };
 
   const stats = useMemo(() => ({
@@ -403,7 +435,7 @@ const SummativeTests = ({ onNavigate }) => {
       } else if (status === 'SUBMITTED' && canApprove) {
         // All admins can approve their own tests, others cannot
         const isOwnTest = test.submittedBy === user?.userId;
-        
+
         // Debug logging
         console.log('=== APPROVAL CHECK DEBUG ===');
         console.log('User ID:', user?.userId);
@@ -413,7 +445,7 @@ const SummativeTests = ({ onNavigate }) => {
         console.log('Is admin:', isAdmin);
         console.log('Can approve:', canApprove);
         console.log('==========================');
-        
+
         if (isOwnTest && !isAdmin) {
           showError('You cannot approve your own test. Please wait for an administrator to review it.');
           return;
@@ -448,6 +480,18 @@ const SummativeTests = ({ onNavigate }) => {
     );
   }
 
+  if (viewMode === 'bulk_create') {
+    return (
+      <BulkCreateTest
+        onBack={() => setViewMode('list')}
+        onSuccess={() => {
+          fetchTests(); // Refresh the tests list
+          setViewMode('list');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Compact Toolbar with Metrics */}
@@ -463,6 +507,14 @@ const SummativeTests = ({ onNavigate }) => {
                 >
                   <Trash2 size={14} /> Bulk Delete
                 </button>
+                {['HEAD_TEACHER', 'ADMIN', 'SUPER_ADMIN'].includes(user?.role) && (
+                  <button
+                    onClick={handleBulkApprove}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-md hover:bg-green-700 transition"
+                  >
+                    <CheckCircle size={14} /> Bulk Approve
+                  </button>
+                )}
                 <button
                   onClick={() => setSelectedIds([])}
                   className="px-3 py-1.5 bg-white text-gray-600 text-xs font-bold rounded-md border border-gray-200 hover:bg-gray-50 transition"
@@ -501,162 +553,158 @@ const SummativeTests = ({ onNavigate }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-3 py-2 text-left">
-                  <input
-                    type="checkbox"
-                    checked={tests.length > 0 && selectedIds.length === tests.length}
-                    onChange={toggleSelectAll}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Test Name</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Grade</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Learning Area</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Type</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Weight</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase text-center">Marks</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
-                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {tests.map(test => (
-                <tr key={test.id} className={`hover:bg-gray-50 transition ${selectedIds.includes(test.id) ? 'bg-blue-50' : ''}`}>
-                  <td className="px-3 py-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(test.id)}
-                      onChange={() => toggleSelect(test.id)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <p className="font-semibold text-gray-800 text-sm">{test.title || test.name}</p>
-                    <p className="text-xs text-gray-500">{test.term} {test.academicYear || test.year}</p>
-                  </td>
-                  <td className="px-3 py-2 text-sm text-gray-700">{test.grade?.replace('_', ' ')}</td>
-                  <td className="px-3 py-2 text-sm text-gray-700">{test.learningArea || test.subject || 'General'}</td>
-                  <td className="px-3 py-2">
-                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${test.testType === 'End of Term' ? 'bg-purple-100 text-purple-800' :
-                      test.testType === 'Mid-term' ? 'bg-blue-100 text-blue-800' :
-                        'bg-green-100 text-green-800'
-                      }`}>{test.testType || test.type || 'Exam'}</span>
-                  </td>
-                  <td className="px-3 py-2 text-sm text-gray-700">{test.weight || 1}</td>
-                  <td className="px-3 py-2 text-sm text-gray-600">
-                    {test.testDate ? new Date(test.testDate).toLocaleDateString() : test.date}
-                  </td>
-                  <td className="px-3 py-2 text-sm text-gray-700 text-center">{test.totalMarks}</td>
-                  <td className="px-3 py-2">
-                    <button
-                      onClick={() => handleStatusClick(test)}
-                      title={
-                        ['DRAFT', 'draft'].includes(test.status) ? 'Click to Submit' :
-                          ['SUBMITTED', 'submitted'].includes(test.status) ? 'Click to Approve' :
-                            ['APPROVED', 'approved'].includes(test.status) ? 'Click to Publish' : ''
-                      }
-                      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold transition-transform hover:scale-105 ${['PUBLISHED', 'published'].includes(test.status) ? 'bg-green-100 text-green-800 cursor-default' :
-                        ['APPROVED', 'approved'].includes(test.status) ? 'bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200' :
-                          ['SUBMITTED', 'submitted'].includes(test.status) ? 'bg-purple-100 text-purple-800 cursor-pointer hover:bg-purple-200' :
-                            ['REJECTED', 'rejected'].includes(test.status) ? 'bg-red-100 text-red-800 cursor-default' :
-                              ['COMPLETED', 'completed', 'LOCKED', 'locked'].includes(test.status) ? 'bg-gray-100 text-gray-800 cursor-default' :
-                                'bg-orange-100 text-orange-800 cursor-pointer hover:bg-orange-200'
-                        }`}
-                    >
-                      {test.status}
-                    </button>
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {['DRAFT', 'draft'].includes(test.status) ? (
-                        <>
-                          <button onClick={() => handleEdit(test)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Edit">
-                            <Edit size={16} />
-                          </button>
-
-                          {['ADMIN', 'SUPER_ADMIN'].includes(user?.role) ? (
-                            <button onClick={() => handleAutoApprove(test)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition" title="Auto Approve Now">
-                              <CheckCircle size={16} />
-                            </button>
-                          ) : (
-                            <button onClick={() => handleSubmit(test)} className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition" title="Submit for Approval">
-                              <Send size={16} />
-                            </button>
-                          )}
-                        </>
-                      ) : (
-                        ['PUBLISHED', 'published', 'APPROVED', 'approved'].includes(test.status) && (
-                          <button
-                            onClick={() => onNavigate && onNavigate('assess-summative-assessment', { initialTestId: test.id })}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                            title="Record Marks"
-                          >
-                            <ClipboardList size={16} />
-                          </button>
-                        )
-                      )}
-
-                      {['SUBMITTED', 'submitted'].includes(test.status) && (['ADMIN', 'SUPER_ADMIN', 'HEAD_TEACHER'].includes(user?.role)) && (
-                        <>
-                          {/* Only show approve button if it's not their own OR they are Admin/Super Admin */}
-                          {(test.submittedBy !== user?.userId || ['ADMIN', 'SUPER_ADMIN'].includes(user?.role)) ? (
-                            <button onClick={() => handleApprove(test)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition" title="Approve">
-                              <CheckCircle size={16} />
-                            </button>
-                          ) : (
-                            <span className="p-1.5 text-gray-400 italic" title="Awaiting review by another admin">
-                              <Loader size={12} className="animate-spin inline mr-1" />
-                              Reviewing
-                            </span>
-                          )}
-                          <button onClick={() => handleReject(test)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition" title="Reject">
-                            <XCircle size={16} />
-                          </button>
-                        </>
-                      )}
-
-                      {['APPROVED', 'approved'].includes(test.status) && (['ADMIN', 'SUPER_ADMIN'].includes(user?.role)) && (
-                        <button onClick={() => handlePublish(test)} className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Publish">
-                          <Eye size={16} />
-                        </button>
-                      )}
-
-                      {/* Archive button for all tests */}
-                      <button
-                        onClick={() => handleArchive(test.id)}
-                        className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded-lg transition"
-                        title={test.archived ? "Archived" : "Archive"}
-                        disabled={test.archived}
-                      >
-                        <ClipboardList size={16} />
-                      </button>
-                      {/* Always show delete for all tests to ensure cleanup is possible */}
-                      <button onClick={() => handleDelete(test.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {tests.length === 0 && !loading && (
-            <EmptyState
-              icon={Database}
-              title="No Summative Tests Found"
-              message="Your assessment repository is currently empty. Start by creating a new summative test architecture for your classes."
-              actionText="Create New Test"
-              onAction={handleAdd}
-            />
-          )}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader className="animate-spin text-blue-600" size={32} />
         </div>
-      </div>
+      ) : Object.keys(groupedData).length > 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="divide-y divide-gray-100">
+            {Object.entries(groupedData).map(([gradeKey, seriesGroups]) => {
+              const isExpanded = expandedGrades.includes(gradeKey);
+              const testCount = Object.values(seriesGroups).reduce((acc, g) => acc + g.tests.length, 0);
+
+              return (
+                <div key={gradeKey}>
+                  <div
+                    onClick={() => toggleGrade(gradeKey)}
+                    className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      {isExpanded ? <ChevronDown size={20} className="text-gray-400" /> : <ChevronRight size={20} className="text-gray-400" />}
+                      <h3 className="font-bold text-gray-800 text-lg">{formatGradeDisplay(gradeKey)}</h3>
+                      <span className="text-xs font-medium bg-blue-50 text-blue-600 px-2 py-1 rounded-full border border-blue-100">
+                        {testCount} {testCount === 1 ? 'Test' : 'Tests'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="bg-gray-50/50 px-6 pb-4 pt-2">
+                      {Object.entries(seriesGroups).map(([seriesName, data]) => (
+                        <div key={seriesName} className="mb-4 last:mb-0">
+                          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+                            <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 flex items-center justify-between">
+                              <div>
+                                <h4 className="font-bold text-gray-800">{seriesName}</h4>
+                                <p className="text-xs text-gray-600 mt-1">
+                                  {data.tests.length} assessment {data.tests.length === 1 ? 'area' : 'areas'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="p-0">
+                              <table className="w-full text-left">
+                                <thead className="bg-gray-50/50 border-b border-gray-100">
+                                  <tr>
+                                    <th className="px-4 py-2 w-10">
+                                      <input
+                                        type="checkbox"
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        onChange={(e) => {
+                                          const testIds = data.tests.map(t => t.id);
+                                          if (e.target.checked) {
+                                            setSelectedIds(prev => [...new Set([...prev, ...testIds])]);
+                                          } else {
+                                            setSelectedIds(prev => prev.filter(id => !testIds.includes(id)));
+                                          }
+                                        }}
+                                        checked={data.tests.every(t => selectedIds.includes(t.id))}
+                                      />
+                                    </th>
+                                    <th className="px-4 py-2 text-[10px] font-bold text-gray-500 uppercase">Learning Area</th>
+                                    <th className="px-4 py-2 text-[10px] font-bold text-gray-500 uppercase">Status</th>
+                                    <th className="px-4 py-2 text-[10px] font-bold text-gray-500 uppercase text-center">Marks</th>
+                                    <th className="px-4 py-2 text-[10px] font-bold text-gray-500 uppercase text-right">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                  {data.tests.map(test => (
+                                    <tr key={test.id} className={`hover:bg-blue-50/30 transition ${selectedIds.includes(test.id) ? 'bg-blue-50/50' : ''}`}>
+                                      <td className="px-4 py-3">
+                                        <input
+                                          type="checkbox"
+                                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                          checked={selectedIds.includes(test.id)}
+                                          onChange={() => toggleSelect(test.id)}
+                                        />
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <div>
+                                          <p className="font-bold text-gray-800 text-sm">
+                                            {test.learningArea}
+                                          </p>
+                                          {test.testType && (
+                                            <p className="text-[10px] text-gray-500 font-medium">{test.testType}</p>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <button
+                                          onClick={() => handleStatusClick(test)}
+                                          className={`px-2 py-1 rounded-full text-[10px] font-bold border transition-colors ${getStatusBadgeStyles(test.status)}`}
+                                        >
+                                          {test.status}
+                                        </button>
+                                      </td>
+                                      <td className="px-4 py-3 text-center">
+                                        <div className="flex flex-col items-center">
+                                          <span className="text-sm font-bold text-gray-700">{test.totalMarks}</span>
+                                          <span className="text-[10px] text-gray-400">marks</span>
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3 text-right">
+                                        <div className="flex justify-end gap-1">
+                                          <button
+                                            onClick={() => onNavigate('summative-results', { testId: test.id })}
+                                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition"
+                                            title="View Results"
+                                          >
+                                            <Eye size={16} />
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              setSelectedTest(test);
+                                              setViewMode('edit');
+                                            }}
+                                            className="p-1.5 text-green-600 hover:bg-green-50 rounded transition"
+                                            title="Edit Test"
+                                          >
+                                            <Edit size={16} />
+                                          </button>
+                                          <button
+                                            onClick={() => handleDelete(test)}
+                                            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition"
+                                            title="Delete Test"
+                                          >
+                                            <Trash2 size={16} />
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <EmptyState
+          icon={Database}
+          title="No Summative Tests Found"
+          message="Your assessment repository is currently empty. Start by creating a new summative test architecture for your classes."
+          actionText="Create New Test"
+          onAction={handleAdd}
+        />
+      )}
 
       <ConfirmDialog
         show={showConfirm}
@@ -665,7 +713,7 @@ const SummativeTests = ({ onNavigate }) => {
         confirmText={confirmConfig.confirmText || 'Confirm'}
         onConfirm={confirmConfig.onConfirm}
         onCancel={() => setShowConfirm(false)}
-        confirmButtonClass={confirmConfig.title.includes('Delete') ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}
+        confirmButtonClass={confirmConfig.title?.includes('Delete') ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}
       />
     </div>
   );

@@ -285,6 +285,7 @@ model School {
   streamConfigs           StreamConfig[]
   changeHistory           ChangeHistory[]
   subscriptions           SchoolSubscription[]
+  communicationConfig     CommunicationConfig?
   
   // Assessment Relations (Phase 2)
   formativeAssessments    FormativeAssessment[]
@@ -558,6 +559,7 @@ model Learner {
   valuesAssessments     ValuesAssessment[]        @relation("LearnerValues")
   coCurricularActivities CoCurricularActivity[]   @relation("LearnerCoCurricular")
   reportComments        TermlyReportComment[]     @relation("LearnerReportComments")
+  smsAudits             AssessmentSmsAudit[]      @relation("LearnerSmsAudits")
   
   // Unique constraint: admission number scoped per school (not per branch)
   // This ensures no duplicates across all branches of a school
@@ -1559,4 +1561,102 @@ model StreamConfig {
   @@unique([schoolId, name])
   @@map("stream_configs")
   @@index([schoolId])
+}
+
+model CommunicationConfig {
+  id              String    @id @default(uuid())
+  
+  // School Reference (One config per school)
+  schoolId        String    @unique
+  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  
+  // SMS Configuration
+  smsProvider     String?   @default("mobilesasa") // "mobilesasa" | "custom"
+  smsApiKey       String?   // Encrypted API key
+  smsBaseUrl      String?   @default("https://api.mobilesasa.com")
+  smsSenderId     String?   // Max 11 characters (e.g., "ZAWADI")
+  smsEnabled      Boolean   @default(false)
+  hasApiKey       Boolean   @default(false) // Helper flag for frontend to know if key is set
+
+  // SMS Custom Provider Settings
+  smsCustomName       String?
+  smsCustomBaseUrl    String?
+  smsCustomAuthHeader String? // Header name (e.g. "Authorization", "api-key")
+  smsCustomToken      String? // Encrypted token
+
+  // Email Configuration
+  emailProvider   String?   @default("resend") // "resend" | "smtp"
+  emailApiKey     String?   // Encrypted
+  emailFrom       String?
+  emailFromName   String?
+  emailEnabled    Boolean   @default(false)
+
+  // M-Pesa Configuration
+  mpesaProvider   String?   @default("intasend") // "intasend" | "sasepay"
+  mpesaPublicKey  String?   // Encrypted
+  mpesaSecretKey  String?   // Encrypted
+  mpesaBusinessNo String?   // Paybill/Till
+  mpesaEnabled    Boolean   @default(false)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("communication_configs")
+}
+
+// ============================================
+// ASSESSMENT SMS AUDIT (Parent Notifications)
+// ============================================
+
+model AssessmentSmsAudit {
+  id                    String      @id @default(uuid())
+  
+  // Learning context
+  learnerId             String
+  learner               Learner     @relation("LearnerSmsAudits", fields: [learnerId], references: [id], onDelete: Cascade)
+  
+  // Assessment context
+  assessmentId          String?
+  assessmentType        String      // FORMATIVE, SUMMATIVE, CORE_COMPETENCY, VALUES
+  
+  // Recipient details
+  parentId              String?
+  parentPhone           String      // Normalized (254712345678)
+  parentName            String?
+  learnerName           String
+  learnerGrade          String
+  
+  // CBC-specific content
+  competencyName        String?     // Communication, Critical Thinking, etc.
+  achievementLevel      String?     // Exceeding, Achieving, Developing
+  subStrand             String?     // Specific area in competency
+  templateType          String      // FORMATIVE_EXCEEDING, SUMMATIVE_TERM, ALERT_CRITICAL, etc.
+  
+  // Message tracking
+  messageContent        String      @db.Text // Full SMS text (for audit)
+  smsMessageId          String?     // MobileSasa API response ID
+  reportLink            String?     // Shortened URL to parent portal
+  
+  // Delivery status
+  smsStatus             String      // QUEUED, SENT, DELIVERED, FAILED, BOUNCED
+  sentAt                DateTime    @default(now())
+  deliveredAt           DateTime?
+  failureReason         String?     // "Invalid phone", "Quota exceeded", etc.
+  
+  // Audit trail
+  sentByUserId          String?     // Teacher/Admin who triggered send
+  cooldownExpiry        DateTime?   // When next SMS to this parent allowed
+  
+  // Relationships
+  schoolId              String
+  
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  
+  @@index([learnerId])
+  @@index([parentPhone])
+  @@index([sentAt])
+  @@index([smsStatus])
+  @@index([schoolId])
+  @@map("assessment_sms_audits")
 }

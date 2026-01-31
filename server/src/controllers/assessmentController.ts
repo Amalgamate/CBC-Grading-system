@@ -5,7 +5,7 @@
 
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/permissions.middleware';
-import { RubricRating, DetailedRubricRating, SummativeGrade, TestStatus, FormativeAssessmentType, AssessmentStatus, CurriculumType } from '@prisma/client';
+import { Grade, RubricRating, DetailedRubricRating, SummativeGrade, TestStatus, FormativeAssessmentType, AssessmentStatus, CurriculumType } from '@prisma/client';
 import prisma from '../config/database';
 import * as rubricUtil from '../utils/rubric.util';
 import { gradingService } from '../services/grading.service';
@@ -637,6 +637,184 @@ export const createSummativeTest = async (req: AuthRequest, res: Response) => {
 };
 
 /**
+ * Bulk Generate Summative Tests for all learning areas across multiple grades
+ * POST /api/assessments/tests/bulk
+ */
+export const generateTestsBulk = async (req: AuthRequest, res: Response) => {
+  try {
+    const {
+      title,
+      grades, // Array of Grade enum values
+      testType,
+      term,
+      academicYear,
+      testDate,
+      totalMarks,
+      passMarks,
+      duration,
+      description,
+      instructions,
+      curriculum = 'CBC_AND_EXAM',
+      weight = 100.0,
+      scaleGroupId
+    } = req.body;
+
+    const createdBy = req.user?.userId;
+    const schoolId = req.user?.schoolId;
+
+    if (!createdBy || !schoolId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized'
+      });
+    }
+
+    if (!grades || !Array.isArray(grades) || grades.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one grade must be selected'
+      });
+    }
+
+    const created = [];
+    const skipped = [];
+
+    // CBC Learning Areas (Consistent with scaleGroup.controller.ts)
+    const LEARNING_AREAS = [
+      'MATHEMATICAL ACTIVITIES',
+      'ENGLISH LANGUAGE ACTIVITIES',
+      'SHUGHULI ZA KISWAHILI LUGHA',
+      'ENVIRONMENTAL ACTIVITIES',
+      'CREATIVE ACTIVITIES',
+      'RELIGIOUS EDUCATION',
+      'SCIENCE & TECHNOLOGY',
+      'SOCIAL STUDIES',
+      'MUSIC',
+      'ART & CRAFT',
+      'PHYSICAL EDUCATION',
+      'INSHA',
+      'READING',
+      'ABACUS'
+    ];
+
+    for (const grade of grades) {
+      for (const learningArea of LEARNING_AREAS) {
+        // Check if a test with same unique properties already exists
+        const existing = await prisma.summativeTest.findFirst({
+          where: {
+            schoolId,
+            grade: grade as any,
+            learningArea,
+            term,
+            academicYear: parseInt(academicYear),
+            testType,
+            archived: false
+          }
+        });
+
+        if (existing) {
+          skipped.push(`${grade} - ${learningArea}`);
+          continue;
+        }
+
+        // Auto-link to specific scale within the scale group
+        let resolvedScaleId = null;
+        if (scaleGroupId) {
+          const matchingScale = await prisma.gradingSystem.findFirst({
+            where: {
+              scaleGroupId: scaleGroupId,
+              grade: grade as any,
+              learningArea: learningArea,
+              archived: false
+            }
+          });
+          if (matchingScale) {
+            resolvedScaleId = matchingScale.id;
+          }
+        }
+
+        // Fallback to generic auto-link if no specific group match
+        if (!resolvedScaleId) {
+          const genericScale = await prisma.gradingSystem.findFirst({
+            where: {
+              schoolId,
+              type: 'SUMMATIVE',
+              grade: grade as any,
+              active: true,
+              archived: false,
+              OR: [
+                { learningArea: learningArea },
+                { name: { contains: learningArea } }
+              ]
+            }
+          });
+          if (genericScale) {
+            resolvedScaleId = genericScale.id;
+          }
+        }
+
+        const test = await prisma.summativeTest.create({
+          data: {
+            title: title ? `${title} (${learningArea})` : `${grade.replace('_', ' ')} - ${learningArea}`,
+            learningArea,
+            testType,
+            term,
+            academicYear: parseInt(academicYear),
+            grade: grade as any,
+            testDate: new Date(testDate),
+            totalMarks: parseInt(totalMarks),
+            passMarks: parseInt(passMarks),
+            duration: duration ? parseInt(duration) : null,
+            description,
+            instructions,
+            published: false,
+            createdBy,
+            status: 'DRAFT',
+            curriculum: curriculum as CurriculumType,
+            weight: Number(weight),
+            scaleId: resolvedScaleId,
+            schoolId,
+            branchId: req.user?.branchId
+          }
+        });
+
+        created.push(test);
+      }
+    }
+
+    // Audit Log
+    if (schoolId) {
+      await auditService.logChange({
+        schoolId,
+        entityType: 'SummativeTest',
+        entityId: 'BULK',
+        action: 'CREATE',
+        userId: createdBy,
+        reason: `Bulk generated ${created.length} tests for ${grades.length} grades`
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      data: {
+        createdCount: created.length,
+        skippedCount: skipped.length,
+        skippedItems: skipped
+      },
+      message: `Successfully created ${created.length} tests. ${skipped.length > 0 ? `Skipped ${skipped.length} existing tests.` : ''}`
+    });
+
+  } catch (error: any) {
+    console.error('Error bulk generating tests:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to bulk generate tests',
+      error: error.message
+    });
+  }
+};
+
+/**
  * Get All Summative Tests
  * GET /api/assessments/tests
  */
@@ -893,12 +1071,13 @@ export const deleteSummativeTest = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user?.userId;
     const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
+    const isAdmin = req.user?.role === 'ADMIN' || isSuperAdmin;
 
-    // Phase 5: Check ownership
+    // Check ownership and results
     const existingTest = await prisma.summativeTest.findUnique({
       where: { id },
       include: {
-        results: { select: { id: true } } // Fetch only IDs of results
+        results: { select: { id: true } }
       }
     });
 
@@ -910,72 +1089,139 @@ export const deleteSummativeTest = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ success: false, message: 'Unauthorized access to test' });
     }
 
-    // Prevent hard delete if results exist, unless Super Admin
+    // Allow ADMIN or SUPER_ADMIN to bypass the results check if they want to force delete?
+    // For now, let's keep it safe: if results exist, only Super Admin can hard delete.
+    // BUT we need to fix the 500 error for normal Admins.
+
     if (existingTest.results.length > 0 && !isSuperAdmin) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete test "${existingTest.title}" because it has ${existingTest.results.length} associated results. Please archive it instead.`
-      });
-    }
-
-    if (isSuperAdmin) {
-      // Super Admin can hard delete
-      await prisma.summativeTest.delete({
-        where: { id }
-      });
-
-      // Audit Log
-      if (req.user?.schoolId && userId) {
-        await auditService.logChange({
-          schoolId: req.user.schoolId,
-          entityType: 'SummativeTest',
-          entityId: id,
-          action: 'DELETE',
-          userId: userId,
-          reason: 'Test permanently deleted by Super Admin'
-        });
-      }
-
-      res.json({
-        success: true,
-        message: 'Test permanently deleted by Super Admin'
-      });
-    } else {
-      // Soft delete (Archive) for others
+      // If results exist, try to archive for Admin
       await prisma.summativeTest.update({
         where: { id },
         data: {
           archived: true,
           archivedAt: new Date(),
           archivedBy: userId,
-          active: false, // Also mark as inactive
-          status: 'ARCHIVED' as any // Set status to archived
+          active: false
         }
       });
 
-      // Audit Log
-      if (req.user?.schoolId && userId) {
-        await auditService.logChange({
-          schoolId: req.user.schoolId,
-          entityType: 'SummativeTest',
-          entityId: id,
-          action: 'ARCHIVE',
-          userId: userId,
-          reason: 'Test archived (soft delete)'
-        });
-      }
-
-      res.json({
+      return res.json({
         success: true,
-        message: 'Test archived successfully (soft deleted)'
+        message: 'Test contains results and was archived instead of deleted.'
       });
     }
+
+    // Hard delete for ADMIN/SUPER_ADMIN if no results (or if SUPER_ADMIN even with results)
+    await prisma.summativeTest.delete({
+      where: { id }
+    });
+
+    // Audit Log
+    if (req.user?.schoolId && userId) {
+      await auditService.logChange({
+        schoolId: req.user.schoolId,
+        entityType: 'SummativeTest',
+        entityId: id,
+        action: 'DELETE',
+        userId: userId,
+        reason: isSuperAdmin ? 'Permanently deleted by Super Admin' : 'Permanently deleted by Admin'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Test deleted successfully'
+    });
 
   } catch (error: any) {
     console.error('Error deleting summative test:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to process delete request',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Delete Multiple Summative Tests (Bulk)
+ * DELETE /api/assessments/tests/bulk
+ */
+export const deleteSummativeTestsBulk = async (req: AuthRequest, res: Response) => {
+  try {
+    const { ids } = req.body;
+    const userId = req.user?.userId;
+    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
+    const isAdmin = req.user?.role === 'ADMIN' || isSuperAdmin;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'No IDs provided for bulk deletion' });
+    }
+
+    if (!isAdmin) {
+      return res.status(403).json({ success: false, message: 'Only administrators can perform bulk deletion' });
+    }
+
+    // Identify which tests can be hard deleted vs archived
+    const tests = await prisma.summativeTest.findMany({
+      where: {
+        id: { in: ids },
+        schoolId: req.user?.schoolId || undefined
+      },
+      include: {
+        _count: { select: { results: true } }
+      }
+    });
+
+    const toHardDelete = tests.filter(t => t._count.results === 0 || isSuperAdmin).map(t => t.id);
+    const toArchive = tests.filter(t => t._count.results > 0 && !isSuperAdmin).map(t => t.id);
+
+    let deletedCount = 0;
+    let archivedCount = 0;
+
+    if (toHardDelete.length > 0) {
+      const result = await prisma.summativeTest.deleteMany({
+        where: { id: { in: toHardDelete } }
+      });
+      deletedCount = result.count;
+    }
+
+    if (toArchive.length > 0) {
+      const result = await prisma.summativeTest.updateMany({
+        where: { id: { in: toArchive } },
+        data: {
+          archived: true,
+          archivedAt: new Date(),
+          archivedBy: userId,
+          active: false
+        }
+      });
+      archivedCount = result.count;
+    }
+
+    // Audit Log for the bulk action
+    if (req.user?.schoolId && userId) {
+      await auditService.logChange({
+        schoolId: req.user.schoolId,
+        entityType: 'SummativeTest',
+        entityId: 'BULK',
+        action: 'DELETE',
+        userId: userId,
+        reason: `Bulk delete: ${deletedCount} deleted, ${archivedCount} archived`
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully processed ${ids.length} tests. ${deletedCount} permanently deleted, ${archivedCount} archived.`,
+      data: { deletedCount, archivedCount }
+    });
+
+  } catch (error: any) {
+    console.error('Error in bulk delete summative tests:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process bulk delete',
       error: error.message
     });
   }
@@ -1227,11 +1473,15 @@ export const getSummativeByLearner = async (req: Request, res: Response) => {
           select: {
             title: true,
             learningArea: true,
+            testType: true,      // Added for grouping
             term: true,
             academicYear: true,
             totalMarks: true,
             passMarks: true,
-            testDate: true
+            testDate: true,
+            status: true,        // Added for compliance check
+            curriculum: true,    // Added for context
+            scaleId: true        // Added for context
           }
         },
         recorder: {

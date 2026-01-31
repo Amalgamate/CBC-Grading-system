@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { asyncHandler } from '../utils/async.util';
+import { sendOTP, verifyOTP } from '../controllers/otp.controller';
 
 const router = Router();
 const authController = new AuthController();
@@ -10,6 +11,10 @@ const authController = new AuthController();
 router.post('/register', asyncHandler(authController.register.bind(authController)));
 
 router.post('/login', asyncHandler(authController.login.bind(authController)));
+
+// OTP routes
+router.post('/otp/send', asyncHandler(sendOTP));
+router.post('/otp/verify', asyncHandler(verifyOTP));
 
 // Verification routes
 router.post('/send-whatsapp-verification', asyncHandler(authController.sendWhatsAppVerification.bind(authController)));

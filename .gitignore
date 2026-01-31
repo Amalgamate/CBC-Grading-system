@@ -1,28 +1,38 @@
-# Node & package managers
+# Dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-pnpm-debug.log*
+**/node_modules/
+server/node_modules/
 
 # Build outputs
 build/
 dist/
+**/dist/
+**/build/
 .next/
 out/
 public/build/
+*.tsbuildinfo
 
-# Environment & secrets
+# Environment & Secrets (CRITICAL)
 .env
 .env.local
 .env.*.local
-.env.development.local
-.env.test.local
-.env.production.local
+*.env
+server/.env
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+.prisma/
+server/node_modules/.prisma/
 
 # Logs
 logs/
 *.log
-*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # Runtime data / PIDs
 pids/
@@ -53,18 +63,14 @@ desktop.ini
 *.swo
 *~
 
-# React/Vite HMR artifacts
-*.hot-update.js
-*.hot-update.json
+# Test Scripts
+test-puppeteer*.js
+server/test-puppeteer*.js
+verify-restoration.js
+debug_zamzam.js
 
-# Prisma & generated clients
-.prisma/
-server/node_modules/.prisma/
-
-# TypeScript build artifacts
-tsconfig.tsbuildinfo
-
-# Local backups & artifact folders
+# Misc local temp/backup
+temp_login.json
 _backup_removed_files/
 backup_removed/
 .history/
@@ -74,8 +80,6 @@ backup_removed/
 *.xls
 *.xlsx
 
-# Misc local temp
-temp_login.json
 #
 # PROTECTED SNAPSHOTS (do not remove during cleanup)
 !USERS_SNAPSHOT__PROTECTED__.txt

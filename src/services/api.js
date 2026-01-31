@@ -21,7 +21,7 @@ const getAuthToken = () => {
  */
 const ensureSchoolId = () => {
   let schoolId = localStorage.getItem('currentSchoolId');
-  
+
   if (!schoolId) {
     // Try to get from user object
     try {
@@ -29,7 +29,7 @@ const ensureSchoolId = () => {
       if (storedUser) {
         const user = JSON.parse(storedUser);
         schoolId = user.schoolId || user.school?.id;
-        
+
         // Save it back to localStorage for future use
         if (schoolId) {
           localStorage.setItem('currentSchoolId', schoolId);
@@ -41,7 +41,7 @@ const ensureSchoolId = () => {
       console.error('❌ Error recovering school ID from user data:', e);
     }
   }
-  
+
   return schoolId;
 };
 
@@ -208,6 +208,52 @@ export const authAPI = {
       body: JSON.stringify({ token, password }),
     });
   },
+
+  /**
+   * Send OTP to user's phone
+   * @param {Object} data - { email }
+   * @returns {Promise} Confirmation message
+   */
+  sendOTP: async (data) => {
+    const response = await fetch(`${API_BASE_URL}/auth/otp/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      throw new Error(responseData.message || 'Failed to send OTP');
+    }
+
+    return responseData;
+  },
+
+  /**
+   * Verify OTP code
+   * @param {Object} data - { email, otp }
+   * @returns {Promise} User data and token
+   */
+  verifyOTP: async (data) => {
+    const response = await fetch(`${API_BASE_URL}/auth/otp/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      throw new Error(responseData.message || 'OTP verification failed');
+    }
+
+    return responseData;
+  },
 };
 
 // ============================================
@@ -306,6 +352,42 @@ export const configAPI = {
    */
   getGrades: async () => {
     return fetchWithAuth('/config/grades');
+  },
+  getGrades: async () => {
+    return fetchWithAuth('/config/grades');
+  },
+};
+
+// ============================================
+// COMMUNICATION API
+// ============================================
+
+export const communicationAPI = {
+  /**
+   * Get Communication Config
+   */
+  getConfig: async (schoolId) => {
+    return fetchWithAuth(`/communication/config/${schoolId}`);
+  },
+
+  /**
+   * Save Communication Config
+   */
+  saveConfig: async (data) => {
+    return fetchWithAuth('/communication/config', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Send Test SMS
+   */
+  sendTestSMS: async (data) => {
+    return fetchWithAuth('/communication/test/sms', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 };
 
@@ -479,7 +561,7 @@ export const schoolAPI = {
       },
     });
   },
-  
+
   /**
    * Provision a new school with admin user (complete setup)
    */
@@ -960,6 +1042,18 @@ export const assessmentAPI = {
   },
 
   /**
+   * Bulk create summative tests
+   * @param {Object} bulkData - Bulk test data (grades, term, year, etc.)
+   * @returns {Promise} Creation summary
+   */
+  bulkCreateTests: async (bulkData) => {
+    return fetchWithAuth('/assessments/tests/bulk', {
+      method: 'POST',
+      body: JSON.stringify(bulkData),
+    });
+  },
+
+  /**
    * Get all summative tests with filters
    * @param {Object} params - Query parameters (term, academicYear, grade, learningArea, published)
    * @returns {Promise} List of tests
@@ -999,6 +1093,18 @@ export const assessmentAPI = {
   deleteTest: async (id) => {
     return fetchWithAuth(`/assessments/tests/${id}`, {
       method: 'DELETE',
+    });
+  },
+
+  /**
+   * Delete multiple summative tests
+   * @param {string[]} ids - Array of test IDs
+   * @returns {Promise} Processing summary
+   */
+  deleteTestsBulk: async (ids) => {
+    return fetchWithAuth('/assessments/tests/bulk', {
+      method: 'DELETE',
+      body: JSON.stringify({ ids }),
     });
   },
 
@@ -1222,6 +1328,18 @@ export const notificationAPI = {
   },
 
   /**
+   * Send assessment report via SMS to parent
+   * @param {Object} data - Assessment report details
+   * @returns {Promise} Send result
+   */
+  sendAssessmentReportSms: async (data) => {
+    return fetchWithAuth('/notifications/sms/assessment-report', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
    * Test WhatsApp connection
    * @param {string} phoneNumber - Phone number to test
    * @returns {Promise} Test result
@@ -1292,6 +1410,51 @@ export const reportAPI = {
   getLearnerAnalytics: async (learnerId, params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     return fetchWithAuth(`/reports/analytics/learner/${learnerId}${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Generate high-fidelity PDF from HTML
+   * @param {Object} data - { html, fileName, options }
+   * @returns {Promise<Blob>} PDF Blob
+   */
+  generatePdf: async (data) => {
+    const token = getAuthToken();
+    const portalSchoolId = getPortalSchoolId();
+
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (portalSchoolId) headers['X-Portal-School-Id'] = portalSchoolId;
+
+    const response = await fetch(`${API_BASE_URL}/reports/generate-pdf`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.message || `PDF Generation failed: ${response.status}`);
+    }
+
+    const contentType = response.headers.get('Content-Type');
+    if (contentType !== 'application/pdf') {
+      console.error('❌ PDF Generation Error: Received non-PDF content-type:', contentType);
+      // Try to read as JSON to see if it's an error message
+      const text = await response.text().catch(() => 'Unknown content');
+      throw new Error(`Invalid content received from server: ${contentType}. Content: ${text.substring(0, 100)}...`);
+    }
+
+    const blob = await response.blob();
+    console.log(`✅ PDF Received: ${blob.size} bytes (${blob.type})`);
+
+    if (blob.size < 100) {
+      const text = await blob.text().catch(() => 'Unknown');
+      console.warn('⚠️ PDF Blob is suspiciously small:', text);
+    }
+
+    return blob;
   },
 };
 
@@ -1415,6 +1578,12 @@ export const workflowAPI = {
   },
   getHistory: async (type, id) => {
     return fetchWithAuth(`/workflow/history/${type}/${id}`);
+  },
+  approveBulk: async (ids, assessmentType, comments = '') => {
+    return fetchWithAuth('/workflow/bulk-approve', {
+      method: 'POST',
+      body: JSON.stringify({ ids, assessmentType, comments }),
+    });
   }
 };
 

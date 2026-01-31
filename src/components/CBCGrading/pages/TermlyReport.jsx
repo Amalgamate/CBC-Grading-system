@@ -16,31 +16,32 @@ import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { useLearnerSelection } from '../hooks/useLearnerSelection';
 
 const TermlyReport = ({ learners, brandingSettings }) => {
-    // Use grades, terms, and selection from setup/selection hooks
-    const grades = setup.grades || [];
-    const setSelectedGrade = setup.updateGrade;
-    const selectedGrade = setup.selectedGrade;
-    const setSelectedTerm = setup.updateTerm;
-    const selectedTerm = setup.selectedTerm;
-    const terms = setup.terms;
-    const academicYear = setup.academicYear;
-    const filteredLearners = selection.filteredLearners;
-    const selectedLearnerId = selection.selectedLearnerId;
-    const setSelectedLearnerId = selection.selectLearner;
-    const selectedLearner = learners?.find(l => l.id === selectedLearnerId);
   const { showSuccess, showError } = useNotifications();
-  
+
   // Use centralized hooks for assessment state management
   const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
   const selection = useLearnerSelection(learners || [], { status: ['ACTIVE', 'Active'] });
-  
+
+  // Use grades, terms, and selection from setup/selection hooks
+  const grades = setup.grades || [];
+  const setSelectedGrade = setup.updateGrade;
+  const selectedGrade = setup.selectedGrade;
+  const setSelectedTerm = setup.updateTerm;
+  const selectedTerm = setup.selectedTerm;
+  const terms = setup.terms;
+  const academicYear = setup.academicYear;
+  const filteredLearners = selection.filteredLearners;
+  const selectedLearnerId = selection.selectedLearnerId;
+  const setSelectedLearnerId = selection.selectLearner;
+  const selectedLearner = learners?.find(l => l.id === selectedLearnerId);
+
   const [viewMode, setViewMode] = useState('setup'); // 'setup' | 'report'
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const fetchReportData = useCallback(async () => {
     if (!selection.selectedLearnerId) return;
-    
+
     setLoading(true);
     try {
       const response = await api.reports.getTermlyReport(selection.selectedLearnerId, {
@@ -126,13 +127,13 @@ const TermlyReport = ({ learners, brandingSettings }) => {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
-      
+
       {/* SETUP VIEW */}
       {viewMode === 'setup' && (
         <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100 max-w-3xl mx-auto mt-8">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
-               <FileText size={32} />
+              <FileText size={32} />
             </div>
             <h2 className="text-2xl font-bold text-gray-800">Termly Report</h2>
             <p className="text-gray-500">Select a learner to generate their end of term report</p>
@@ -141,7 +142,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
           <div className="space-y-6 mb-8">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Select Learner</label>
-              
+
               {/* Grade Filter Pills */}
               <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-2 -mx-2 px-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                 <div className="flex items-center justify-center min-w-[24px] text-gray-400">
@@ -151,14 +152,13 @@ const TermlyReport = ({ learners, brandingSettings }) => {
                   <button
                     key={grade.value}
                     onClick={() => {
-                        setSelectedGrade(grade.value);
-                        setSelectedLearnerId(''); // Clear selection on filter change
+                      setSelectedGrade(grade.value);
+                      setSelectedLearnerId(''); // Clear selection on filter change
                     }}
-                    className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                      selectedGrade === grade.value 
-                        ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-100' 
+                    className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold transition-all ${selectedGrade === grade.value
+                        ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-100'
                         : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
-                    }`}
+                      }`}
                   >
                     {grade.label}
                   </button>
@@ -172,14 +172,14 @@ const TermlyReport = ({ learners, brandingSettings }) => {
                 placeholder={selectedGrade === 'all' ? "Search all learners..." : `Search in ${grades.find(g => g.value === selectedGrade)?.label}...`}
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Select Term
               </label>
-              <select 
-                value={selectedTerm} 
-                onChange={(e) => setSelectedTerm(e.target.value)} 
+              <select
+                value={selectedTerm}
+                onChange={(e) => setSelectedTerm(e.target.value)}
                 className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 {terms.map(t => (
@@ -207,7 +207,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
         <>
           {/* Compact Context Header - Hidden on Print */}
           <div className="bg-white rounded-xl shadow-sm p-4 border border-blue-100 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-4 z-20 print:hidden">
-             <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4">
               <div className="bg-blue-50 p-3 rounded-lg text-blue-600">
                 <User size={24} />
               </div>
@@ -225,22 +225,22 @@ const TermlyReport = ({ learners, brandingSettings }) => {
             </div>
 
             <div className="flex items-center gap-3">
-              <button 
+              <button
                 onClick={handleReset}
                 className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium"
               >
                 <Edit3 size={16} />
                 Change
               </button>
-              
-              <DownloadReportButton 
+
+              <DownloadReportButton
                 onDownload={handleDownloadPDF}
                 label="PDF"
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm font-semibold text-sm flex items-center gap-2"
               />
-              
-              <button 
-                onClick={handlePrint} 
+
+              <button
+                onClick={handlePrint}
                 className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
                 title="Print Report"
               >
@@ -252,141 +252,140 @@ const TermlyReport = ({ learners, brandingSettings }) => {
           {/* Report Content - This will be converted to PDF */}
           <div className="bg-white rounded-xl shadow-md overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-          {/* On-Screen Header (Hidden in Print/PDF as Letterhead is added) */}
-          <div className="bg-blue-900 text-white p-4 text-center print:hidden">
-            <h2 className="text-xl font-bold">Zawadi Junior School</h2>
-            <p className="opacity-80 text-sm">Excellence in Competency Based Curriculum</p>
-          </div>
-
-          <div id="termly-report-content" className="p-4">
-            {/* Report Title */}
-            <div className="text-center border-b border-gray-200 pb-2 mb-3">
-              <h2 className="text-lg font-bold text-gray-800 mb-0.5">End of {reportData.term.replace('_', ' ')} Report</h2>
-              <p className="text-sm text-gray-600 font-semibold">Academic Year {reportData.academicYear}</p>
+            {/* On-Screen Header (Hidden in Print/PDF as Letterhead is added) */}
+            <div className="bg-blue-900 text-white p-4 text-center print:hidden">
+              <h2 className="text-xl font-bold">Zawadi Junior School</h2>
+              <p className="opacity-80 text-sm">Excellence in Competency Based Curriculum</p>
             </div>
 
-            {/* Student Information */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
-              <div>
-                <p className="font-semibold text-gray-700 text-[10px] mb-0.5 uppercase tracking-wider">Student Name</p>
-                <p className="text-gray-900 text-xs font-bold">{reportData.learner.firstName} {reportData.learner.lastName}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700 text-[10px] mb-0.5 uppercase tracking-wider">Admission No</p>
-                <p className="text-gray-900 text-xs font-bold">{reportData.learner.admissionNumber}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700 text-[10px] mb-0.5 uppercase tracking-wider">Class</p>
-                <p className="text-gray-900 text-xs font-bold">{reportData.learner.grade} {reportData.learner.stream ? `- ${reportData.learner.stream}` : ''}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700 text-[10px] mb-0.5 uppercase tracking-wider">Attendance</p>
-                <p className="text-gray-900 text-xs font-bold">
-                  {reportData.attendance?.attendancePercentage || 0}% 
-                  {reportData.attendance?.attendancePercentage >= 95 ? ' (Excellent)' : 
-                   reportData.attendance?.attendancePercentage >= 80 ? ' (Good)' : ''}
-                </p>
-              </div>
-            </div>
-
-            {/* Academic Performance */}
-            <div className="border-t border-gray-200 pt-3">
-              <h3 className="text-sm font-bold text-gray-800 mb-2">Academic Performance</h3>
-              
-              {(reportData.summative?.summary?.bySubject || []).length > 0 ? (
-                <table className="w-full mb-4 border-collapse text-xs">
-                  <thead className="bg-blue-600 text-white">
-                    <tr>
-                      <th className="px-2 py-1.5 text-left font-semibold">Subject</th>
-                      <th className="px-2 py-1.5 text-center font-semibold">Marks</th>
-                      <th className="px-2 py-1.5 text-center font-semibold">Grade</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.summative.summary.bySubject.map((subject, i) => (
-                      <tr key={subject.subject} className="border-t border-gray-200 hover:bg-gray-50">
-                        <td className="px-2 py-1.5 font-medium text-gray-800">{subject.subject}</td>
-                        <td className="px-2 py-1.5 text-center text-gray-700">{subject.averagePercentage}%</td>
-                        <td className="px-2 py-1.5 text-center">
-                          <span className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            ['A', 'B'].includes(subject.grade) ? 'bg-green-100 text-green-800' : 
-                            ['C'].includes(subject.grade) ? 'bg-blue-100 text-blue-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {subject.grade}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="text-center py-4 text-gray-500 text-xs italic mb-4 bg-gray-50 rounded-lg">
-                  No academic results available for this term.
-                </div>
-              )}
-
-              {/* Comments Section */}
-              <div className="space-y-2">
-                <div className="bg-blue-50 p-2 rounded-lg border-l-4 border-blue-500 text-xs">
-                  <p className="font-bold text-gray-800 mb-0.5 flex items-center gap-1.5 text-[10px] uppercase tracking-wider">
-                    <span className="text-blue-600">📝</span>
-                    Class Teacher's Comment
-                  </p>
-                  <p className="text-gray-700 leading-snug">
-                    {reportData.comments?.classTeacher || 'No comment provided.'}
-                  </p>
-                </div>
-
-                <div className="bg-green-50 p-2 rounded-lg border-l-4 border-green-500 text-xs">
-                  <p className="font-bold text-gray-800 mb-0.5 flex items-center gap-1.5 text-[10px] uppercase tracking-wider">
-                    <span className="text-green-600">✓</span>
-                    Head Teacher's Comment
-                  </p>
-                  <p className="text-gray-700 leading-snug">
-                    {reportData.comments?.headTeacher || 'No comment provided.'}
-                  </p>
-                </div>
+            <div id="termly-report-content" className="p-4">
+              {/* Report Title */}
+              <div className="text-center border-b border-gray-200 pb-2 mb-3">
+                <h2 className="text-lg font-bold text-gray-800 mb-0.5">End of {reportData.term.replace('_', ' ')} Report</h2>
+                <p className="text-sm text-gray-600 font-semibold">Academic Year {reportData.academicYear}</p>
               </div>
 
-              {/* Footer Information */}
-              <div className="mt-4 pt-3 border-t border-gray-200 grid grid-cols-2 gap-3 text-xs">
+              {/* Student Information */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
                 <div>
-                  <p className="font-bold text-gray-800 mb-0.5">Next Term Begins:</p>
-                  <p className="text-gray-700">
-                    {reportData.comments?.nextTermOpens ? new Date(reportData.comments.nextTermOpens).toLocaleDateString('en-GB', {
-                      day: 'numeric',
+                  <p className="font-semibold text-gray-700 text-[10px] mb-0.5 uppercase tracking-wider">Student Name</p>
+                  <p className="text-gray-900 text-xs font-bold">{reportData.learner.firstName} {reportData.learner.lastName}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-700 text-[10px] mb-0.5 uppercase tracking-wider">Admission No</p>
+                  <p className="text-gray-900 text-xs font-bold">{reportData.learner.admissionNumber}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-700 text-[10px] mb-0.5 uppercase tracking-wider">Class</p>
+                  <p className="text-gray-900 text-xs font-bold">{reportData.learner.grade} {reportData.learner.stream ? `- ${reportData.learner.stream}` : ''}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-700 text-[10px] mb-0.5 uppercase tracking-wider">Attendance</p>
+                  <p className="text-gray-900 text-xs font-bold">
+                    {reportData.attendance?.attendancePercentage || 0}%
+                    {reportData.attendance?.attendancePercentage >= 95 ? ' (Excellent)' :
+                      reportData.attendance?.attendancePercentage >= 80 ? ' (Good)' : ''}
+                  </p>
+                </div>
+              </div>
+
+              {/* Academic Performance */}
+              <div className="border-t border-gray-200 pt-3">
+                <h3 className="text-sm font-bold text-gray-800 mb-2">Academic Performance</h3>
+
+                {(reportData.summative?.summary?.bySubject || []).length > 0 ? (
+                  <table className="w-full mb-4 border-collapse text-xs">
+                    <thead className="bg-blue-600 text-white">
+                      <tr>
+                        <th className="px-2 py-1.5 text-left font-semibold">Subject</th>
+                        <th className="px-2 py-1.5 text-center font-semibold">Marks</th>
+                        <th className="px-2 py-1.5 text-center font-semibold">Grade</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reportData.summative.summary.bySubject.map((subject, i) => (
+                        <tr key={subject.subject} className="border-t border-gray-200 hover:bg-gray-50">
+                          <td className="px-2 py-1.5 font-medium text-gray-800">{subject.subject}</td>
+                          <td className="px-2 py-1.5 text-center text-gray-700">{subject.averagePercentage}%</td>
+                          <td className="px-2 py-1.5 text-center">
+                            <span className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] font-bold ${['A', 'B'].includes(subject.grade) ? 'bg-green-100 text-green-800' :
+                                ['C'].includes(subject.grade) ? 'bg-blue-100 text-blue-800' :
+                                  'bg-yellow-100 text-yellow-800'
+                              }`}>
+                              {subject.grade}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="text-center py-4 text-gray-500 text-xs italic mb-4 bg-gray-50 rounded-lg">
+                    No academic results available for this term.
+                  </div>
+                )}
+
+                {/* Comments Section */}
+                <div className="space-y-2">
+                  <div className="bg-blue-50 p-2 rounded-lg border-l-4 border-blue-500 text-xs">
+                    <p className="font-bold text-gray-800 mb-0.5 flex items-center gap-1.5 text-[10px] uppercase tracking-wider">
+                      <span className="text-blue-600">📝</span>
+                      Class Teacher's Comment
+                    </p>
+                    <p className="text-gray-700 leading-snug">
+                      {reportData.comments?.classTeacher || 'No comment provided.'}
+                    </p>
+                  </div>
+
+                  <div className="bg-green-50 p-2 rounded-lg border-l-4 border-green-500 text-xs">
+                    <p className="font-bold text-gray-800 mb-0.5 flex items-center gap-1.5 text-[10px] uppercase tracking-wider">
+                      <span className="text-green-600">✓</span>
+                      Head Teacher's Comment
+                    </p>
+                    <p className="text-gray-700 leading-snug">
+                      {reportData.comments?.headTeacher || 'No comment provided.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Footer Information */}
+                <div className="mt-4 pt-3 border-t border-gray-200 grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <p className="font-bold text-gray-800 mb-0.5">Next Term Begins:</p>
+                    <p className="text-gray-700">
+                      {reportData.comments?.nextTermOpens ? new Date(reportData.comments.nextTermOpens).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      }) : 'TBA'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-gray-800 mb-0.5">Date Issued:</p>
+                    <p className="text-gray-700">{new Date(reportData.generatedDate || Date.now()).toLocaleDateString('en-GB', {
+                      day: '2-digit',
                       month: 'long',
                       year: 'numeric'
-                    }) : 'TBA'}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-gray-800 mb-0.5">Date Issued:</p>
-                  <p className="text-gray-700">{new Date(reportData.generatedDate || Date.now()).toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric'
-                  })}</p>
-                </div>
-              </div>
-
-              {/* Signature Lines */}
-              <div className="mt-6 grid grid-cols-2 gap-6">
-                <div>
-                  <div className="border-t border-gray-400 pt-1 mt-6">
-                    <p className="text-center text-[10px] font-semibold text-gray-700 uppercase tracking-wider">Class Teacher's Signature</p>
+                    })}</p>
                   </div>
                 </div>
-                <div>
-                  <div className="border-t border-gray-400 pt-1 mt-6">
-                    <p className="text-center text-[10px] font-semibold text-gray-700 uppercase tracking-wider">Parent's Signature</p>
+
+                {/* Signature Lines */}
+                <div className="mt-6 grid grid-cols-2 gap-6">
+                  <div>
+                    <div className="border-t border-gray-400 pt-1 mt-6">
+                      <p className="text-center text-[10px] font-semibold text-gray-700 uppercase tracking-wider">Class Teacher's Signature</p>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="border-t border-gray-400 pt-1 mt-6">
+                      <p className="text-center text-[10px] font-semibold text-gray-700 uppercase tracking-wider">Parent's Signature</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
         </>
       )}
     </div>

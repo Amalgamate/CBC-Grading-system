@@ -32,6 +32,7 @@ router.delete('/formative/:id', authenticate, requireTenant, assessmentControlle
 // ============================================
 
 router.post('/tests', authenticate, requireTenant, assessmentController.createSummativeTest);
+router.post('/tests/bulk', authenticate, requireTenant, assessmentController.generateTestsBulk);
 
 router.get('/tests', authenticate, requireTenant, assessmentController.getSummativeTests);
 
@@ -39,6 +40,7 @@ router.get('/tests/:id', authenticate, requireTenant, assessmentController.getSu
 
 router.put('/tests/:id', authenticate, requireTenant, assessmentController.updateSummativeTest);
 
+router.delete('/tests/bulk', authenticate, requireTenant, assessmentController.deleteSummativeTestsBulk);
 router.delete('/tests/:id', authenticate, requireTenant, assessmentController.deleteSummativeTest);
 
 // ============================================

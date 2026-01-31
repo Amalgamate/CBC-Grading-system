@@ -67,7 +67,7 @@ export const submitForApproval = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error submitting for approval:', error);
-    
+
     if (error.message.includes('Cannot submit')) {
       return res.status(400).json({
         success: false,
@@ -133,7 +133,7 @@ export const approveAssessment = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error approving assessment:', error);
-    
+
     if (error.message.includes('Cannot approve')) {
       return res.status(400).json({
         success: false,
@@ -209,7 +209,7 @@ export const rejectAssessment = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error rejecting assessment:', error);
-    
+
     if (error.message.includes('Cannot reject')) {
       return res.status(400).json({
         success: false,
@@ -275,7 +275,7 @@ export const publishAssessment = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error publishing assessment:', error);
-    
+
     if (error.message.includes('Cannot publish')) {
       return res.status(400).json({
         success: false,
@@ -341,7 +341,7 @@ export const lockAssessment = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error locking assessment:', error);
-    
+
     if (error.message.includes('Cannot lock')) {
       return res.status(400).json({
         success: false,
@@ -418,7 +418,7 @@ export const unlockAssessment = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error unlocking assessment:', error);
-    
+
     if (error.message.includes('Cannot unlock')) {
       return res.status(400).json({
         success: false,
@@ -530,9 +530,80 @@ export const getWorkflowHistory = async (req: Request, res: Response) => {
   }
 };
 
-// ============================================
-// BULK OPERATIONS
-// ============================================
+/**
+ * POST /api/workflow/bulk-approve
+ * Bulk approve assessments
+ */
+export const bulkApproveAssessments = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'User not authenticated'
+        }
+      });
+    }
+
+    const { ids, assessmentType, comments } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'ids array is required'
+        }
+      });
+    }
+
+    if (!assessmentType || !['formative', 'summative'].includes(assessmentType)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Valid assessmentType (formative/summative) is required'
+        }
+      });
+    }
+
+    const result = await workflowService.approveAssessmentsBulk({
+      ids,
+      assessmentType,
+      userId,
+      comments
+    });
+
+    res.json({
+      success: true,
+      message: `Processed ${result.approved} approvals`,
+      data: result
+    });
+  } catch (error: any) {
+    console.error('Error bulk approving assessments:', error);
+
+    if (error.message.includes('not permitted')) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: error.message
+        }
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'BULK_APPROVE_ERROR',
+        message: 'Failed to bulk approve assessments',
+        details: error.message
+      }
+    });
+  }
+};
 
 /**
  * POST /api/workflow/bulk-lock
@@ -579,7 +650,7 @@ export const bulkLockTermAssessments = async (req: AuthRequest, res: Response) =
     });
   } catch (error: any) {
     console.error('Error bulk locking assessments:', error);
-    
+
     if (error.message.includes('not permitted')) {
       return res.status(403).json({
         success: false,
@@ -614,5 +685,6 @@ export const workflowController = {
   unlockAssessment,
   getPendingApprovals,
   getWorkflowHistory,
-  bulkLockTermAssessments
+  bulkLockTermAssessments,
+  bulkApproveAssessments
 };

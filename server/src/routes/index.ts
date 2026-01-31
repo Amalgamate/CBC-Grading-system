@@ -16,6 +16,7 @@ import cbcRoutes from './cbcRoutes';
 import gradingRoutes from './grading.routes';
 import configRoutes from './config.routes';
 import workflowRoutes from './workflow.routes';
+import communicationRoutes from './communication.routes';
 import adminRoutes from './admin.routes';
 import { checkSchoolActive } from '../middleware/trial.guard';
 import onboardingRoutes from './onboarding.routes';
@@ -65,5 +66,6 @@ router.use('/cbc', cbcRoutes);
 router.use('/grading', checkSchoolActive, gradingRoutes);
 router.use('/config', checkSchoolActive, configRoutes);
 router.use('/workflow', workflowRoutes);
+router.use('/communication', checkSchoolActive, communicationRoutes);
 
 export default router;

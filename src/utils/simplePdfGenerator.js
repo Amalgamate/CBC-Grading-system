@@ -6,6 +6,7 @@
  */
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import api from '../services/api';
 
 /**
  * Helper to convert image URL to Base64
@@ -25,6 +26,37 @@ const convertImageToBase64 = async (url) => {
     console.error('Error converting image to Base64:', error);
     return url; // Return original URL if conversion fails
   }
+};
+
+/**
+ * Processes all images in an element and converts them to Base64
+ * This is crucial for server-side rendering where relative paths don't work
+ * @param {HTMLElement} element - The element containing images to convert
+ */
+const resolveImagesToBase64 = async (element, onProgress) => {
+  const images = element.getElementsByTagName('img');
+  const total = images.length;
+
+  if (total === 0) return;
+
+  if (onProgress) onProgress(`Embedding ${total} images...`);
+
+  const promises = Array.from(images).map(async (img) => {
+    const originalSrc = img.getAttribute('src');
+    if (!originalSrc || originalSrc.startsWith('data:')) return;
+
+    // Convert to absolute URL if it's relative
+    const absoluteUrl = new URL(originalSrc, window.location.href).href;
+
+    try {
+      const base64 = await convertImageToBase64(absoluteUrl);
+      img.setAttribute('src', base64);
+    } catch (err) {
+      console.warn(`Failed to convert image ${originalSrc} to base64:`, err);
+    }
+  });
+
+  await Promise.all(promises);
 };
 
 /**
@@ -227,7 +259,7 @@ export const generatePDFWithLetterhead = async (
     // CRITICAL FIX: Make print-only elements visible before capturing
     const printOnlyElements = element.querySelectorAll('.print-only');
     const noPrintElements = element.querySelectorAll('.no-print');
-    
+
     // Store original styles
     const originalStyles = new Map();
     printOnlyElements.forEach(el => {
@@ -238,7 +270,7 @@ export const generatePDFWithLetterhead = async (
       el.style.display = 'block';
       el.style.visibility = 'visible';
     });
-    
+
     // Hide no-print elements
     const noPrintOriginalStyles = new Map();
     noPrintElements.forEach(el => {
@@ -293,7 +325,7 @@ export const generatePDFWithLetterhead = async (
     // CRITICAL: Make print-only visible in the CLONE
     const clonedPrintOnly = contentClone.querySelectorAll('.print-only');
     console.log('PDF Generator: Found', clonedPrintOnly.length, 'print-only elements in clone');
-    
+
     clonedPrintOnly.forEach(el => {
       el.style.setProperty('display', 'block', 'important');
       el.style.setProperty('visibility', 'visible', 'important');
@@ -347,7 +379,7 @@ export const generatePDFWithLetterhead = async (
       el.style.display = original.display;
       el.style.visibility = original.visibility;
     });
-    
+
     noPrintElements.forEach(el => {
       el.style.display = noPrintOriginalStyles.get(el);
     });
@@ -524,10 +556,121 @@ export const batchGeneratePDFs = async (
   return results;
 };
 
+/**
+ * Generate high-fidelity PDF from HTML content on the server
+ * Uses Puppeteer for vector-quality results
+ * 
+ * @param {string} elementId - ID of element to convert
+ * @param {string} filename - Output filename
+ * @param {Object} options - Configuration options
+ * @returns {Promise<Object>} Result object
+ */
+export const generateHighFidelityPDF = async (elementId, filename, options = {}) => {
+  const { onProgress = null } = options;
+
+  try {
+    if (onProgress) onProgress('Preparing high-fidelity layout...');
+
+    // 1. Get the element and its styles
+    const originalElement = document.getElementById(elementId);
+    if (!originalElement) {
+      throw new Error(`Element with ID "${elementId}" not found`);
+    }
+
+    if (onProgress) onProgress('Processing report layout...');
+
+    // Clone element so we don't mess up the live UI while resolving images
+    const element = originalElement.cloneNode(true);
+
+    // Resolve all images to Base64 so Puppeteer doesn't have to fetch them
+    await resolveImagesToBase64(element, onProgress);
+
+    // 2. Capture all stylesheets from the document
+    const styleHeaders = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map(el => el.outerHTML)
+      .join('\n');
+
+    // 2. Wrap the element HTML in a full HTML document for Puppeteer
+    // We add some basic print styles to ensure A4 fit
+    const reportHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          ${styleHeaders}
+          <style>
+            @page {
+              size: A4;
+              margin: 10mm;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              background-color: white !important;
+            }
+            /* Force print-only elements to be visible */
+            .print-only {
+              display: block !important;
+              visibility: visible !important;
+            }
+            /* Hide no-print elements */
+            .no-print {
+              display: none !important;
+            }
+            /* Ensure charts/images don't break across pages if possible */
+            .page-break-inside-avoid {
+              page-break-inside: avoid;
+            }
+          </style>
+        </head>
+        <body>
+          <div style="width: 210mm; margin: 0 auto;">
+            ${element.innerHTML}
+          </div>
+        </body>
+      </html>
+    `;
+
+    if (onProgress) onProgress('Sending to server for processing...');
+
+    if (onProgress) onProgress('Sending to server for processing...');
+
+    // 3. Send to backend via our namespaced API
+    const pdfBlob = await api.reports.generatePdf({
+      html: reportHtml,
+      fileName: filename,
+      options: {
+        format: 'A4',
+        printBackground: true,
+        ...options.pdfOptions
+      }
+    });
+
+    if (onProgress) onProgress('Finalizing download...');
+
+    // 4. Download the received blob
+    const url = window.URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    if (onProgress) onProgress('Complete!');
+    return { success: true };
+  } catch (error) {
+    console.error('High-fidelity PDF generation error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 const simplePdf = {
   generatePDFFromElement,
   generateCustomPDF,
   generatePDFWithLetterhead,
+  generateHighFidelityPDF,
   quickPrint,
   batchGeneratePDFs
 };

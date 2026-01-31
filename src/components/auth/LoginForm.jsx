@@ -1,22 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { Mail, Lock, Eye, EyeOff, AlertCircle, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { authAPI, API_BASE_URL } from '../../services/api';
-import { getPortalSchoolId, setAdminSchoolId, setBranchId } from '../../services/tenantContext';
+import { setAdminSchoolId, setBranchId } from '../../services/tenantContext';
+import OTPVerificationForm from './OTPVerificationForm';
 
 export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword, onLoginSuccess, brandingSettings }) {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    rememberMe: false
+    rememberMe: false,
+    skipOTP: false
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  const [seededUsers, setSeededUsers] = useState([]);
-  const [showSeededUsers, setShowSeededUsers] = useState(false);
-  const [loadingUsers, setLoadingUsers] = useState(false);
   const [branchOptions, setBranchOptions] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState('');
+
+  const [showOTPVerification, setShowOTPVerification] = useState(false);
+  const [pendingUserData, setPendingUserData] = useState(null);
 
   const assignFirstAvailableSchoolForSuperAdmin = async ({ token, userData }) => {
     // Only applies when SUPER_ADMIN has no schoolId.
@@ -50,23 +52,6 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
     return { schoolId: '', userData };
   };
 
-  // Fetch seeded users for development
-  useEffect(() => {
-    const fetchSeededUsers = async () => {
-      try {
-        setLoadingUsers(true);
-        const data = await authAPI.getSeededUsers();
-        setSeededUsers(data.users || []);
-      } catch (error) {
-        console.log('Seeded users not available (production mode or not seeded yet)');
-      } finally {
-        setLoadingUsers(false);
-      }
-    };
-
-    fetchSeededUsers();
-  }, []);
-
   const validateForm = () => {
     const newErrors = {};
 
@@ -96,49 +81,69 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
     setIsLoading(true);
 
     try {
-      const tenantSchoolId = getPortalSchoolId() || undefined;
-      const data = await authAPI.login({
+      // Step 1: Validate credentials
+      const credentialsData = await authAPI.login({
         email: formData.email,
         password: formData.password,
-        ...(tenantSchoolId ? { tenantSchoolId } : {}),
       });
 
-      // Store token
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-        if (formData.rememberMe) {
-          localStorage.setItem('authToken', data.token);
+      // Check if user wants to skip OTP
+      if (formData.skipOTP) {
+        // Direct login without OTP verification
+        if (credentialsData.token) {
+          localStorage.setItem('token', credentialsData.token);
+          if (formData.rememberMe) {
+            localStorage.setItem('authToken', credentialsData.token);
+          }
         }
+
+        let userData = {
+          email: credentialsData.user.email,
+          name: `${credentialsData.user.firstName} ${credentialsData.user.lastName}`,
+          role: credentialsData.user.role,
+          id: credentialsData.user.id,
+          firstName: credentialsData.user.firstName,
+          lastName: credentialsData.user.lastName,
+          schoolId: credentialsData.user.schoolId || credentialsData.user.school?.id || null,
+          branchId: credentialsData.user.branchId || credentialsData.user.branch?.id || null,
+          school: credentialsData.user.school || null,
+          branch: credentialsData.user.branch || null
+        };
+
+        // Persist tenancy context
+        let sid = credentialsData.user.schoolId || credentialsData.user.school?.id || '';
+        const bid = credentialsData.user.branchId || credentialsData.user.branch?.id || '';
+
+        if (sid) setAdminSchoolId(sid);
+        if (bid) setBranchId(bid);
+
+        onLoginSuccess(userData);
+        return;
       }
 
-      let userData = {
-        email: data.user.email,
-        name: `${data.user.firstName} ${data.user.lastName}`,
-        role: data.user.role,
-        id: data.user.id,
-        firstName: data.user.firstName,
-        lastName: data.user.lastName,
-        schoolId: data.user.schoolId || data.user.school?.id || null,
-        branchId: data.user.branchId || data.user.branch?.id || null,
-        school: data.user.school || null,
-        branch: data.user.branch || null
-      };
+      // Step 2: Send OTP to phone (if not skipping)
+      try {
+        await authAPI.sendOTP({
+          email: formData.email
+        });
 
-      // Persist tenancy context for API headers
-      let sid = data.user.schoolId || data.user.school?.id || '';
-      const bid = data.user.branchId || data.user.branch?.id || '';
+        // Store pending user data for OTP verification
+        setPendingUserData({
+          email: formData.email,
+          phone: credentialsData.user?.phone || '+254XXXXXXXX',
+          user: credentialsData.user,
+          token: credentialsData.token
+        });
 
-      // SUPER_ADMIN: If they have no school, auto-assign first available school for switching UX.
-      if (data.user.role === 'SUPER_ADMIN' && !sid) {
-        const assigned = await assignFirstAvailableSchoolForSuperAdmin({ token: data.token, userData });
-        sid = assigned.schoolId || sid;
-        userData = assigned.userData || userData;
+        // Show OTP verification screen
+        setShowOTPVerification(true);
+        setErrors({});
+      } catch (otpError) {
+        // If OTP fails but credentials are valid, show the error but keep form
+        setErrors({
+          form: otpError.message || 'Failed to send OTP. Please try again.'
+        });
       }
-
-      if (sid) setAdminSchoolId(sid);
-      if (bid) setBranchId(bid);
-
-      onLoginSuccess(userData);
     } catch (error) {
       console.error('Login error:', error);
       setErrors({
@@ -208,37 +213,50 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
 
-    if (name === 'email') {
-      const email = value;
-      setSelectedBranch('');
-      setBranchOptions([]);
-      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        const controller = new AbortController();
-        setTimeout(async () => {
-          try {
-            const res = await fetch(`${API_BASE_URL}/onboarding/branch-options?email=${encodeURIComponent(email)}`, { signal: controller.signal });
-            const data = await res.json();
-            setBranchOptions(data.branches || []);
-          } catch (_) { }
-        }, 250);
-        return () => controller.abort();
-      }
-    }
+
   };
 
-  const handleSelectSeededUser = (user) => {
-    setFormData({
-      email: user.email,
-      password: user.passwordHint,
-      rememberMe: true
-    });
-    setShowSeededUsers(false);
+  const handleOTPVerifySuccess = async (userData) => {
+    // Complete the login flow with the OTP-verified user
+    if (pendingUserData?.token) {
+      localStorage.setItem('token', pendingUserData.token);
+      if (formData.rememberMe) {
+        localStorage.setItem('authToken', pendingUserData.token);
+      }
+    }
+
+    let loginUserData = {
+      email: pendingUserData.user.email,
+      name: `${pendingUserData.user.firstName} ${pendingUserData.user.lastName}`,
+      role: pendingUserData.user.role,
+      id: pendingUserData.user.id,
+      firstName: pendingUserData.user.firstName,
+      lastName: pendingUserData.user.lastName,
+      schoolId: pendingUserData.user.schoolId || pendingUserData.user.school?.id || null,
+      branchId: pendingUserData.user.branchId || pendingUserData.user.branch?.id || null,
+      school: pendingUserData.user.school || null,
+      branch: pendingUserData.user.branch || null
+    };
+
+    // Persist tenancy context
+    let sid = pendingUserData.user.schoolId || pendingUserData.user.school?.id || '';
+    const bid = pendingUserData.user.branchId || pendingUserData.user.branch?.id || '';
+
+    if (sid) setAdminSchoolId(sid);
+    if (bid) setBranchId(bid);
+
+    onLoginSuccess(loginUserData);
+  };
+
+  const handleBackToLogin = () => {
+    setShowOTPVerification(false);
+    setPendingUserData(null);
     setErrors({});
   };
 
   return (
     <div className="w-full h-screen bg-white">
-      {/* Two Column Layout - Full Screen */}
+      {/* Main Layout Container */}
       <div className="bg-white h-full flex flex-col lg:flex-row items-stretch">
 
         {/* Left Column - Branding Area */}
@@ -285,222 +303,164 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
           </div>
         </div>
 
-        {/* Right Column - Login Form */}
+        {/* Right Column - Dynamic Content */}
         <div className="w-full lg:w-1/2 h-full p-6 lg:p-16 flex flex-col justify-center">
-          <div className="max-w-md mx-auto w-full">
-            <div className="mb-8">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">EDucore V1 — Login</h1>
-              <p className="text-gray-600">Sign in to continue to your dashboard</p>
-            </div>
-
-            {/* Seeded Users Button - Development Only */}
-            {seededUsers.length > 0 && (
-              <div className="mb-6">
-                <button
-                  type="button"
-                  onClick={() => setShowSeededUsers(!showSeededUsers)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg font-semibold"
-                >
-                  <Users size={20} />
-                  <span>Development Users ({seededUsers.length})</span>
-                </button>
-
-                {/* Seeded Users Dropdown */}
-                {showSeededUsers && (
-                  <div className="mt-2 bg-white border-2 border-purple-200 rounded-lg shadow-xl overflow-hidden animate-fade-in">
-                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-4 py-3 border-b border-purple-100">
-                      <h3 className="font-bold text-purple-900 text-sm">Seeded Development Users</h3>
-                      <p className="text-xs text-purple-600 mt-0.5">Click to auto-fill credentials</p>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {loadingUsers ? (
-                        <div className="px-4 py-6 text-center text-gray-500">
-                          <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                          Loading users...
-                        </div>
-                      ) : (
-                        seededUsers.map((user, index) => (
-                          <button
-                            key={index}
-                            type="button"
-                            onClick={() => handleSelectSeededUser(user)}
-                            className="w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-purple-50 transition-colors"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="font-semibold text-gray-900 text-sm">
-                                  {user.firstName} {user.lastName}
-                                </div>
-                                <div className="text-xs text-gray-600 mt-1 space-y-0.5">
-                                  <div className="font-mono">{user.email}</div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-semibold">
-                                      {user.role}
-                                    </span>
-                                    <span className="text-[10px] text-gray-500">
-                                      Password: {user.passwordHint}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
+          {showOTPVerification && pendingUserData ? (
+            <OTPVerificationForm
+              email={pendingUserData.email}
+              phone={pendingUserData.phone}
+              onVerifySuccess={handleOTPVerifySuccess}
+              onBackToLogin={handleBackToLogin}
+              brandingSettings={brandingSettings}
+            />
+          ) : (
+            <div className="max-w-md mx-auto w-full animate-fade-in">
+              <div className="mb-8">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">EDucore V1 — Login</h1>
+                <p className="text-gray-600">Sign in to continue to your dashboard</p>
               </div>
-            )}
 
-
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Email Field */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-gray-400" />
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Email Field */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.email ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      placeholder="you@example.com"
+                    />
                   </div>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.email ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    placeholder="you@example.com"
-                  />
+                  {errors.email && (
+                    <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
+                      <AlertCircle size={14} />
+                      <span>{errors.email}</span>
+                    </div>
+                  )}
                 </div>
-                {errors.email && (
-                  <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
-                    <AlertCircle size={14} />
-                    <span>{errors.email}</span>
-                  </div>
-                )}
-              </div>
 
-              {/* Password Field */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Password
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
+                {/* Password Field */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.password ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      placeholder="Enter your password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
                   </div>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.password ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    placeholder="Enter your password"
-                  />
+                  {errors.password && (
+                    <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
+                      <AlertCircle size={14} />
+                      <span>{errors.password}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Remember Me & Forgot Password */}
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="rememberMe"
+                      checked={formData.rememberMe}
+                      onChange={handleChange}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Remember me</span>
+                  </label>
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                    onClick={onSwitchToForgotPassword}
+                    className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition"
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    Forgot password?
                   </button>
                 </div>
-                {errors.password && (
-                  <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
-                    <AlertCircle size={14} />
-                    <span>{errors.password}</span>
-                  </div>
-                )}
-              </div>
 
-              {/* Remember Me & Forgot Password */}
-              <div className="flex items-center justify-between">
+                {/* Skip OTP Checkbox (Development) */}
                 <label className="flex items-center">
                   <input
                     type="checkbox"
-                    name="rememberMe"
-                    checked={formData.rememberMe}
+                    name="skipOTP"
+                    checked={formData.skipOTP}
                     onChange={handleChange}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
                   />
-                  <span className="ml-2 text-sm text-gray-700">Remember me</span>
+                  <span className="ml-2 text-sm text-orange-600 font-medium">Skip OTP verification (Testing)</span>
                 </label>
+
+                {/* Submit Button */}
                 <button
-                  type="button"
-                  onClick={onSwitchToForgotPassword}
-                  className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition"
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 focus:ring-4 focus:ring-blue-300 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Forgot password?
+                  {isLoading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Signing in...</span>
+                    </div>
+                  ) : (
+                    'Sign In'
+                  )}
                 </button>
-              </div>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 focus:ring-4 focus:ring-blue-300 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Signing in...</span>
-                  </div>
-                ) : (
-                  'Sign In'
-                )}
-              </button>
+                {/* Branch Selection */}
 
-              {/* Branch Selection */}
-              {branchOptions.length > 0 && (
-                <div className="mt-4">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Select Branch</label>
-                  <select
-                    className="w-full border rounded-lg px-3 py-3"
-                    value={selectedBranch}
-                    onChange={(e) => {
-                      setSelectedBranch(e.target.value);
-                      setBranchId(e.target.value);
-                    }}
+              </form>
+
+              {/* Sign Up Link */}
+              <div className="mt-6 text-center">
+                <p className="text-sm text-gray-600">
+                  Don't have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={onSwitchToRegister}
+                    className="font-semibold text-blue-600 hover:text-blue-700 transition"
                   >
-                    <option value="">Choose a branch</option>
-                    {branchOptions.map(b => (
-                      <option key={b.id} value={b.id}>{b.name} ({b.code})</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-600 mt-1">This helps route you to the correct branch context after login.</p>
+                    Create an account
+                  </button>
+                </p>
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    className="text-xs text-gray-600 underline hover:text-gray-800"
+                    onClick={loginAsSuperAdmin}
+                  >
+                    Login as Super Admin
+                  </button>
                 </div>
-              )}
-            </form>
-
-            {/* Sign Up Link */}
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                Don't have an account?{' '}
-                <button
-                  type="button"
-                  onClick={onSwitchToRegister}
-                  className="font-semibold text-blue-600 hover:text-blue-700 transition"
-                >
-                  Create an account
-                </button>
-              </p>
-              <div className="mt-2">
-                <button
-                  type="button"
-                  className="text-xs text-gray-600 underline hover:text-gray-800"
-                  onClick={loginAsSuperAdmin}
-                >
-                  Login as Super Admin
-                </button>
               </div>
+
+
             </div>
-
-
-          </div>
+          )}
         </div>
       </div>
 

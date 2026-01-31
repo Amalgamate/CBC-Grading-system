@@ -75,4 +75,18 @@ router.get(
   reportController.getLearnerAnalytics
 );
 
+// ============================================
+// PDF EXPORT
+// ============================================
+
+/**
+ * Generate high-fidelity PDF from HTML
+ * POST /api/reports/generate-pdf
+ */
+router.post(
+  '/generate-pdf',
+  authenticate,
+  reportController.generatePdf
+);
+
 export default router;

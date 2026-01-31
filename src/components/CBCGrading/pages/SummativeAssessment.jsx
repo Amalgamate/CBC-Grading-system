@@ -159,10 +159,10 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
       const mark = marks[learnerId];
       return mark !== null && mark !== undefined && mark !== '';
     }).length;
-    
+
     const percentage = totalLearners > 0 ? Math.round((assessedCount / totalLearners) * 100) : 0;
     const isComplete = assessedCount === totalLearners && totalLearners > 0;
-    
+
     return { assessed: assessedCount, total: totalLearners, percentage, isComplete };
   }, [marks, fetchedLearners]);
 
@@ -170,7 +170,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
   const statistics = useMemo(() => {
     const validMarks = Object.values(marks).filter(m => m !== null && m !== undefined && m !== '');
     const numericMarks = validMarks.map(m => parseFloat(m));
-    
+
     if (numericMarks.length === 0) {
       return { sum: 0, average: 0, count: 0, min: 0, max: 0, gradeDistribution: {} };
     }
@@ -296,7 +296,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
         console.log('Draft marks auto-saved.');
       }
     }, 30000);
-    
+
     return () => {
       clearInterval(autoSaveInterval);
       // Optionally clear draft when component unmounts or test changes
@@ -309,26 +309,52 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
 
   const filteredTestsBySelection = useMemo(() =>
     tests.filter(t => {
-      if (setup.selectedGrade && t.grade !== setup.selectedGrade) return false;
-      if (setup.selectedTerm && t.term !== setup.selectedTerm) return false;
+      if (setup.selectedGrade) {
+        // Handle variations like GRADE_1 vs Grade 1 or GRADE 1
+        const normalizedGrade = setup.selectedGrade.replace(/\s+/g, '_').toUpperCase();
+        const testGrade = (t.grade || '').replace(/\s+/g, '_').toUpperCase();
+        if (testGrade !== normalizedGrade) return false;
+      }
+      if (setup.selectedTerm) {
+        const normalizedTerm = setup.selectedTerm.toUpperCase().trim();
+        const testTerm = (t.term || '').toUpperCase().trim();
+        if (testTerm !== normalizedTerm) return false;
+      }
       return true;
     }),
     [tests, setup.selectedGrade, setup.selectedTerm]
   );
 
   const availableLearningAreas = useMemo(() => {
-    // Get grade's learning areas first, then filter by what's available in tests
-    const gradeAreas = learningAreasMgr.flatLearningAreas;
-    if (gradeAreas.length === 0) return [];
-    
-    // Filter to only areas that have tests
-    const testsInThisGrade = filteredTestsBySelection.map(t => t.learningArea).filter(Boolean);
-    return gradeAreas.filter(area => testsInThisGrade.includes(area) || testsInThisGrade.length === 0);
+    // 1. Get official learning areas for the grade
+    const officialAreas = learningAreasMgr.flatLearningAreas || [];
+
+    // 2. Extract unique learning areas from actual tests found for this selection
+    const testAreas = filteredTestsBySelection
+      .map(t => t.learningArea)
+      .filter(Boolean);
+
+    // 3. Merge them while preserving the original name from tests if there's a match
+    const mergedAreas = new Set([...officialAreas]);
+
+    // Add test areas if they aren't already represented (case-insensitive check)
+    testAreas.forEach(testArea => {
+      const exists = officialAreas.some(oa => oa.toLowerCase().trim() === testArea.toLowerCase().trim());
+      if (!exists) {
+        mergedAreas.add(testArea);
+      }
+    });
+
+    return Array.from(mergedAreas).sort((a, b) => a.localeCompare(b));
   }, [filteredTestsBySelection, learningAreasMgr.flatLearningAreas]);
 
   const finalTests = useMemo(() =>
     filteredTestsBySelection.filter(t => {
-      if (selectedLearningArea && t.learningArea !== selectedLearningArea) return false;
+      if (selectedLearningArea) {
+        const normalizedSelected = selectedLearningArea.toLowerCase().trim();
+        const testArea = (t.learningArea || '').toLowerCase().trim();
+        return testArea === normalizedSelected;
+      }
       return true;
     }),
     [filteredTestsBySelection, selectedLearningArea]
@@ -437,9 +463,9 @@ Test: ${testName}
 Assessed: ${assessmentProgress.assessed}/${assessmentProgress.total} students
 
 Are you sure you want to lock this test?`;
-    
+
     const userConfirmed = window.confirm(confirmMessage);
-    
+
     if (!userConfirmed) {
       return;
     }
@@ -474,9 +500,9 @@ Unlocking will allow marks to be modified again. Only proceed if you are authori
 Test: ${testName}
 
 Are you sure you want to unlock this test?`;
-    
+
     const userConfirmed = window.confirm(confirmMessage);
-    
+
     if (!userConfirmed) {
       return;
     }
@@ -504,7 +530,7 @@ Are you sure you want to unlock this test?`;
   const handlePrintReport = async (onProgress) => {
     try {
       setGeneratingPDF(true);
-      
+
       if (onProgress) onProgress('Preparing report...', 10);
 
       // Elements are already visible from the preview modal
@@ -554,7 +580,7 @@ Are you sure you want to unlock this test?`;
       } else {
         showError(`Failed to generate PDF: ${result.error}`);
       }
-      
+
       return result;
     } catch (error) {
       console.error('Print report error:', error);
@@ -600,7 +626,7 @@ Are you sure you want to unlock this test?`;
         confirmMessage += `New marks to save: ${Object.keys(currentMarksToSave).length} learner(s).\\n\\nAre you sure you want to overwrite these results?`;
 
         const userConfirmed = window.confirm(`${confirmTitle}\\n\\n${confirmMessage}`);
-        
+
         if (!userConfirmed) {
           setLoading(false);
           showError('Save cancelled - existing results were not overwritten');
@@ -821,13 +847,12 @@ Are you sure you want to unlock this test?`;
               <span className="text-sm text-gray-600 font-medium">
                 Progress: {assessmentProgress.assessed}/{assessmentProgress.total}
               </span>
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                assessmentProgress.percentage === 100
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${assessmentProgress.percentage === 100
                   ? 'bg-green-100 text-green-700'
                   : assessmentProgress.percentage >= 50
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-orange-100 text-orange-700'
-              }`}>
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-orange-100 text-orange-700'
+                }`}>
                 {assessmentProgress.percentage}%
               </span>
               {assessmentProgress.isComplete && (
@@ -900,7 +925,7 @@ Are you sure you want to unlock this test?`;
 
       {/* PDF Export Content Wrapper */}
       <div id="assessment-report-content" className="bg-white">
-        
+
         {/* PAGE 1: METRICS/STATISTICS PAGE (Print Only) */}
         <div className="print-only px-5" style={{ pageBreakAfter: 'always', pageBreakInside: 'avoid' }}>
           {/* Report Title */}
@@ -917,7 +942,7 @@ Are you sure you want to unlock this test?`;
           {/* Metrics Content */}
           {gradingScale && Object.keys(statistics.gradeDistribution).length > 0 ? (
             <div className="space-y-4">
-              
+
               {/* TOP SECTION: METRICS CARDS (6 cards - Single Line) */}
               <div className="grid grid-cols-6 gap-2 mb-4">
                 {/* Generate metric cards based on grade distribution */}
@@ -929,7 +954,7 @@ Are you sure you want to unlock this test?`;
                     const isGreen = idx % 2 === 0; // Alternate colors (green, blue, green, blue...)
                     const cardColor = isGreen ? '#10b981' : '#3b82f6'; // Green or Blue
                     const cardBgColor = isGreen ? '#ecfdf5' : '#eff6ff'; // Light green or light blue
-                    
+
                     return (
                       <div
                         key={grade}
@@ -944,12 +969,12 @@ Are you sure you want to unlock this test?`;
                         <div className="text-[10px] font-semibold text-gray-700 mb-1">
                           {grade}
                         </div>
-                        
+
                         {/* Count - Large Display */}
                         <div className="text-2xl font-bold mb-0.5" style={{ color: cardColor }}>
                           {count}
                         </div>
-                        
+
                         {/* Percentage */}
                         <div className="text-[9px] text-gray-600">
                           {((count / statistics.count) * 100).toFixed(1)}%
@@ -961,13 +986,13 @@ Are you sure you want to unlock this test?`;
 
               {/* MIDDLE SECTION: PIE CHART + LEGEND (Side by Side) */}
               <div className="grid grid-cols-2 gap-4">
-                
+
                 {/* ============ LEFT: PIE CHART ============ */}
                 <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200 shadow-sm">
                   <h3 className="text-lg font-bold text-center mb-3 text-[#1e3a8a]">
                     Grade Distribution
                   </h3>
-                  
+
                   {/* Pie Chart */}
                   <div className="flex justify-center items-center h-64">
                     <svg width="280" height="280" viewBox="0 0 200 200">
@@ -975,20 +1000,20 @@ Are you sure you want to unlock this test?`;
                     </svg>
                   </div>
                 </div>
-                
+
                 {/* ============ RIGHT: LEGEND + STATS ============ */}
                 <div className="space-y-3">
                   {/* Legend Header */}
                   <div className="bg-yellow-50 rounded-lg p-3 border-2 border-yellow-200">
                     <h3 className="text-sm font-bold text-yellow-900 mb-3">Performance Scale</h3>
-                    
+
                     {/* Grade Legend Items - Only Scale, No Metrics */}
                     <div className="space-y-2">
                       {Object.entries(statistics.gradeDistribution)
                         .sort(([, a], [, b]) => b - a)
                         .map(([grade, count]) => {
                           const gradeColor = getGradeColor(grade);
-                          
+
                           return (
                             <div key={grade} className="flex items-center gap-3">
                               <div
@@ -1003,7 +1028,7 @@ Are you sure you want to unlock this test?`;
                         })}
                     </div>
                   </div>
-                  
+
                   {/* Summary Statistics */}
                   <div className="bg-white rounded-lg p-3 border-2 border-gray-300 space-y-2">
                     <div className="flex justify-between items-center pb-2 border-b border-gray-200">
@@ -1040,17 +1065,17 @@ Are you sure you want to unlock this test?`;
 
         {/* PAGES 2+: STUDENT RESULTS TABLES (10 per page) */}
         {chunkedLearners.map((chunk, pageIndex) => (
-          <div 
-            key={pageIndex} 
-            className="px-5 print-only" 
-            style={{ 
+          <div
+            key={pageIndex}
+            className="px-5 print-only"
+            style={{
               pageBreakBefore: 'always',
               pageBreakAfter: pageIndex === chunkedLearners.length - 1 ? 'auto' : 'always',
               pageBreakInside: 'avoid'
             }}
           >
             {/* Letterhead / Page Header - Fixed at top with proper spacing */}
-            <div className="text-center" style={{ 
+            <div className="text-center" style={{
               paddingTop: '0.75rem',
               paddingBottom: '0.75rem',
               borderBottom: '3px solid #1e3a8a',
@@ -1070,7 +1095,7 @@ Are you sure you want to unlock this test?`;
             <div style={{ marginBottom: '1.5rem' }} />
 
             {/* Table Container with safe padding */}
-            <div className="overflow-hidden" style={{ 
+            <div className="overflow-hidden" style={{
               pageBreakInside: 'avoid',
               paddingLeft: '0.5rem',
               paddingRight: '0.5rem',
@@ -1110,7 +1135,7 @@ Are you sure you want to unlock this test?`;
                     );
                   })}
                 </tbody>
-                
+
                 {/* Summary row on LAST page only */}
                 {pageIndex === chunkedLearners.length - 1 && (
                   <tfoot className="bg-gray-100 border-t-2 border-gray-400">
@@ -1124,8 +1149,8 @@ Are you sure you want to unlock this test?`;
                         </div>
                       </td>
                       <td className="px-2 py-2 text-[10px] text-gray-700">
-                        Total: <span className="font-bold">{statistics.count}</span> | 
-                        Sum: <span className="font-bold">{statistics.sum.toFixed(2)}</span> | 
+                        Total: <span className="font-bold">{statistics.count}</span> |
+                        Sum: <span className="font-bold">{statistics.sum.toFixed(2)}</span> |
                         Range: <span className="font-bold">{statistics.min}-{statistics.max}</span>
                       </td>
                     </tr>
@@ -1133,7 +1158,7 @@ Are you sure you want to unlock this test?`;
                 )}
               </table>
             </div>
-            
+
             {/* Page number */}
             <div className="text-right text-xs text-gray-500 mt-2">
               Page {pageIndex + 2} of {chunkedLearners.length + 1}
@@ -1199,11 +1224,10 @@ Are you sure you want to unlock this test?`;
                             value={marks[learner.id] ?? ''}
                             onChange={(e) => handleMarkChange(learner.id, e.target.value)}
                             disabled={isTestLocked}
-                            className={`w-full px-2 py-1 border rounded focus:ring-2 focus:ring-blue-500 outline-none transition text-center font-semibold text-xs ${
-                              isTestLocked 
-                                ? 'bg-gray-100 border-gray-200 cursor-not-allowed text-gray-500' 
+                            className={`w-full px-2 py-1 border rounded focus:ring-2 focus:ring-blue-500 outline-none transition text-center font-semibold text-xs ${isTestLocked
+                                ? 'bg-gray-100 border-gray-200 cursor-not-allowed text-gray-500'
                                 : 'border-gray-300 bg-white'
-                            }`}
+                              }`}
                             placeholder="-"
                           />
                         )}
@@ -1251,7 +1275,7 @@ Are you sure you want to unlock this test?`;
 const PieChartWithLabels = ({ data }) => {
   const total = Object.values(data).reduce((sum, val) => sum + val, 0);
   let currentAngle = -90; // Start from top
-  
+
   return (
     <g>
       {/* Draw pie slices with percentage labels */}
@@ -1260,30 +1284,30 @@ const PieChartWithLabels = ({ data }) => {
         const angle = (percentage / 100) * 360;
         const startAngle = currentAngle;
         const endAngle = currentAngle + angle;
-        
+
         // Calculate slice path
         const startX = 100 + 85 * Math.cos((startAngle * Math.PI) / 180);
         const startY = 100 + 85 * Math.sin((startAngle * Math.PI) / 180);
         const endX = 100 + 85 * Math.cos((endAngle * Math.PI) / 180);
         const endY = 100 + 85 * Math.sin((endAngle * Math.PI) / 180);
-        
+
         const largeArcFlag = angle > 180 ? 1 : 0;
-        
+
         const pathData = [
           `M 100 100`,
           `L ${startX} ${startY}`,
           `A 85 85 0 ${largeArcFlag} 1 ${endX} ${endY}`,
           `Z`
         ].join(' ');
-        
+
         // Calculate label position (middle of slice)
         const middleAngle = (startAngle + endAngle) / 2;
         const labelRadius = 60; // Position labels mid-way in slice
         const labelX = 100 + labelRadius * Math.cos((middleAngle * Math.PI) / 180);
         const labelY = 100 + labelRadius * Math.sin((middleAngle * Math.PI) / 180);
-        
+
         currentAngle = endAngle;
-        
+
         return (
           <g key={grade}>
             {/* Pie Slice */}
@@ -1294,7 +1318,7 @@ const PieChartWithLabels = ({ data }) => {
               strokeWidth="2.5"
               opacity="0.95"
             />
-            
+
             {/* Percentage Label (show if >= 5%) */}
             {percentage >= 5 && (
               <>
@@ -1306,7 +1330,7 @@ const PieChartWithLabels = ({ data }) => {
                   fill="white"
                   opacity="0.9"
                 />
-                
+
                 {/* Percentage Text */}
                 <text
                   x={labelX}
@@ -1324,36 +1348,36 @@ const PieChartWithLabels = ({ data }) => {
           </g>
         );
       })}
-      
+
       {/* Center Circle with Total Count */}
-      <circle 
-        cx="100" 
-        cy="100" 
-        r="32" 
-        fill="white" 
-        stroke="#cbd5e1" 
+      <circle
+        cx="100"
+        cy="100"
+        r="32"
+        fill="white"
+        stroke="#cbd5e1"
         strokeWidth="3"
         filter="drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
       />
-      
+
       {/* Total Number */}
-      <text 
-        x="100" 
-        y="95" 
-        textAnchor="middle" 
-        fontSize="16" 
-        fontWeight="bold" 
+      <text
+        x="100"
+        y="95"
+        textAnchor="middle"
+        fontSize="16"
+        fontWeight="bold"
         fill="#1e293b"
       >
         {total}
       </text>
-      
+
       {/* "Students" Label */}
-      <text 
-        x="100" 
-        y="108" 
-        textAnchor="middle" 
-        fontSize="8" 
+      <text
+        x="100"
+        y="108"
+        textAnchor="middle"
+        fontSize="8"
         fill="#64748b"
         fontWeight="600"
       >
@@ -1367,7 +1391,7 @@ const PieChartWithLabels = ({ data }) => {
 const PieChart = ({ data }) => {
   const total = Object.values(data).reduce((sum, val) => sum + val, 0);
   let currentAngle = -90; // Start from top
-  
+
   return (
     <g>
       {Object.entries(data).map(([grade, count]) => {
@@ -1375,30 +1399,30 @@ const PieChart = ({ data }) => {
         const angle = (percentage / 100) * 360;
         const startAngle = currentAngle;
         const endAngle = currentAngle + angle;
-        
+
         // Calculate slice path
         const startX = 100 + 80 * Math.cos((startAngle * Math.PI) / 180);
         const startY = 100 + 80 * Math.sin((startAngle * Math.PI) / 180);
         const endX = 100 + 80 * Math.cos((endAngle * Math.PI) / 180);
         const endY = 100 + 80 * Math.sin((endAngle * Math.PI) / 180);
-        
+
         const largeArcFlag = angle > 180 ? 1 : 0;
-        
+
         const pathData = [
           `M 100 100`,
           `L ${startX} ${startY}`,
           `A 80 80 0 ${largeArcFlag} 1 ${endX} ${endY}`,
           `Z`
         ].join(' ');
-        
+
         // Calculate label position (middle of slice)
         const middleAngle = (startAngle + endAngle) / 2;
         const labelRadius = 55;
         const labelX = 100 + labelRadius * Math.cos((middleAngle * Math.PI) / 180);
         const labelY = 100 + labelRadius * Math.sin((middleAngle * Math.PI) / 180);
-        
+
         currentAngle = endAngle;
-        
+
         return (
           <g key={grade}>
             {/* Pie slice with proper CBC color */}
@@ -1408,7 +1432,7 @@ const PieChart = ({ data }) => {
               stroke="#ffffff"
               strokeWidth="2.5"
             />
-            
+
             {/* Percentage label ON the slice (only if >= 5%) */}
             {percentage >= 5 && (
               <>
@@ -1437,10 +1461,10 @@ const PieChart = ({ data }) => {
           </g>
         );
       })}
-      
+
       {/* Center white circle */}
       <circle cx="100" cy="100" r="32" fill="white" stroke="#e5e7eb" strokeWidth="2.5" />
-      
+
       {/* Total count in center */}
       <text x="100" y="95" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#1e293b">
         {total}

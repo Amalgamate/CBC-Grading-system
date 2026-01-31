@@ -15,7 +15,7 @@ import { ApiError } from '../utils/error.util';
 import * as rubricUtil from '../utils/rubric.util';
 import * as reportService from '../services/report.service';
 import * as reportUtil from '../utils/report.util';
-
+import pdfService from '../services/pdf.service';
 import { gradingService } from '../services/grading.service';
 
 // ============================================
@@ -65,17 +65,17 @@ export const getFormativeReport = async (req: AuthRequest, res: Response) => {
 
     // Phase 5: Tenant Scoping
     if (req.user?.schoolId) {
-        if (learner.schoolId !== req.user.schoolId) {
-            throw new ApiError(403, 'Unauthorized access to learner report');
-        }
-        if (req.user.branchId && learner.branchId !== req.user.branchId) {
-             throw new ApiError(403, 'Unauthorized access to learner report');
-        }
+      if (learner.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to learner report');
+      }
+      if (req.user.branchId && learner.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to learner report');
+      }
     }
 
     // Fetch grading system
-    const gradingSystem = learner.schoolId 
-      ? await gradingService.getGradingSystem(learner.schoolId, 'CBC') 
+    const gradingSystem = learner.schoolId
+      ? await gradingService.getGradingSystem(learner.schoolId, 'CBC')
       : null;
     const ranges = gradingSystem?.ranges;
 
@@ -100,8 +100,8 @@ export const getFormativeReport = async (req: AuthRequest, res: Response) => {
     });
 
     // Calculate summary statistics
-    const summary = calculateFormativeSummary(assessments); 
-    
+    const summary = calculateFormativeSummary(assessments);
+
     // Get class teacher comment (if exists)
     const teacherComment = await prisma.termlyReportComment.findUnique({
       where: {
@@ -135,10 +135,10 @@ export const getFormativeReport = async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     console.error('Error generating formative report:', error);
     if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({
-            success: false,
-            message: error.message
-        });
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
     }
     res.status(500).json({
       success: false,
@@ -193,17 +193,17 @@ export const getSummativeReport = async (req: AuthRequest, res: Response) => {
 
     // Phase 5: Tenant Scoping
     if (req.user?.schoolId) {
-        if (learner.schoolId !== req.user.schoolId) {
-            throw new ApiError(403, 'Unauthorized access to learner report');
-        }
-        if (req.user.branchId && learner.branchId !== req.user.branchId) {
-             throw new ApiError(403, 'Unauthorized access to learner report');
-        }
+      if (learner.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to learner report');
+      }
+      if (req.user.branchId && learner.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to learner report');
+      }
     }
 
     // Fetch grading system
-    const gradingSystem = learner.schoolId 
-      ? await gradingService.getGradingSystem(learner.schoolId, 'SUMMATIVE') 
+    const gradingSystem = learner.schoolId
+      ? await gradingService.getGradingSystem(learner.schoolId, 'SUMMATIVE')
       : null;
     const ranges = gradingSystem?.ranges;
 
@@ -246,7 +246,7 @@ export const getSummativeReport = async (req: AuthRequest, res: Response) => {
     // Calculate overall statistics
     const overallStats = {
       totalTests: results.length,
-      averagePercentage: results.length > 0 
+      averagePercentage: results.length > 0
         ? Math.round(results.reduce((sum, r) => sum + r.percentage, 0) / results.length)
         : 0,
       passRate: results.length > 0
@@ -271,10 +271,10 @@ export const getSummativeReport = async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     console.error('Error generating summative report:', error);
     if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({
-            success: false,
-            message: error.message
-        });
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
     }
     res.status(500).json({
       success: false,
@@ -309,25 +309,25 @@ export const getTermlyReport = async (req: AuthRequest, res: Response) => {
 
     // Check learner existence and tenant scoping first
     const learner = await prisma.learner.findUnique({
-        where: { id: learnerId },
-        select: { schoolId: true, branchId: true }
+      where: { id: learnerId },
+      select: { schoolId: true, branchId: true }
     });
 
     if (!learner) {
-        return res.status(404).json({
-            success: false,
-            message: 'Learner not found'
-        });
+      return res.status(404).json({
+        success: false,
+        message: 'Learner not found'
+      });
     }
 
     // Phase 5: Tenant Scoping
     if (req.user?.schoolId) {
-        if (learner.schoolId !== req.user.schoolId) {
-            throw new ApiError(403, 'Unauthorized access to learner report');
-        }
-        if (req.user.branchId && learner.branchId !== req.user.branchId) {
-             throw new ApiError(403, 'Unauthorized access to learner report');
-        }
+      if (learner.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to learner report');
+      }
+      if (req.user.branchId && learner.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to learner report');
+      }
     }
 
     // Validate term format
@@ -386,15 +386,15 @@ export const getTermlyReport = async (req: AuthRequest, res: Response) => {
 
   } catch (error: any) {
     console.error('Error generating termly report:', error);
-    
+
     // Handle specific error types
     if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({
-            success: false,
-            message: error.message
-        });
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
     }
-    
+
     if (error.message.includes('not found')) {
       return res.status(404).json({
         success: false,
@@ -452,12 +452,12 @@ export const getClassAnalytics = async (req: AuthRequest, res: Response) => {
 
     // Phase 5: Tenant Scoping
     if (req.user?.schoolId) {
-        if (classInfo.branch.schoolId !== req.user.schoolId) {
-            throw new ApiError(403, 'Unauthorized access to class analytics');
-        }
-        if (req.user.branchId && classInfo.branchId !== req.user.branchId) {
-             throw new ApiError(403, 'Unauthorized access to class analytics');
-        }
+      if (classInfo.branch.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to class analytics');
+      }
+      if (req.user.branchId && classInfo.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to class analytics');
+      }
     }
 
     // Get all learners in this class
@@ -509,12 +509,12 @@ export const getClassAnalytics = async (req: AuthRequest, res: Response) => {
         stream: classInfo.stream,
         totalLearners: classInfo.enrollments.length
       },
-      
+
       formative: analyzeFormativePerformance(formativeAssessments),
       summative: analyzeSummativePerformance(summativeResults),
-      
+
       trends: calculatePerformanceTrends(formativeAssessments, summativeResults),
-      
+
       recommendations: generateRecommendations(formativeAssessments, summativeResults)
     };
 
@@ -526,10 +526,10 @@ export const getClassAnalytics = async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     console.error('Error generating class analytics:', error);
     if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({
-            success: false,
-            message: error.message
-        });
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
     }
     res.status(500).json({
       success: false,
@@ -580,12 +580,12 @@ export const getLearnerAnalytics = async (req: AuthRequest, res: Response) => {
 
     // Phase 5: Tenant Scoping
     if (req.user?.schoolId) {
-        if (learner.schoolId !== req.user.schoolId) {
-            throw new ApiError(403, 'Unauthorized access to learner analytics');
-        }
-        if (req.user.branchId && learner.branchId !== req.user.branchId) {
-             throw new ApiError(403, 'Unauthorized access to learner analytics');
-        }
+      if (learner.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to learner analytics');
+      }
+      if (req.user.branchId && learner.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to learner analytics');
+      }
     }
 
     // Get all assessments across all terms for the year
@@ -629,7 +629,7 @@ export const getLearnerAnalytics = async (req: AuthRequest, res: Response) => {
     const progressAnalysis = {
       learner,
       academicYear: yearValue,
-      
+
       termlyProgress: {
         term1: {
           formative: calculateFormativeSummary(term1Formative),
@@ -644,15 +644,15 @@ export const getLearnerAnalytics = async (req: AuthRequest, res: Response) => {
           summative: calculateSubjectSummary(term3Summative)
         }
       },
-      
+
       trends: analyzeIndividualTrends(
         [term1Formative, term2Formative, term3Formative],
         [term1Summative, term2Summative, term3Summative]
       ),
-      
+
       strengths: identifyStrengths([...term1Formative, ...term2Formative, ...term3Formative]),
       weaknesses: identifyWeaknesses([...term1Summative, ...term2Summative, ...term3Summative]),
-      
+
       recommendations: generateLearnerRecommendations(
         [...term1Formative, ...term2Formative, ...term3Formative],
         [...term1Summative, ...term2Summative, ...term3Summative]
@@ -667,10 +667,10 @@ export const getLearnerAnalytics = async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     console.error('Error generating learner analytics:', error);
     if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({
-            success: false,
-            message: error.message
-        });
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
     }
     res.status(500).json({
       success: false,
@@ -729,7 +729,7 @@ function calculateSubjectSummary(results: any[], ranges?: any[]) {
 
   results.forEach(result => {
     const subject = result.test.learningArea;
-    
+
     if (!subjectMap.has(subject)) {
       subjectMap.set(subject, {
         subject,
@@ -754,7 +754,7 @@ function calculateSubjectSummary(results: any[], ranges?: any[]) {
     return {
       ...subject,
       averagePercentage: Math.round(avgPercentage),
-      averageGrade: ranges 
+      averageGrade: ranges
         ? gradingService.calculateGradeSync(avgPercentage, ranges)
         : calculateGradeFromPercentage(avgPercentage),
       testCount: subject.tests.length
@@ -783,7 +783,7 @@ function calculateGradeFromPercentage(percentage: number, ranges?: any[]): strin
 
 function analyzeFormativePerformance(assessments: any[]) {
   const byLearningArea = new Map<string, any[]>();
-  
+
   assessments.forEach(a => {
     if (!byLearningArea.has(a.learningArea)) {
       byLearningArea.set(a.learningArea, []);
@@ -795,7 +795,7 @@ function analyzeFormativePerformance(assessments: any[]) {
   byLearningArea.forEach((assessments, area) => {
     const avgPercentage = assessments.reduce((sum, a) => sum + (a.percentage || 0), 0) / assessments.length;
     const distribution: any = { EE: 0, ME: 0, AE: 0, BE: 0 };
-    
+
     assessments.forEach(a => {
       if (a.detailedRating) {
         if (a.detailedRating.startsWith('EE')) distribution.EE++;
@@ -818,7 +818,7 @@ function analyzeFormativePerformance(assessments: any[]) {
 
 function analyzeSummativePerformance(results: any[], ranges?: any[]) {
   const bySubject = new Map<string, any[]>();
-  
+
   results.forEach(r => {
     const subject = r.test.learningArea;
     if (!bySubject.has(subject)) {
@@ -831,11 +831,11 @@ function analyzeSummativePerformance(results: any[], ranges?: any[]) {
   bySubject.forEach((results, subject) => {
     const avgPercentage = results.reduce((sum, r) => sum + r.percentage, 0) / results.length;
     const gradeDistribution: any = { A: 0, B: 0, C: 0, D: 0, E: 0 };
-    
+
     // Note: gradeDistribution keys are hardcoded here, which might be an issue if dynamic grades don't match A-E.
     // However, for backward compatibility we keep it. Ideally this should be dynamic too.
     // For now, we assume dynamic grades map to SummativeGrade enum or we might miss some counts if they are different.
-    
+
     results.forEach(r => {
       gradeDistribution[r.grade] = (gradeDistribution[r.grade] || 0) + 1;
     });
@@ -858,7 +858,7 @@ function analyzeSummativePerformance(results: any[], ranges?: any[]) {
 function calculatePerformanceTrends(formative: any[], summative: any[]) {
   // Simple trend analysis
   return {
-    formativeAveragePercentage: formative.length > 0 
+    formativeAveragePercentage: formative.length > 0
       ? Math.round(formative.reduce((sum, a) => sum + (a.percentage || 0), 0) / formative.length)
       : 0,
     summativeAveragePercentage: summative.length > 0
@@ -871,10 +871,10 @@ function calculatePerformanceTrends(formative: any[], summative: any[]) {
 function generateRecommendations(formative: any[], summative: any[]) {
   const recommendations: string[] = [];
 
-  const formativeAvg = formative.length > 0 
+  const formativeAvg = formative.length > 0
     ? formative.reduce((sum, a) => sum + (a.percentage || 0), 0) / formative.length
     : 0;
-    
+
   const summativeAvg = summative.length > 0
     ? summative.reduce((sum, r) => sum + r.percentage, 0) / summative.length
     : 0;
@@ -882,7 +882,7 @@ function generateRecommendations(formative: any[], summative: any[]) {
   if (formativeAvg < 50) {
     recommendations.push('Consider additional formative assessment support and remedial classes');
   }
-  
+
   if (summativeAvg < 50) {
     recommendations.push('Focus on test-taking strategies and exam preparation');
   }
@@ -901,7 +901,7 @@ function analyzeIndividualTrends(formativeTerms: any[][], summativeTerms: any[][
     const formativeAvg = formativeTerms[i].length > 0
       ? formativeTerms[i].reduce((sum, a) => sum + (a.percentage || 0), 0) / formativeTerms[i].length
       : 0;
-      
+
     const summativeAvg = summativeTerms[i].length > 0
       ? summativeTerms[i].reduce((sum, r) => sum + r.percentage, 0) / summativeTerms[i].length
       : 0;
@@ -963,14 +963,14 @@ function generateLearnerRecommendations(formative: any[], summative: any[]) {
   const recommendations: string[] = [];
 
   const weakSubjects = identifyWeaknesses(summative);
-  
+
   if (weakSubjects.length > 0) {
     weakSubjects.forEach(w => {
       recommendations.push(`Focus on improving ${w.subject} through additional practice`);
     });
   }
 
-  const formativeAvg = formative.length > 0 
+  const formativeAvg = formative.length > 0
     ? formative.reduce((sum, a) => sum + (a.percentage || 0), 0) / formative.length
     : 0;
 
@@ -984,3 +984,35 @@ function generateLearnerRecommendations(formative: any[], summative: any[]) {
 
   return recommendations;
 }
+
+/**
+ * Generate PDF from HTML content
+ * POST /api/reports/generate-pdf
+ */
+export const generatePdf = async (req: Request, res: Response) => {
+  const { html, fileName, options } = req.body;
+
+  if (!html) {
+    return res.status(400).json({ error: 'HTML content is required' });
+  }
+
+  console.log(`📑 PDF Request: fileName=${fileName}, HTML size=${html.length} chars`);
+
+  try {
+    const pdfBuffer = await pdfService.generatePdf(html, options || {});
+
+    console.log(`✅ PDF Generated: ${pdfBuffer.length} bytes. Magic: ${pdfBuffer.slice(0, 5).toString()}`);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=${fileName || 'report.pdf'}`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+  } catch (error: any) {
+    console.error('❌ PDF Generation Error:', error);
+    res.status(500).json({
+      error: 'Failed to generate PDF',
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+};

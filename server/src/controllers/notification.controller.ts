@@ -317,6 +317,77 @@ export class NotificationController {
   }
 
   /**
+   * Send assessment report via SMS to parent
+   * POST /api/notifications/sms/assessment-report
+   */
+  async sendAssessmentReportSms(req: AuthRequest, res: Response) {
+    const {
+      learnerId,
+      learnerName,
+      learnerGrade,
+      parentPhone,
+      parentName,
+      term,
+      totalTests,
+      averageScore,
+      overallGrade,
+      totalMarks,
+      maxPossibleMarks,
+      subjects,
+    } = req.body;
+
+    // Validate required fields
+    if (!learnerId || !learnerName || !learnerGrade || !parentPhone || !term) {
+      throw new ApiError(400, 'Missing required fields: learnerId, learnerName, learnerGrade, parentPhone, term');
+    }
+
+    if (!totalTests || totalTests === 0) {
+      throw new ApiError(400, 'Cannot send report with no tests');
+    }
+
+    // Get user's school ID
+    const schoolId = req.user?.schoolId;
+    if (!schoolId) {
+      throw new ApiError(400, 'School ID not found');
+    }
+
+    // Import SmsService
+    const { SmsService } = await import('../services/sms.service');
+
+    // Send SMS
+    const result = await SmsService.sendAssessmentReport({
+      learnerId,
+      learnerName,
+      learnerGrade,
+      parentPhone,
+      parentName,
+      term,
+      totalTests,
+      averageScore,
+      overallGrade,
+      totalMarks,
+      maxPossibleMarks,
+      subjects,
+      schoolId,
+      sentByUserId: req.user?.userId,
+    });
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Assessment report SMS sent successfully',
+        data: {
+          sent: true,
+          recipient: parentPhone,
+          messageId: result.messageId,
+        },
+      });
+    } else {
+      throw new ApiError(500, result.error || 'Failed to send SMS');
+    }
+  }
+
+  /**
    * Test WhatsApp connection
    * POST /api/notifications/test
    */

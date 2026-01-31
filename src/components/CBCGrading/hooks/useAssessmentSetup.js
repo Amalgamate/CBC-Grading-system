@@ -6,6 +6,7 @@
 
 import { useState, useCallback } from 'react';
 import { TERMS } from '../../../constants/terms';
+import { GRADES } from '../../../constants/grades';
 import { getCurrentAcademicYear } from '../utils/academicYear';
 
 /**
@@ -29,7 +30,7 @@ export const useAssessmentSetup = (options = {}) => {
   const [selectedGrade, setSelectedGrade] = useState(defaultGrade);
   const [selectedStream, setSelectedStream] = useState(defaultStream);
   const [selectedTerm, setSelectedTerm] = useState(defaultTerm);
-  const [academicYear] = useState(getCurrentAcademicYear());
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState(getCurrentAcademicYear());
 
   // Reset all selections
   const resetSetup = useCallback(() => {
@@ -53,6 +54,11 @@ export const useAssessmentSetup = (options = {}) => {
     setSelectedTerm(term);
   }, []);
 
+  // Update academic year
+  const setAcademicYear = useCallback((year) => {
+    setSelectedAcademicYear(year);
+  }, []);
+
   // Check if setup is complete
   const isSetupComplete = useCallback(() => {
     return selectedGrade && selectedStream && selectedTerm;
@@ -63,21 +69,29 @@ export const useAssessmentSetup = (options = {}) => {
     grade: selectedGrade,
     stream: selectedStream,
     term: selectedTerm,
-    academicYear
-  }), [selectedGrade, selectedStream, selectedTerm, academicYear]);
+    academicYear: selectedAcademicYear
+  }), [selectedGrade, selectedStream, selectedTerm, selectedAcademicYear]);
 
   return {
     // State
     selectedGrade,
     selectedStream,
     selectedTerm,
-    academicYear,
+    academicYear: selectedAcademicYear,
+    grades: GRADES,
     terms: TERMS,
 
-    // Setters
+    // Setters (Standard Names)
     setSelectedGrade: updateGrade,
     setSelectedStream: updateStream,
     setSelectedTerm: updateTerm,
+    setSelectedAcademicYear: setAcademicYear,
+
+    // Aliases for compatibility with older code
+    updateGrade,
+    updateStream,
+    updateTerm,
+    updateAcademicYear: setAcademicYear,
 
     // Utilities
     resetSetup,

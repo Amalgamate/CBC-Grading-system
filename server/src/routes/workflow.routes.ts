@@ -139,4 +139,16 @@ router.post(
   workflowController.bulkLockTermAssessments
 );
 
+/**
+ * POST /api/workflow/bulk-approve
+ * Bulk approve assessments
+ * Body: { ids, assessmentType, comments }
+ * Requires appropriate role
+ */
+router.post(
+  '/bulk-approve',
+  canPerformWorkflowAction('approve'),
+  workflowController.bulkApproveAssessments
+);
+
 export default router;

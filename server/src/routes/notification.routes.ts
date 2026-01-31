@@ -63,6 +63,18 @@ router.post(
 );
 
 /**
+ * @route   POST /api/notifications/sms/assessment-report
+ * @desc    Send assessment report via SMS to parent
+ * @access  SUPER_ADMIN, ADMIN, HEAD_TEACHER, TEACHER
+ */
+router.post(
+  '/sms/assessment-report',
+  authenticate,
+  requirePermission('SEND_MESSAGES'),
+  asyncHandler(notificationController.sendAssessmentReportSms.bind(notificationController))
+);
+
+/**
  * @route   POST /api/notifications/test
  * @desc    Test WhatsApp connection
  * @access  SUPER_ADMIN, ADMIN
