@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, CheckCircle, Building2, ChevronRight, ChevronLeft } from 'lucide-react';
+import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, CheckCircle, Building2, ChevronRight, ChevronLeft, MapPin, Loader2, CheckCircle2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { API_BASE_URL } from '../../services/api';
 
 export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brandingSettings }) {
@@ -20,6 +21,8 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
     ward: '',
     termsAccepted: false
   });
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [locationEnabled, setLocationEnabled] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -143,6 +146,57 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleAutoLocation = async () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setIsDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          // Using Nominatim (OpenStreetMap) for free reverse geocoding
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+          );
+          const data = await response.json();
+
+          if (data.address) {
+            const addr = data.address;
+            // Map common fields. Counties in Kenya are often under 'county' or 'state'
+            const detectedCounty = addr.county || addr.state || '';
+            const detectedSubCounty = addr.suburb || addr.city_district || addr.town || '';
+            const detectedWard = addr.neighbourhood || addr.suburb || '';
+            const detectedAddress = data.display_name.split(',').slice(0, 3).join(',').trim();
+
+            setFormData(prev => ({
+              ...prev,
+              county: detectedCounty.replace(' County', '').trim(),
+              subCounty: detectedSubCounty,
+              ward: detectedWard,
+              address: detectedAddress
+            }));
+
+            toast.success('Location detected successfully!');
+            setLocationEnabled(true);
+          }
+        } catch (error) {
+          console.error('Location error:', error);
+          toast.error('Failed to resolve address. Please enter manually.');
+        } finally {
+          setIsDetectingLocation(false);
+        }
+      },
+      (error) => {
+        setIsDetectingLocation(false);
+        toast.error('Location access denied. Please enable it in your browser settings.');
+      },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    );
   };
 
   const handleNext = () => {
@@ -676,6 +730,28 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         <span>{errors.schoolType}</span>
                       </div>
                     )}
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${locationEnabled ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                        {isDetectingLocation ? <Loader2 size={20} className="animate-spin" /> : <MapPin size={20} />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">Auto-detect Location</p>
+                        <p className="text-xs text-gray-600">Fills County and Address automatically</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAutoLocation}
+                      disabled={isDetectingLocation}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${locationEnabled ? 'bg-blue-600' : 'bg-gray-200'}`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${locationEnabled ? 'translate-x-6' : 'translate-x-1'}`}
+                      />
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
