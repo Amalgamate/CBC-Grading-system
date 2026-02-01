@@ -44,7 +44,8 @@ const TENANT_SCOPED_MODELS = [
     'TermConfig',
     'AggregationConfig',
     'GradingSystem',
-    'AdmissionSequence'
+    'AdmissionSequence',
+    'LearningArea'
 ];
 
 /**
