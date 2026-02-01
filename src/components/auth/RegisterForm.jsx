@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, CheckCircle, Building2, ChevronRight, ChevronLeft, MapPin, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { API_BASE_URL } from '../../services/api';
+import { authAPI, onboardingAPI, API_BASE_URL } from '../../services/api';
 
 export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brandingSettings }) {
   const [currentStep, setCurrentStep] = useState(1);
@@ -240,21 +240,11 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
       console.log('📋 Request data:', requestBody);
 
-      // Call full onboarding registration endpoint
-      const response = await fetch(`${API_BASE_URL}/onboarding/register-full`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      console.log('📥 Response status:', response.status);
-
-      const data = await response.json();
+      // Call full onboarding registration endpoint using the API service which handles CSRF
+      const data = await onboardingAPI.registerFull(requestBody);
       console.log('📦 Response data:', data);
 
-      if (response.ok) {
+      if (data) {
         console.log('✅ Registration successful!');
 
         // Show success toast

@@ -254,6 +254,44 @@ export const authAPI = {
 
     return responseData;
   },
+
+  /**
+   * Get CSRF token
+   */
+  getCsrf: async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/csrf`);
+    if (!response.ok) throw new Error('Failed to fetch security token');
+    return response.json();
+  },
+};
+
+/**
+ * Onboarding Endpoints
+ */
+export const onboardingAPI = {
+  /**
+   * Full school registration
+   */
+  registerFull: async (data) => {
+    // Get CSRF token first
+    const { token: csrfToken } = await authAPI.getCsrf();
+
+    const response = await fetch(`${API_BASE_URL}/onboarding/register-full`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken,
+      },
+      body: JSON.stringify(data),
+    });
+
+    const responseData = await response.json();
+    if (!response.ok) {
+      throw new Error(responseData.message || responseData.error || 'Registration failed');
+    }
+
+    return responseData;
+  },
 };
 
 // ============================================
