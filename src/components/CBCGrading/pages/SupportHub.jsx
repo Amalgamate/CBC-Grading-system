@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { Book, Search, ChevronDown, ChevronRight, HelpCircle, FileText, Video, Mail, MessageSquare, Settings } from 'lucide-react';
 
-const HelpPage = () => {
+const SupportHub = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedSections, setExpandedSections] = useState({});
 
@@ -418,4 +418,4 @@ const HelpPage = () => {
   );
 };
 
-export default HelpPage;
+export default SupportHub;

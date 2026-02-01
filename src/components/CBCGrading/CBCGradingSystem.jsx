@@ -29,7 +29,7 @@ import PerformanceScale from './pages/PerformanceScale';
 import { API_BASE_URL } from '../../services/api';
 import NoticesPage from './pages/NoticesPage';
 import MessagesPage from './pages/MessagesPage';
-import HelpPage from './pages/HelpPage';
+import SupportHub from './pages/SupportHub';
 import TimetablePage from './pages/TimetablePage';
 import SchoolSettings from './pages/settings/SchoolSettings';
 import AcademicSettings from './pages/settings/AcademicSettings';
@@ -545,7 +545,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
 
       // Help Module
       case 'help':
-        return <HelpPage />;
+        return <SupportHub />;
 
       // Settings Module
       case 'settings-school':
