@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Mail, MessageSquare, CreditCard, Send, Save,
+  Mail, MessageSquare, Send, Save,
   TestTube, CheckCircle, XCircle, Loader, AlertTriangle
 } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications';
@@ -49,13 +49,7 @@ const CommunicationSettings = () => {
     enabled: false
   });
 
-  const [mpesaSettings, setMpesaSettings] = useState({
-    provider: 'intasend',
-    publicKey: '',
-    secretKey: '',
-    businessNumber: '',
-    enabled: false
-  });
+
 
 
 
@@ -132,17 +126,7 @@ const CommunicationSettings = () => {
             }
           }
 
-          // Update M-Pesa Settings
-          if (data.mpesa) {
-            setMpesaSettings(prev => ({
-              ...prev,
-              provider: data.mpesa.provider || 'intasend',
-              enabled: data.mpesa.enabled,
-              publicKey: data.mpesa.publicKey || '',
-              businessNumber: data.mpesa.businessNumber || '',
-              hasSecretKey: !!data.mpesa.hasSecretKey
-            }));
-          }
+
 
         }
       } catch (error) {
@@ -194,15 +178,7 @@ const CommunicationSettings = () => {
         };
       }
 
-      if (type === 'M-Pesa' || type === 'All') {
-        payload.mpesa = {
-          provider: mpesaSettings.provider,
-          enabled: mpesaSettings.enabled,
-          publicKey: mpesaSettings.publicKey,
-          businessNumber: mpesaSettings.businessNumber,
-          secretKey: mpesaSettings.secretKey || undefined
-        };
-      }
+
 
 
       await communicationAPI.saveConfig(payload);
@@ -269,7 +245,7 @@ const CommunicationSettings = () => {
       {/* Tabs */}
       <div className="bg-white rounded-xl shadow-md">
         <div className="border-b border-gray-200 flex overflow-x-auto">
-          {['email', 'sms', 'mpesa'].map((tab) => (
+          {['email', 'sms'].map((tab) => (
             <button
               key={tab}
               onClick={() => { setActiveTab(tab); setTestResult(null); }}
@@ -280,7 +256,6 @@ const CommunicationSettings = () => {
             >
               {tab === 'email' && <Mail size={20} />}
               {tab === 'sms' && <MessageSquare size={20} />}
-              {tab === 'mpesa' && <CreditCard size={20} />}
               <span className="whitespace-nowrap">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
             </button>
           ))}
@@ -290,12 +265,85 @@ const CommunicationSettings = () => {
       {/* EMAIL TAB */}
       {activeTab === 'email' && (
         <div className="space-y-6">
-          {/* ... Email UI (Simplified for brevity, can restore detailed UI if needed) ... */}
           <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-bold mb-6">Email Configuration</h3>
-            <div className="p-4 bg-yellow-50 text-yellow-800 rounded-lg mb-4 flex gap-2">
-              <AlertTriangle size={20} />
-              <p>Email configuration is currently managed via system environment variables. UI configuration coming soon.</p>
+            <h3 className="text-lg font-bold mb-6">Email Configuration (Resend)</h3>
+
+            {loading && !schoolId && <div className="text-center py-4"><Loader className="animate-spin inline" /> Loading config...</div>}
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-4 bg-blue-50 text-blue-800 rounded-lg mb-4">
+                <Mail size={20} />
+                <p className="text-sm">Configure your own Resend account to use custom domains and track your school's email delivery.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold mb-2">From Email Address</label>
+                  <input
+                    type="email"
+                    value={emailSettings.fromEmail}
+                    onChange={(e) => setEmailSettings({ ...emailSettings, fromEmail: e.target.value })}
+                    className="w-full px-4 py-2 border rounded-lg"
+                    placeholder="onboarding@resend.dev"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Default: onboarding@resend.dev (Resend Sandbox)</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">From Name</label>
+                  <input
+                    type="text"
+                    value={emailSettings.fromName}
+                    onChange={(e) => setEmailSettings({ ...emailSettings, fromName: e.target.value })}
+                    className="w-full px-4 py-2 border rounded-lg"
+                    placeholder="EDucore / Your School Name"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2">Resend API Key</label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    value={emailSettings.apiKey}
+                    onChange={(e) => setEmailSettings({ ...emailSettings, apiKey: e.target.value })}
+                    className="w-full px-4 py-2 border rounded-lg pr-24"
+                    placeholder={emailSettings.hasApiKey ? '••••••••••••••••' : 're_YourActualAPIKey...'}
+                  />
+                  {emailSettings.hasApiKey && !emailSettings.apiKey && (
+                    <span className="absolute right-3 top-2 text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
+                      Saved
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Enter your API key from <a href="https://resend.com/api-keys" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Resend Dashboard</a>.</p>
+              </div>
+
+              <div className="flex items-center gap-4 mt-6">
+                <div className="flex items-center gap-2">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={emailSettings.enabled}
+                      onChange={(e) => setEmailSettings({ ...emailSettings, enabled: e.target.checked })}
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <span className="ml-3 text-sm font-medium text-gray-700">Enable Email Notifications</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <button
+                  onClick={() => handleSave('Email')}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold disabled:opacity-50"
+                >
+                  {loading ? <Loader size={20} className="animate-spin" /> : <Save size={20} />}
+                  {loading ? 'Saving...' : 'Save Email Settings'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -502,13 +550,7 @@ const CommunicationSettings = () => {
         </div>
       )}
 
-      {/* M-PESA TAB */}
-      {activeTab === 'mpesa' && (
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-bold mb-6">M-Pesa Configuration</h3>
-          <p className="text-gray-500">M-Pesa settings implementation coming soon.</p>
-        </div>
-      )}
+
 
     </div>
   );

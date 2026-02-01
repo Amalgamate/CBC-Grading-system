@@ -9,6 +9,7 @@ import { AuthRequest } from '../middleware/permissions.middleware';
 import { configService } from '../services/config.service';
 import { calculationService } from '../services/calculation.service';
 import { Term, FormativeAssessmentType, Grade, AggregationStrategy } from '@prisma/client';
+import prisma from '../config/database';
 
 // ============================================
 // TERM CONFIGURATION ENDPOINTS
@@ -939,6 +940,138 @@ export const recalculateClassScores = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * POST /api/config/classes/seed
+ * Seed default classes for a school (all grades, Stream A)
+ */
+export const seedClasses = async (req: AuthRequest, res: Response) => {
+  try {
+    const schoolId = req.user?.schoolId;
+    
+    if (!schoolId) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'School ID is required' }
+      });
+    }
+
+    const GRADES = [
+      'CRECHE', 'PLAYGROUP', 'NURSERY', 'RECEPTION', 'TRANSITION',
+      'PP1', 'PP2', 'GRADE_1', 'GRADE_2', 'GRADE_3', 'GRADE_4', 'GRADE_5', 'GRADE_6',
+      'GRADE_7', 'GRADE_8', 'GRADE_9', 'GRADE_10', 'GRADE_11', 'GRADE_12'
+    ];
+
+    let created = 0;
+    let skipped = 0;
+
+    for (const grade of GRADES) {
+      try {
+        const existing = await prisma.class.findFirst({
+          where: { grade, schoolId, stream: 'A' }
+        });
+
+        if (existing) {
+          skipped++;
+          continue;
+        }
+
+        await prisma.class.create({
+          data: {
+            grade,
+            stream: 'A',
+            schoolId,
+            name: `${grade.replace('_', ' ')} A`,
+            capacity: 40,
+            academicYear: new Date().getFullYear()
+          }
+        });
+
+        created++;
+      } catch (err: any) {
+        if (!err.message.includes('Unique constraint')) {
+          console.error(`Error creating class for ${grade}:`, err.message);
+        }
+        skipped++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Classes seeded',
+      created,
+      skipped
+    });
+  } catch (error: any) {
+    console.error('Error seeding classes:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message }
+    });
+  }
+};
+
+/**
+ * POST /api/config/streams/seed
+ * Seed default streams for a school (A, B, C, D)
+ */
+export const seedStreams = async (req: AuthRequest, res: Response) => {
+  try {
+    const schoolId = req.user?.schoolId;
+    
+    if (!schoolId) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'School ID is required' }
+      });
+    }
+
+    const STREAMS = ['A', 'B', 'C', 'D'];
+    let created = 0;
+    let skipped = 0;
+
+    for (const stream of STREAMS) {
+      try {
+        const existing = await prisma.streamConfig.findFirst({
+          where: { stream, schoolId }
+        });
+
+        if (existing) {
+          skipped++;
+          continue;
+        }
+
+        await prisma.streamConfig.create({
+          data: {
+            stream,
+            schoolId,
+            active: true
+          }
+        });
+
+        created++;
+      } catch (err: any) {
+        if (!err.message.includes('Unique constraint')) {
+          console.error(`Error creating stream ${stream}:`, err.message);
+        }
+        skipped++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Streams seeded',
+      created,
+      skipped
+    });
+  } catch (error: any) {
+    console.error('Error seeding streams:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message }
+    });
+  }
+};
+
 // ============================================
 // EXPORT CONTROLLER
 // ============================================
@@ -974,5 +1107,9 @@ export const configController = {
   resetToDefaults,
   createDefaultAggregationConfigs,
   recalculateClassScores,
-  getGrades
+  getGrades,
+  
+  // Seeding
+  seedClasses,
+  seedStreams
 };

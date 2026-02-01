@@ -1,10 +1,13 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 import prisma from '../config/database';
-import { generateAccessToken, generateRefreshToken } from '../utils/jwt.util';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.util';
 import { ApiError } from '../utils/error.util';
 import { Role, canManageRole } from '../config/permissions';
 import { AuthRequest } from '../middleware/permissions.middleware';
+import { validatePassword, DEFAULT_PASSWORD_POLICY, PARENT_PASSWORD_POLICY, passwordsMatch } from '../utils/password.util';
+import { EmailService } from '../services/email-resend.service';
 
 export class AuthController {
   async register(req: AuthRequest, res: Response) {
@@ -22,7 +25,7 @@ export class AuthController {
     // If authenticated, check if user can create this role
     if (isAuthenticatedCreation) {
       const currentUserRole = req.user!.role;
-      
+
       if (!canManageRole(currentUserRole, requestedRole)) {
         throw new ApiError(403, `You cannot create users with role: ${requestedRole}`);
       }
@@ -45,13 +48,16 @@ export class AuthController {
       throw new ApiError(400, 'User already exists');
     }
 
-    // Validate password strength
-    if (password.length < 8) {
-      throw new ApiError(400, 'Password must be at least 8 characters long');
+    // Validate password strength using unified utility
+    const passwordPolicy = requestedRole === 'PARENT' ? PARENT_PASSWORD_POLICY : DEFAULT_PASSWORD_POLICY;
+    const passwordValidation = validatePassword(password, passwordPolicy);
+
+    if (!passwordValidation.valid) {
+      throw new ApiError(400, passwordValidation.errors.join(', '));
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     // Determine school and branch for new user
     let finalSchoolId = schoolId;
@@ -119,7 +125,7 @@ export class AuthController {
     }
 
     // Find user with school and branch info
-    const user = await prisma.user.findUnique({ 
+    const user = await prisma.user.findUnique({
       where: { email },
       include: {
         school: {
@@ -143,9 +149,32 @@ export class AuthController {
       throw new ApiError(401, 'Invalid credentials');
     }
 
+    // Check if account is locked
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const minutesLeft = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
+      throw new ApiError(403, `Account locked. Try again in ${minutesLeft} minutes`);
+    }
+
     // Check password
     const isValidPassword = await bcrypt.compare(password, user.password);
+
     if (!isValidPassword) {
+      // Increment failed login attempts
+      const newAttempts = (user.loginAttempts || 0) + 1;
+      const lockAccount = newAttempts >= 5;
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          loginAttempts: newAttempts,
+          lockedUntil: lockAccount ? new Date(Date.now() + 15 * 60 * 1000) : null, // Lock for 15 minutes
+        }
+      });
+
+      if (lockAccount) {
+        throw new ApiError(403, 'Too many failed login attempts. Account locked for 15 minutes');
+      }
+
       throw new ApiError(401, 'Invalid credentials');
     }
 
@@ -154,14 +183,15 @@ export class AuthController {
       throw new ApiError(403, 'Account is not active');
     }
 
-    // Tenant-first enforcement (Phase B):
-    // If login is initiated from a tenant-specific portal, ensure the user belongs to that tenant.
-    // SUPER_ADMIN is exempt (they can operate across schools).
-    if (tenantSchoolId && user.role !== 'SUPER_ADMIN') {
+    // Tenant-first enforcement:
+    // For non-SUPER_ADMIN users, validate school context
+    if (user.role !== 'SUPER_ADMIN') {
       if (!user.schoolId) {
         throw new ApiError(403, 'No school association found. Please contact support.');
       }
-      if (user.schoolId !== tenantSchoolId) {
+
+      // If tenantSchoolId is provided, validate it matches
+      if (tenantSchoolId && user.schoolId !== tenantSchoolId) {
         throw new ApiError(403, 'Wrong school portal for this account. Please use your school login link.');
       }
     }
@@ -170,10 +200,14 @@ export class AuthController {
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
-    // Update last login
+    // Update last login and reset failed attempts
     await prisma.user.update({
       where: { id: user.id },
-      data: { lastLogin: new Date() }
+      data: {
+        lastLogin: new Date(),
+        loginAttempts: 0,
+        lockedUntil: null,
+      }
     });
 
     // Remove password from response
@@ -185,6 +219,194 @@ export class AuthController {
       token: accessToken,
       refreshToken,
       message: 'Login successful'
+    });
+  }
+
+  async refresh(req: Request, res: Response) {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      throw new ApiError(400, 'Refresh token required');
+    }
+
+    try {
+      // Verify refresh token
+      const decoded = verifyRefreshToken(refreshToken);
+
+      // Get user from database
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+        include: {
+          school: {
+            select: {
+              id: true,
+              name: true,
+              logoUrl: true
+            }
+          },
+          branch: {
+            select: {
+              id: true,
+              name: true,
+              code: true
+            }
+          }
+        }
+      });
+
+      if (!user) {
+        throw new ApiError(401, 'User not found');
+      }
+
+      if (user.status !== 'ACTIVE') {
+        throw new ApiError(401, 'Account is not active');
+      }
+
+      // Generate new tokens
+      const newAccessToken = generateAccessToken(user);
+      const newRefreshToken = generateRefreshToken(user);
+
+      res.json({
+        success: true,
+        token: newAccessToken,
+        refreshToken: newRefreshToken,
+        message: 'Token refreshed successfully'
+      });
+    } catch (error) {
+      throw new ApiError(401, 'Invalid or expired refresh token');
+    }
+  }
+
+  async forgotPassword(req: Request, res: Response) {
+    const { email } = req.body;
+
+    if (!email) {
+      throw new ApiError(400, 'Email is required');
+    }
+
+    // Find user
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: {
+        school: {
+          select: { name: true }
+        }
+      }
+    });
+
+    // Don't reveal if email exists (security best practice)
+    if (!user) {
+      return res.json({
+        success: true,
+        message: 'If an account with that email exists, a password reset link has been sent'
+      });
+    }
+
+    // Generate reset token
+    const resetToken = randomUUID();
+    const resetExpiry = new Date(Date.now() + 3600000); // 1 hour
+
+    // Save reset token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetToken: resetToken,
+        passwordResetExpiry: resetExpiry
+      }
+    });
+
+    // Determine reset URL based on school
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const resetUrl = user.schoolId
+      ? `${frontendUrl}/t/${user.schoolId}/reset-password?token=${resetToken}`
+      : `${frontendUrl}/reset-password?token=${resetToken}`;
+
+    // Send password reset email
+    try {
+      await EmailService.sendPasswordReset({
+        to: user.email,
+        userName: `${user.firstName} ${user.lastName}`,
+        schoolName: user.school?.name || 'EDucore',
+        resetLink: resetUrl,
+        schoolId: user.schoolId || undefined
+      });
+
+      console.log(`📧 Password reset email sent to ${user.email}`);
+    } catch (error) {
+      console.error('Failed to send password reset email:', error);
+      // Don't throw error - we don't want to reveal if email failed
+    }
+
+    res.json({
+      success: true,
+      message: 'If an account with that email exists, a password reset link has been sent'
+    });
+  }
+
+  async resetPassword(req: Request, res: Response) {
+    const { token, newPassword, passwordConfirm } = req.body;
+
+    if (!token || !newPassword || !passwordConfirm) {
+      throw new ApiError(400, 'Missing required fields');
+    }
+
+    // Check if passwords match
+    if (!passwordsMatch(newPassword, passwordConfirm)) {
+      throw new ApiError(400, 'Passwords do not match');
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(newPassword, DEFAULT_PASSWORD_POLICY);
+    if (!passwordValidation.valid) {
+      throw new ApiError(400, passwordValidation.errors.join(', '));
+    }
+
+    // Find user with valid reset token
+    const user = await prisma.user.findFirst({
+      where: {
+        passwordResetToken: token,
+        passwordResetExpiry: { gt: new Date() }
+      }
+    });
+
+    if (!user) {
+      throw new ApiError(400, 'Invalid or expired reset token');
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    // Update password and clear reset token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        passwordResetToken: null,
+        passwordResetExpiry: null,
+        loginAttempts: 0, // Reset failed attempts
+        lockedUntil: null, // Unlock account if locked
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Password reset successful. You can now log in with your new password'
+    });
+  }
+
+  async logout(req: AuthRequest, res: Response) {
+    // In a stateless JWT system, logout is primarily client-side
+    // But we can log the event for audit purposes
+    const userId = req.user!.userId;
+
+    console.log(`👋 User ${userId} logged out at ${new Date().toISOString()}`);
+
+    // Optional: Implement token blacklist here if needed
+    // await redisClient.set(`blacklist:${token}`, '1', 'EX', 900); // 15 min
+
+    res.json({
+      success: true,
+      message: 'Logged out successfully'
     });
   }
 
@@ -244,7 +466,7 @@ export class AuthController {
     try {
       // TODO: Integrate with WhatsApp Business API or service like Twilio
       // For now, we'll just simulate sending
-      
+
       // Example with Twilio (uncomment when ready):
       // const accountSid = process.env.TWILIO_ACCOUNT_SID;
       // const authToken = process.env.TWILIO_AUTH_TOKEN;

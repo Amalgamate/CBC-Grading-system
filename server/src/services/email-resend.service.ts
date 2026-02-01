@@ -1,36 +1,63 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
+import prisma from '../config/database';
+import { decrypt } from '../utils/encryption.util';
 
 export interface WelcomeEmailData {
-  to: string;
-  schoolName: string;
-  adminName: string;
-  loginUrl: string;
+    to: string;
+    schoolName: string;
+    adminName: string;
+    loginUrl: string;
+    schoolId?: string;
 }
 
 export interface PasswordResetEmailData {
-  to: string;
-  userName: string;
-  schoolName: string;
-  resetLink: string;
+    to: string;
+    userName: string;
+    schoolName: string;
+    resetLink: string;
+    schoolId?: string;
 }
 
 export class EmailService {
-  private static transporter = nodemailer.createTransporter({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
+    private static resend: Resend;
+    private static defaultFrom = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 
-  static async sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
-    const { to, schoolName, adminName, loginUrl } = data;
+    private static getResendClient(apiKey?: string) {
+        return new Resend(apiKey || process.env.RESEND_API_KEY);
+    }
 
-    const brandColor = '#1e3a8a'; // Industry standard blue
+    private static async getSchoolConfig(schoolId?: string) {
+        if (!schoolId) return null;
 
-    const html = `
+        try {
+            const config = await prisma.communicationConfig.findUnique({
+                where: { schoolId }
+            });
+
+            if (config && config.emailEnabled && config.emailApiKey) {
+                return {
+                    apiKey: decrypt(config.emailApiKey),
+                    from: config.emailFrom || this.defaultFrom,
+                    fromName: config.emailFromName || 'EDucore'
+                };
+            }
+        } catch (error) {
+            console.error('Error fetching school email config:', error);
+        }
+        return null;
+    }
+
+    static async sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
+        const { to, schoolName, adminName, loginUrl, schoolId } = data;
+
+        const config = await this.getSchoolConfig(schoolId);
+        const client = this.getResendClient(config?.apiKey);
+        const fromEmail = config?.from || this.defaultFrom;
+        const fromName = config?.fromName || 'EDucore';
+
+        const brandColor = '#1e3a8a';
+
+        const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -38,7 +65,6 @@ export class EmailService {
           body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; }
           .header { text-align: center; margin-bottom: 30px; }
-          .logo { width: 80px; height: 80px; margin-bottom: 10px; }
           .content { background: #f9fafb; padding: 25px; border-radius: 8px; }
           .button { display: inline-block; padding: 12px 24px; background-color: ${brandColor}; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px; }
           .footer { margin-top: 30px; font-size: 0.875rem; color: #6b7280; text-align: center; }
@@ -47,7 +73,6 @@ export class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <img src="/logo-educore.png" alt="EDucore Logo" class="logo">
             <h1 style="color: ${brandColor};">Welcome to EDucore!</h1>
           </div>
           <div class="content">
@@ -63,33 +88,41 @@ export class EmailService {
           </div>
           <div class="footer">
             <p>&copy; ${new Date().getFullYear()} EDucore V1. All rights reserved.</p>
-            <p>You received this email because you signed up for an EDucore account.</p>
           </div>
         </div>
       </body>
       </html>
     `;
 
-    try {
-      await this.transporter.sendMail({
-        from: `"${schoolName} via EDucore" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
-        to,
-        subject: `Welcome to ${schoolName} on EDucore!`,
-        html,
-      });
-      console.log(`📧 Welcome email sent to ${to}`);
-    } catch (error) {
-      console.error('❌ Failed to send welcome email:', error);
-      // We don't throw here to avoid breaking the registration flow
+        try {
+            const response = await client.emails.send({
+                from: fromName ? `${fromName} <${fromEmail}>` : fromEmail,
+                to: [to],
+                subject: `Welcome to ${schoolName} on EDucore!`,
+                html,
+            });
+
+            if (response.error) {
+                throw new Error(response.error.message);
+            }
+
+            console.log(`📧 Welcome email sent to ${to} (ID: ${response.data?.id})`);
+        } catch (error) {
+            console.error('❌ Failed to send welcome email:', error);
+        }
     }
-  }
 
-  static async sendPasswordReset(data: PasswordResetEmailData): Promise<void> {
-    const { to, userName, schoolName, resetLink } = data;
+    static async sendPasswordReset(data: PasswordResetEmailData): Promise<void> {
+        const { to, userName, schoolName, resetLink, schoolId } = data;
 
-    const brandColor = '#1e3a8a';
+        const config = await this.getSchoolConfig(schoolId);
+        const client = this.getResendClient(config?.apiKey);
+        const fromEmail = config?.from || this.defaultFrom;
+        const fromName = config?.fromName || 'EDucore';
 
-    const html = `
+        const brandColor = '#1e3a8a';
+
+        const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -97,7 +130,6 @@ export class EmailService {
           body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; }
           .header { text-align: center; margin-bottom: 30px; }
-          .logo { width: 80px; height: 80px; margin-bottom: 10px; }
           .content { background: #f9fafb; padding: 25px; border-radius: 8px; }
           .button { display: inline-block; padding: 12px 24px; background-color: ${brandColor}; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px; }
           .footer { margin-top: 30px; font-size: 0.875rem; color: #6b7280; text-align: center; }
@@ -107,7 +139,6 @@ export class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <img src="/logo-educore.png" alt="EDucore Logo" class="logo">
             <h1 style="color: ${brandColor};">Password Reset Request</h1>
           </div>
           <div class="content">
@@ -131,24 +162,28 @@ export class EmailService {
           </div>
           <div class="footer">
             <p>&copy; ${new Date().getFullYear()} EDucore V1. All rights reserved.</p>
-            <p>This is an automated security email. Please do not reply.</p>
           </div>
         </div>
       </body>
       </html>
     `;
 
-    try {
-      await this.transporter.sendMail({
-        from: `"${schoolName} via EDucore" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
-        to,
-        subject: `Password Reset Request - ${schoolName}`,
-        html,
-      });
-      console.log(`📧 Password reset email sent to ${to}`);
-    } catch (error) {
-      console.error('❌ Failed to send password reset email:', error);
-      throw error; // We throw here because password reset is critical
+        try {
+            const response = await client.emails.send({
+                from: fromName ? `${fromName} <${fromEmail}>` : fromEmail,
+                to: [to],
+                subject: `Password Reset Request - ${schoolName}`,
+                html,
+            });
+
+            if (response.error) {
+                throw new Error(response.error.message);
+            }
+
+            console.log(`📧 Password reset email sent to ${to} (ID: ${response.data?.id})`);
+        } catch (error) {
+            console.error('❌ Failed to send password reset email:', error);
+            throw error;
+        }
     }
-  }
 }

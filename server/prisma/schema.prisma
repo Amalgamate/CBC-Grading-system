@@ -72,6 +72,13 @@ model User {
   
   lastLogin     DateTime?
   emailVerified Boolean     @default(false)
+  
+  // Security & Account Management
+  loginAttempts Int         @default(0)
+  lockedUntil   DateTime?
+  passwordResetToken String?
+  passwordResetExpiry DateTime?
+
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   
@@ -292,6 +299,7 @@ model School {
   summativeTests          SummativeTest[]
   summativeResults        SummativeResult[]
   feeStructures           FeeStructure[]
+  learningAreas           LearningArea[]        @relation("SchoolLearningAreas")
   
   @@map("schools")
   @@index([county])
@@ -1663,4 +1671,30 @@ model AssessmentSmsAudit {
   @@index([smsStatus])
   @@index([schoolId])
   @@map("assessment_sms_audits")
+}
+
+// ============================================
+// LEARNING AREAS & CURRICULUM
+// ============================================
+
+model LearningArea {
+  id            String      @id @default(uuid())
+  name          String      // Full name (e.g., "Mathematics", "English Language")
+  shortName     String?     // Abbreviated name
+  gradeLevel    String      // Grade level category (e.g., "Lower Primary", "Upper Primary")
+  icon          String      @default("📚")
+  color         String      @default("#3b82f6")
+  description   String?
+  
+  // School Association
+  schoolId      String?     // NULL = applies to all schools
+  school        School?     @relation("SchoolLearningAreas", fields: [schoolId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  @@unique([schoolId, name])
+  @@index([gradeLevel])
+  @@index([schoolId])
+  @@map("learning_areas")
 }

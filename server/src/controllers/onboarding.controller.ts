@@ -3,7 +3,7 @@ import prisma from '../config/database';
 import bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { gradingService } from '../services/grading.service';
-import { EmailService } from '../services/email.service';
+import { EmailService } from '../services/email-resend.service';
 import { SmsService } from '../services/sms.service';
 
 export class OnboardingController {
@@ -250,25 +250,31 @@ export class OnboardingController {
       console.log(`   - Streams: A, B, C, D created`);
       console.log(`   - Grading systems initialized`);
 
-      /* 
-      // 7. Trigger Welcome Notifications (outside transaction)
-      const loginUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      // 7. Trigger Welcome Notifications (ENABLED!)
+      const frontendUrl = process.env.FRONTEND_URL || 'https://educorev1.up.railway.app';
+      const loginUrl = `${frontendUrl}/t/${result.school.id}/login`;
 
-      // Send Welcome Email
+      // Send Welcome Email (async - don't block response)
       EmailService.sendWelcomeEmail({
         to: result.user.email,
         schoolName: result.school.name,
         adminName: `${result.user.firstName} ${result.user.lastName}`,
-        loginUrl: `${loginUrl}/auth/login`
-      }).catch(err => console.error('Failed to send welcome email:', err));
+        loginUrl,
+        schoolId: result.school.id
+      }).catch(err => {
+        console.error('❌ Failed to send welcome email:', err);
+      });
 
-      // Send Welcome SMS
-      SmsService.sendWelcomeSms(
-        result.school.id,
-        result.user.phone!,
-        result.school.name
-      ).catch(err => console.error('Failed to send welcome SMS:', err));
-      */
+      // Send Welcome SMS (async - don't block response)
+      if (result.user.phone) {
+        SmsService.sendWelcomeSms(
+          result.school.id,
+          result.user.phone,
+          result.school.name
+        ).catch(err => {
+          console.error('❌ Failed to send welcome SMS:', err);
+        });
+      }
 
       const { school, user, token, code } = result;
 

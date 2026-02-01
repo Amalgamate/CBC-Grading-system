@@ -14,6 +14,7 @@ import {
   GRADE_LEARNING_AREAS_MAP
 } from '../../../../constants/learningAreas';
 import { gradeStructure } from '../../data/gradeStructure';
+import HierarchicalLearningAreas from './HierarchicalLearningAreas';
 
 const AcademicSettings = () => {
   const { showSuccess, showError } = useNotifications();
@@ -80,6 +81,78 @@ const AcademicSettings = () => {
       setLoading(false);
     }
   }, [user?.school?.id, user?.schoolId]);
+
+  // Load Learning Areas from Database
+  const loadLearningAreas = React.useCallback(async () => {
+    try {
+      let sid = user?.school?.id || user?.schoolId;
+      if (!sid) {
+        try {
+          const me = await authAPI.me();
+          const u = me.data || me;
+          sid = u.schoolId || (u.school && u.school.id) || sid;
+        } catch { }
+      }
+      if (!sid) {
+        setLearningAreas([]);
+        return;
+      }
+
+      const areas = await configAPI.getLearningAreas(sid);
+      const areasArr = Array.isArray(areas) ? areas : (areas && areas.data) ? areas.data : [];
+      setLearningAreas(areasArr);
+    } catch (error) {
+      console.error('Failed to load learning areas:', error);
+      // Silently fail - don't show error for this non-critical feature
+      setLearningAreas([]);
+    }
+  }, [user?.school?.id, user?.schoolId]);
+
+  // Seed Learning Areas
+  const handleSeedLearningAreas = React.useCallback(async () => {
+    try {
+      setSeedingLearningAreas(true);
+      const result = await configAPI.seedLearningAreas();
+      showSuccess(`✅ Learning areas seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`);
+      await loadLearningAreas();
+    } catch (error) {
+      console.error('Error seeding learning areas:', error);
+      showError(error?.message || 'Failed to seed learning areas');
+    } finally {
+      setSeedingLearningAreas(false);
+    }
+  }, [loadLearningAreas, showSuccess, showError]);
+
+  // Seed Classes
+  const handleSeedClasses = React.useCallback(async () => {
+    try {
+      setSeedingClasses(true);
+      const result = await configAPI.seedClasses();
+      showSuccess(`✅ Classes seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`);
+      await loadConfigs();
+    } catch (error) {
+      console.error('Error seeding classes:', error);
+      showError(error?.message || 'Failed to seed classes');
+    } finally {
+      setSeedingClasses(false);
+    }
+  }, [loadConfigs, showSuccess, showError]);
+
+  // Seed Streams
+  const handleSeedStreams = React.useCallback(async () => {
+    try {
+      setSeedingStreams(true);
+      const result = await configAPI.seedStreams();
+      showSuccess(`✅ Streams seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`);
+      await loadConfigs();
+    } catch (error) {
+      console.error('Error seeding streams:', error);
+      showError(error?.message || 'Failed to seed streams');
+    } finally {
+      setSeedingStreams(false);
+    }
+  }, [loadConfigs, showSuccess, showError]);
+
   useEffect(() => {
     if (user?.school?.id || user?.schoolId) {
       loadConfigs();
@@ -93,20 +166,10 @@ const AcademicSettings = () => {
   }, [activeTab, loadConfigs]);
 
   useEffect(() => {
-    const sid = user?.school?.id || user?.schoolId;
-    if (!sid) {
-      setShowContextPrompt(true);
-      (async () => {
-        try {
-          const result = await schoolAPI.getAll();
-          const list = Array.isArray(result) ? result : (result.data || result.schools || []);
-          setSchools(list);
-        } catch {
-          setSchools([]);
-        }
-      })();
+    if (activeTab === 'learning-areas') {
+      loadLearningAreas();
     }
-  }, []);
+  }, [activeTab, loadLearningAreas]);
 
   useEffect(() => {
     if (selectedContextSchool) {
@@ -140,53 +203,8 @@ const AcademicSettings = () => {
   // State for manual academic year input if no terms exist
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  // Initialize learning areas from constants
-  const [learningAreas, setLearningAreas] = useState(() => {
-    const allAreas = getAllLearningAreas();
-    return allAreas.map((area, index) => {
-      // Determine default category/gradeLevel
-      let gradeLevel = 'Other';
-      for (const [grade, areas] of Object.entries(GRADE_LEARNING_AREAS_MAP)) {
-        if (areas.includes(area)) {
-          const struct = gradeStructure.find(g => g.code === grade || g.name === grade.replace('GRADE_', 'Grade '));
-          if (struct) {
-            gradeLevel = struct.learningArea;
-            break;
-          }
-        }
-      }
-
-      // Assign default colors based on level
-      const colors = {
-        'Early Years': '#ec4899',
-        'Pre-Primary': '#8b5cf6',
-        'Lower Primary': '#3b82f6',
-        'Upper Primary': '#10b981',
-        'Junior School': '#f59e0b',
-        'Senior School': '#f43f5e',
-        'Other': '#64748b'
-      };
-
-      const icons = {
-        'Early Years': '🧸',
-        'Pre-Primary': '🎨',
-        'Lower Primary': '📚',
-        'Upper Primary': '🧪',
-        'Junior School': '🧬',
-        'Senior School': '🎓',
-        'Other': '📖'
-      };
-
-      return {
-        id: index + 1,
-        name: area,
-        shortName: area.split(' ')[0],
-        gradeLevel,
-        color: colors[gradeLevel] || '#3b82f6',
-        icon: icons[gradeLevel] || '📚'
-      };
-    });
-  });
+  // Initialize learning areas from database
+  const [learningAreas, setLearningAreas] = useState([]);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAggModal, setShowAggModal] = useState(false); // Aggregation Modal
@@ -196,6 +214,11 @@ const AcademicSettings = () => {
   const [editingAgg, setEditingAgg] = useState(null); // Aggregation Edit
   const [editingStream, setEditingStream] = useState(null); // Stream Edit
   const [editingClass, setEditingClass] = useState(null); // Class Edit
+
+  // Seeding states
+  const [seedingLearningAreas, setSeedingLearningAreas] = useState(false);
+  const [seedingClasses, setSeedingClasses] = useState(false);
+  const [seedingStreams, setSeedingStreams] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -786,73 +809,56 @@ const AcademicSettings = () => {
       {activeTab === 'learning-areas' && (
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold">Manage Learning Areas</h3>
-            <button
-              onClick={() => handleOpenModal()}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
-            >
-              <Plus size={18} />
-              Add Learning Area
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {learningAreas.map((area) => (
-              <div
-                key={area.id}
-                className="border-2 rounded-lg p-4 hover:shadow-md transition"
-                style={{ borderColor: area.color }}
+            <div>
+              <h3 className="text-lg font-bold">Manage Learning Areas & Strands</h3>
+              <p className="text-sm text-gray-600 mt-1">Organized by grade level with curriculum strands</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSeedLearningAreas}
+                disabled={seedingLearningAreas}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Seed default learning areas for all grades"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{area.icon}</span>
-                    <div>
-                      <h4 className="font-bold text-gray-800">{area.shortName}</h4>
-                      <p className="text-xs text-gray-500">{area.gradeLevel}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => handleOpenModal(area)}
-                      className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition"
-                      title="Edit"
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (window.confirm(`Delete ${area.name}?`)) {
-                          setLearningAreas(learningAreas.filter(a => a.id !== area.id));
-                          showSuccess('Learning area deleted');
-                        }
-                      }}
-                      className="p-1.5 text-red-600 hover:bg-red-50 rounded transition"
-                      title="Delete"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mb-2">{area.name}</p>
-                <div
-                  className="h-2 rounded-full"
-                  style={{ backgroundColor: area.color }}
-                ></div>
-              </div>
-            ))}
+                {seedingLearningAreas ? '⏳ Seeding...' : '🌱 Seed Areas'}
+              </button>
+              <button
+                onClick={() => handleOpenModal()}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+              >
+                <Plus size={18} />
+                Add Learning Area
+              </button>
+            </div>
           </div>
 
-          {learningAreas.length === 0 && (
+          {learningAreas.length === 0 ? (
             <div className="text-center py-12">
               <BookOpen className="mx-auto text-gray-400 mb-3" size={48} />
               <p className="text-gray-600">No learning areas added yet</p>
               <button
-                onClick={() => setShowAddModal(true)}
+                onClick={() => handleOpenModal()}
                 className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
               >
                 Add Your First Learning Area
               </button>
             </div>
+          ) : (
+            <HierarchicalLearningAreas
+              learningAreas={learningAreas}
+              gradeStructure={gradeStructure}
+              onEdit={(area) => handleOpenModal(area)}
+              onDelete={(area) => {
+                if (window.confirm(`Delete ${area.name}?`)) {
+                  setLearningAreas(learningAreas.filter(a => a.id !== area.id));
+                  showSuccess('Learning area deleted');
+                }
+              }}
+              onAddStrand={(area, strand) => {
+                // Placeholder for future strand assessment creation
+                console.log(`Add strand assessment for ${area.name} - ${strand}`);
+              }}
+            />
           )}
         </div>
       )}
@@ -863,13 +869,23 @@ const AcademicSettings = () => {
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold">Manage Classes</h3>
-            <button
-              onClick={() => openClassModal()}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
-            >
-              <Plus size={18} />
-              Add Class
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSeedClasses}
+                disabled={seedingClasses}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Seed default classes for all grades"
+              >
+                {seedingClasses ? '⏳ Seeding...' : '🌱 Seed Classes'}
+              </button>
+              <button
+                onClick={() => openClassModal()}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+              >
+                <Plus size={18} />
+                Add Class
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -929,13 +945,23 @@ const AcademicSettings = () => {
                 Current School: {user?.school?.name || 'Unknown'} ({user?.school?.id || user?.schoolId || '—'})
               </div>
             </div>
-            <button
-              onClick={() => openStreamModal()}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
-            >
-              <Plus size={18} />
-              Add Stream
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSeedStreams}
+                disabled={seedingStreams}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Seed default streams (A, B, C, D)"
+              >
+                {seedingStreams ? '⏳ Seeding...' : '🌱 Seed Streams'}
+              </button>
+              <button
+                onClick={() => openStreamModal()}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+              >
+                <Plus size={18} />
+                Add Stream
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">

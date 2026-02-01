@@ -37,6 +37,7 @@ import UserManagement from './pages/settings/UserManagement';
 import BrandingSettings from './pages/settings/BrandingSettings';
 import BackupSettings from './pages/settings/BackupSettings';
 import CommunicationSettings from './pages/settings/CommunicationSettings';
+import PaymentSettings from './pages/settings/PaymentSettings';
 import FeeCollectionPage from './pages/FeeCollectionPage';
 import FeeStructurePage from './pages/FeeStructurePage';
 import FeeReportsPage from './pages/FeeReportsPage';
@@ -560,6 +561,8 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
         return <BackupSettings />;
       case 'settings-communication':
         return <CommunicationSettings />;
+      case 'settings-payment':
+        return <PaymentSettings />;
 
       default:
         return (

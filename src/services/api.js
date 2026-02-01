@@ -418,6 +418,76 @@ export const configAPI = {
       method: 'DELETE',
     });
   },
+
+  /**
+   * Get Learning Areas for a school
+   */
+  getLearningAreas: async (schoolId) => {
+    return fetchWithAuth(`/learning-areas?schoolId=${schoolId}`);
+  },
+
+  /**
+   * Get a specific learning area
+   */
+  getLearningArea: async (id) => {
+    return fetchWithAuth(`/learning-areas/${id}`);
+  },
+
+  /**
+   * Create a learning area
+   */
+  createLearningArea: async (data) => {
+    return fetchWithAuth('/learning-areas', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Update a learning area
+   */
+  updateLearningArea: async (id, data) => {
+    return fetchWithAuth(`/learning-areas/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete a learning area
+   */
+  deleteLearningArea: async (id) => {
+    return fetchWithAuth(`/learning-areas/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Seed default learning areas
+   */
+  seedLearningAreas: async () => {
+    return fetchWithAuth('/learning-areas/seed/default', {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Seed default classes
+   */
+  seedClasses: async () => {
+    return fetchWithAuth('/config/classes/seed', {
+      method: 'POST',
+    });
+  },
+
+  /**
+   * Seed default streams
+   */
+  seedStreams: async () => {
+    return fetchWithAuth('/config/streams/seed', {
+      method: 'POST',
+    });
+  },
 };
 
 // ============================================

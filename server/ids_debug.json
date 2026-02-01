@@ -1,0 +1,1229 @@
+{
+  "schools": [
+    {
+      "id": "5ae0d30a-7b9d-4854-b269-80aba38cff2f",
+      "name": "EDucore Template"
+    },
+    {
+      "id": "8f931b7b-d033-4a51-a651-62da8183d6ad",
+      "name": "Zaawadi JR Academy"
+    }
+  ],
+  "users": [
+    {
+      "id": "f4b69442-3d9f-4973-9441-cf4a43e4c4f7",
+      "email": "headteacher@local.test",
+      "schoolId": "5ae0d30a-7b9d-4854-b269-80aba38cff2f"
+    },
+    {
+      "id": "bc9a9ff4-a525-4b83-8109-631035dff411",
+      "email": "teacher@local.test",
+      "schoolId": "5ae0d30a-7b9d-4854-b269-80aba38cff2f"
+    },
+    {
+      "id": "ab279915-6893-4e64-bece-c8069bbaa966",
+      "email": "parent@local.test",
+      "schoolId": "5ae0d30a-7b9d-4854-b269-80aba38cff2f"
+    },
+    {
+      "id": "4a40d6f6-c483-40de-8208-98bc807c9c0d",
+      "email": "accountant@local.test",
+      "schoolId": "5ae0d30a-7b9d-4854-b269-80aba38cff2f"
+    },
+    {
+      "id": "13c74346-e1cd-4eb7-ab3f-308a208aca95",
+      "email": "receptionist@local.test",
+      "schoolId": "5ae0d30a-7b9d-4854-b269-80aba38cff2f"
+    },
+    {
+      "id": "0013d703-7f71-4c94-b61c-4ba560b5ec52",
+      "email": "parent.0797357458@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "5ca31aa8-4d0d-4a45-9dfa-4914f6057b93",
+      "email": "parent.712268848@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "8c4a8719-2ee2-4d52-a663-aed2025bbea2",
+      "email": "parent.714471713@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "5ed5ebae-5b4f-4ef6-b74d-86c388569ddd",
+      "email": "parent.701707648@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "a50e49ff-84be-4e77-b500-e400f4992922",
+      "email": "parent.724691974@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "43562edd-7b92-4b2b-ade2-4c24bcbb48d1",
+      "email": "admin@local.test",
+      "schoolId": "5ae0d30a-7b9d-4854-b269-80aba38cff2f"
+    },
+    {
+      "id": "76fc7ebf-b902-45c0-9b67-d1910b95cd3d",
+      "email": "superadmin@local.test",
+      "schoolId": null
+    },
+    {
+      "id": "b709f44a-707f-42a2-9940-17cdeffdb10d",
+      "email": "parent.745535509@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "045aad1e-4348-4240-b865-605732765325",
+      "email": "parent.0724389873@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "e277a482-b5bd-4f03-9bef-2c4dd811f3bf",
+      "email": "parent.728143291@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "f135cfd3-93ab-45dd-9ef1-3c56fc2634bc",
+      "email": "parent.718990888@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "9874d129-d479-4953-a7b2-3aec79e90c08",
+      "email": "parent.725886471@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "3917ae0e-21a8-43d2-b2cf-e3c021c0cfcf",
+      "email": "parent.757964886@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "7b0e2812-7de7-4311-aa55-d36dc453e1f6",
+      "email": "parent.720561618@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "bb4014d0-d96c-4538-92d5-1f2d24b01892",
+      "email": "parent.727732380@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "d9cea569-baf0-4e48-a084-779db14b8062",
+      "email": "parent.712046251@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "00eac220-4c38-4859-b0af-6b03a518751a",
+      "email": "parent.718830038@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "c52dc8c6-a681-4fb3-92cb-a2473209a67c",
+      "email": "parent.796381908@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "bf9e31dc-538f-4fa1-a1d6-cd7a85a54016",
+      "email": "parent.723594774@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "17e537ae-5183-42de-af0e-14f04c1171bb",
+      "email": "parent.723915042@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "d6f7bdb7-4113-484b-95ee-9cd3c5879c93",
+      "email": "parent.745515604@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "c95757b6-1a22-4255-ad2c-3881c09017c1",
+      "email": "parent.724465817@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "b0d4e313-4a46-4d7d-a5f0-6e71b6330815",
+      "email": "parent.759941105@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "63a3c10d-c6e1-40fa-a932-d6cbdb8be7dd",
+      "email": "parent.722362063@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "9c21afb8-b21e-4475-bcb1-a330170877ea",
+      "email": "parent.721568882@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "cfa3c0e8-6cc4-4d17-84b2-397b5800692a",
+      "email": "parent.713560647@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "f2739de8-7482-4233-a3cb-2c37912aee5c",
+      "email": "parent.719462579@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "8e99e05d-90e0-4d12-a55e-5450373ca327",
+      "email": "parent.759240478@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "50c291be-aea7-4313-9037-93290c76f2d3",
+      "email": "parent.728823434@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "7bfeec37-3aec-411f-9484-d8547469bf16",
+      "email": "parent.703535092@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "5b33bd54-59a0-4ccc-8172-ae96a4d814ef",
+      "email": "parent.729329639@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "8d3aa534-2c99-4a0f-b0f3-a97418a44207",
+      "email": "parent.713281404@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "c26adaf8-7df3-48a6-a252-4e2e46ef36be",
+      "email": "parent.715793301@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "fc40a5ee-7fc0-4f4e-99b7-bc040140e8fb",
+      "email": "parent.794024094@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "0eec265c-bca2-4cd4-a4b9-a43b1d99453f",
+      "email": "parent.704458269@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "f89b5b11-0193-487b-90af-42081ac502a5",
+      "email": "parent.723309134@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "b927df3d-f4dd-4aa4-9a8c-2181dc68299f",
+      "email": "parent.768590672@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "1c2f3e87-4077-4290-9e5f-900fd213726b",
+      "email": "parent.721616024@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "cacfaaaf-f319-4872-84cc-4a61b7e9afb4",
+      "email": "parent.727480234@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "341ce0d6-e8ee-435c-8b19-1f962042be7e",
+      "email": "parent.790092928@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "7f3325e4-780e-4f04-af9a-6d3b08e53a11",
+      "email": "parent.708377066@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "7b3e70cd-b8cf-49ec-a652-f284765b22f5",
+      "email": "parent.729216166@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "418ae188-5736-453a-a073-f5c9b8f68810",
+      "email": "parent.729940326@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "6fdc9ec1-8d87-4763-855b-9f81b7a22500",
+      "email": "parent.704254454@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "902af59e-bb40-4dec-af63-5872660a70cb",
+      "email": "parent.724441866@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "8033831a-c963-44f5-b5c2-f53ef5b643d5",
+      "email": "parent.713229185@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "22f5299c-dee4-4eca-ae29-f0df408daba0",
+      "email": "parent.722624575@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "0b72a922-5fc8-4e58-98d0-791195fcc7f9",
+      "email": "parent.721763782@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "464b38d7-dfa1-4c22-8c1d-e43244048423",
+      "email": "parent.768138049@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "17adf5e1-c8aa-4bc1-90ea-ca4d7ae4db12",
+      "email": "parent.722360329@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "484fb995-3054-45fe-a9ed-6c1e1cb4a2e3",
+      "email": "parent.742016501@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "3ec9bc04-52b6-458d-ad15-9c063cdce849",
+      "email": "parent.726969847@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "f81f8de6-c05c-4fba-bbbc-26b7395f6444",
+      "email": "parent.727462151@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "1d869d83-5f12-4a4d-bfea-46c7a4e37a58",
+      "email": "parent.725426100@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "d72cacea-52aa-4c11-afaa-8298d631a403",
+      "email": "parent.716574346@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "342e1748-440c-441a-856d-6028c66a282f",
+      "email": "parent.721434406@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "e0896bd1-cdac-4e8c-b0d5-bc97e124fda6",
+      "email": "parent.716882782@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "8950e0fb-048d-4b39-81aa-27a9d285eb51",
+      "email": "parent.706403485@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "f1b3da34-fd46-46d1-8af8-4f0421d3b572",
+      "email": "parent.796481863@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "e873bb3a-e337-4a56-a6e5-5101089a4a28",
+      "email": "parent.723577112@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "f71c542c-2569-4d7b-986a-3ac45b8ddbf2",
+      "email": "parent.724311957@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "f8a07748-458c-4c35-87b9-9533460cfa0c",
+      "email": "parent.700649221@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "fa2b4f3f-3aed-4815-872e-cb27c963969b",
+      "email": "parent.723649015@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "8121004e-9a58-406e-87f5-3c702f832da5",
+      "email": "parent.718977038@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "123c80b0-06b0-41a0-9dfe-ad5c9203621b",
+      "email": "parent.740584506@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "646dac67-9e1a-47e1-be6d-4174120306c8",
+      "email": "parent.701474080@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "9129c0e7-bac0-4492-af0a-bbc4d8ea3d46",
+      "email": "parent.722929440@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "82ca2b3b-1df6-475f-a9dc-e54b145092c8",
+      "email": "parent.706762884@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "893b9279-9720-4406-aa5f-88d07a083167",
+      "email": "parent.722499659@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "18ec4a20-6262-4440-8172-fb8b58df1665",
+      "email": "parent.725786297@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "84fb0d63-1d5e-4390-b399-ed597a019f81",
+      "email": "parent.712571296@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "e35868e4-c5c0-43b7-b2f7-680c144ebda2",
+      "email": "parent.716159625@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "2e0df35d-58c9-44d4-8756-31bbc5c84ade",
+      "email": "parent.711117940@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "81b36321-d6b0-4784-b3de-011fc3246125",
+      "email": "parent.0713682304@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "e2ed625c-16ef-4466-9eb3-f6fa5cc755f1",
+      "email": "parent.783739220@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "b2360150-3b5c-4022-99f5-9c79d4e7bf6c",
+      "email": "parent.710185241@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "20218910-642d-46d5-b947-5347777cf1a8",
+      "email": "parent.720968962@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "85c3d15f-a011-4c65-b12f-4c4bb973aac3",
+      "email": "parent.727846683@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "90480b78-775a-440e-a413-89605b455c39",
+      "email": "parent.729989119@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "be4e7d71-768e-4bc6-a783-66643cc787c1",
+      "email": "parent.728157158@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "e5d06527-2dda-4407-bbc9-e4f94725edb0",
+      "email": "parent.721166440@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "400363e8-fdf4-462d-a265-e28ee30b6513",
+      "email": "parent.723451916@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "2688942d-6036-418e-9e62-8a27c20a63fb",
+      "email": "parent.723792346@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "80f071fb-c7f0-4f03-989a-4a6138f752a7",
+      "email": "parent.722164158@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "79b00063-7535-4e5a-9d0e-e232c900cd92",
+      "email": "parent.729509024@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "b000e927-4da2-40ee-9804-529d0b6935c8",
+      "email": "parent.720949094@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "464939cd-415e-4644-96e2-a2da478d571d",
+      "email": "parent.725016982@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "80563705-ef4e-487c-a8ee-04c9042cf51c",
+      "email": "parent.702871533@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "033ef1ae-c774-4b2f-b71f-0ce7fd5e2dab",
+      "email": "parent.727830497@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "f67ea204-73f0-4756-a7cc-bb5d564b5b65",
+      "email": "parent.722493910@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "b7056078-8050-4bc2-ae95-c7d702ee4608",
+      "email": "parent.721519062@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "ba92984f-bcf0-4692-8587-7cb4982ca840",
+      "email": "parent.721520413@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "91a96fe5-dfb6-42c5-8cdb-a294c78ed858",
+      "email": "parent.724389873@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "0a2daa07-44ec-4eac-a39d-e9f1cb0a1184",
+      "email": "parent.722503890@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "7478dfa2-de41-4f7d-accd-972cf14f61bb",
+      "email": "parent.725986026@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "2377f699-9518-4e71-bf73-17e7b6d7e402",
+      "email": "parent.723432975@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "a3445236-eb8c-460e-b9a0-fc6563d0b46a",
+      "email": "parent.723787015@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "f790230b-5094-40c3-a433-2fbd3d8ae767",
+      "email": "parent.722261836@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "4e5963ae-7b3e-45b5-b624-7269ed30feae",
+      "email": "parent.736139378@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "69f37907-2923-455a-a5f8-32f4d1183ec0",
+      "email": "parent.714312334@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "e6b3f004-e84f-447b-b072-c50cb0127f7c",
+      "email": "parent.708843495@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "9ffff2e2-1599-4cd0-84f8-65c21cf33a8c",
+      "email": "parent.714828051@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "5f35bb5e-13e2-4ed2-822b-1a78c82d8783",
+      "email": "parent.723445812@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "721b49c4-5e56-45a3-b749-8e59d6fd0dee",
+      "email": "parent.703380922@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "90d7128d-bea3-4564-b8a5-0c459ecbd8d1",
+      "email": "parent.740798840@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "98c799a4-c779-4742-9ddb-771922c3aff6",
+      "email": "parent.729878582@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "39b2d284-1dd4-4d01-9186-0e39c2011caa",
+      "email": "parent.707851119@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "0d70076d-37a8-448e-985b-196112af3a1c",
+      "email": "parent.798491307@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "9e1fe735-5d27-4604-a5e3-a74338c3202e",
+      "email": "parent.711455268@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "af1cd3b9-ecb4-4aac-b630-d8e98f0d9158",
+      "email": "parent.711114830@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "6d3e6506-8132-4000-a71d-623e0cd34ff6",
+      "email": "parent.725676401@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "85eec4b0-b2e2-48c4-9702-3c9de16d59a5",
+      "email": "parent.718717199@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "c35e5d5d-ff27-4f7f-a4df-312889634657",
+      "email": "parent.712723065@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "cbd3c900-de2c-44df-9401-6d732c41a517",
+      "email": "parent.790299999@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "9a800774-4330-40e4-bc00-3a1d6d68613b",
+      "email": "parent.715004379@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "442276f9-359f-4065-8d3e-6f6b450e7de4",
+      "email": "parent.720570724@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "b8831b15-c198-433e-8c07-2b5004479dfb",
+      "email": "parent.722574745@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "56f3fa81-22b8-49e9-9a0e-a081b9664e9e",
+      "email": "parent.712024757@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "7b71fd6c-fd35-4627-9298-1ccddc242aab",
+      "email": "parent.724341020@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "74833e54-f1f6-4d29-a341-dd4e61cfae57",
+      "email": "parent.723000700@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "6098c98b-02b7-49bf-9904-3d99b1988b2d",
+      "email": "parent.712462232@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "d09d0aec-8dd0-4af0-b14e-8aa835d30224",
+      "email": "parent.726311243@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "b3bc2c9c-67fb-47c5-8465-00c9a5308dec",
+      "email": "parent.726157803@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "c05b7b21-9931-437d-82fd-9eba4a1e7abb",
+      "email": "parent.721599902@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "4c592683-b69a-4189-a417-906751f231c4",
+      "email": "parent.797399780@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "4d9388ef-71cc-40ad-b829-a90bc212749e",
+      "email": "parent.708505882@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "9e86096d-ab54-435e-a8f8-9638c7937eb4",
+      "email": "parent.718685449@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "bf55bed8-5f17-4d7a-bec1-19bac2578a45",
+      "email": "parent.712874388@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "67394dd2-ac49-4461-81b9-29c8cc3837d8",
+      "email": "parent.716177962@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "e1c6eb7a-a8f0-47b8-8caf-69edc89751e0",
+      "email": "parent.721479402@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "110bc570-0004-41e6-b8a3-fa629bdc1b8c",
+      "email": "parent.721445007@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "742ae887-fb9a-45a0-bf3c-7f13aeb01dba",
+      "email": "parent.723555215@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "d7430354-31a9-492a-805e-68a8a0dd9123",
+      "email": "parent.720755313@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "3275be28-0575-4048-bebe-696613a7ada3",
+      "email": "parent.708553471@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "9cbd0efb-e452-475b-bcb0-e8407b4b89ae",
+      "email": "parent.724858432@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "70c8792a-22ee-4c9f-abb6-1137b541eea8",
+      "email": "parent.727116032@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "f370652c-7e49-44d7-b71d-498e6878ec41",
+      "email": "parent.718983344@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "dc58aa7b-8e1d-4eeb-b2f4-97fb5c1fb1b4",
+      "email": "parent.720905963@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "c7708a85-4797-46f4-aa11-c0d3ef123318",
+      "email": "parent.710170672@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "f24d939d-e75a-4f3a-be63-019bccde1a61",
+      "email": "parent.720800592@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "48331458-1313-4ccb-8a72-cf2a3e17507b",
+      "email": "parent.727231085@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "eccb8218-3ac7-4987-b72c-c13bae09f9d8",
+      "email": "parent.713895299@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "e638ad7a-f490-4330-b78f-6a9dabbf080c",
+      "email": "parent.720337459@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "afe708e6-9646-4545-8cfa-579000ee6372",
+      "email": "parent.711376677@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "f851bf59-cdba-4c08-8b3e-a8c6ec0c2612",
+      "email": "parent.727504748@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "d5d6b319-72ce-4c51-a4ab-809fa92ad312",
+      "email": "parent.728362283@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "6b6271dc-1152-4e82-83df-acb17b9ebdc4",
+      "email": "parent.721766459@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "0f9ede91-be7c-458a-a3c3-16f0e8cbbd74",
+      "email": "parent.703382724@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "52072df8-333d-4243-8047-1a45f2e3a7b4",
+      "email": "parent.769133662@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "3c474cab-9424-4857-8477-e00b6ec50d3e",
+      "email": "parent.721129483@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "f00b6380-1df3-4459-b3f6-3c1bb6cd7082",
+      "email": "parent.705957705@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "68a8ed7f-8a52-4046-9c0d-352742e70a1d",
+      "email": "parent.721609222@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "79dd9523-e886-4158-85d5-e69a021933fa",
+      "email": "parent.714568972@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "91229b9b-d704-4a1e-9cde-b10535724260",
+      "email": "parent.723908410@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "b8078d84-a618-4771-9323-44b618062ec6",
+      "email": "parent.0721642972@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "30412fc2-f9c6-4482-8ccc-600beca3ec61",
+      "email": "parent.728823570@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "18e17356-698b-4f2f-897d-7d04bc91b82c",
+      "email": "parent.0791852544@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "84e6750c-91d5-4fc7-acab-76ab75051258",
+      "email": "parent.712582340@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "20866033-da4b-4bc8-ae4a-64f211dc8734",
+      "email": "parent.0727231085@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "c8a022cf-d22f-4651-a5bd-18ccec7060c8",
+      "email": "parent.0712842022@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "67d4c7dd-7de5-45f6-a3ac-c9f2b84aca80",
+      "email": "parent.0746244158@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "a2f028ed-1131-4cde-8557-f0c02aa7a454",
+      "email": "parent.0729987623@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "06b5fd35-401a-456b-8958-fd5e770165f4",
+      "email": "parent.0724465817@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "98501a87-c77b-4916-9aff-dc1c703ac3cb",
+      "email": "parent.0723862489@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "15515329-0b6b-46db-ab7b-68e5c63fb8e4",
+      "email": "parent.0720967062@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "02c5ab28-37d3-4abd-8cf6-5115f95ec817",
+      "email": "parent.0722924522@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "e08cfd94-038f-429d-b70c-6db7d9b712cd",
+      "email": "parent.0725016075@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "e933dc06-74c4-4037-9354-3bd9fd8a2961",
+      "email": "parent.0796799639@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "266d48cd-434c-4ea0-84f6-cb860c208aca",
+      "email": "parent.0743311327@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "b3dd3b15-7bab-4670-bd4a-cd74a5856cb1",
+      "email": "parent.0797315408@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "a549e509-f58e-4ebf-a989-4c935357652e",
+      "email": "parent.0722649118@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "b3b5d3a9-4ee5-465c-8db6-ca582b887900",
+      "email": "parent.0796280756@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "231fd57d-4753-4224-987b-560dac812f1d",
+      "email": "parent.0703265486@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "42e4af33-015a-4830-be80-dba9ba4821cc",
+      "email": "parent.0725734100@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "9fa51bcd-3d15-4601-9693-ae42c2ff3f3d",
+      "email": "parent.0705495962@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "5a23cd74-de2a-41f5-b0a3-c6a5d06d689e",
+      "email": "parent.0742429722@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "ee2a264f-002f-4a48-b92e-abfdcf33097a",
+      "email": "parent.0710362065@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "0970c4bc-bae5-4eec-8a49-eb69ac887424",
+      "email": "parent.0723229833@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "d905ce43-e85e-4cd7-9daf-ed02507a1ce8",
+      "email": "parent.0723708205@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "fcc76969-cd02-4665-99a3-523bdbdd939e",
+      "email": "parent.0795379641@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "01e661ee-123f-4dbf-90f1-bc394d19ae3b",
+      "email": "parent.0711376677@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "7413ebd2-600f-4a79-8a43-00179a397de4",
+      "email": "parent.0722141851@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "d9749706-3d1c-46df-a5a0-7887f82e162e",
+      "email": "parent.0723135440@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "9d16f92e-663d-42db-8014-a96c7fdb397c",
+      "email": "parent.0727307505@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "65c50c83-8221-4897-a0ed-0d313fca6f23",
+      "email": "parent.0791507962@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "8427e704-6b01-4d57-826b-bbc32fe83a18",
+      "email": "parent.0748782228@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "ed00b53f-6a0e-46d0-8ee4-572705c6e306",
+      "email": "parent.0714447963@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "1e980cf5-e44a-4b68-b6c5-4f35868a7d18",
+      "email": "parent.0757964886@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "b3ff9878-b02b-4dad-a4a4-30816dacc1be",
+      "email": "parent.0715800427@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "d1df2a39-f89b-40f9-9e78-2120f5375cda",
+      "email": "parent.0704166556@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "038bca48-8f51-4aa6-8c8c-d99ef7fa45b7",
+      "email": "parent.0798974842@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "59f71777-f5c8-42b9-9296-ce703e913f1f",
+      "email": "parent.0727830497@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "5b54d413-547d-4714-beed-e122cd4ead9d",
+      "email": "parent.0723886289@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "ca5bd04d-690d-4677-886f-db4d2aaa7d9f",
+      "email": "parent.0703383000@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "6574c368-9cd5-496e-8ad4-138eebf23762",
+      "email": "parent.0724551331@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "ff90c296-0602-490b-864d-0f2dc8484993",
+      "email": "parent.0711526351@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "16b6a20d-4514-4529-a8f3-8fcb594e700d",
+      "email": "parent.0758594158@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "17eb2fc8-075e-4756-bdd7-c2e0ae82023a",
+      "email": "parent.0111425666@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "ddf7a8a7-88a6-4405-b084-e65562f43b27",
+      "email": "parent.0798006555@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "e525b21c-f649-47b2-8e64-7bece9c68318",
+      "email": "parent.0722944550@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "dc33faf7-b4e9-4591-8262-0cb8539307d6",
+      "email": "parent.0722569197@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "a0f0be0a-69bd-41fb-a04e-74864342f713",
+      "email": "parent.0718717199@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "df6a2abf-129b-411f-b5bb-f303c3fd1fa6",
+      "email": "parent.0745678779@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "da46e412-0fbc-44cc-ab7e-c38963e2c99a",
+      "email": "parent.0794785046@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "d5066947-aaf4-4a38-8a6d-1ca26efad910",
+      "email": "parent.0711692123@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "bedffc05-4561-4c94-86ac-4c6d1870ca49",
+      "email": "parent.0722835287@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "57a2ff76-51be-4efe-9df5-6aeb878ff665",
+      "email": "parent.0722234518@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "ef0dc914-c4fe-4a27-92d3-3f73610ce5da",
+      "email": "parent.0714956042@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "779b0259-2b69-4669-9640-9b80c1f0ddc8",
+      "email": "parent.0728920687@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "05dbf565-cd7e-4c2d-8b6a-b0e34679a0d0",
+      "email": "parent.0729941359@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "a93fa84a-e4e4-4db2-9a25-4c1121aa46ea",
+      "email": "parent.0797985794@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "1224c953-ce6f-4d42-bdfd-801e635998c3",
+      "email": "parent.0717270623@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "834077a8-40ec-419c-b313-a4c0e7961274",
+      "email": "parent.0706602229@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "8fda5acf-a586-4a0b-9165-88f3ace3d6ff",
+      "email": "parent.0708620236@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "e1a3860a-889e-4d94-a191-7818b90b4fbb",
+      "email": "parent.0722594005@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "8424c3de-5061-44f9-b801-ac045bea0439",
+      "email": "parent.0723787015@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "766953c0-cc04-4de5-bbb8-e49262f557ae",
+      "email": "parent.0796397193@edu-core.test",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "ef511be4-ceb3-4ee6-9a37-2bcb0a468b6d",
+      "email": "joashsatia@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "88279a70-c91b-4b22-a76e-d7d691eb8a36",
+      "email": "tj33425248@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "a664595f-5824-481d-8526-e99d04c97321",
+      "email": "aligalgalo2023@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "0cc9a1f9-1b5d-4955-96e6-cf2d1aa4f09b",
+      "email": "mugambibenson95@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "2f4138d3-1903-4e80-9690-8247c560d7d7",
+      "email": "ericndereba44@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "f550deac-2831-49f9-9e00-e5f6016d9a33",
+      "email": "doreenkanana461@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "66d287ab-0fbc-4530-b42f-2e8414601075",
+      "email": "apheline32839271@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "92ac0ce6-28c5-4691-8e6a-c587aca9bb99",
+      "email": "kagendochristine156@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "4ad0afd7-8463-4899-a18d-bb531bfbc7ef",
+      "email": "nicelakarendi@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "0581efe5-3181-4161-99dd-ce18df85d437",
+      "email": "fatumam84@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "d7f3923a-8f9e-4bdc-9088-7b5be857e897",
+      "email": "abdulmerets011@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "74a61735-0b50-4e7a-93ec-2221ca857376",
+      "email": "cadan5205@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "054c2ee1-5385-466d-99c0-ffd53fdc84e9",
+      "email": "maxwellmureithi1@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "d11fd923-9910-4b6d-bd40-644335dd6269",
+      "email": "erickkibet723@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "790e2953-0e4a-4cf2-9a78-edd32eee0460",
+      "email": "ndaannestacia@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "27407cbb-79f2-4be9-8111-03404e67a87d",
+      "email": "abumuzakirpincate@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "21ec1775-d679-41e3-8615-87255d7ba6f5",
+      "email": "ABDIRIDIRIZAN3@GMAIL.COM",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "1a30d7a6-6902-4265-8db8-982994d02d58",
+      "email": "meshmunyiriks@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "fb716e98-316c-4ff9-a9b7-f641af729c18",
+      "email": "godfreykaindigo5@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "0b48fbd4-dcc3-4327-a36b-830bb175aa60",
+      "email": "marthajuma1995@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    },
+    {
+      "id": "1be872dd-ffe2-45d7-be76-fa6e11f846ca",
+      "email": "amalgamateimages@gmail.com",
+      "schoolId": "8f931b7b-d033-4a51-a651-62da8183d6ad"
+    }
+  ]
+}

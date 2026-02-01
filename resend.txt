@@ -1,0 +1,289 @@
+Perfect! Let's set up Resend for a complete end-to-end email system. Using Railway's domain is totally fine - Resend works great without a custom domain.
+
+---
+
+## 🚀 **Complete Resend Setup Guide**
+
+### **Step 1: Create Resend Account & Get API Key**
+
+#### **1.1 Sign Up**
+```
+1. Go to: https://resend.com/signup
+2. Sign up with your email
+3. Verify your email (check inbox)
+4. You'll land on the dashboard
+```
+
+#### **1.2 Get Your API Key**
+```
+1. In dashboard, click "API Keys" (left sidebar)
+2. Click "Create API Key"
+3. Name: "EDucore Production"
+4. Permission: "Sending access" (default)
+5. Click "Add"
+6. COPY THE KEY (starts with re_...)
+   
+   ⚠️ Important: Save it NOW - you can't see it again!
+```
+
+Example key: `re_123abc456def789ghi012jkl345mno678pqr`
+
+---
+
+### **Step 2: Install Resend Package**
+
+```bash
+cd server
+npm install resend
+```
+
+---
+
+### **Step 3: Create Resend Email Service**
+
+Create this new file:---
+
+### **Step 4: Update Auth Controller to Use Resend**The file was already updated earlier. Now let's update the onboarding controller to use Resend and enable welcome emails:Let me create the updated onboarding controller with welcome emails enabled:---
+
+### **Step 5: Update Your `.env` File**
+
+Add these to your **server/.env** file:
+
+```bash
+# ============================================
+# RESEND EMAIL CONFIGURATION
+# ============================================
+RESEND_API_KEY=re_YourActualAPIKey123  # Replace with your actual Resend API key
+EMAIL_FROM=EDucore <onboarding@resend.dev>
+
+# ============================================
+# JWT SECRETS (Generate your own!)
+# ============================================
+JWT_SECRET=your-generated-secret-here-make-it-long-and-random-64-chars
+JWT_REFRESH_SECRET=different-secret-for-refresh-tokens-also-64-chars
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+
+# ============================================
+# FRONTEND URL
+# ============================================
+FRONTEND_URL=https://educorev1.up.railway.app
+```
+
+---
+
+### **Step 6: Generate JWT Secrets**
+
+Run these commands **twice** to generate two different secrets:
+
+```bash
+# On Windows (PowerShell)
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+
+# First output = JWT_SECRET
+# Second output = JWT_REFRESH_SECRET
+```
+
+Example output:
+```
+8f4d2a9c7e3b1f5a2d8c4e7b1a9f3d6c2e8b4a7d1f3c5e9b2d6a8f4c1e7b3a9d5f2c
+```
+
+---
+
+### **Step 7: Complete `.env` Example**
+
+Here's what your full `.env` should look like:
+
+```bash
+# Database
+DATABASE_URL=postgresql://user:password@host:5432/educore_db
+
+# Resend Email
+RESEND_API_KEY=re_123abc456def789  # Your actual key from Step 1
+EMAIL_FROM=EDucore <onboarding@resend.dev>
+
+# JWT (REPLACE THESE WITH YOUR GENERATED SECRETS!)
+JWT_SECRET=8f4d2a9c7e3b1f5a2d8c4e7b1a9f3d6c2e8b4a7d1f3c5e9b2d6a8f4c1e7b3a9d5f2c
+JWT_REFRESH_SECRET=3e7b1f8d4c2a9e6b3d7f1c5a8e2b4d9f1c6a3e7b2d8f4c1a9e5b3d7f2c6a8e1b4d
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+
+# Frontend
+FRONTEND_URL=https://educorev1.up.railway.app
+
+# Encryption (for SMS API keys)
+ENCRYPTION_KEY=your-32-byte-hex-encryption-key-64-characters-long-random-string
+
+# Node Environment
+NODE_ENV=production
+PORT=5000
+```
+
+---
+
+### **Step 8: Deploy to Railway**
+
+#### **8.1 Add Environment Variables in Railway**
+
+1. Go to your Railway dashboard
+2. Click your project → **Variables** tab
+3. Add each variable from your `.env`:
+
+```
+RESEND_API_KEY = re_your_actual_key
+EMAIL_FROM = EDucore <onboarding@resend.dev>
+JWT_SECRET = your-generated-secret
+JWT_REFRESH_SECRET = your-other-secret
+JWT_EXPIRES_IN = 15m
+JWT_REFRESH_EXPIRES_IN = 7d
+FRONTEND_URL = https://educorev1.up.railway.app
+NODE_ENV = production
+```
+
+#### **8.2 Deploy Code**
+
+```bash
+# Commit your changes
+git add .
+git commit -m "Add Resend email service and enable welcome notifications"
+git push origin main
+
+# Railway will auto-deploy
+```
+
+---
+
+### **Step 9: Test It End-to-End**
+
+#### **Test 1: New School Registration**
+
+```bash
+curl -X POST https://educorev1.up.railway.app/api/onboarding/register-full \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fullName": "Test Admin",
+    "email": "youremail@gmail.com",
+    "phone": "0712345678",
+    "address": "123 Test Street",
+    "county": "Nairobi",
+    "schoolName": "Test Academy",
+    "password": "TestPassword123!@",
+    "passwordConfirm": "TestPassword123!@"
+  }'
+```
+
+**Expected:**
+1. ✅ School created
+2. ✅ Admin user created
+3. ✅ **EMAIL SENT** to youremail@gmail.com with welcome message
+4. ✅ SMS sent (if SMS configured)
+
+**Check your email inbox!** 📧
+
+#### **Test 2: Password Reset**
+
+```bash
+# Request reset
+curl -X POST https://educorev1.up.railway.app/api/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{"email":"youremail@gmail.com"}'
+```
+
+**Expected:**
+1. ✅ **EMAIL SENT** with password reset link
+2. Link format: `https://educorev1.up.railway.app/reset-password?token=...`
+
+**Check your email!** 📧
+
+---
+
+### **Step 10: Monitor Email Delivery**
+
+#### **Check Resend Dashboard**
+
+1. Go to https://resend.com/emails
+2. You'll see all sent emails with status:
+   - ✅ **Delivered**
+   - ⏳ **Queued**
+   - ❌ **Failed** (with reason)
+
+#### **Check Server Logs**
+
+```bash
+# On Railway
+railway logs
+
+# Look for:
+# ✅ "📧 Welcome email sent to user@email.com (ID: abc123)"
+# ✅ "📧 Password reset email sent to user@email.com (ID: xyz789)"
+```
+
+---
+
+## 🎉 **You're Done!**
+
+Your email system is now:
+- ✅ Using **Resend** (professional deliverability)
+- ✅ Sending **welcome emails** on registration
+- ✅ Sending **password reset emails**
+- ✅ Beautiful **HTML templates**
+- ✅ Working with Railway's domain
+- ✅ Production-ready
+
+---
+
+## 📊 **What You Get with Resend Free Tier**
+
+- ✅ **3,000 emails/month** free
+- ✅ **100 emails/day**
+- ✅ Email analytics dashboard
+- ✅ Delivery tracking
+- ✅ No credit card required
+- ✅ Better deliverability than Gmail
+
+---
+
+## 🚨 **Troubleshooting**
+
+### **"Email not received"**
+
+1. **Check spam folder** (especially Gmail)
+2. **Check Resend dashboard** for delivery status
+3. **Check server logs** for errors
+4. **Verify API key** is correct in `.env`
+
+### **"Invalid API key"**
+
+```bash
+# Test your API key
+curl -X POST https://api.resend.com/emails \
+  -H "Authorization: Bearer re_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "onboarding@resend.dev",
+    "to": "youremail@gmail.com",
+    "subject": "Test",
+    "html": "<p>Test email</p>"
+  }'
+```
+
+### **"Module not found: resend"**
+
+```bash
+cd server
+npm install resend
+```
+
+---
+
+## 🎯 **Next Steps**
+
+Once emails are working:
+
+1. ✅ Test welcome email (register new school)
+2. ✅ Test password reset email
+3. ✅ Customize email templates (logos, colors)
+4. ✅ Add custom domain to Resend (optional - improves deliverability)
+
+**Ready to test?** Register a test school and check your inbox! 📧

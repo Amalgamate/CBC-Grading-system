@@ -2,49 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   UserPlus, Edit, Trash2, X, Save, Shield, Users, Search, 
   RotateCcw, Eye, EyeOff, Mail, Phone, Archive, ArchiveRestore,
-  Settings, Lock, Check, AlertCircle, Clock, Activity
+  Settings, Lock, Check, AlertCircle, Clock, Activity, BookOpen, MessageCircle, Send
 } from 'lucide-react';
+import { userAPI } from '../../../../services/api';
+import { getAdminSchoolId, getStoredUser } from '../../../../services/tenantContext';
 
-// Mock API - Replace with actual API calls
-const mockAPI = {
-  users: {
-    getAll: async () => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return {
-        users: [
-          { id: '1', firstName: 'Sarah', lastName: 'Muthoni', email: 'sarah@school.com', phone: '+254712345678', role: 'ADMIN', status: 'ACTIVE', staffId: 'ADM001', archived: false, lastLogin: '2024-01-20T10:30:00' },
-          { id: '2', firstName: 'John', lastName: 'Kamau', email: 'john@school.com', phone: '+254723456789', role: 'TEACHER', status: 'ACTIVE', staffId: 'TCH001', archived: false, lastLogin: '2024-01-22T14:15:00' },
-          { id: '3', firstName: 'Hassan', lastName: 'Mohamed', email: 'hassan@email.com', phone: '+254734567890', role: 'PARENT', status: 'ACTIVE', staffId: null, archived: false, lastLogin: '2024-01-23T08:00:00' },
-          { id: '4', firstName: 'Grace', lastName: 'Wanjiru', email: 'grace@school.com', phone: '+254745678901', role: 'ACCOUNTANT', status: 'ACTIVE', staffId: 'ACC001', archived: false, lastLogin: '2024-01-21T16:45:00' },
-          { id: '5', firstName: 'Peter', lastName: 'Omondi', email: 'peter@school.com', phone: '+254756789012', role: 'HEAD_TEACHER', status: 'ACTIVE', staffId: 'HT001', archived: false, lastLogin: '2024-01-23T07:30:00' },
-          { id: '6', firstName: 'Mary', lastName: 'Nyambura', email: 'mary@school.com', phone: '+254767890123', role: 'LIBRARIAN', status: 'INACTIVE', staffId: 'LIB001', archived: false, lastLogin: '2024-01-10T12:00:00' },
-          { id: '7', firstName: 'David', lastName: 'Kibet', email: 'david@school.com', phone: '+254778901234', role: 'TEACHER', status: 'ACTIVE', staffId: 'TCH002', archived: true, lastLogin: '2024-01-15T09:00:00' }
-        ]
-      };
-    },
-    create: async (data) => {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      return { user: { ...data, id: Date.now().toString(), status: 'ACTIVE', archived: false } };
-    },
-    update: async (id, data) => {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      return { user: { ...data, id } };
-    },
-    archive: async (id) => {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      return { success: true };
-    },
-    unarchive: async (id) => {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      return { success: true };
-    },
-    delete: async (id) => {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      return { success: true };
-    }
-  }
-};
+// Real API is imported from services/api.js
 
 // Role definitions with permissions
 const ROLES_CONFIG = [
@@ -197,6 +160,7 @@ const UserManagement = () => {
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [schoolId, setSchoolId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -206,6 +170,9 @@ const UserManagement = () => {
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [userGroupTab, setUserGroupTab] = useState('all'); // 'all', 'parents', 'tutors', 'admins'
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [activityFilterUser, setActivityFilterUser] = useState('all'); // Filter activity logs by user
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -227,20 +194,52 @@ const UserManagement = () => {
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await mockAPI.users.getAll();
+      
+      // Get school ID from context
+      let sid = getAdminSchoolId();
+      if (!sid) {
+        const user = getStoredUser();
+        sid = user?.schoolId || user?.school?.id;
+      }
+      
+      if (!sid) {
+        console.warn('No school ID found. Using API without schoolId filter.');
+      }
+      
+      setSchoolId(sid);
+      
+      // Fetch users for this school
+      const response = await userAPI.getAll(sid);
       console.log('API Response:', response);
       
       // Handle different response formats
+      let usersData = [];
       if (Array.isArray(response)) {
-        setUsers(response);
-      } else if (response.users && Array.isArray(response.users)) {
-        setUsers(response.users);
+        usersData = response;
       } else if (response.data && Array.isArray(response.data)) {
-        setUsers(response.data);
-      } else {
-        console.error('Unexpected response format:', response);
-        setUsers([]);
+        usersData = response.data;
+      } else if (response.users && Array.isArray(response.users)) {
+        usersData = response.users;
+      } else if (response.success && response.data) {
+        usersData = Array.isArray(response.data) ? response.data : [];
       }
+      
+      // Map database fields to component format
+      const mappedUsers = usersData.map(user => ({
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        middleName: user.middleName || '',
+        email: user.email,
+        phone: user.phone || '',
+        role: user.role,
+        status: user.archived ? 'ARCHIVED' : (user.status || 'ACTIVE'),
+        staffId: user.staffId || '',
+        archived: user.archived || false,
+        lastLogin: user.lastLogin
+      }));
+      
+      setUsers(mappedUsers);
     } catch (error) {
       console.error('Failed to load users:', error);
       showNotification('Failed to load users: ' + error.message, 'error');
@@ -249,6 +248,26 @@ const UserManagement = () => {
       setLoading(false);
     }
   }, [showNotification]);
+
+  // Activity logging function with detailed timestamps
+  const addActivityLog = useCallback((action, details) => {
+    const currentUser = getStoredUser();
+    const now = new Date();
+    const log = {
+      id: Date.now().toString(),
+      timestamp: now,
+      action,
+      details,
+      user: currentUser?.firstName + ' ' + currentUser?.lastName || 'System',
+      userId: currentUser?.id,
+      userRole: currentUser?.role,
+      // Detailed time info
+      date: now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+      time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }),
+      iso: now.toISOString()
+    };
+    setActivityLogs(prev => [log, ...prev]);
+  }, []);
 
   useEffect(() => {
     loadUsers();
@@ -267,10 +286,12 @@ const UserManagement = () => {
       }
 
       if (editingUser) {
-        await mockAPI.users.update(editingUser.id, formData);
+        await userAPI.update(editingUser.id, formData);
+        addActivityLog('USER_UPDATED', `${formData.firstName} ${formData.lastName} (${formData.role})`);
         showNotification('User updated successfully!');
       } else {
-        await mockAPI.users.create(formData);
+        await userAPI.create(formData);
+        addActivityLog('USER_CREATED', `${formData.firstName} ${formData.lastName} (${formData.role})`);
         showNotification('User created successfully!');
       }
 
@@ -302,7 +323,9 @@ const UserManagement = () => {
   const handleArchive = async (userId) => {
     if (!window.confirm('Archive this user?')) return;
     try {
-      await mockAPI.users.archive(userId);
+      const user = users.find(u => u.id === userId);
+      await userAPI.archive(userId);
+      addActivityLog('USER_ARCHIVED', `${user?.firstName} ${user?.lastName}`);
       showNotification('User archived');
       loadUsers();
     } catch (error) {
@@ -312,7 +335,9 @@ const UserManagement = () => {
 
   const handleUnarchive = async (userId) => {
     try {
-      await mockAPI.users.unarchive(userId);
+      const user = users.find(u => u.id === userId);
+      await userAPI.unarchive(userId);
+      addActivityLog('USER_RESTORED', `${user?.firstName} ${user?.lastName}`);
       showNotification('User restored');
       loadUsers();
     } catch (error) {
@@ -323,7 +348,9 @@ const UserManagement = () => {
   const handleDelete = async (userId) => {
     if (!window.confirm('Permanently delete this user? This cannot be undone.')) return;
     try {
-      await mockAPI.users.delete(userId);
+      const user = users.find(u => u.id === userId);
+      await userAPI.delete(userId);
+      addActivityLog('USER_DELETED', `${user?.firstName} ${user?.lastName}`);
       showNotification('User deleted');
       loadUsers();
     } catch (error) {
@@ -366,9 +393,10 @@ const UserManagement = () => {
       for (const userId of selectedUsers) {
         const user = users.find(u => u.id === userId);
         if (user) {
-          await mockAPI.users.update(userId, { ...user, role: newRole });
+          await userAPI.update(userId, { ...user, role: newRole });
         }
       }
+      addActivityLog('BULK_ROLE_CHANGED', `${selectedUsers.length} users updated to ${getRoleLabel(newRole)}`);
       showNotification(`Updated ${selectedUsers.length} users to ${getRoleLabel(newRole)}`);
       setSelectedUsers([]);
       setShowBulkActions(false);
@@ -378,7 +406,23 @@ const UserManagement = () => {
     }
   };
 
+  // User grouping functions
+  const getAdminUsers = () => users.filter(u => ['SUPER_ADMIN', 'ADMIN'].includes(u.role) && !u.archived);
+  const getTutorUsers = () => users.filter(u => ['TEACHER', 'HEAD_TEACHER'].includes(u.role) && !u.archived);
+  const getParentUsers = () => users.filter(u => u.role === 'PARENT' && !u.archived);
+
   const filteredUsers = users.filter(user => {
+    // First, filter by user group tab
+    let groupFilter = true;
+    if (userGroupTab === 'parents') {
+      groupFilter = user.role === 'PARENT';
+    } else if (userGroupTab === 'tutors') {
+      groupFilter = ['TEACHER', 'HEAD_TEACHER'].includes(user.role);
+    } else if (userGroupTab === 'admins') {
+      groupFilter = ['SUPER_ADMIN', 'ADMIN'].includes(user.role);
+    }
+    // 'all' tab shows all users
+
     const matchesSearch = searchTerm === '' || 
       user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -391,7 +435,7 @@ const UserManagement = () => {
       (statusFilter === 'ARCHIVED' && user.archived) ||
       (statusFilter === 'INACTIVE' && user.status === 'INACTIVE');
     
-    return matchesSearch && matchesRole && matchesStatus;
+    return groupFilter && matchesSearch && matchesRole && matchesStatus;
   });
 
   const roleStats = ROLES_CONFIG.map(role => ({
@@ -460,6 +504,71 @@ const UserManagement = () => {
         {/* USERS TAB */}
         {activeTab === 'users' && (
           <>
+            {/* User Group Sub-Tabs */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-4">
+              <div className="flex border-b overflow-x-auto">
+                <button
+                  onClick={() => setUserGroupTab('all')}
+                  className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm whitespace-nowrap ${
+                    userGroupTab === 'all'
+                      ? 'bg-gray-50 text-gray-900 border-b-2 border-gray-800'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <Users size={16} />
+                  <span>All Users</span>
+                  <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-bold">
+                    {users.filter(u => !u.archived).length}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setUserGroupTab('admins')}
+                  className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm whitespace-nowrap ${
+                    userGroupTab === 'admins'
+                      ? 'bg-red-50 text-red-700 border-b-2 border-red-600'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <Shield size={16} />
+                  <span>Admins</span>
+                  <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-bold">
+                    {getAdminUsers().length}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setUserGroupTab('tutors')}
+                  className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm whitespace-nowrap ${
+                    userGroupTab === 'tutors'
+                      ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <BookOpen size={16} />
+                  <span>Tutors/Teachers</span>
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
+                    {getTutorUsers().length}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setUserGroupTab('parents')}
+                  className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm whitespace-nowrap ${
+                    userGroupTab === 'parents'
+                      ? 'bg-green-50 text-green-700 border-b-2 border-green-600'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <Users size={16} />
+                  <span>Parents</span>
+                  <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                    {getParentUsers().length}
+                  </span>
+                </button>
+              </div>
+            </div>
+
             {/* Toolbar */}
             <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
               <div className="flex flex-col xl:flex-row gap-4 justify-between items-center">
@@ -673,6 +782,30 @@ const UserManagement = () => {
                               >
                                 <Edit size={16} />
                               </button>
+                              {user.phone && (
+                                <>
+                                  <button 
+                                    onClick={() => {
+                                      const whatsappUrl = `https://wa.me/${user.phone.replace(/\D/g, '')}`;
+                                      window.open(whatsappUrl, '_blank');
+                                    }}
+                                    className="p-1.5 text-green-600 hover:bg-green-50 rounded"
+                                    title="Send WhatsApp"
+                                  >
+                                    <MessageCircle size={16} />
+                                  </button>
+                                  <button 
+                                    onClick={() => {
+                                      const smsUrl = `sms:${user.phone}`;
+                                      window.location.href = smsUrl;
+                                    }}
+                                    className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                                    title="Send SMS"
+                                  >
+                                    <Send size={16} />
+                                  </button>
+                                </>
+                              )}
                               {user.archived ? (
                                 <button 
                                   onClick={() => handleUnarchive(user.id)}
@@ -843,13 +976,104 @@ const UserManagement = () => {
 
         {/* ACTIVITY LOG TAB */}
         {activeTab === 'activity' && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="text-center py-12">
-              <Activity size={48} className="mx-auto text-gray-300 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-700">Activity Log</h3>
-              <p className="text-gray-500 mt-2">Track user login history, role changes, and system actions</p>
-              <p className="text-sm text-gray-400 mt-4">Coming soon...</p>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Activity size={24} />
+                Activity Log
+              </h2>
+              <p className="text-green-100 text-sm mt-1">Track all user management actions with detailed timestamps</p>
             </div>
+
+            {/* Activity Filter */}
+            {activityLogs.length > 0 && (
+              <div className="px-6 py-4 border-b bg-gray-50 flex gap-4 items-center flex-wrap">
+                <label className="font-semibold text-sm text-gray-700">Filter by Admin:</label>
+                <select
+                  value={activityFilterUser}
+                  onChange={(e) => setActivityFilterUser(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm"
+                >
+                  <option value="all">All Users</option>
+                  {[...new Set(activityLogs.map(log => log.user))].map(user => (
+                    <option key={user} value={user}>{user}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {activityLogs.length === 0 ? (
+              <div className="p-12 text-center">
+                <Clock size={48} className="mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-600 font-semibold">No activity yet</p>
+                <p className="text-gray-500 text-sm mt-2">User management actions will appear here</p>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {activityLogs
+                  .filter(log => activityFilterUser === 'all' || log.user === activityFilterUser)
+                  .map(log => {
+                  const getActionColor = (action) => {
+                    if (action.includes('CREATED')) return 'bg-green-50 border-l-4 border-green-500';
+                    if (action.includes('UPDATED')) return 'bg-blue-50 border-l-4 border-blue-500';
+                    if (action.includes('DELETED')) return 'bg-red-50 border-l-4 border-red-500';
+                    if (action.includes('ARCHIVED')) return 'bg-orange-50 border-l-4 border-orange-500';
+                    if (action.includes('RESTORED')) return 'bg-purple-50 border-l-4 border-purple-500';
+                    return 'bg-gray-50 border-l-4 border-gray-500';
+                  };
+
+                  const getActionIcon = (action) => {
+                    if (action.includes('CREATED')) return <UserPlus size={16} className="text-green-600" />;
+                    if (action.includes('UPDATED')) return <Edit size={16} className="text-blue-600" />;
+                    if (action.includes('DELETED')) return <Trash2 size={16} className="text-red-600" />;
+                    if (action.includes('ARCHIVED')) return <Archive size={16} className="text-orange-600" />;
+                    if (action.includes('RESTORED')) return <ArchiveRestore size={16} className="text-purple-600" />;
+                    return <Activity size={16} className="text-gray-600" />;
+                  };
+
+                  const getActionLabel = (action) => {
+                    return action.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
+                  };
+
+                  return (
+                    <div key={log.id} className={`p-4 ${getActionColor(log.action)} hover:bg-opacity-75 transition`}>
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0 mt-1">
+                          {getActionIcon(log.action)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <p className="font-semibold text-gray-900">
+                                {getActionLabel(log.action)}
+                              </p>
+                              <p className="text-sm text-gray-600 mt-1">{log.details}</p>
+                              <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                                <div className="flex items-center gap-1">
+                                  <Clock size={14} />
+                                  <span className="font-medium">{log.time}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span>{log.date}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right flex-shrink-0 min-w-fit">
+                              <p className="text-xs font-bold text-gray-700 bg-gray-200 px-2 py-1 rounded">
+                                {log.userRole}
+                              </p>
+                              <p className="text-xs text-gray-600 mt-2">
+                                By: <span className="font-semibold">{log.user}</span>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

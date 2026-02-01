@@ -133,6 +133,12 @@ router.post('/streams', configController.upsertStreamConfig);
  */
 router.delete('/streams/:id', configController.deleteStreamConfig);
 
+/**
+ * POST /api/config/streams/seed
+ * Seed default streams (A, B, C, D)
+ */
+router.post('/streams/seed', configController.seedStreams);
+
 // ============================================
 // CLASS MANAGEMENT ROUTES
 // ============================================
@@ -154,6 +160,12 @@ router.post('/classes', configController.upsertClass);
  * Delete class
  */
 router.delete('/classes/:id', configController.deleteClass);
+
+/**
+ * POST /api/config/classes/seed
+ * Seed default classes for all grades (Stream A)
+ */
+router.post('/classes/seed', configController.seedClasses);
 
 // ============================================
 // UTILITY ROUTES

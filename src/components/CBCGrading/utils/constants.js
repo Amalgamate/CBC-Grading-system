@@ -85,7 +85,7 @@ export const TERMS = ['Term 1', 'Term 2', 'Term 3'];
 
 // Grade Levels for Filtering
 export const GRADE_LEVELS = [
-  'Grade 1', 'Grade 2', 'Grade 3', 
+  'Grade 1', 'Grade 2', 'Grade 3',
   'Grade 4', 'Grade 5', 'Grade 6'
 ];
 
@@ -146,7 +146,7 @@ export const USER_ROLES = [
 // Page Titles Mapping
 export const PAGE_TITLES = {
   'dashboard': 'Dashboard',
-  
+
   // Learners
   'learners-list': 'All Students',
   'learners-admissions': 'Admissions',
@@ -154,22 +154,22 @@ export const PAGE_TITLES = {
   'learners-exited': 'Exited Students',
   'learners-promotion': 'Promotion',
   'learners-transfer-out': 'Transfer Out',
-  
+
   // Teachers/Parents
   'teachers-list': 'Tutors List',
   'parents-list': 'Parents List',
-  
+
   // Timetable
   'timetable': 'School Timetable',
-  
+
   // Attendance
   'attendance-daily': 'Daily Attendance',
   'attendance-reports': 'Attendance Reports',
-  
+
   // Communications
   'comm-notices': 'Notices & Announcements',
   'comm-messages': 'Messages',
-  
+
   // Assessment
   'assess-formative': 'Formative Assessment',
   'assess-formative-report': 'Formative Report',
@@ -179,22 +179,22 @@ export const PAGE_TITLES = {
   'assess-summary-report': 'Summary Report',
   'assess-termly-report': 'Termly Report',
   'assess-performance-scale': 'Performance Scale',
-  
+
   // Learning Hub
   'learning-hub-materials': 'Class Materials',
   'learning-hub-assignments': 'Assignments',
   'learning-hub-lesson-plans': 'Lesson Plans',
   'learning-hub-library': 'Resource Library',
-  
+
   // Fees
   'fees-structure': 'Fee Structure',
   'fees-collection': 'Fee Collection',
   'fees-reports': 'Fee Reports',
   'fees-statements': 'Student Statements',
-  
+
   // Help
   'help': 'Help & Support',
-  
+
   // Settings
   'settings-school': 'School Settings',
   'settings-academic': 'Academic Settings',
@@ -202,6 +202,7 @@ export const PAGE_TITLES = {
   'settings-branding': 'Branding & Customization',
   'settings-backup': 'Backup & Restore',
   'settings-communication': 'Communication Settings',
+  'settings-payment': 'Payment Settings',
   'settings-profile': 'My Profile'
 };
 
@@ -212,10 +213,10 @@ export const PAGE_TITLES = {
  */
 export const getStatusColor = (status) => {
   if (!status) return 'bg-gray-100 text-gray-800';
-  
+
   // Try exact match first
   if (STATUS_COLORS[status]) return STATUS_COLORS[status];
-  
+
   // Try case-insensitive match
   const lowerStatus = status.toLowerCase();
   const key = Object.keys(STATUS_COLORS).find(k => k.toLowerCase() === lowerStatus);
