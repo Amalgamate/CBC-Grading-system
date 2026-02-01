@@ -44,8 +44,8 @@ const TENANT_SCOPED_MODELS = [
     'TermConfig',
     'AggregationConfig',
     'GradingSystem',
-    'AdmissionSequence',
-    'LearningArea'
+    'AdmissionSequence'
+    // TODO: Add LearningArea after production database migration is run
 ];
 
 /**
