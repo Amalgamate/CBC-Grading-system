@@ -955,19 +955,33 @@ export const seedClasses = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    // Get branches for the school
+    const branches = await prisma.branch.findMany({
+      where: { schoolId }
+    });
+
+    if (branches.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'No branches found for this school. Please create a branch first.' }
+      });
+    }
+
     const GRADES = [
-      'CRECHE', 'PLAYGROUP', 'NURSERY', 'RECEPTION', 'TRANSITION',
-      'PP1', 'PP2', 'GRADE_1', 'GRADE_2', 'GRADE_3', 'GRADE_4', 'GRADE_5', 'GRADE_6',
-      'GRADE_7', 'GRADE_8', 'GRADE_9', 'GRADE_10', 'GRADE_11', 'GRADE_12'
+      Grade.CRECHE, Grade.RECEPTION, Grade.TRANSITION, Grade.PLAYGROUP,
+      Grade.PP1, Grade.PP2, Grade.GRADE_1, Grade.GRADE_2, Grade.GRADE_3, Grade.GRADE_4, 
+      Grade.GRADE_5, Grade.GRADE_6, Grade.GRADE_7, Grade.GRADE_8, Grade.GRADE_9, 
+      Grade.GRADE_10, Grade.GRADE_11, Grade.GRADE_12
     ];
 
     let created = 0;
     let skipped = 0;
+    const branchId = branches[0].id; // Use first branch
 
     for (const grade of GRADES) {
       try {
         const existing = await prisma.class.findFirst({
-          where: { grade, schoolId, stream: 'A' }
+          where: { grade, branchId, stream: 'A' }
         });
 
         if (existing) {
@@ -979,7 +993,7 @@ export const seedClasses = async (req: AuthRequest, res: Response) => {
           data: {
             grade,
             stream: 'A',
-            schoolId,
+            branchId,
             name: `${grade.replace('_', ' ')} A`,
             capacity: 40,
             academicYear: new Date().getFullYear()
@@ -1029,10 +1043,10 @@ export const seedStreams = async (req: AuthRequest, res: Response) => {
     let created = 0;
     let skipped = 0;
 
-    for (const stream of STREAMS) {
+    for (const streamName of STREAMS) {
       try {
         const existing = await prisma.streamConfig.findFirst({
-          where: { stream, schoolId }
+          where: { name: streamName, schoolId }
         });
 
         if (existing) {
@@ -1042,7 +1056,7 @@ export const seedStreams = async (req: AuthRequest, res: Response) => {
 
         await prisma.streamConfig.create({
           data: {
-            stream,
+            name: streamName,
             schoolId,
             active: true
           }
@@ -1051,7 +1065,7 @@ export const seedStreams = async (req: AuthRequest, res: Response) => {
         created++;
       } catch (err: any) {
         if (!err.message.includes('Unique constraint')) {
-          console.error(`Error creating stream ${stream}:`, err.message);
+          console.error(`Error creating stream ${streamName}:`, err.message);
         }
         skipped++;
       }
