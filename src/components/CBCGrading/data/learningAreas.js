@@ -127,6 +127,21 @@ export const learningAreas = [
     weight: 1.0,
     strands: [{ id: 1, name: 'Our Environment', subStrands: [{ name: 'Physical Features', outcomes: ['Locate features in the county'] }] }]
   },
+  {
+    id: 42,
+    name: 'Agriculture',
+    shortName: 'Agriculture',
+    code: 'AGRI',
+    gradeLevel: 'Upper Primary',
+    grades: ['Grade 4', 'Grade 5', 'Grade 6'],
+    color: '#15803d',
+    icon: '🌱',
+    weight: 1.0,
+    strands: [
+      { id: 1, name: 'Conserving our Environment', subStrands: [{ name: 'Soil Conservation', outcomes: ['Importance of soil', 'Soil recovery'] }] },
+      { id: 2, name: 'Crop Production', subStrands: [{ name: 'Gardening Practices', outcomes: ['Land preparation', 'Planting techniques'] }] }
+    ]
+  },
 
   // JUNIOR SCHOOL (Grade 7-9)
   {
@@ -153,6 +168,21 @@ export const learningAreas = [
     weight: 1.0,
     strands: [{ id: 1, name: 'Materials', subStrands: [{ name: 'Tools and Safety', outcomes: ['Identify hand tools', 'Follow safety rules'] }] }]
   },
+  {
+    id: 72,
+    name: 'Agriculture',
+    shortName: 'Agriculture',
+    code: 'AGRI_JS',
+    gradeLevel: 'Junior School',
+    grades: ['Grade 7', 'Grade 8', 'Grade 9'],
+    color: '#166534',
+    icon: '🚜',
+    weight: 1.0,
+    strands: [
+      { id: 1, name: 'Agricultural Economics', subStrands: [{ name: 'Importance of Agriculture', outcomes: ['Role in economy', 'Food security'] }] },
+      { id: 2, name: 'Animal Production', subStrands: [{ name: 'Livestock Management', outcomes: ['Feeding practices', 'Health care'] }] }
+    ]
+  },
 
   // SENIOR SCHOOL (Grade 10-12)
   {
@@ -166,6 +196,21 @@ export const learningAreas = [
     icon: '🤝',
     weight: 1.0,
     strands: [{ id: 1, name: 'Community Engagement', subStrands: [{ name: 'Social Responsibility', outcomes: ['Participate in local projects'] }] }]
+  },
+  {
+    id: 101,
+    name: 'Agriculture',
+    shortName: 'Agriculture',
+    code: 'AGRI_SR',
+    gradeLevel: 'Senior School',
+    grades: ['Grade 10', 'Grade 11', 'Grade 12'],
+    color: '#14532d',
+    icon: '🌾',
+    weight: 1.0,
+    strands: [
+      { id: 1, name: 'Advanced Crop Science', subStrands: [{ name: 'Plant Pathology', outcomes: ['Identify diseases', 'Pest control strategies'] }] },
+      { id: 2, name: 'Farm Power and Machinery', subStrands: [{ name: 'Equipment Maintenance', outcomes: ['Service farm tools', 'Safe operation'] }] }
+    ]
   }
 ];
 

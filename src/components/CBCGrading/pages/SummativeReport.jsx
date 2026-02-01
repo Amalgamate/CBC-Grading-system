@@ -4,13 +4,66 @@
  */
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Loader, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import {
+  Search, Download, Trash2, Edit2, Plus,
+  ChevronDown, FileText, Share2, Printer,
+  AlertCircle, CheckCircle, XCircle, Info,
+  MessageCircle, Loader, Mail, MessageSquare, Save, CreditCard,
+  UploadCloud
+} from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { useNotifications } from '../hooks/useNotifications';
 import { generateHighFidelityPDF } from '../../../utils/simplePdfGenerator';
 import api, { configAPI } from '../../../services/api';
 import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { getLearningAreasByGrade, getAllLearningAreas } from '../../../constants/learningAreas';
+import BulkAssessmentImport from '../shared/BulkAssessmentImport';
+
+const LEARNING_AREA_ABBREVIATIONS = {
+  'MATHEMATICS': 'MAT',
+  'ENGLISH': 'ENG',
+  'KISWAHILI': 'KIS',
+  'SCIENCE AND TECHNOLOGY': 'SCITECH',
+  'SOCIAL STUDIES': 'SST',
+  'CHRISTIAN RELIGIOUS EDUCATION': 'CRE',
+  'ISLAMIC RELIGIOUS EDUCATION': 'IRE',
+  'CREATIVE ARTS AND SPORTS': 'CREATIVE',
+  'AGRICULTURE AND NUTRITION': 'AGRNT',
+  'ENVIRONMENTAL ACTIVITIES': 'ENV',
+  'HOMESCIENCE': 'H SCI',
+  'MUSIC': 'MUSIC',
+  'ART AND CRAFT': 'ART',
+  'PHYSICAL AND HEALTH EDUCATION': 'PHE',
+  'SHUGHULI ZA KISWAHILI': 'KIS',
+  'MATHEMATICAL ACTIVITIES': 'MAT',
+  'ENGLISH LANGUAGE ACTIVITIES': 'ENG',
+  'KISWAHILI LANGUAGE ACTIVITIES': 'KIS',
+  'SCIENCE & TECHNOLOGY': 'SCITECH',
+  'AGRICULTURE': 'AGRNT',
+  'NUTRITION': 'NUTR',
+  'PRE-TECHNICAL STUDIES': 'PRE-TECH',
+  'INTEGRATED SCIENCE': 'INT SCI',
+  'SOCIAL STUDIES & LIFE SKILLS': 'SST'
+};
+
+const getAbbreviatedName = (name) => {
+  if (!name) return '';
+  const upper = name.toUpperCase().trim();
+  return LEARNING_AREA_ABBREVIATIONS[upper] || (name.length > 8 ? name.substring(0, 8).toUpperCase() : name.toUpperCase());
+};
+
+const CHART_COLORS = [
+  '#3b82f6', // blue
+  '#10b981', // emerald
+  '#6366f1', // indigo
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#f43f5e', // rose
+  '#f59e0b', // amber
+  '#06b6d4', // cyan
+  '#84cc16', // lime
+  '#f97316'  // orange
+];
 
 // ============================================================================
 // CBC SMS COMPLIANCE REQUIREMENTS CHECKER
@@ -255,7 +308,49 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(null);
+  const testMessage = 'This is a test message from EDucore.';
+
+  // Custom Tick component for wrapping long learning area names in charts
+  const CustomXAxisTick = ({ x, y, payload }) => {
+    const text = payload.value;
+    if (!text) return null;
+
+    // Split text by space and wrap into lines
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
+
+    words.forEach(word => {
+      if ((currentLine + word).length > 12) {
+        lines.push(currentLine.trim());
+        currentLine = word + ' ';
+      } else {
+        currentLine += word + ' ';
+      }
+    });
+    lines.push(currentLine.trim());
+
+    return (
+      <g transform={`translate(${x},${y})`}>
+        {lines.map((line, index) => (
+          <text
+            key={index}
+            x={0}
+            y={index * 10}
+            dy={10}
+            textAnchor="middle"
+            fill="#64748b"
+            fontSize={8}
+            fontWeight="bold"
+          >
+            {line}
+          </text>
+        ))}
+      </g>
+    );
+  };
   const [statusMessage, setStatusMessage] = useState('');
+  const [showBulkImport, setShowBulkImport] = useState(false);
   const [showTestGroupOptions, setShowTestGroupOptions] = useState(false);
   const [showTestOptions, setShowTestOptions] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -618,7 +713,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
   };
 
   const handleSendSMS = async () => {
-    if (!reportData || reportData.type !== 'LEARNER_REPORT') {
+    if (!reportData || (reportData.type !== 'LEARNER_REPORT' && reportData.type !== 'LEARNER_TERMLY_REPORT')) {
       showError('SMS can only be sent for learner reports');
       return;
     }
@@ -663,7 +758,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
 
     // Generate preview message matching requested sample
     const subjectsSummary = Object.entries(subjects).map(([name, detail]) => {
-      const code = name.length > 8 ? name.substring(0, 8).toUpperCase() : name.toUpperCase();
+      const code = getAbbreviatedName(name);
       return `${code}: ${detail.score} ${detail.grade}`;
     }).join('\n');
 
@@ -690,6 +785,71 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       overallGrade: overallGrade.replace(/\d+/g, '')
     });
     setShowSMSPreview(true);
+  };
+
+  /**
+   * Send summary via WhatsApp - Clean Rewrite to avoid duplication
+   */
+  const handleSendWhatsApp = () => {
+    if (!reportData || (reportData.type !== 'LEARNER_REPORT' && reportData.type !== 'LEARNER_TERMLY_REPORT')) {
+      showError('WhatsApp sharing is only available for learner reports');
+      return;
+    }
+
+    const currentLearner = reportData.learner;
+    if (!currentLearner) {
+      showError('Learner information not available');
+      return;
+    }
+
+    // 1. Data Preparation
+    const parentPhone = currentLearner.guardianPhone || currentLearner.parentPhoneNumber || currentLearner.parentPhone || currentLearner.parent?.phone;
+    const parentName = currentLearner.guardianName || currentLearner.parent?.firstName || 'Parent';
+    const termLabel = terms.find(t => t.value === selectedTerm)?.label || selectedTerm;
+    const schoolName = brandingSettings?.schoolName || 'YOUR SCHOOL';
+
+    const results = reportData.results || [];
+    const totalMarks = results.reduce((sum, r) => sum + (r.score || 0), 0);
+    const maxPossibleMarks = results.reduce((sum, r) => sum + (r.totalMarks || 0), 0);
+    const averageScore = reportData.averageScore || (maxPossibleMarks > 0 ? ((totalMarks / maxPossibleMarks) * 100).toFixed(1) : 0);
+    const { grade: overallGrade } = getCBCGrade(parseFloat(averageScore));
+
+    // 2. Build the Table Content
+    const tableBody = results.map(r => {
+      const area = r.learningArea || 'General';
+      const code = getAbbreviatedName(area).padEnd(8);
+      const score = Math.round(r.score).toString().padStart(3);
+      const pct = r.totalMarks > 0 ? (r.score / r.totalMarks) * 100 : 0;
+      const { grade } = getCBCGrade(pct);
+      const simpleGrade = grade.replace(/\d+/g, '').padStart(3);
+      return `${code} | ${score} | ${simpleGrade}`;
+    }).join('\n');
+
+    // 3. Construct the Final Message (Clean & Professional)
+    const waMessage =
+      `*${schoolName.toUpperCase()}*\n` +
+      `_Official Assessment Report_\n\n` +
+      `Dear *${parentName}*,\n` +
+      `Here is the assessment summary for\n*${currentLearner.firstName} ${currentLearner.lastName}* for *${termLabel}*:\n\n` +
+      `\`\`\`\n` +
+      `SUBJECT  | SCR | GRD\n` +
+      `---------|-----|----\n` +
+      `${tableBody}\n` +
+      `---------|-----|----\n` +
+      `AVERAGE  | ${averageScore.toString().padStart(3)}%| ${overallGrade.replace(/\d+/g, '').padStart(3)}\n` +
+      `\`\`\`\n\n` +
+      `*Total Marks:* ${totalMarks} / ${maxPossibleMarks}\n` +
+      `*Overall Status:* ${overallGrade.replace(/\d+/g, '')}\n\n` +
+      `_Generated on ${new Date().toLocaleDateString()}_`;
+
+    // 4. Format Phone & Open WhatsApp
+    let cleanPhone = parentPhone ? parentPhone.replace(/\D/g, '') : '';
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '254' + cleanPhone.substring(1);
+    }
+
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMessage)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   /**
@@ -752,8 +912,8 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       return;
     }
 
-    // Validation for LEARNER_REPORT
-    if (selectedType === 'LEARNER_REPORT') {
+    // Validation for Learner Reports
+    if (selectedType === 'LEARNER_REPORT' || selectedType === 'LEARNER_TERMLY_REPORT') {
       if (!learners || learners.length === 0) {
         setStatusMessage('❌ Error: No learners available');
         showError('No learners found in the system');
@@ -783,7 +943,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     setStatusMessage('⏳ Generating report...');
 
     try {
-      if (selectedType === 'LEARNER_REPORT') {
+      if (selectedType === 'LEARNER_REPORT' || selectedType === 'LEARNER_TERMLY_REPORT') {
         // Fetch learner's ALL test results (optionally filtered by test type)
         const learner = filteredLearners?.find(l => l.id === selectedLearnerId);
 
@@ -879,7 +1039,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
         }
 
         setReportData({
-          type: 'LEARNER_REPORT',
+          type: selectedType,
           learner: learner,
           results: processedResults,
           term: selectedTerm,
@@ -898,7 +1058,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
         console.log('\n🔍 RUNNING CBC SMS COMPLIANCE CHECK...');
         const complianceResult = validateCBCSMSCompliance(
           {
-            type: 'LEARNER_REPORT',
+            type: selectedType,
             learner: {
               ...learner,
               parentPhone: learner.guardianPhone || learner.parentPhoneNumber || learner.parentPhone
@@ -1137,8 +1297,8 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             )}
           </div>
 
-          {/* Learner Selector - Only shows for LEARNER_REPORT */}
-          {selectedType === 'LEARNER_REPORT' && (
+          {/* Learner Selector - Shows for both Learner Report types */}
+          {(selectedType === 'LEARNER_REPORT' || selectedType === 'LEARNER_TERMLY_REPORT') && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Learner<span className="text-red-500">*</span></label>
               {console.log('🧑 Learners available:', learners?.length, 'Grade:', selectedGrade, 'Stream:', selectedStream)}
@@ -1151,7 +1311,6 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                 streamKey: Object.keys(learners[0]).find(k => k.toLowerCase().includes('stream'))
               })}
 
-              {/* Get filtered learners */}
               {(() => {
                 // If no results with filters and not loading, show all learners as fallback
                 const displayLearners = filteredLearners.length > 0 ? filteredLearners : (learners || []).sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`));
@@ -1198,6 +1357,14 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
 
         {/* Generate Button */}
         <div className="flex justify-end pt-4 mb-6">
+          <button
+            onClick={() => setShowBulkImport(true)}
+            className="px-6 py-3 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition font-semibold flex items-center gap-2"
+          >
+            <UploadCloud size={18} />
+            Bulk Import
+          </button>
+
           <button
             onClick={handleGenerate}
             disabled={loading}
@@ -1343,7 +1510,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
 
 
       {/* LEARNER REPORT DISPLAY - COMPACT PROFESSIONAL LAYOUT */}
-      {reportData?.type === 'LEARNER_REPORT' && reportData?.learner && (
+      {(reportData?.type === 'LEARNER_REPORT' || reportData?.type === 'LEARNER_TERMLY_REPORT') && reportData?.learner && (
         <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
           <div
             id="summative-report-content"
@@ -1390,7 +1557,6 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
               });
 
               const testColumns = Array.from(testTypesFound).sort();
-
               const formatTestName = (str) => {
                 if (!str) return '';
                 return str.replace(/_/g, ' ')
@@ -1602,12 +1768,33 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={tableRows} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                          <XAxis dataKey="area" tick={{ fontSize: 9, fill: '#64748b' }} interval={0} angle={-30} textAnchor="end" height={40} />
+                          <XAxis
+                            dataKey="area"
+                            interval={0}
+                            tick={<CustomXAxisTick />}
+                            height={60}
+                            axisLine={{ stroke: '#e2e8f0' }}
+                            tickLine={false}
+                          />
                           <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                          <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ fontSize: '12px' }} />
-                          <Bar dataKey="percentage" radius={[4, 4, 0, 0]}>
+                          <Tooltip
+                            cursor={{ fill: '#f8fafc', opacity: 0.4 }}
+                            contentStyle={{
+                              borderRadius: '8px',
+                              border: 'none',
+                              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+                              fontSize: '12px',
+                              fontWeight: 'bold',
+                              padding: '8px 12px'
+                            }}
+                          />
+                          <Bar dataKey="percentage" radius={[6, 6, 0, 0]} barSize={40}>
                             {tableRows.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={CHART_COLORS[index % CHART_COLORS.length]}
+                                fillOpacity={0.85}
+                              />
                             ))}
                           </Bar>
                         </BarChart>
@@ -1678,14 +1865,24 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
               {isSendingSMS ? '📤 Sending...' : '📱 Send SMS to Parent'}
             </button>
             <button
+              onClick={handleSendWhatsApp}
+              disabled={isExporting}
+              className="px-6 py-2 bg-emerald-500 text-white rounded hover:bg-emerald-600 text-sm font-semibold transition flex items-center gap-2"
+              title="Share report summary via WhatsApp"
+            >
+              <MessageCircle size={18} />
+              Send to WhatsApp
+            </button>
+            <button
               data-export-button
               onClick={(e) => {
                 console.log('🔘 Button clicked!', e);
                 handleExportPDF();
               }}
               disabled={isExporting}
-              className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
+              {isExporting ? <Loader size={18} className="animate-spin" /> : <Download size={18} />}
               {isExporting ? '⏳ Exporting...' : '📥 Export PDF'}
             </button>
           </div>
@@ -1808,6 +2005,22 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           </div>
         </div>
       )}
+      {/* Bulk Assessment Import Modal */}
+      <BulkAssessmentImport
+        show={showBulkImport}
+        onClose={() => setShowBulkImport(false)}
+        onSuccess={() => {
+          setShowBulkImport(false);
+          // Optionally refresh tests/data
+          if (setup.selectedGrade && setup.selectedTerm) {
+            // Trigger a refresh if needed
+          }
+        }}
+        academicYear={academicYear}
+        term={selectedTerm}
+        grade={selectedGrade}
+        learningAreas={getAllLearningAreas()}
+      />
     </div>
   );
 };

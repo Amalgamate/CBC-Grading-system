@@ -57,11 +57,14 @@ const CommunicationSettings = () => {
     enabled: false
   });
 
-  const [testContact, setTestContact] = useState('254713612141');
+
+
+  const [testContact, setTestContact] = useState('');
   const [testAmount, setTestAmount] = useState('10');
   const [testMessage, setTestMessage] = useState('This is a test message from EDucore.');
 
   // Load Configuration on Mount
+
   useEffect(() => {
     const loadConfig = async () => {
       try {
@@ -90,6 +93,10 @@ const CommunicationSettings = () => {
         const data = response.data;
 
         if (data) {
+          // If no test contact was in localStorage, use school phone as default
+          if (!savedTestContact && data.schoolPhone) {
+            setTestContact(data.schoolPhone.replace('+', ''));
+          }
           // Update Email Settings
           if (data.email) {
             setEmailSettings(prev => ({
@@ -133,9 +140,10 @@ const CommunicationSettings = () => {
               enabled: data.mpesa.enabled,
               publicKey: data.mpesa.publicKey || '',
               businessNumber: data.mpesa.businessNumber || '',
-              hasSecretKey: data.mpesa.hasSecretKey
+              hasSecretKey: !!data.mpesa.hasSecretKey
             }));
           }
+
         }
       } catch (error) {
         console.error('Error loading config:', error);
@@ -196,6 +204,7 @@ const CommunicationSettings = () => {
         };
       }
 
+
       await communicationAPI.saveConfig(payload);
       showSuccess(`${type} settings saved successfully!`);
 
@@ -253,12 +262,13 @@ const CommunicationSettings = () => {
     }
   };
 
+
   // Render Logic
   return (
     <div className="space-y-6">
       {/* Tabs */}
       <div className="bg-white rounded-xl shadow-md">
-        <div className="border-b border-gray-200 flex">
+        <div className="border-b border-gray-200 flex overflow-x-auto">
           {['email', 'sms', 'mpesa'].map((tab) => (
             <button
               key={tab}
@@ -271,7 +281,7 @@ const CommunicationSettings = () => {
               {tab === 'email' && <Mail size={20} />}
               {tab === 'sms' && <MessageSquare size={20} />}
               {tab === 'mpesa' && <CreditCard size={20} />}
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              <span className="whitespace-nowrap">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
             </button>
           ))}
         </div>
@@ -499,6 +509,7 @@ const CommunicationSettings = () => {
           <p className="text-gray-500">M-Pesa settings implementation coming soon.</p>
         </div>
       )}
+
     </div>
   );
 };

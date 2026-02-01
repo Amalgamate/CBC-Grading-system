@@ -694,7 +694,8 @@ export const generateTestsBulk = async (req: AuthRequest, res: Response) => {
       'PHYSICAL EDUCATION',
       'INSHA',
       'READING',
-      'ABACUS'
+      'ABACUS',
+      'AGRICULTURE'
     ];
 
     for (const grade of grades) {

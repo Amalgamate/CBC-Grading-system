@@ -398,7 +398,7 @@ const SupportHub = () => {
             Email Support
           </a>
           <a
-            href="tel:+254712345678"
+            href="tel:0700000000"
             className="px-4 py-2 bg-white text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition font-semibold flex items-center gap-2"
           >
             <MessageSquare size={16} />
@@ -409,7 +409,7 @@ const SupportHub = () => {
           <p className="text-sm text-gray-700">
             <strong>Support Hours:</strong> Monday - Friday, 8:00 AM - 5:00 PM EAT<br />
             <strong>Email:</strong> support@zawadijrn.ac.ke<br />
-            <strong>Phone:</strong> +254 712 345 678<br />
+            <strong>Phone:</strong> 0700 000 000<br />
             <strong>Response Time:</strong> Within 24 hours
           </p>
         </div>

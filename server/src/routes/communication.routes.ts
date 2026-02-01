@@ -1,6 +1,12 @@
 
 import express from 'express';
-import { getCommunicationConfig, saveCommunicationConfig, sendTestSms } from '../controllers/communication.controller';
+import {
+    getCommunicationConfig,
+    saveCommunicationConfig,
+    sendTestSms,
+    getBirthdaysToday,
+    sendBirthdayWishes
+} from '../controllers/communication.controller';
 import { requireRole } from '../middleware/permissions.middleware';
 
 const router = express.Router();
@@ -32,6 +38,22 @@ router.post(
     '/test/sms',
     requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
     sendTestSms
+);
+
+// Birthday Birthdays Today
+// Allowed: Admin, Super Admin, Head Teacher
+router.get(
+    '/birthdays/today/:schoolId',
+    requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
+    getBirthdaysToday
+);
+
+// Send Birthday Wishes
+// Allowed: Admin, Super Admin, Head Teacher
+router.post(
+    '/birthdays/send',
+    requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
+    sendBirthdayWishes
 );
 
 export default router;

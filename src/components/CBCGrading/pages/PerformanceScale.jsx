@@ -39,7 +39,8 @@ const LEARNING_AREAS = [
   'PHYSICAL EDUCATION',
   'INSHA',
   'READING',
-  'ABACUS'
+  'ABACUS',
+  'AGRICULTURE'
 ];
 
 const GRADES = [
@@ -55,7 +56,7 @@ const PerformanceScale = () => {
   const [viewMode, setViewMode] = useState('list');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedGrades, setExpandedGrades] = useState([]);
-  
+
   const [scaleName, setScaleName] = useState('');
   const [selectedGrades, setSelectedGrades] = useState(['GRADE_6']);
   const [ranges, setRanges] = useState(EIGHT_POINT_TEMPLATE.map(t => ({
@@ -69,7 +70,7 @@ const PerformanceScale = () => {
   const [scaleGroups, setScaleGroups] = useState([]);
   const [gradingSystems, setGradingSystems] = useState([]);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [confirmConfig, setConfirmConfig] = useState({ title: '', message: '', onConfirm: () => {} });
+  const [confirmConfig, setConfirmConfig] = useState({ title: '', message: '', onConfirm: () => { } });
 
   const [schoolId] = useState(() => {
     try {
@@ -132,10 +133,10 @@ const PerformanceScale = () => {
 
     setSaving(true);
     try {
-      const gradeList = selectedGrades.length === GRADES.length 
-        ? 'All Grades' 
+      const gradeList = selectedGrades.length === GRADES.length
+        ? 'All Grades'
         : selectedGrades.map(formatGradeDisplay).join(', ');
-      
+
       const groupResponse = await gradingAPI.createScaleGroup({
         name: scaleName,
         description: `Performance scale for ${gradeList}`
@@ -163,7 +164,7 @@ const PerformanceScale = () => {
 
       const totalSystems = selectedGrades.length * LEARNING_AREAS.length;
       showSuccess(`✓ Created "${scaleName}" with ${totalSystems} grading systems across ${selectedGrades.length} grade(s)!`);
-      
+
       setScaleName('');
       setSelectedGrades(['GRADE_6']);
       setRanges(EIGHT_POINT_TEMPLATE.map(t => ({
@@ -175,7 +176,7 @@ const PerformanceScale = () => {
       })));
       setViewMode('list');
       await loadData();
-      
+
     } catch (err) {
       console.error('Error creating scale:', err);
       showError('Failed to create performance scale: ' + err.message);
@@ -252,7 +253,7 @@ const PerformanceScale = () => {
   if (viewMode === 'create') {
     const allSelected = selectedGrades.length === GRADES.length;
     const someSelected = selectedGrades.length > 0 && selectedGrades.length < GRADES.length;
-    
+
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
@@ -292,22 +293,20 @@ const PerformanceScale = () => {
             <label className="block text-sm font-bold text-gray-700 mb-3">
               Grade Levels * <span className="text-gray-500 font-normal">({selectedGrades.length} selected)</span>
             </label>
-            
+
             <div className="mb-4">
               <button
                 type="button"
                 onClick={handleSelectAllGrades}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition font-semibold ${
-                  allSelected
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition font-semibold ${allSelected
                     ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
                     : someSelected
-                    ? 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100'
-                    : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
-                }`}
+                      ? 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100'
+                      : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
+                  }`}
               >
-                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                  allSelected ? 'bg-white border-white' : someSelected ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-400'
-                }`}>
+                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${allSelected ? 'bg-white border-white' : someSelected ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-400'
+                  }`}>
                   {allSelected && <CheckCircle size={16} className="text-blue-600" />}
                   {someSelected && !allSelected && <div className="w-2 h-2 bg-white rounded-sm"></div>}
                 </div>
@@ -321,11 +320,10 @@ const PerformanceScale = () => {
                 return (
                   <label
                     key={grade}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg border-2 cursor-pointer transition ${
-                      isSelected
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg border-2 cursor-pointer transition ${isSelected
                         ? 'bg-blue-50 border-blue-500 hover:bg-blue-100'
                         : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     <input
                       type="checkbox"
@@ -340,7 +338,7 @@ const PerformanceScale = () => {
                 );
               })}
             </div>
-            
+
             <p className="mt-3 text-xs text-gray-500">
               Select one or more grades. The scale will be created for all learning areas in the selected grades.
             </p>
@@ -366,7 +364,7 @@ const PerformanceScale = () => {
                     <span className="text-blue-800">total grading systems will be created!</span>
                   </div>
                 </div>
-                
+
                 {selectedGrades.length > 0 && (
                   <div className="mt-4 pt-3 border-t border-blue-200">
                     <p className="text-xs font-semibold text-blue-900 mb-2">Selected Grades:</p>
@@ -509,7 +507,7 @@ const PerformanceScale = () => {
             {Object.entries(groupedData).map(([gradeKey, scaleGroups]) => {
               const isExpanded = expandedGrades.includes(gradeKey);
               const scaleCount = Object.keys(scaleGroups).length;
-              
+
               return (
                 <div key={gradeKey}>
                   <div
@@ -547,7 +545,7 @@ const PerformanceScale = () => {
                                 </button>
                               )}
                             </div>
-                            
+
                             <div className="p-4">
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                                 {data.learningAreas.map(system => (

@@ -1597,6 +1597,10 @@ model CommunicationConfig {
   mpesaSecretKey  String?   // Encrypted
   mpesaBusinessNo String?   // Paybill/Till
   mpesaEnabled    Boolean   @default(false)
+  
+  // Birthday Configuration
+  birthdayEnabled         Boolean   @default(false)
+  birthdayMessageTemplate String?   @default("Happy Birthday {learnerName}! Best wishes from {schoolName}.")
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

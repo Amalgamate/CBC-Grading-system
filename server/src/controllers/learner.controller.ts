@@ -768,7 +768,9 @@ export class LearnerController {
           dateOfBirth: true,
           grade: true,
           stream: true,
-          admissionNumber: true
+          admissionNumber: true,
+          guardianPhone: true,
+          emergencyPhone: true
         }
       });
 
@@ -806,6 +808,7 @@ export class LearnerController {
           dateOfBirth: l.dateOfBirth,
           grade: l.grade,
           stream: l.stream,
+          guardianPhone: l.guardianPhone || l.emergencyPhone,
           daysUntil,
           turningAge: bday.getFullYear() - dob.getFullYear(),
           isToday: daysUntil === 0

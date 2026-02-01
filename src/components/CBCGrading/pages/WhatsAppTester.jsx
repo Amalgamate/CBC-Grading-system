@@ -11,7 +11,7 @@ import api from '../../../services/api';
 const WhatsAppTester = () => {
   const { showSuccess } = useNotifications();
   const [loading, setLoading] = useState(false);
-  const [testPhone, setTestPhone] = useState('+254');
+  const [testPhone, setTestPhone] = useState('');
   const [selectedLearner, setSelectedLearner] = useState('');
   const [announcementTitle, setAnnouncementTitle] = useState('');
   const [announcementContent, setAnnouncementContent] = useState('');
@@ -106,7 +106,7 @@ const WhatsAppTester = () => {
           <h3 className="text-xl font-bold">Test Connection</h3>
         </div>
         <p className="text-gray-600 mb-4">Send a test message to verify WhatsApp integration is working.</p>
-        
+
         <div className="flex gap-3">
           <input
             type="text"
@@ -135,7 +135,7 @@ const WhatsAppTester = () => {
           <h3 className="text-xl font-bold">Assessment Notification</h3>
         </div>
         <p className="text-gray-600 mb-4">Simulate sending assessment completion notification to a parent.</p>
-        
+
         <div className="space-y-3">
           <div>
             <label className="block text-sm font-semibold mb-2">Select Student</label>
@@ -170,7 +170,7 @@ const WhatsAppTester = () => {
           <h3 className="text-xl font-bold">School Announcement</h3>
         </div>
         <p className="text-gray-600 mb-4">Send announcement to all parents or filtered by grade.</p>
-        
+
         <div className="space-y-3">
           <div>
             <label className="block text-sm font-semibold mb-2">Announcement Title</label>
@@ -216,7 +216,7 @@ const WhatsAppTester = () => {
           <li>Ensure students have parent phone numbers in database</li>
           <li>Test with the buttons above</li>
         </ol>
-        
+
         <div className="mt-4 p-3 bg-white rounded border border-blue-200">
           <p className="font-semibold text-blue-900 mb-1">Sandbox Mode (Testing):</p>
           <p className="text-sm text-blue-800">

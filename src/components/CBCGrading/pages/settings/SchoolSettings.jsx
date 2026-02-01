@@ -322,9 +322,17 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
 
       // Update user object in localStorage with new school name
       try {
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        if (user.school) {
-          user.school.name = settings.schoolName;
+        const userString = localStorage.getItem('user');
+        if (userString) {
+          const user = JSON.parse(userString);
+          if (user.school) {
+            user.school.name = settings.schoolName;
+            user.school.phone = settings.phone;
+          }
+          // If the user's phone was the same as the school's old phone (likely admin/provisioner), update it too
+          if (user.role === 'ADMIN' && settings.phone) {
+            user.phone = settings.phone;
+          }
           localStorage.setItem('user', JSON.stringify(user));
         }
       } catch (e) {
@@ -519,7 +527,7 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
                   value={settings.phone}
                   onChange={(e) => handleChange('phone', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="+254700000000"
+                  placeholder="Enter school phone"
                 />
               </div>
               <div>

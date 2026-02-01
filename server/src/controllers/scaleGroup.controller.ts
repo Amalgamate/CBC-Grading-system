@@ -28,7 +28,8 @@ const LEARNING_AREAS = [
   'PHYSICAL EDUCATION',
   'INSHA',
   'READING',
-  'ABACUS'
+  'ABACUS',
+  'AGRICULTURE'
 ];
 
 // ============================================
@@ -337,7 +338,7 @@ export const deleteScaleGroup = async (req: AuthRequest, res: Response) => {
     // Check for tests/assessments using any of these grading systems (unless force=true)
     if (force !== 'true') {
       const systemIds = existing.gradingSystems.map((gs: any) => gs.id);
-      
+
       if (systemIds.length > 0) {
         const testsUsingScales = await prisma.summativeTest.findMany({
           where: {
@@ -355,7 +356,7 @@ export const deleteScaleGroup = async (req: AuthRequest, res: Response) => {
         if (testsUsingScales.length > 0) {
           console.log(`⚠️  Warning: ${testsUsingScales.length} tests are using these scales`);
           console.log('Tests:', testsUsingScales.map((t: any) => t.title).join(', '));
-          
+
           return res.status(409).json({
             success: false,
             message: `Cannot delete scale group "${existing.name}". ${testsUsingScales.length} test(s) are currently using these grading scales.`,
@@ -396,9 +397,9 @@ export const deleteScaleGroup = async (req: AuthRequest, res: Response) => {
 
       // 2. Archive all grading systems in this group
       const systemsResult = await tx.gradingSystem.updateMany({
-        where: { 
+        where: {
           scaleGroupId: id,
-          archived: false 
+          archived: false
         },
         data: {
           archived: true,

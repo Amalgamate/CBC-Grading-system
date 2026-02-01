@@ -117,7 +117,8 @@ export const SENIOR_SCHOOL_LEARNING_AREAS = [
   'Music',
   'Film and Media Studies',
   'Sports Science',
-  'Theatre and Dance'
+  'Theatre and Dance',
+  'Agriculture'
 ];
 
 /**

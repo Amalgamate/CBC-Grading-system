@@ -32,11 +32,11 @@ export default function SchoolDetails({ schoolId, onBack }) {
         schoolAPI.getById(schoolId).catch(() => ({})),
         learnerAPI.getAll().catch(() => ({ data: [] })),
         assessmentAPI.getTests().catch(() => ({ data: [] })),
-        userAPI.getAll().catch(() => ({ data: [] }))
+        userAPI.getAll(schoolId).catch(() => ({ data: [] })) // Pass schoolId to fetch users for this school
       ]);
 
       setSchool(schoolRes?.data || schoolRes || {});
-      
+
       // Get learners data properly
       let learnersData = [];
       if (learnersRes?.data && Array.isArray(learnersRes.data)) {
@@ -45,7 +45,7 @@ export default function SchoolDetails({ schoolId, onBack }) {
         learnersData = learnersRes;
       }
       setLearners(learnersData);
-      
+
       // Get tests data properly
       let testsData = [];
       if (testsRes?.data && Array.isArray(testsRes.data)) {
@@ -54,16 +54,15 @@ export default function SchoolDetails({ schoolId, onBack }) {
         testsData = testsRes;
       }
       setTests(testsData);
-      
-      // Get users data properly - filter by school
+
+      // Get users data properly - no need to filter, backend handles it
       let usersData = [];
       if (usersRes?.data && Array.isArray(usersRes.data)) {
         usersData = usersRes.data;
       } else if (Array.isArray(usersRes)) {
         usersData = usersRes;
       }
-      // Filter users that belong to this school
-      setUsers(usersData.filter(u => u?.schoolId === schoolId || u?.school?.id === schoolId));
+      setUsers(usersData); // Backend already filtered by schoolId
 
       // Restore previous context
       if (previousSchoolId) {
@@ -92,7 +91,7 @@ export default function SchoolDetails({ schoolId, onBack }) {
     if (!window.confirm(`Are you sure you want to delete "${testTitle}"? This action cannot be undone.`)) {
       return;
     }
-    
+
     setDeleting(true);
     try {
       await assessmentAPI.deleteTest(testId);
@@ -145,7 +144,7 @@ export default function SchoolDetails({ schoolId, onBack }) {
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-6">
           {/* Back Button */}
-          <button 
+          <button
             onClick={onBack}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
           >
@@ -163,9 +162,8 @@ export default function SchoolDetails({ schoolId, onBack }) {
                 <h1 className="text-2xl font-bold text-gray-900">{school?.name}</h1>
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-sm text-gray-500 font-mono">ID: {school?.id?.slice(0, 12)}</span>
-                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                    school?.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                  }`}>
+                  <span className={`px-2 py-1 rounded text-xs font-semibold ${school?.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
                     {school?.active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
@@ -201,18 +199,16 @@ export default function SchoolDetails({ schoolId, onBack }) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                    activeTab === tab.id
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === tab.id
                       ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
                       : 'text-gray-600 hover:bg-gray-100'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
                   {tab.count !== undefined && (
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                      activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'
-                    }`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'
+                      }`}>
                       {tab.count}
                     </span>
                   )}
@@ -279,7 +275,7 @@ export default function SchoolDetails({ schoolId, onBack }) {
                 <div>
                   <p className="text-sm font-semibold text-amber-900">Security Notice</p>
                   <p className="text-xs text-amber-700 mt-1">
-                    Passwords are encrypted in the database. This view shows credential status only. 
+                    Passwords are encrypted in the database. This view shows credential status only.
                     Users must reset their passwords through the proper authentication flow.
                   </p>
                 </div>
@@ -311,7 +307,7 @@ export default function SchoolDetails({ schoolId, onBack }) {
                       users.map((user) => {
                         const statusInfo = getStatusBadge(user.status);
                         const StatusIcon = statusInfo.icon;
-                        
+
                         return (
                           <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                             <td className="px-4 py-4">
@@ -423,9 +419,8 @@ export default function SchoolDetails({ schoolId, onBack }) {
                         <td className="px-4 py-3 text-sm text-gray-600 font-medium">{learner.grade}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{learner.stream || '-'}</td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`inline-flex px-2.5 py-1 rounded text-xs font-semibold ${
-                            learner.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                          }`}>
+                          <span className={`inline-flex px-2.5 py-1 rounded text-xs font-semibold ${learner.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                            }`}>
                             {learner.status}
                           </span>
                         </td>
@@ -476,9 +471,8 @@ export default function SchoolDetails({ schoolId, onBack }) {
                           <td className="px-4 py-3 text-sm text-gray-600">{test.learningArea}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{test.term}</td>
                           <td className="px-4 py-3 text-center">
-                            <span className={`inline-flex px-2.5 py-1 rounded text-xs font-semibold ${
-                              test.published ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                            }`}>
+                            <span className={`inline-flex px-2.5 py-1 rounded text-xs font-semibold ${test.published ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                              }`}>
                               {test.published ? 'Published' : 'Draft'}
                             </span>
                           </td>
@@ -532,9 +526,8 @@ export default function SchoolDetails({ schoolId, onBack }) {
                         <td className="px-4 py-3 text-sm text-gray-600">{test.learningArea}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{test.term}</td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`inline-flex px-2.5 py-1 rounded text-xs font-semibold ${
-                            test.published ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                          }`}>
+                          <span className={`inline-flex px-2.5 py-1 rounded text-xs font-semibold ${test.published ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                            }`}>
                             {test.published ? 'Published' : 'Draft'}
                           </span>
                         </td>

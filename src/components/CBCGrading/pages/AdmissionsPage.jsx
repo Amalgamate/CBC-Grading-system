@@ -30,7 +30,7 @@ const AdmissionsPage = () => {
     };
     fetchStreams();
   }, [user?.schoolId]);
-  
+
   const initialFormData = {
     firstName: '', middleName: '', lastName: '', gender: '', dob: '', birthCertNo: '',
     nationality: 'Kenyan', religion: '', admNo: '', grade: 'Grade 1', stream: 'A',
@@ -41,7 +41,7 @@ const AdmissionsPage = () => {
     guardian2IdNumber: '', guardian2Occupation: '', bloodGroup: '', allergies: '', medicalConditions: '',
     doctorName: '', doctorPhone: '', transport: 'Walking', specialNeeds: '', photo: null
   };
-  
+
   const [formData, setFormData] = useState(initialFormData);
 
   const handleInputChange = (e) => {
@@ -103,9 +103,9 @@ const AdmissionsPage = () => {
             <div className="space-y-6">
               <h3 className="text-xl font-bold text-gray-800 mb-4">Personal Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[{name: 'firstName', label: 'First Name', required: true}, 
-                  {name: 'middleName', label: 'Middle Name', required: false},
-                  {name: 'lastName', label: 'Last Name', required: true}].map(field => (
+                {[{ name: 'firstName', label: 'First Name', required: true },
+                { name: 'middleName', label: 'Middle Name', required: false },
+                { name: 'lastName', label: 'Last Name', required: true }].map(field => (
                   <div key={field.name}>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       {field.label} {field.required && <span className="text-red-500">*</span>}
@@ -211,7 +211,7 @@ const AdmissionsPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number <span className="text-red-500">*</span></label>
-                    <input type="tel" name="guardian1Phone" value={formData.guardian1Phone} onChange={handleInputChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="+254712345678" required />
+                    <input type="tel" name="guardian1Phone" value={formData.guardian1Phone} onChange={handleInputChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Guardian's phone number" required />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>

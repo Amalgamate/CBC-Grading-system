@@ -451,6 +451,23 @@ export const communicationAPI = {
       body: JSON.stringify(data),
     });
   },
+
+  /**
+   * Get Birthdays Today
+   */
+  getBirthdaysToday: async (schoolId) => {
+    return fetchWithAuth(`/communication/birthdays/today/${schoolId}`);
+  },
+
+  /**
+   * Send Birthday Wishes
+   */
+  sendBirthdayWishes: async (data) => {
+    return fetchWithAuth('/communication/birthdays/send', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 // ============================================
@@ -460,10 +477,12 @@ export const communicationAPI = {
 export const userAPI = {
   /**
    * Get all users
+   * @param {string} schoolId - Optional school ID to filter users (for Super Admin)
    * @returns {Promise} List of all users
    */
-  getAll: async () => {
-    return fetchWithAuth('/users');
+  getAll: async (schoolId) => {
+    const params = schoolId ? `?schoolId=${schoolId}` : '';
+    return fetchWithAuth(`/users${params}`);
   },
 
   /**
@@ -1214,9 +1233,23 @@ export const assessmentAPI = {
    * @param {string} testId - Test ID
    * @returns {Promise} List of test results
    */
-  getTestResults: async (testId) => {
+  async getTestResults(testId) {
     return fetchWithAuth(`/assessments/summative/results/test/${testId}`);
   },
+
+  /**
+   * Upload bulk assessments (scores) from Excel/CSV
+   * @param {FormData} formData - Contains the file and other parameters
+   * @returns {Promise} Upload result summary
+   */
+  async uploadBulk(formData) {
+    return fetchWithAuth('/bulk/assessments/upload', {
+      method: 'POST',
+      body: formData,
+      // Header for FormData is handled automatically by fetch if body is FormData
+      headers: {}
+    });
+  }
 };
 
 // ============================================

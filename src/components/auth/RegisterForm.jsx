@@ -217,6 +217,12 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // If not on final step, just validate and go to next
+    if (currentStep < totalSteps) {
+      handleNext();
+      return;
+    }
+
     if (!validateStep(currentStep)) return;
 
     setIsLoading(true);
@@ -281,17 +287,29 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
     } catch (error) {
       console.error('💥 Registration error:', error);
 
+      let errorMsg = 'Unable to connect to server. Please check your connection.';
+
+      // If we have a specific error message from the throw
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch')) {
+          errorMsg = 'Could not reach server. Is the backend running?';
+        } else {
+          errorMsg = error.message;
+        }
+      }
+
       // Show error toast
-      const toast = document.createElement('div');
-      toast.className = 'fixed top-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in';
-      toast.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg><span>Unable to connect to server. Please check your connection.</span>';
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 5000);
+      const toastEl = document.createElement('div');
+      toastEl.className = 'fixed top-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in';
+      toastEl.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg><span>${errorMsg}</span>`;
+      document.body.appendChild(toastEl);
+      setTimeout(() => toastEl.remove(), 5000);
 
       setErrors({
-        email: 'Unable to connect to server. Please try again.'
+        email: errorMsg
       });
-      setCurrentStep(1);
+      // Don't automatically reset to step 1 unless it was a validation error from server
+      // currentStep stays where it is for user to retry
     } finally {
       setIsLoading(false);
     }

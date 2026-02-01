@@ -4,7 +4,7 @@ import { useAuth } from './hooks/useAuth';
 import Auth from './pages/Auth';
 import CBCGradingSystem from './components/CBCGrading/CBCGradingSystem';
 import EDucoreLanding from './components/EDucore/EDucoreLanding2';
-import Registration from './components/auth/RegisterForm'; // Use the consolidated register form if needed, but we already have routes
+// import Registration from './components/auth/RegisterForm'; // Use the consolidated register form if needed, but we already have routes
 import SuperAdminDashboard from './components/EDucore/SuperAdminDashboard';
 import api from './services/api';
 import { clearPortalSchoolId, setPortalSchoolId } from './services/tenantContext';

@@ -6,7 +6,12 @@
   },
   "ECD": {
     "label": "Early Childhood Development",
-    "grades": ["NURSERY", "KINDERGARTEN", "PLAYGROUP", "CRECHE"],
+    "grades": [
+      "NURSERY",
+      "KINDERGARTEN",
+      "PLAYGROUP",
+      "CRECHE"
+    ],
     "areas": [
       "Mathematics Activities",
       "English Activities",
@@ -19,7 +24,13 @@
   },
   "LOWER_PRIMARY": {
     "label": "Lower Primary (Grades 1-3)",
-    "grades": ["PP1", "PP2", "GRADE_1", "GRADE_2", "GRADE_3"],
+    "grades": [
+      "PP1",
+      "PP2",
+      "GRADE_1",
+      "GRADE_2",
+      "GRADE_3"
+    ],
     "areas": [
       "Mathematics",
       "English Activities",
@@ -33,13 +44,18 @@
   },
   "UPPER_PRIMARY": {
     "label": "Upper Primary (Grades 4-6)",
-    "grades": ["GRADE_4", "GRADE_5", "GRADE_6"],
+    "grades": [
+      "GRADE_4",
+      "GRADE_5",
+      "GRADE_6"
+    ],
     "areas": [
       "Mathematics",
       "English Language",
       "Kiswahili Lugha",
       "Science",
       "Social Studies",
+      "Agriculture",
       "Creative Arts",
       "Physical Education",
       "Integrated Science",
@@ -48,13 +64,17 @@
   },
   "LOWER_SECONDARY": {
     "label": "Lower Secondary (Grades 7-8)",
-    "grades": ["GRADE_7", "GRADE_8"],
+    "grades": [
+      "GRADE_7",
+      "GRADE_8"
+    ],
     "areas": [
       "Mathematics",
       "English Language",
       "Kiswahili Lugha",
       "Science",
       "Social Studies",
+      "Agriculture",
       "Creative Arts and Sports",
       "Pre-Technical Studies",
       "Integrated Science",
@@ -64,7 +84,12 @@
   },
   "UPPER_SECONDARY": {
     "label": "Upper Secondary (Grades 9-12)",
-    "grades": ["GRADE_9", "GRADE_10", "GRADE_11", "GRADE_12"],
+    "grades": [
+      "GRADE_9",
+      "GRADE_10",
+      "GRADE_11",
+      "GRADE_12"
+    ],
     "areas": [
       "Mathematics",
       "English Language",

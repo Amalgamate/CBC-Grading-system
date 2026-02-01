@@ -480,9 +480,26 @@ export const updateSchool = async (req: AuthRequest, res: Response) => {
       data: updateData
     });
 
+    // SYNC LOGIC: If school phone is updated, also update the requester's phone if they are an ADMIN
+    // This ensures OTPs sent to user.phone are in sync with school settings
+    let userUpdated = false;
+    if (req.user?.userId && req.user.role === 'ADMIN' && (updateData.phone || updateData.principalPhone)) {
+      try {
+        await prisma.user.update({
+          where: { id: req.user.userId },
+          data: { phone: updateData.phone || updateData.principalPhone }
+        });
+        userUpdated = true;
+        console.log(`✅ Synced account phone for admin user ${req.user.userId} with school phone`);
+      } catch (userErr) {
+        console.error('Failed to sync admin user phone:', userErr);
+      }
+    }
+
     res.status(200).json({
       message: 'School updated successfully',
-      data: school
+      data: school,
+      userSynced: userUpdated
     });
   } catch (error: any) {
     if (error.code === 'P2002') {

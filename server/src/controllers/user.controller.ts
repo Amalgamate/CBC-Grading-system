@@ -20,6 +20,7 @@ export class UserController {
   async getAllUsers(req: AuthRequest, res: Response) {
     const currentUserRole = req.user!.role;
     const includeArchived = req.query.includeArchived === 'true';
+    const schoolIdParam = req.query.schoolId as string; // Allow Super Admin to query specific school
 
     let users;
 
@@ -51,7 +52,8 @@ export class UserController {
           role: true,
           status: true,
           createdAt: true,
-          lastLogin: true
+          lastLogin: true,
+          schoolId: true
         },
         orderBy: { createdAt: 'desc' }
       });
@@ -60,7 +62,10 @@ export class UserController {
       const whereClause: any = {};
 
       // Phase 5: Tenant Scoping
-      if (req.user?.schoolId) {
+      // Super Admin can query specific school via query parameter
+      if (currentUserRole === 'SUPER_ADMIN' && schoolIdParam) {
+        whereClause.schoolId = schoolIdParam;
+      } else if (req.user?.schoolId) {
         whereClause.schoolId = req.user.schoolId;
       }
 
@@ -80,7 +85,8 @@ export class UserController {
           role: true,
           status: true,
           createdAt: true,
-          lastLogin: true
+          lastLogin: true,
+          schoolId: true
         },
         orderBy: { createdAt: 'desc' }
       });

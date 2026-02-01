@@ -3,13 +3,15 @@ import { Mail, AlertCircle, RefreshCw, CheckCircle, Smartphone, MessageSquare } 
 import { API_BASE_URL } from '../../services/api';
 
 export default function EmailVerificationForm({ email, phone, onVerifySuccess, brandingSettings }) {
-  const [verificationMethod, setVerificationMethod] = useState('email');
+  const [verificationMethod, setVerificationMethod] = useState(null);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [resendTimer, setResendTimer] = useState(60);
+  const [resendTimer, setResendTimer] = useState(0);
   const [canResend, setCanResend] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [isTriggering, setIsTriggering] = useState(false);
   const inputRefs = useRef([]);
 
   // Auto-approve code for development: 123456
@@ -101,25 +103,21 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
     handleVerify();
   };
 
-  const handleResend = async () => {
-    if (!canResend) return;
+  const handleMethodSelect = async (method) => {
+    if (isTriggering) return;
 
-    setResendTimer(60);
-    setCanResend(false);
-    setOtp(['', '', '', '', '', '']);
+    setVerificationMethod(method);
+    setIsTriggering(true);
     setError('');
 
-    // Send verification based on selected method
     try {
-      if (verificationMethod === 'whatsapp') {
-        // Send via WhatsApp API
+      // Simulate/Trigger API call
+      if (method === 'whatsapp') {
         const response = await fetch(`${API_BASE_URL}/auth/send-whatsapp-verification`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            phone: phone || '+254713612141',
+            phone: phone,
             code: DEV_AUTO_APPROVE_CODE
           })
         });
@@ -127,21 +125,39 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
         if (response.ok) {
           showSuccessToast('Verification code sent via WhatsApp!');
         } else {
-          showErrorToast('Failed to send WhatsApp message. Using email instead.');
+          // Fallback or error
+          throw new Error('Failed to send WhatsApp message.');
         }
-      } else if (verificationMethod === 'sms') {
-        // Send via SMS API
+      } else if (method === 'sms') {
+        // Here we would call the actual SMS OTP endpoint if we had one
+        // For now, simulate success
         showSuccessToast('Verification code sent via SMS!');
       } else {
-        // Send via Email
+        // Email
         showSuccessToast('Verification code sent to your email!');
       }
-    } catch (error) {
-      console.error('Error sending verification:', error);
-      showErrorToast('Failed to send verification code. Please try again.');
-    }
 
-    inputRefs.current[0]?.focus();
+      setIsOtpSent(true);
+      setResendTimer(60);
+      setCanResend(false);
+
+      // Focus first input after animation
+      setTimeout(() => {
+        inputRefs.current[0]?.focus();
+      }, 500);
+
+    } catch (error) {
+      console.error('Error triggering verification:', error);
+      showErrorToast('Failed to send verification code. Please try again.');
+      setVerificationMethod(null);
+    } finally {
+      setIsTriggering(false);
+    }
+  };
+
+  const handleResend = () => {
+    if (!canResend || !verificationMethod) return;
+    handleMethodSelect(verificationMethod);
   };
 
   const showSuccessToast = (message) => {
@@ -228,10 +244,12 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
               {/* Verification Message */}
               <div className="space-y-6">
                 <h2 className="text-4xl font-bold drop-shadow-md">
-                  Almost There!
+                  {isOtpSent ? 'Almost There!' : 'Secure Your Account'}
                 </h2>
                 <p className="text-blue-100 text-lg leading-relaxed">
-                  We've sent you a verification code to confirm your identity. Enter the code to complete your registration and access your dashboard.
+                  {isOtpSent
+                    ? "We've sent you a verification code to confirm your identity. Enter the code to complete your registration."
+                    : "To complete your registration, please choose how you'd like to receive your 6-digit verification code."}
                 </p>
 
                 {/* Security Features */}
@@ -286,11 +304,15 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl mb-4 shadow-lg">
                 {getVerificationIcon()}
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Verify Your Account</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {isOtpSent ? 'Verify Your Account' : 'Choose Verification'}
+              </h1>
               <p className="text-gray-600 mb-1">
-                We've sent a 6-digit code to
+                {isOtpSent ? "We've sent a 6-digit code to" : "Select your preferred method below"}
               </p>
-              <p className="text-blue-600 font-semibold text-lg">{getVerificationDestination()}</p>
+              {isOtpSent && (
+                <p className="text-blue-600 font-semibold text-lg">{getVerificationDestination()}</p>
+              )}
             </div>
 
             {/* Verification Method Selector */}
@@ -301,11 +323,12 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
               <div className="grid grid-cols-3 gap-3">
                 <button
                   type="button"
-                  onClick={() => setVerificationMethod('email')}
+                  disabled={isTriggering}
+                  onClick={() => handleMethodSelect('email')}
                   className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${verificationMethod === 'email'
                     ? 'border-blue-600 bg-blue-50 text-blue-600'
                     : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                    }`}
+                    } ${isTriggering && verificationMethod === 'email' ? 'animate-pulse' : ''}`}
                 >
                   <Mail size={24} />
                   <span className="text-xs font-semibold">Email</span>
@@ -313,11 +336,12 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
 
                 <button
                   type="button"
-                  onClick={() => setVerificationMethod('sms')}
+                  disabled={isTriggering}
+                  onClick={() => handleMethodSelect('sms')}
                   className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${verificationMethod === 'sms'
                     ? 'border-blue-600 bg-blue-50 text-blue-600'
                     : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                    }`}
+                    } ${isTriggering && verificationMethod === 'sms' ? 'animate-pulse' : ''}`}
                 >
                   <Smartphone size={24} />
                   <span className="text-xs font-semibold">SMS</span>
@@ -325,11 +349,12 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
 
                 <button
                   type="button"
-                  onClick={() => setVerificationMethod('whatsapp')}
+                  disabled={isTriggering}
+                  onClick={() => handleMethodSelect('whatsapp')}
                   className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${verificationMethod === 'whatsapp'
                     ? 'border-blue-600 bg-blue-50 text-blue-600'
                     : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                    }`}
+                    } ${isTriggering && verificationMethod === 'whatsapp' ? 'animate-pulse' : ''}`}
                 >
                   <MessageSquare size={24} />
                   <span className="text-xs font-semibold">WhatsApp</span>
@@ -337,81 +362,93 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3 text-center">
-                  Enter Verification Code
-                </label>
-                <div className="flex justify-center gap-2 mb-2">
-                  {otp.map((digit, index) => (
-                    <input
-                      key={index}
-                      ref={(el) => (inputRefs.current[index] = el)}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleChange(index, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(index, e)}
-                      onPaste={handlePaste}
-                      className={`w-12 h-14 text-center text-xl font-bold border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${error ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      autoFocus={index === 0}
-                    />
-                  ))}
+            {isOtpSent ? (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3 text-center">
+                      Enter Verification Code
+                    </label>
+                    <div className="flex justify-center gap-2 mb-2">
+                      {otp.map((digit, index) => (
+                        <input
+                          key={index}
+                          ref={(el) => (inputRefs.current[index] = el)}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={digit}
+                          onChange={(e) => handleChange(index, e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(index, e)}
+                          onPaste={handlePaste}
+                          className={`w-12 h-14 text-center text-xl font-bold border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${error ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                          autoFocus={index === 0}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs text-center text-gray-500 mb-3">
+                      💡 Dev mode: Any 6-digit code will work (or use 123456)
+                    </p>
+                    {error && (
+                      <div className="flex items-center justify-center gap-1 mt-3 text-red-600 text-sm">
+                        <AlertCircle size={14} />
+                        <span>{error}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading || otp.join('').length !== 6}
+                    className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 focus:ring-4 focus:ring-blue-300 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Verifying...</span>
+                      </div>
+                    ) : (
+                      'Verify Account'
+                    )}
+                  </button>
+                </form>
+
+                <div className="mt-6 text-center">
+                  <p className="text-sm text-gray-600 mb-2">Didn't receive the code?</p>
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={!canResend || isTriggering}
+                    className={`inline-flex items-center gap-2 font-semibold transition ${canResend && !isTriggering
+                      ? 'text-blue-600 hover:text-blue-700'
+                      : 'text-gray-400 cursor-not-allowed'
+                      }`}
+                  >
+                    <RefreshCw size={16} className={isTriggering ? 'animate-spin' : ''} />
+                    {canResend ? (
+                      'Resend Code'
+                    ) : (
+                      `Resend in ${resendTimer}s`
+                    )}
+                  </button>
                 </div>
-                <p className="text-xs text-center text-gray-500 mb-3">
-                  💡 Dev mode: Any 6-digit code will work (or use 123456)
-                </p>
-                {error && (
-                  <div className="flex items-center justify-center gap-1 mt-3 text-red-600 text-sm">
-                    <AlertCircle size={14} />
-                    <span>{error}</span>
-                  </div>
-                )}
+
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-gray-700 text-center">
+                    💡 <strong>Tip:</strong> Check your spam folder if using email verification
+                  </p>
+                </div>
               </div>
+            ) : (
+              <div className="text-center p-8 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                  <RefreshCw className="text-blue-500 animate-pulse" size={32} />
+                </div>
+                <p className="text-gray-600">Choose a method above to receive your verification code</p>
+              </div>
+            )}
 
-              <button
-                type="submit"
-                disabled={isLoading || otp.join('').length !== 6}
-                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 focus:ring-4 focus:ring-blue-300 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Verifying...</span>
-                  </div>
-                ) : (
-                  'Verify Account'
-                )}
-              </button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600 mb-2">Didn't receive the code?</p>
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={!canResend}
-                className={`inline-flex items-center gap-2 font-semibold transition ${canResend
-                  ? 'text-blue-600 hover:text-blue-700'
-                  : 'text-gray-400 cursor-not-allowed'
-                  }`}
-              >
-                <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-                {canResend ? (
-                  'Resend Code'
-                ) : (
-                  `Resend in ${resendTimer}s`
-                )}
-              </button>
-            </div>
-
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-gray-700 text-center">
-                💡 <strong>Tip:</strong> Check your spam folder if using email verification
-              </p>
-            </div>
           </div>
         </div>
       </div>

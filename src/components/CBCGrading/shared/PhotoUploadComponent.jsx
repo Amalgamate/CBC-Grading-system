@@ -11,7 +11,7 @@ const PhotoUploadComponent = ({ currentPhoto, onPhotoChange, learnerName }) => {
   const [capturedPhoto, setCapturedPhoto] = useState(currentPhoto || null);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [uploadMethod, setUploadMethod] = useState(null);
-  
+
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -30,27 +30,51 @@ const PhotoUploadComponent = ({ currentPhoto, onPhotoChange, learnerName }) => {
   }, [currentPhoto]);
 
   const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: 'user',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        setIsCameraActive(true);
-        setShowCamera(true);
-        setUploadMethod('camera');
-      }
-    } catch (err) {
-      console.error('Error accessing camera:', err);
-      alert('Unable to access camera. Please check permissions or use file upload instead.');
-    }
+    setShowCamera(true);
+    setUploadMethod('camera');
   };
+
+  // Effect to initialize camera stream when showCamera becomes true
+  useEffect(() => {
+    let activeStream = null;
+
+    const initializeCamera = async () => {
+      if (showCamera && videoRef.current) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: 'user',
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            }
+          });
+
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            streamRef.current = stream;
+            activeStream = stream;
+            setIsCameraActive(true);
+          }
+        } catch (err) {
+          console.error('Error accessing camera:', err);
+          alert('Unable to access camera. Please check permissions or use file upload instead.');
+          setShowCamera(false);
+          setIsCameraActive(false);
+        }
+      }
+    };
+
+    if (showCamera) {
+      // Give DOM time to render the video element
+      const timer = setTimeout(initializeCamera, 100);
+      return () => {
+        clearTimeout(timer);
+        if (activeStream) {
+          activeStream.getTracks().forEach(track => track.stop());
+        }
+      };
+    }
+  }, [showCamera]);
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -69,13 +93,13 @@ const PhotoUploadComponent = ({ currentPhoto, onPhotoChange, learnerName }) => {
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    
+
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    
+
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
+
     const photoData = canvas.toDataURL('image/jpeg', 0.9);
     setCapturedPhoto(photoData);
     onPhotoChange(photoData);

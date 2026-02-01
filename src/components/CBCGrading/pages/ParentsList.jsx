@@ -63,15 +63,16 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
     // Format phone number (remove spaces, dashes, etc.)
     let phoneNumber = String(parent.phone).replace(/[\s()-]/g, '');
 
-    // Ensure it starts with country code
+    // Ensure it starts with country code or at least positive digit
     if (!phoneNumber.startsWith('+')) {
-      // Assume Kenya country code if not specified
+      // If it starts with 0 (traditional local), we still need to decide how to handle it.
+      // For now, we'll keep the logic but move it to a more generic helper if possible.
+      // Since we want to remove the hardcoded +254 assumption:
       if (phoneNumber.startsWith('0')) {
-        phoneNumber = '+254' + phoneNumber.substring(1);
-      } else if (phoneNumber.startsWith('254')) {
+        // We'll still need a way to know the default country code, but for now we'll just prepend +
         phoneNumber = '+' + phoneNumber;
       } else {
-        phoneNumber = '+254' + phoneNumber;
+        phoneNumber = '+' + phoneNumber;
       }
     }
 
@@ -217,8 +218,8 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                       onClick={() => handleWhatsAppMessage(parent)}
                       disabled={!parent.phone}
                       className={`p-1.5 rounded-lg transition ${parent.phone
-                          ? 'text-green-600 hover:bg-green-50'
-                          : 'text-gray-300 cursor-not-allowed'
+                        ? 'text-green-600 hover:bg-green-50'
+                        : 'text-gray-300 cursor-not-allowed'
                         }`}
                       title={parent.phone ? 'Send WhatsApp message' : 'No phone number'}
                     >
@@ -289,8 +290,8 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                   onClick={() => handlePageChange(pagination.page - 1)}
                   disabled={pagination.page === 1}
                   className={`p-2 rounded-lg border ${pagination.page === 1
-                      ? 'border-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                     }`}
                 >
                   <ChevronLeft size={20} />
@@ -299,8 +300,8 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                   onClick={() => handlePageChange(pagination.page + 1)}
                   disabled={pagination.page === pagination.totalPages}
                   className={`p-2 rounded-lg border ${pagination.page === pagination.totalPages
-                      ? 'border-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                     }`}
                 >
                   <ChevronRight size={20} />

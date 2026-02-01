@@ -250,6 +250,7 @@ export class OnboardingController {
       console.log(`   - Streams: A, B, C, D created`);
       console.log(`   - Grading systems initialized`);
 
+      /* 
       // 7. Trigger Welcome Notifications (outside transaction)
       const loginUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
@@ -267,6 +268,7 @@ export class OnboardingController {
         result.user.phone!,
         result.school.name
       ).catch(err => console.error('Failed to send welcome SMS:', err));
+      */
 
       const { school, user, token, code } = result;
 
