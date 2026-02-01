@@ -353,9 +353,6 @@ export const configAPI = {
   getGrades: async () => {
     return fetchWithAuth('/config/grades');
   },
-  getGrades: async () => {
-    return fetchWithAuth('/config/grades');
-  },
 };
 
 // ============================================
