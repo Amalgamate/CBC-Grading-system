@@ -177,10 +177,10 @@ const Header = ({ user, onLogout, brandingSettings, title }) => {
       <div className="flex items-center gap-6">
         <div>
           <h1 className="text-2xl font-bold text-transparent bg-gradient-to-r from-blue-900 to-blue-600 bg-clip-text">
-            {isSuperAdmin && selectedSchool ? selectedSchool.name : (title || brandingSettings?.schoolName || 'Zawadi JRN Academy')}
+            {isSuperAdmin && selectedSchool ? selectedSchool.name : (title || brandingSettings?.schoolName || 'EDucore V1')}
           </h1>
           <p className="text-xs text-gray-600">
-            {isSuperAdmin && selectedBranch ? `${selectedBranch.name} | CBC System` : (title ? (brandingSettings?.schoolName || 'Zawadi JRN Academy') : 'CBC Assessment & Grading System')}
+            {isSuperAdmin && selectedBranch ? `${selectedBranch.name} | CBC System` : (title ? (brandingSettings?.schoolName || 'EDucore V1') : 'CBC Assessment & Grading System')}
           </p>
         </div>
 

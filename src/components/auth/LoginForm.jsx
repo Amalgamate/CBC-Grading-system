@@ -275,12 +275,12 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
               {/* Logo */}
               <div className="mb-8 sm:mb-10">
                 <img
-                  src={brandingSettings?.logoUrl || '/logo-zawadi.png'}
+                  src={brandingSettings?.logoUrl || '/logo-educore.png'}
                   alt="EDucore Logo"
                   className="w-28 h-28 sm:w-36 sm:h-36 lg:w-48 lg:h-48 object-contain mx-auto drop-shadow-2xl"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = '/logo-zawadi.png';
+                    e.target.src = '/logo-educore.png';
                   }}
                 />
               </div>
@@ -298,7 +298,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
           {/* Footer Copyright */}
           <div className="relative z-10 text-center">
             <p className="text-blue-100 text-sm">
-              © 2026 EDucore V1. All rights reserved.
+              © {new Date().getFullYear()} EDucore V1. All rights reserved.
             </p>
           </div>
         </div>

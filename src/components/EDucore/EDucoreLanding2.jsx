@@ -69,7 +69,7 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
             <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed font-medium">
               Track assessments, manage learners, and generate reports in minutes—not hours.
             </p>
-            
+
             {/* Problem Points */}
             <div className="space-y-4 mb-10">
               <div className="flex items-start gap-3">
@@ -94,7 +94,7 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
                 </div>
               </div>
             </div>
-            
+
             <div className="flex flex-wrap gap-4 mb-8">
               <button onClick={onGetStartedClick} className="px-8 py-4 rounded-xl bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition shadow-lg hover:shadow-xl">
                 Start Free Trial
@@ -108,9 +108,9 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
           <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden">
             {/* Header Image with Gradient */}
             <div className="relative h-48 bg-gradient-to-br from-blue-100 via-white to-purple-100">
-              <img 
-                src="/header.jpg" 
-                alt="School Management" 
+              <img
+                src="/header.jpg"
+                alt="School Management"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/10 to-transparent"></div>
@@ -170,7 +170,7 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
               </div>
               <p className="text-gray-600 font-medium leading-relaxed">Complete competency-based grading with rubrics, strands, and learning outcomes. No more manual calculations.</p>
             </div>
-            
+
             <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition border-2 border-green-100">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-3 bg-green-100 rounded-xl">
@@ -180,7 +180,7 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
               </div>
               <p className="text-gray-600 font-medium leading-relaxed">Generate comprehensive report cards instantly. Share with parents via email or print-ready PDFs.</p>
             </div>
-            
+
             <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition border-2 border-purple-100">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-3 bg-purple-100 rounded-xl">
@@ -190,7 +190,7 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
               </div>
               <p className="text-gray-600 font-medium leading-relaxed">Track attendance, admissions, and performance all in one place. Access any learner's data in seconds.</p>
             </div>
-            
+
             <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition border-2 border-orange-100">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-3 bg-orange-100 rounded-xl">
@@ -200,7 +200,7 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
               </div>
               <p className="text-gray-600 font-medium leading-relaxed">Assess all six core competencies and seven national values with guided templates.</p>
             </div>
-            
+
             <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition border-2 border-red-100">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-3 bg-red-100 rounded-xl">
@@ -210,7 +210,7 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
               </div>
               <p className="text-gray-600 font-medium leading-relaxed">Your data is encrypted and backed up. Role-based access keeps information safe.</p>
             </div>
-            
+
             <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition border-2 border-indigo-100">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-3 bg-indigo-100 rounded-xl">
@@ -337,7 +337,7 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <img src="/logo-zawadi.png" alt="EDucore" className="w-8 h-8" />
+              <img src="/logo-educore.png" alt="EDucore" className="w-8 h-8" />
               <div>
                 <p className="font-bold text-gray-900">EDucore V1</p>
                 <p className="text-xs text-gray-500">School Management Platform</p>

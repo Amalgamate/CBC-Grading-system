@@ -301,14 +301,14 @@ const Sidebar = ({
       <div className="p-4 border-b border-blue-700">
         <div className="flex items-center gap-3">
           <img
-            src={brandingSettings?.logoUrl || '/logo-zawadi.png'}
-            alt="School Logo"
+            src={brandingSettings?.logoUrl || '/logo-educore.png'}
+            alt="EDucore Logo"
             className="w-10 h-10 object-contain"
-            onError={(e) => { e.target.src = '/logo-zawadi.png'; }}
+            onError={(e) => { e.target.src = '/logo-educore.png'; }}
           />
           {sidebarOpen && (
             <span className="font-bold text-lg">
-              {brandingSettings?.schoolName || 'Zawadi JRN'}
+              {brandingSettings?.schoolName || 'EDucore V1'}
             </span>
           )}
         </div>

@@ -368,12 +368,12 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
               {/* Logo */}
               <div className="mb-12">
                 <img
-                  src={brandingSettings?.logoUrl || '/logo-zawadi.png'}
-                  alt="School Logo"
+                  src={brandingSettings?.logoUrl || '/logo-educore.png'}
+                  alt="EDucore Logo"
                   className="w-48 h-48 object-contain mx-auto drop-shadow-2xl"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = '/logo-zawadi.png';
+                    e.target.src = '/logo-educore.png';
                   }}
                 />
               </div>
