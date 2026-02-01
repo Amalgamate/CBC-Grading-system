@@ -3,20 +3,30 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Calendar, Save, BookOpen, Plus, Edit, Trash2, Calculator, Users } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useAuth } from '../../../../hooks/useAuth';
-import { configAPI, authAPI, schoolAPI } from '../../../../services/api';
+import { configAPI, authAPI, schoolAPI, userAPI } from '../../../../services/api';
 import academicYearConfig from '../../utils/academicYear';
+import {
+  getAllLearningAreas,
+  GRADE_LEARNING_AREAS_MAP
+} from '../../../../constants/learningAreas';
+import { gradeStructure } from '../../data/gradeStructure';
 
 const AcademicSettings = () => {
   const { showSuccess, showError } = useNotifications();
   const { user, updateUser } = useAuth();
-  const [activeTab, setActiveTab] = useState('terms'); // 'terms', 'learning-areas', 'aggregation'
-  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'terms';
+  const setActiveTab = (tab) => setSearchParams({ tab }, { replace: true });
+
   const [termConfigs, setTermConfigs] = useState([]);
   const [aggregationConfigs, setAggregationConfigs] = useState([]);
   const [streamConfigs, setStreamConfigs] = useState([]);
+  const [classConfigs, setClassConfigs] = useState([]);
+  const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showContextPrompt, setShowContextPrompt] = useState(false);
   const [schools, setSchools] = useState([]);
@@ -37,7 +47,7 @@ const AcademicSettings = () => {
           if (sid) {
             updateUser({ schoolId: sid, school: u.school || null });
           }
-        } catch {}
+        } catch { }
       }
       if (!sid) {
         showError('School ID not detected. Please re-login.');
@@ -46,17 +56,23 @@ const AcademicSettings = () => {
         setTermConfigs([]);
         return;
       }
-      const [terms, aggregations, streams] = await Promise.all([
+      const [terms, aggregations, streams, classes, teachersList] = await Promise.all([
         configAPI.getTermConfigs(sid),
         configAPI.getAggregationConfigs(sid),
-        configAPI.getStreamConfigs(sid)
+        configAPI.getStreamConfigs(sid),
+        configAPI.getClasses(sid),
+        userAPI.getAll()
       ]);
       const termsArr = Array.isArray(terms) ? terms : (terms && terms.data) ? terms.data : [];
       const aggsArr = Array.isArray(aggregations) ? aggregations : (aggregations && aggregations.data) ? aggregations.data : [];
       const streamsArr = Array.isArray(streams) ? streams : (streams && streams.data) ? streams.data : [];
+      const classesArr = Array.isArray(classes) ? classes : (classes && classes.data) ? classes.data : [];
+      const teachersArr = Array.isArray(teachersList) ? teachersList : (teachersList && teachersList.data) ? teachersList.data : [];
       setTermConfigs(termsArr);
       setAggregationConfigs(aggsArr || []);
       setStreamConfigs(streamsArr || []);
+      setClassConfigs(classesArr || []);
+      setTeachers(teachersArr.filter(t => t.role === 'TEACHER' || t.role === 'HEAD_TEACHER') || []);
     } catch (error) {
       console.error('Failed to load configs:', error);
       showError('Failed to load settings. Check network and authentication.');
@@ -71,7 +87,7 @@ const AcademicSettings = () => {
   }, [user?.school?.id, user?.schoolId, loadConfigs]);
 
   useEffect(() => {
-    if (activeTab === 'streams') {
+    if (activeTab === 'streams' || activeTab === 'classes') {
       loadConfigs();
     }
   }, [activeTab, loadConfigs]);
@@ -124,22 +140,62 @@ const AcademicSettings = () => {
   // State for manual academic year input if no terms exist
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  const [learningAreas, setLearningAreas] = useState([
-    { id: 1, name: 'Mathematics Activities', shortName: 'Math', gradeLevel: 'Lower Primary', color: '#3b82f6', icon: '🔢' },
-    { id: 2, name: 'English Activities', shortName: 'English', gradeLevel: 'Lower Primary', color: '#10b981', icon: '📚' },
-    { id: 3, name: 'Kiswahili Activities', shortName: 'Kiswahili', gradeLevel: 'Lower Primary', color: '#f59e0b', icon: '🗣️' },
-    { id: 4, name: 'Environmental Activities', shortName: 'Environmental', gradeLevel: 'Lower Primary', color: '#22c55e', icon: '🌱' },
-    { id: 5, name: 'Religious Education', shortName: 'CRE', gradeLevel: 'Lower Primary', color: '#8b5cf6', icon: '✝️' },
-    { id: 6, name: 'Creative Arts', shortName: 'Arts', gradeLevel: 'Lower Primary', color: '#ec4899', icon: '🎨' },
-    { id: 7, name: 'Physical Education', shortName: 'PE', gradeLevel: 'Lower Primary', color: '#f97316', icon: '⚽' }
-  ]);
+  // Initialize learning areas from constants
+  const [learningAreas, setLearningAreas] = useState(() => {
+    const allAreas = getAllLearningAreas();
+    return allAreas.map((area, index) => {
+      // Determine default category/gradeLevel
+      let gradeLevel = 'Other';
+      for (const [grade, areas] of Object.entries(GRADE_LEARNING_AREAS_MAP)) {
+        if (areas.includes(area)) {
+          const struct = gradeStructure.find(g => g.code === grade || g.name === grade.replace('GRADE_', 'Grade '));
+          if (struct) {
+            gradeLevel = struct.learningArea;
+            break;
+          }
+        }
+      }
+
+      // Assign default colors based on level
+      const colors = {
+        'Early Years': '#ec4899',
+        'Pre-Primary': '#8b5cf6',
+        'Lower Primary': '#3b82f6',
+        'Upper Primary': '#10b981',
+        'Junior School': '#f59e0b',
+        'Senior School': '#f43f5e',
+        'Other': '#64748b'
+      };
+
+      const icons = {
+        'Early Years': '🧸',
+        'Pre-Primary': '🎨',
+        'Lower Primary': '📚',
+        'Upper Primary': '🧪',
+        'Junior School': '🧬',
+        'Senior School': '🎓',
+        'Other': '📖'
+      };
+
+      return {
+        id: index + 1,
+        name: area,
+        shortName: area.split(' ')[0],
+        gradeLevel,
+        color: colors[gradeLevel] || '#3b82f6',
+        icon: icons[gradeLevel] || '📚'
+      };
+    });
+  });
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAggModal, setShowAggModal] = useState(false); // Aggregation Modal
   const [showStreamModal, setShowStreamModal] = useState(false); // Stream Modal
+  const [showClassModal, setShowClassModal] = useState(false); // Class Modal
   const [editingArea, setEditingArea] = useState(null);
   const [editingAgg, setEditingAgg] = useState(null); // Aggregation Edit
   const [editingStream, setEditingStream] = useState(null); // Stream Edit
+  const [editingClass, setEditingClass] = useState(null); // Class Edit
 
   const [formData, setFormData] = useState({
     name: '',
@@ -163,6 +219,18 @@ const AcademicSettings = () => {
     active: true
   });
 
+  const [classFormData, setClassFormData] = useState({
+    name: '',
+    grade: '',
+    stream: '',
+    teacherId: '',
+    capacity: 40,
+    room: '',
+    academicYear: new Date().getFullYear(),
+    term: 'TERM_1',
+    active: true
+  });
+
   const handleSaveTerm = async (termData) => {
     try {
       const sid = user?.school?.id || user?.schoolId;
@@ -173,7 +241,7 @@ const AcademicSettings = () => {
       showSuccess(`Term ${termData.term} saved successfully!`);
       loadConfigs(); // Refresh
     } catch (error) {
-      showError('Failed to save term configuration');
+      showError(error.message || 'Failed to save term configuration');
     }
   };
 
@@ -194,12 +262,12 @@ const AcademicSettings = () => {
         await configAPI.createAggregationConfig(payload);
         showSuccess('Aggregation rule created');
       }
-      
+
       setShowAggModal(false);
       setEditingAgg(null);
       loadConfigs();
     } catch (error) {
-      showError('Failed to save aggregation rule');
+      showError(error.message || 'Failed to save aggregation rule');
     }
   };
 
@@ -237,7 +305,7 @@ const AcademicSettings = () => {
         await configAPI.upsertStreamConfig(payload);
         showSuccess('Stream added successfully');
       }
-      
+
       setShowStreamModal(false);
       setEditingStream(null);
       setStreamFormData({ name: '', active: true });
@@ -249,7 +317,7 @@ const AcademicSettings = () => {
         response: error.response,
         stack: error.stack
       });
-      
+
       if (error.message && error.message.includes('already exists')) {
         showError('Stream name already exists');
       } else if (error.message && error.message.includes('Unauthorized')) {
@@ -267,7 +335,7 @@ const AcademicSettings = () => {
       showSuccess('Rule deleted');
       loadConfigs();
     } catch (error) {
-      showError('Failed to delete rule');
+      showError(error.message || 'Failed to delete rule');
     }
   };
 
@@ -278,7 +346,7 @@ const AcademicSettings = () => {
       showSuccess('Stream deleted');
       loadConfigs();
     } catch (error) {
-      showError('Failed to delete stream');
+      showError(error.message || 'Failed to delete stream');
     }
   };
 
@@ -318,6 +386,96 @@ const AcademicSettings = () => {
     setShowStreamModal(true);
   };
 
+  const openClassModal = (classItem = null) => {
+    if (classItem) {
+      setEditingClass(classItem);
+      setClassFormData({
+        name: classItem.name || '',
+        grade: classItem.grade || '',
+        stream: classItem.stream || '',
+        teacherId: classItem.teacherId || '',
+        capacity: classItem.capacity || 40,
+        room: classItem.room || '',
+        academicYear: classItem.academicYear || new Date().getFullYear(),
+        term: classItem.term || 'TERM_1',
+        active: classItem.active !== undefined ? classItem.active : true
+      });
+    } else {
+      setEditingClass(null);
+      setClassFormData({
+        name: '',
+        grade: '',
+        stream: '',
+        teacherId: '',
+        capacity: 40,
+        room: '',
+        academicYear: new Date().getFullYear(),
+        term: 'TERM_1',
+        active: true
+      });
+    }
+    setShowClassModal(true);
+  };
+
+  const handleSaveClass = async () => {
+    if (!classFormData.name || !classFormData.grade) {
+      showError('Class name and grade are required');
+      return;
+    }
+
+    const sid = user?.school?.id || user?.schoolId;
+    if (!sid) {
+      showError('School ID is missing. Please log in again.');
+      return;
+    }
+
+    try {
+      const payload = {
+        ...classFormData,
+        schoolId: sid,
+        branchId: user?.branchId || null
+      };
+
+      if (editingClass) {
+        await configAPI.upsertClass({ ...payload, id: editingClass.id });
+        showSuccess('Class updated successfully');
+      } else {
+        await configAPI.upsertClass(payload);
+        showSuccess('Class created successfully');
+      }
+
+      setShowClassModal(false);
+      setEditingClass(null);
+      setClassFormData({
+        name: '',
+        grade: '',
+        stream: '',
+        teacherId: '',
+        capacity: 40,
+        room: '',
+        academicYear: new Date().getFullYear(),
+        term: 'TERM_1',
+        active: true
+      });
+      await loadConfigs();
+    } catch (error) {
+      console.error('Error saving class:', error);
+      // Show the actual error message from the server if available
+      showError(error.message || 'Failed to save class. Please try again.');
+    }
+  };
+
+  const handleDeleteClass = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this class?')) return;
+    try {
+      await configAPI.deleteClass(id);
+      showSuccess('Class deleted');
+      loadConfigs();
+    } catch (error) {
+      showError(error.message || 'Failed to delete class');
+    }
+  };
+
   const handleAddEdit = () => {
     if (!formData.name || !formData.shortName) {
       showSuccess('Please fill all required fields');
@@ -326,7 +484,7 @@ const AcademicSettings = () => {
 
     if (editingArea) {
       // Edit existing
-      setLearningAreas(learningAreas.map(area => 
+      setLearningAreas(learningAreas.map(area =>
         area.id === editingArea.id ? { ...area, ...formData } : area
       ));
       showSuccess('Learning area updated successfully!');
@@ -335,7 +493,7 @@ const AcademicSettings = () => {
       setLearningAreas([...learningAreas, { id: Date.now(), ...formData }]);
       showSuccess('Learning area added successfully!');
     }
-    
+
     setShowAddModal(false);
     setEditingArea(null);
     setFormData({ name: '', shortName: '', gradeLevel: 'Lower Primary', color: '#3b82f6', icon: '📚' });
@@ -412,44 +570,50 @@ const AcademicSettings = () => {
           <div className="flex">
             <button
               onClick={() => setActiveTab('terms')}
-              className={`flex items-center gap-2 px-6 py-4 font-semibold transition ${
-                activeTab === 'terms'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
+              className={`flex items-center gap-2 px-6 py-4 font-semibold transition ${activeTab === 'terms'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
+                }`}
             >
               <Calendar size={20} />
               Terms & Academic Year
             </button>
             <button
               onClick={() => setActiveTab('learning-areas')}
-              className={`flex items-center gap-2 px-6 py-4 font-semibold transition ${
-                activeTab === 'learning-areas'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
+              className={`flex items-center gap-2 px-6 py-4 font-semibold transition ${activeTab === 'learning-areas'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
+                }`}
             >
               <BookOpen size={20} />
               Learning Areas
             </button>
             <button
               onClick={() => setActiveTab('aggregation')}
-              className={`flex items-center gap-2 px-6 py-4 font-semibold transition ${
-                activeTab === 'aggregation'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
+              className={`flex items-center gap-2 px-6 py-4 font-semibold transition ${activeTab === 'aggregation'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
+                }`}
             >
               <Calculator size={20} />
               Grading Rules
             </button>
             <button
+              onClick={() => setActiveTab('classes')}
+              className={`flex items-center gap-2 px-6 py-4 font-semibold transition ${activeTab === 'classes'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
+                }`}
+            >
+              <Users size={20} />
+              Classes
+            </button>
+            <button
               onClick={() => setActiveTab('streams')}
-              className={`flex items-center gap-2 px-6 py-4 font-semibold transition ${
-                activeTab === 'streams'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
+              className={`flex items-center gap-2 px-6 py-4 font-semibold transition ${activeTab === 'streams'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600 hover:text-gray-800'
+                }`}
             >
               <Users size={20} />
               Streams
@@ -460,100 +624,100 @@ const AcademicSettings = () => {
 
       {/* Tab Content */}
       {activeTab === 'terms' && (
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-lg font-bold mb-4">Academic Year</h3>
-            <div className="max-w-md">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Select Year</label>
-              <select 
-                value={selectedYear} 
-                onChange={(e) => setSelectedYear(Number(e.target.value))} 
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-              >
-                {academicYearConfig.getAcademicYearOptions().map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-bold mb-4">Academic Year</h3>
+              <div className="max-w-md">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Select Year</label>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                >
+                  {academicYearConfig.getAcademicYearOptions().map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-bold mb-4">Term Configuration</h3>
+              {loading ? <p>Loading settings...</p> : (
+                <div className="space-y-6">
+                  {['TERM_1', 'TERM_2', 'TERM_3'].map((termName, index) => {
+                    const config = termConfigs.find(c => c.academicYear === selectedYear && c.term === termName) || {
+                      academicYear: selectedYear,
+                      term: termName,
+                      startDate: '',
+                      endDate: '',
+                      formativeWeight: 50,
+                      summativeWeight: 50,
+                      isActive: false
+                    };
+
+                    return (
+                      <div key={termName} className={`border rounded-lg p-4 ${config.isActive ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
+                        <div className="flex justify-between items-center mb-4">
+                          <h4 className="font-bold text-gray-800">Term {index + 1}</h4>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={config.isActive}
+                              onChange={(e) => handleSaveTerm({ ...config, isActive: e.target.checked })}
+                              className="w-4 h-4 text-blue-600"
+                            />
+                            <span className="text-sm font-medium">Active Term</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Start Date</label>
+                            <input
+                              type="date"
+                              value={config.startDate ? new Date(config.startDate).toISOString().split('T')[0] : ''}
+                              onChange={(e) => handleSaveTerm({ ...config, startDate: e.target.value })}
+                              className="w-full px-3 py-2 border rounded text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">End Date</label>
+                            <input
+                              type="date"
+                              value={config.endDate ? new Date(config.endDate).toISOString().split('T')[0] : ''}
+                              onChange={(e) => handleSaveTerm({ ...config, endDate: e.target.value })}
+                              className="w-full px-3 py-2 border rounded text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Formative Weight (%)</label>
+                            <input
+                              type="number"
+                              value={config.formativeWeight}
+                              onChange={(e) => handleSaveTerm({ ...config, formativeWeight: Number(e.target.value) })}
+                              className="w-full px-3 py-2 border rounded text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">Summative Weight (%)</label>
+                            <input
+                              type="number"
+                              value={config.summativeWeight}
+                              onChange={(e) => handleSaveTerm({ ...config, summativeWeight: Number(e.target.value) })}
+                              className="w-full px-3 py-2 border rounded text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
-
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-bold mb-4">Term Configuration</h3>
-            {loading ? <p>Loading settings...</p> : (
-              <div className="space-y-6">
-                {['TERM_1', 'TERM_2', 'TERM_3'].map((termName, index) => {
-                  const config = termConfigs.find(c => c.academicYear === selectedYear && c.term === termName) || {
-                    academicYear: selectedYear,
-                    term: termName,
-                    startDate: '',
-                    endDate: '',
-                    formativeWeight: 50,
-                    summativeWeight: 50,
-                    isActive: false
-                  };
-
-                  return (
-                    <div key={termName} className={`border rounded-lg p-4 ${config.isActive ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
-                      <div className="flex justify-between items-center mb-4">
-                        <h4 className="font-bold text-gray-800">Term {index + 1}</h4>
-                        <div className="flex items-center gap-2">
-                          <input 
-                            type="checkbox" 
-                            checked={config.isActive} 
-                            onChange={(e) => handleSaveTerm({...config, isActive: e.target.checked})}
-                            className="w-4 h-4 text-blue-600"
-                          />
-                          <span className="text-sm font-medium">Active Term</span>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-600 mb-1">Start Date</label>
-                          <input 
-                            type="date" 
-                            value={config.startDate ? new Date(config.startDate).toISOString().split('T')[0] : ''} 
-                            onChange={(e) => handleSaveTerm({...config, startDate: e.target.value})}
-                            className="w-full px-3 py-2 border rounded text-sm" 
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-600 mb-1">End Date</label>
-                          <input 
-                            type="date" 
-                            value={config.endDate ? new Date(config.endDate).toISOString().split('T')[0] : ''} 
-                            onChange={(e) => handleSaveTerm({...config, endDate: e.target.value})}
-                            className="w-full px-3 py-2 border rounded text-sm" 
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-600 mb-1">Formative Weight (%)</label>
-                          <input 
-                            type="number" 
-                            value={config.formativeWeight} 
-                            onChange={(e) => handleSaveTerm({...config, formativeWeight: Number(e.target.value)})}
-                            className="w-full px-3 py-2 border rounded text-sm" 
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-600 mb-1">Summative Weight (%)</label>
-                          <input 
-                            type="number" 
-                            value={config.summativeWeight} 
-                            onChange={(e) => handleSaveTerm({...config, summativeWeight: Number(e.target.value)})}
-                            className="w-full px-3 py-2 border rounded text-sm" 
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
         </div>
-      </div>
       )}
 
       {/* Aggregation Tab */}
@@ -693,6 +857,68 @@ const AcademicSettings = () => {
         </div>
       )}
 
+
+      {/* Classes Tab */}
+      {activeTab === 'classes' && (
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold">Manage Classes</h3>
+            <button
+              onClick={() => openClassModal()}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+            >
+              <Plus size={18} />
+              Add Class
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 border-b">
+                  <th className="p-4 font-semibold text-gray-600">Class Name</th>
+                  <th className="p-4 font-semibold text-gray-600">Grade</th>
+                  <th className="p-4 font-semibold text-gray-600">Stream</th>
+                  <th className="p-4 font-semibold text-gray-600">Teacher</th>
+                  <th className="p-4 font-semibold text-gray-600">Capacity</th>
+                  <th className="p-4 font-semibold text-gray-600">Status</th>
+                  <th className="p-4 font-semibold text-gray-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {classConfigs.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="p-8 text-center text-gray-500">No classes defined.</td>
+                  </tr>
+                ) : (
+                  classConfigs.map(classItem => {
+                    const teacher = teachers.find(t => t.id === classItem.teacherId);
+                    return (
+                      <tr key={classItem.id} className="border-b hover:bg-gray-50">
+                        <td className="p-4 font-medium">{classItem.name}</td>
+                        <td className="p-4">{classItem.grade}</td>
+                        <td className="p-4">{classItem.stream || '-'}</td>
+                        <td className="p-4 text-sm">{teacher ? `${teacher.firstName} ${teacher.lastName}` : '-'}</td>
+                        <td className="p-4">{classItem.capacity}</td>
+                        <td className="p-4">
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${classItem.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                            {classItem.active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="p-4 flex gap-2">
+                          <button onClick={() => openClassModal(classItem)} className="text-blue-600 hover:text-blue-800"><Edit size={16} /></button>
+                          <button onClick={() => handleDeleteClass(classItem.id)} className="text-red-600 hover:text-red-800"><Trash2 size={16} /></button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Streams Tab */}
       {activeTab === 'streams' && (
         <div className="bg-white rounded-xl shadow-md p-6">
@@ -766,7 +992,7 @@ const AcademicSettings = () => {
                 <input
                   type="text"
                   value={streamFormData.name}
-                  onChange={(e) => setStreamFormData({...streamFormData, name: e.target.value})}
+                  onChange={(e) => setStreamFormData({ ...streamFormData, name: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., North, Blue, A"
                 />
@@ -776,7 +1002,7 @@ const AcademicSettings = () => {
                 <input
                   type="checkbox"
                   checked={streamFormData.active}
-                  onChange={(e) => setStreamFormData({...streamFormData, active: e.target.checked})}
+                  onChange={(e) => setStreamFormData({ ...streamFormData, active: e.target.checked })}
                   className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
                 <label className="text-sm font-medium text-gray-700">Active Stream</label>
@@ -802,6 +1028,165 @@ const AcademicSettings = () => {
         </div>
       )}
 
+      {/* Class Modal */}
+      {showClassModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-4 rounded-t-2xl sticky top-0">
+              <h3 className="text-xl font-bold text-white">
+                {editingClass ? 'Edit Class' : 'Add Class'}
+              </h3>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Class Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={classFormData.name}
+                    onChange={(e) => setClassFormData({ ...classFormData, name: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., Grade 1 East"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Grade <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={classFormData.grade}
+                    onChange={(e) => setClassFormData({ ...classFormData, grade: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select Grade</option>
+                    {gradeStructure.map(g => (
+                      <option key={g.code} value={g.code}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Stream (Optional)
+                  </label>
+                  <select
+                    value={classFormData.stream}
+                    onChange={(e) => setClassFormData({ ...classFormData, stream: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">No Stream</option>
+                    {streamConfigs.filter(s => s.active).map(stream => (
+                      <option key={stream.id} value={stream.name}>{stream.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Class Teacher (Optional)
+                  </label>
+                  <select
+                    value={classFormData.teacherId}
+                    onChange={(e) => setClassFormData({ ...classFormData, teacherId: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">No Teacher Assigned</option>
+                    {teachers.map(teacher => (
+                      <option key={teacher.id} value={teacher.id}>
+                        {teacher.firstName} {teacher.lastName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Capacity
+                  </label>
+                  <input
+                    type="number"
+                    value={classFormData.capacity}
+                    onChange={(e) => setClassFormData({ ...classFormData, capacity: parseInt(e.target.value) || 40 })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    min="1"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Room (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={classFormData.room}
+                    onChange={(e) => setClassFormData({ ...classFormData, room: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., Room 101"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Academic Year
+                  </label>
+                  <input
+                    type="number"
+                    value={classFormData.academicYear}
+                    onChange={(e) => setClassFormData({ ...classFormData, academicYear: parseInt(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Term
+                  </label>
+                  <select
+                    value={classFormData.term}
+                    onChange={(e) => setClassFormData({ ...classFormData, term: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="TERM_1">Term 1</option>
+                    <option value="TERM_2">Term 2</option>
+                    <option value="TERM_3">Term 3</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={classFormData.active}
+                  onChange={(e) => setClassFormData({ ...classFormData, active: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label className="text-sm font-medium text-gray-700">Active Class</label>
+              </div>
+            </div>
+
+            <div className="border-t px-6 py-4 flex items-center justify-end gap-3 bg-gray-50 rounded-b-2xl sticky bottom-0">
+              <button
+                onClick={() => setShowClassModal(false)}
+                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveClass}
+                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition font-semibold"
+              >
+                <Save size={18} />
+                {editingClass ? 'Update' : 'Create'} Class
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add/Edit Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -820,7 +1205,7 @@ const AcademicSettings = () => {
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., Mathematics Activities"
                 />
@@ -833,7 +1218,7 @@ const AcademicSettings = () => {
                 <input
                   type="text"
                   value={formData.shortName}
-                  onChange={(e) => setFormData({...formData, shortName: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, shortName: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., Math"
                 />
@@ -845,14 +1230,15 @@ const AcademicSettings = () => {
                 </label>
                 <select
                   value={formData.gradeLevel}
-                  onChange={(e) => setFormData({...formData, gradeLevel: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, gradeLevel: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="Early Years">Early Years</option>
-                  <option value="Lower Primary">Lower Primary (Grades 1-3)</option>
-                  <option value="Upper Primary">Upper Primary (Grades 4-6)</option>
-                  <option value="Junior School">Junior School (Grades 7-9)</option>
-                  <option value="Senior School">Senior School (Grades 10-12)</option>
+                  <option value="Pre-Primary">Pre-Primary</option>
+                  <option value="Lower Primary">Lower Primary</option>
+                  <option value="Upper Primary">Upper Primary</option>
+                  <option value="Junior School">Junior School</option>
+                  <option value="Senior School">Senior School</option>
                 </select>
               </div>
 
@@ -864,7 +1250,7 @@ const AcademicSettings = () => {
                   <input
                     type="color"
                     value={formData.color}
-                    onChange={(e) => setFormData({...formData, color: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                     className="w-full h-10 border border-gray-300 rounded-lg cursor-pointer"
                   />
                 </div>
@@ -876,7 +1262,7 @@ const AcademicSettings = () => {
                   <input
                     type="text"
                     value={formData.icon}
-                    onChange={(e) => setFormData({...formData, icon: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-2xl text-center"
                     maxLength={2}
                   />
@@ -941,7 +1327,7 @@ const AcademicSettings = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Assessment Type</label>
                 <select
                   value={aggFormData.type}
-                  onChange={(e) => setAggFormData({...aggFormData, type: e.target.value})}
+                  onChange={(e) => setAggFormData({ ...aggFormData, type: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                 >
                   <option value="QUIZ">Quiz</option>
@@ -956,7 +1342,7 @@ const AcademicSettings = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Strategy</label>
                 <select
                   value={aggFormData.strategy}
-                  onChange={(e) => setAggFormData({...aggFormData, strategy: e.target.value})}
+                  onChange={(e) => setAggFormData({ ...aggFormData, strategy: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                 >
                   <option value="SIMPLE_AVERAGE">Simple Average</option>
@@ -973,7 +1359,7 @@ const AcademicSettings = () => {
                   <input
                     type="number"
                     value={aggFormData.nValue}
-                    onChange={(e) => setAggFormData({...aggFormData, nValue: e.target.value})}
+                    onChange={(e) => setAggFormData({ ...aggFormData, nValue: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     placeholder="e.g. 3"
                   />
@@ -986,7 +1372,7 @@ const AcademicSettings = () => {
                   type="number"
                   step="0.1"
                   value={aggFormData.weight}
-                  onChange={(e) => setAggFormData({...aggFormData, weight: e.target.value})}
+                  onChange={(e) => setAggFormData({ ...aggFormData, weight: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                 />
               </div>
@@ -997,7 +1383,7 @@ const AcademicSettings = () => {
                   <input
                     type="text"
                     value={aggFormData.grade}
-                    onChange={(e) => setAggFormData({...aggFormData, grade: e.target.value})}
+                    onChange={(e) => setAggFormData({ ...aggFormData, grade: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     placeholder="e.g. Grade 1"
                   />
@@ -1007,7 +1393,7 @@ const AcademicSettings = () => {
                   <input
                     type="text"
                     value={aggFormData.learningArea}
-                    onChange={(e) => setAggFormData({...aggFormData, learningArea: e.target.value})}
+                    onChange={(e) => setAggFormData({ ...aggFormData, learningArea: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     placeholder="e.g. Math"
                   />

@@ -5,94 +5,119 @@
  */
 
 /**
- * Early Childhood Development (ECD) - Nursery/Kindergarten
+ * Early Years Education (Crèche, Playgroup, Reception, Transition)
  */
-export const ECD_LEARNING_AREAS = [
+export const EARLY_YEARS_LEARNING_AREAS = [
+  'Literacy Activities',
   'Mathematical Activities',
   'English Language Activities',
-  'Kiswahili Language Activities',
   'Environmental Activities',
-  'Religious Education',
-  'Creative Arts & Sports',
-  'Play-Based Learning',
-  'Music Activities'
+  'Creative Arts Activities',
+  'Christian Religious Education',
+  'Islamic Religious Education',
+  'Computer Studies Activities'
+];
+
+/**
+ * Pre-Primary Education (PP1, PP2)
+ */
+export const PRE_PRIMARY_LEARNING_AREAS = [
+  'Literacy',
+  'English Language Activities',
+  'Mathematical Activities',
+  'Environmental Activities',
+  'Creative Activities',
+  'Christian Religious Education',
+  'Islamic Religious Education',
+  'Computer Studies (Interactive)',
+  'Kiswahili Lugha'
 ];
 
 /**
  * Primary Education - Grades 1-3 (Lower Primary)
  */
 export const LOWER_PRIMARY_LEARNING_AREAS = [
-  'Mathematical Activities',
   'English Language Activities',
   'Kiswahili Language Activities',
-  'Environmental Activities',
-  'Integrated Science',
-  'Social Studies',
-  'Creative Arts & Sports',
-  'Religious Education',
+  'Indigenous Language Activities',
   'Mathematics',
-  'English Activities',
-  'Kiswahili Activities'
+  'Environmental Activities',
+  'Creative Arts Activities',
+  'Christian Religious Education',
+  'Islamic Religious Education',
+  'Computer Studies',
+  'French (Optional)'
 ];
 
 /**
  * Primary Education - Grades 4-6 (Upper Primary)
  */
 export const UPPER_PRIMARY_LEARNING_AREAS = [
-  'Mathematics',
   'English Language',
   'Kiswahili Lugha',
-  'Science & Technology',
+  'Mathematics',
+  'Science and Technology',
   'Social Studies',
-  'Creative Arts',
-  'Physical Education',
-  'Integrated Science',
-  'Religious Education',
-  'Science'
-];
-
-/**
- * Lower Secondary - Grades 7-8 (Forms 1-2)
- */
-export const LOWER_SECONDARY_LEARNING_AREAS = [
-  'Mathematics',
-  'English Language',
-  'Kiswahili Lugha',
-  'Science & Technology',
-  'Social Studies',
-  'Creative Arts and Sports',
-  'Pre-Technical Studies',
-  'Integrated Science',
-  'IRE',
-  'CRE',
-  'Science'
-];
-
-/**
- * Upper Secondary - Grades 9-12 (Forms 3-4 / 5-6)
- */
-export const UPPER_SECONDARY_LEARNING_AREAS = [
-  'Mathematics',
-  'English Language',
-  'Kiswahili Lugha',
-  'Physics',
-  'Chemistry',
-  'Biology',
-  'Integrated Science',
-  'Computer Studies',
-  'Coding & Robotics',
   'Agriculture',
+  'Creative Arts',
+  'Christian Religious Education',
+  'Islamic Religious Education',
+  'Computer Studies',
+  'Coding and Robotics',
+  'French'
+];
+
+/**
+ * Junior School - Grades 7-9
+ */
+export const JUNIOR_SCHOOL_LEARNING_AREAS = [
+  'English Language',
+  'Kiswahili Lugha',
+  'Mathematics',
+  'Integrated Science',
   'Social Studies',
+  'Pre-Technical Studies',
+  'Agriculture',
+  'Creative Arts and Sports',
+  'Christian Religious Education',
+  'Islamic Religious Education',
+  'Computer Studies',
+  'Coding and Robotics',
+  'French'
+];
+
+/**
+ * Senior School - Grades 10-12
+ * Combines Core subjects and all Pathways (STEM, Social Sciences, Arts & Sports)
+ */
+export const SENIOR_SCHOOL_LEARNING_AREAS = [
+  // Core
+  'Community Service Learning',
+  'Physical Education and Sports',
+  'ICT / Digital Literacy',
+  'Life Skills Education',
+  // STEM Pathway
+  'Biology',
+  'Chemistry',
+  'Physics',
+  'Computer Science',
+  'Engineering Studies',
+  'Environmental Science',
+  // Social Sciences Pathway
   'History',
   'Geography',
-  'Government',
-  'French',
-  'CRE',
-  'IRE',
-  'Pre-Technical Studies',
-  'Creative Arts and Sports',
+  'Economics',
   'Business Studies',
-  'Economics'
+  'Religious Studies',
+  'Sociology',
+  'Political Science',
+  // Arts & Sports Pathway
+  'Visual Arts',
+  'Performing Arts',
+  'Music',
+  'Film and Media Studies',
+  'Sports Science',
+  'Theatre and Dance'
 ];
 
 /**
@@ -100,15 +125,17 @@ export const UPPER_SECONDARY_LEARNING_AREAS = [
  * Central mapping for all grades in the system
  */
 export const GRADE_LEARNING_AREAS_MAP = {
-  // Early Childhood
-  'NURSERY': ECD_LEARNING_AREAS,
-  'KINDERGARTEN': ECD_LEARNING_AREAS,
-  'PLAYGROUP': ECD_LEARNING_AREAS,
-  'CRECHE': ECD_LEARNING_AREAS,
+  // Early Years
+  'CRECHE': EARLY_YEARS_LEARNING_AREAS,
+  'PLAYGROUP': EARLY_YEARS_LEARNING_AREAS,
+  'RECEPTION': EARLY_YEARS_LEARNING_AREAS,
+  'TRANSITION': EARLY_YEARS_LEARNING_AREAS,
+
+  // Pre-Primary
+  'PP1': PRE_PRIMARY_LEARNING_AREAS,
+  'PP2': PRE_PRIMARY_LEARNING_AREAS,
 
   // Lower Primary
-  'PP1': LOWER_PRIMARY_LEARNING_AREAS,
-  'PP2': LOWER_PRIMARY_LEARNING_AREAS,
   'GRADE_1': LOWER_PRIMARY_LEARNING_AREAS,
   'GRADE_2': LOWER_PRIMARY_LEARNING_AREAS,
   'GRADE_3': LOWER_PRIMARY_LEARNING_AREAS,
@@ -118,15 +145,15 @@ export const GRADE_LEARNING_AREAS_MAP = {
   'GRADE_5': UPPER_PRIMARY_LEARNING_AREAS,
   'GRADE_6': UPPER_PRIMARY_LEARNING_AREAS,
 
-  // Lower Secondary
-  'GRADE_7': LOWER_SECONDARY_LEARNING_AREAS,
-  'GRADE_8': LOWER_SECONDARY_LEARNING_AREAS,
+  // Junior School
+  'GRADE_7': JUNIOR_SCHOOL_LEARNING_AREAS,
+  'GRADE_8': JUNIOR_SCHOOL_LEARNING_AREAS,
+  'GRADE_9': JUNIOR_SCHOOL_LEARNING_AREAS,
 
-  // Upper Secondary
-  'GRADE_9': UPPER_SECONDARY_LEARNING_AREAS,
-  'GRADE_10': UPPER_SECONDARY_LEARNING_AREAS,
-  'GRADE_11': UPPER_SECONDARY_LEARNING_AREAS,
-  'GRADE_12': UPPER_SECONDARY_LEARNING_AREAS
+  // Senior School
+  'GRADE_10': SENIOR_SCHOOL_LEARNING_AREAS,
+  'GRADE_11': SENIOR_SCHOOL_LEARNING_AREAS,
+  'GRADE_12': SENIOR_SCHOOL_LEARNING_AREAS
 };
 
 /**
@@ -248,11 +275,12 @@ export const getGroupedLearningAreas = (grade) => {
 
 export default {
   GRADE_LEARNING_AREAS_MAP,
-  ECD_LEARNING_AREAS,
+  EARLY_YEARS_LEARNING_AREAS,
+  PRE_PRIMARY_LEARNING_AREAS,
   LOWER_PRIMARY_LEARNING_AREAS,
   UPPER_PRIMARY_LEARNING_AREAS,
-  LOWER_SECONDARY_LEARNING_AREAS,
-  UPPER_SECONDARY_LEARNING_AREAS,
+  JUNIOR_SCHOOL_LEARNING_AREAS,
+  SENIOR_SCHOOL_LEARNING_AREAS,
   getLearningAreasByGrade,
   getAllLearningAreas,
   isValidLearningAreaForGrade,

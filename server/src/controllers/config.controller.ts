@@ -583,6 +583,166 @@ export const deleteStreamConfig = async (req: Request, res: Response) => {
 };
 
 // ============================================
+// CLASS MANAGEMENT ENDPOINTS
+// ============================================
+
+/**
+ * GET /api/config/classes/:schoolId
+ * Get all classes for a school
+ */
+export const getClasses = async (req: Request, res: Response) => {
+  try {
+    const { schoolId } = req.params;
+
+    const classes = await configService.getClasses(schoolId);
+
+    res.json({
+      success: true,
+      data: classes
+    });
+  } catch (error: any) {
+    console.error('Error fetching classes:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'FETCH_ERROR',
+        message: 'Failed to fetch classes',
+        details: error.message
+      }
+    });
+  }
+};
+
+/**
+ * Helper to map friendly grade names to Prisma Enum values
+ */
+const mapFriendlyGradeToEnum = (friendlyGrade: string): Grade => {
+  const mapping: Record<string, string> = {
+    'Crèche': 'CRECHE',
+    'Reception': 'RECEPTION',
+    'Transition': 'TRANSITION',
+    'Playgroup': 'PLAYGROUP',
+    'Pre-Primary 1': 'PP1',
+    'Pre-Primary 2': 'PP2',
+    'Grade 1': 'GRADE_1',
+    'Grade 2': 'GRADE_2',
+    'Grade 3': 'GRADE_3',
+    'Grade 4': 'GRADE_4',
+    'Grade 5': 'GRADE_5',
+    'Grade 6': 'GRADE_6',
+    'Grade 7': 'GRADE_7',
+    'Grade 8': 'GRADE_8',
+    'Grade 9': 'GRADE_9',
+    'Grade 10': 'GRADE_10',
+    'Grade 11': 'GRADE_11',
+    'Grade 12': 'GRADE_12',
+  };
+
+  return (mapping[friendlyGrade] || friendlyGrade.toUpperCase().replace(/\s+/g, '_')) as Grade;
+};
+
+/**
+ * POST /api/config/classes
+ * Create or update class
+ */
+export const upsertClass = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id, name, grade, stream, teacherId, capacity, room, academicYear, term, active, branchId } = req.body;
+    let { schoolId } = req.body;
+
+    if (!schoolId) {
+      schoolId = req.user?.schoolId || undefined as any;
+    }
+
+    if (!schoolId || !name || !grade) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'MISSING_FIELDS',
+          message: 'School ID, name, and grade are required'
+        }
+      });
+    }
+
+    // Map friendly grade name to Enum if necessary
+    const gradeEnum = mapFriendlyGradeToEnum(grade);
+
+    const classData = await configService.upsertClass({
+      id,
+      schoolId,
+      branchId,
+      name,
+      grade: gradeEnum,
+      stream,
+      teacherId,
+      capacity: capacity ? parseInt(capacity as string) : 40,
+      room,
+      academicYear: academicYear ? parseInt(academicYear as string) : new Date().getFullYear(),
+      term: term || 'TERM_1',
+      active: active !== undefined ? (typeof active === 'string' ? active === 'true' : active) : true
+    });
+
+    res.json({
+      success: true,
+      message: 'Class saved successfully',
+      data: classData
+    });
+  } catch (error: any) {
+    console.error('Error in upsertClass controller:', {
+      message: error.message,
+      stack: error.stack,
+      body: req.body
+    });
+
+    if (error.message.includes('already exists')) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'DUPLICATE_ENTRY',
+          message: error.message
+        }
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'SAVE_ERROR',
+        message: error.message || 'Failed to save class',
+        details: error.message
+      }
+    });
+  }
+};
+
+/**
+ * DELETE /api/config/classes/:id
+ * Delete class
+ */
+export const deleteClass = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    await configService.deleteClass(id);
+
+    res.json({
+      success: true,
+      message: 'Class deleted successfully'
+    });
+  } catch (error: any) {
+    console.error('Error deleting class:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'DELETE_ERROR',
+        message: 'Failed to delete class',
+        details: error.message
+      }
+    });
+  }
+};
+
+// ============================================
 // UTILITY ENDPOINTS
 // ============================================
 
@@ -802,6 +962,11 @@ export const configController = {
   getStreamConfigs,
   upsertStreamConfig,
   deleteStreamConfig,
+
+  // Class management
+  getClasses,
+  upsertClass,
+  deleteClass,
 
   // Utilities
   getConfigurationSummary,

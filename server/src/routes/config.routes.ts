@@ -134,6 +134,28 @@ router.post('/streams', configController.upsertStreamConfig);
 router.delete('/streams/:id', configController.deleteStreamConfig);
 
 // ============================================
+// CLASS MANAGEMENT ROUTES
+// ============================================
+
+/**
+ * GET /api/config/classes/:schoolId
+ * Get all classes for a school
+ */
+router.get('/classes/:schoolId', enforceSchoolConsistency, configController.getClasses);
+
+/**
+ * POST /api/config/classes
+ * Create or update class
+ */
+router.post('/classes', configController.upsertClass);
+
+/**
+ * DELETE /api/config/classes/:id
+ * Delete class
+ */
+router.delete('/classes/:id', configController.deleteClass);
+
+// ============================================
 // UTILITY ROUTES
 // ============================================
 

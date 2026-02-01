@@ -4,9 +4,50 @@
  */
 
 export const learningAreas = [
+  // EARLY YEARS (Crèche to Transition)
   {
     id: 1,
-    name: 'Mathematics Activities',
+    name: 'Literacy Activities',
+    shortName: 'Literacy',
+    code: 'LIT',
+    gradeLevel: 'Early Years',
+    grades: ['Crèche', 'Reception', 'Transition', 'Playgroup'],
+    color: '#ec4899',
+    icon: '🧸',
+    weight: 1.0,
+    strands: [{ id: 1, name: 'Oral Communication', subStrands: [{ name: 'Listening', outcomes: ['Responds to sounds', 'Follows simple instructions'] }] }]
+  },
+  {
+    id: 2,
+    name: 'Mathematical Activities',
+    shortName: 'Math',
+    code: 'MATH_EY',
+    gradeLevel: 'Early Years',
+    grades: ['Crèche', 'Reception', 'Transition', 'Playgroup'],
+    color: '#3b82f6',
+    icon: '🔢',
+    weight: 1.0,
+    strands: [{ id: 1, name: 'Numbers', subStrands: [{ name: 'Counting', outcomes: ['Counts 1-10', 'Identifies shapes'] }] }]
+  },
+
+  // PRE-PRIMARY (PP1, PP2)
+  {
+    id: 10,
+    name: 'Literacy',
+    shortName: 'Literacy',
+    code: 'LIT_PP',
+    gradeLevel: 'Pre-Primary',
+    grades: ['PP1', 'PP2'],
+    color: '#8b5cf6',
+    icon: '🎨',
+    weight: 1.0,
+    strands: [{ id: 1, name: 'Reading Ready', subStrands: [{ name: 'Letter Recognition', outcomes: ['Identifies vowel sounds', 'Recognizes own name'] }] }]
+  },
+
+  // LOWER PRIMARY (Grade 1-3)
+  {
+    id: 20,
+    name: 'Mathematics',
     shortName: 'Math',
     code: 'MATH',
     gradeLevel: 'Lower Primary',
@@ -19,51 +60,23 @@ export const learningAreas = [
         id: 1,
         name: 'Numbers',
         subStrands: [
-          { 
-            name: 'Whole Numbers', 
-            outcomes: [
-              'Count numbers up to 1000', 
-              'Read and write numbers in words', 
-              'Compare and order numbers'
-            ] 
-          },
-          { 
-            name: 'Fractions', 
-            outcomes: [
-              'Identify fractions', 
-              'Compare simple fractions', 
-              'Add simple fractions'
-            ] 
-          }
+          { name: 'Whole Numbers', outcomes: ['Count up to 1000', 'Place value', 'Addition and Subtraction'] },
+          { name: 'Fractions', outcomes: ['Identify 1/2, 1/4', 'Compare fractions'] }
         ]
       },
       {
         id: 2,
         name: 'Measurement',
         subStrands: [
-          { 
-            name: 'Length', 
-            outcomes: [
-              'Measure using standard units', 
-              'Estimate lengths', 
-              'Compare measurements'
-            ] 
-          },
-          { 
-            name: 'Time', 
-            outcomes: [
-              'Tell time to the hour', 
-              'Tell time to half hour', 
-              'Read calendars'
-            ] 
-          }
+          { name: 'Length', outcomes: ['Measure in cm and m'] },
+          { name: 'Money', outcomes: ['Identify currency', 'Simple shopping'] }
         ]
       }
     ]
   },
   {
-    id: 2,
-    name: 'English Activities',
+    id: 21,
+    name: 'English Language Activities',
     shortName: 'English',
     code: 'ENG',
     gradeLevel: 'Lower Primary',
@@ -72,39 +85,13 @@ export const learningAreas = [
     icon: '📚',
     weight: 1.0,
     strands: [
-      {
-        id: 1,
-        name: 'Listening and Speaking',
-        subStrands: [
-          { 
-            name: 'Oral Communication', 
-            outcomes: [
-              'Listen and respond', 
-              'Express ideas clearly', 
-              'Participate in discussions'
-            ] 
-          }
-        ]
-      },
-      {
-        id: 2,
-        name: 'Reading',
-        subStrands: [
-          { 
-            name: 'Reading Skills', 
-            outcomes: [
-              'Read simple texts', 
-              'Identify main ideas', 
-              'Answer comprehension questions'
-            ] 
-          }
-        ]
-      }
+      { id: 1, name: 'Listening and Speaking', subStrands: [{ name: 'Oral Communication', outcomes: ['Express ideas clearly'] }] },
+      { id: 2, name: 'Reading', subStrands: [{ name: 'Reading Skills', outcomes: ['Read with fluency', 'Comprehension'] }] }
     ]
   },
   {
-    id: 3,
-    name: 'Kiswahili Activities',
+    id: 22,
+    name: 'Kiswahili Language Activities',
     shortName: 'Kiswahili',
     code: 'KIS',
     gradeLevel: 'Lower Primary',
@@ -112,130 +99,73 @@ export const learningAreas = [
     color: '#f59e0b',
     icon: '🗣️',
     weight: 1.0,
-    strands: [
-      {
-        id: 1,
-        name: 'Kusoma',
-        subStrands: [
-          { 
-            name: 'Kusoma kwa Ufahamu', 
-            outcomes: [
-              'Soma kwa uelewa', 
-              'Eleza mawazo', 
-              'Jibu maswali'
-            ] 
-          }
-        ]
-      }
-    ]
+    strands: [{ id: 1, name: 'Kusikiliza na Kuzungumza', subStrands: [{ name: 'Maamkizi', outcomes: ['Tumia maamkizi ipasavyo'] }] }]
   },
+
+  // UPPER PRIMARY (Grade 4-6)
   {
-    id: 4,
-    name: 'Environmental Activities',
-    shortName: 'Environmental',
-    code: 'ENV',
-    gradeLevel: 'Lower Primary',
-    grades: ['Grade 1', 'Grade 2', 'Grade 3'],
-    color: '#22c55e',
-    icon: '🌱',
+    id: 40,
+    name: 'Science and Technology',
+    shortName: 'Science',
+    code: 'SCI',
+    gradeLevel: 'Upper Primary',
+    grades: ['Grade 4', 'Grade 5', 'Grade 6'],
+    color: '#10b981',
+    icon: '🧪',
     weight: 1.0,
-    strands: [
-      {
-        id: 1,
-        name: 'Living Things',
-        subStrands: [
-          { 
-            name: 'Plants and Animals', 
-            outcomes: [
-              'Identify living things', 
-              'Classify plants', 
-              'Observe animal behavior'
-            ] 
-          }
-        ]
-      }
-    ]
+    strands: [{ id: 1, name: 'Living Things', subStrands: [{ name: 'The Human Body', outcomes: ['Identify external parts', 'Functions of sense organs'] }] }]
   },
   {
-    id: 5,
-    name: 'Religious Education',
-    shortName: 'CRE',
-    code: 'CRE',
-    gradeLevel: 'Lower Primary',
-    grades: ['Grade 1', 'Grade 2', 'Grade 3'],
-    color: '#8b5cf6',
-    icon: '✝️',
+    id: 41,
+    name: 'Social Studies',
+    shortName: 'Social',
+    code: 'SOC',
+    gradeLevel: 'Upper Primary',
+    grades: ['Grade 4', 'Grade 5', 'Grade 6'],
+    color: '#3b82f6',
+    icon: '🌍',
     weight: 1.0,
-    strands: [
-      {
-        id: 1,
-        name: 'God and Creation',
-        subStrands: [
-          { 
-            name: 'Creation Stories', 
-            outcomes: [
-              'Retell creation story', 
-              'Appreciate Gods creation', 
-              'Care for environment'
-            ] 
-          }
-        ]
-      }
-    ]
+    strands: [{ id: 1, name: 'Our Environment', subStrands: [{ name: 'Physical Features', outcomes: ['Locate features in the county'] }] }]
+  },
+
+  // JUNIOR SCHOOL (Grade 7-9)
+  {
+    id: 70,
+    name: 'Integrated Science',
+    shortName: 'Int. Science',
+    code: 'ISCI',
+    gradeLevel: 'Junior School',
+    grades: ['Grade 7', 'Grade 8', 'Grade 9'],
+    color: '#10b981',
+    icon: '🧬',
+    weight: 1.0,
+    strands: [{ id: 1, name: 'Mixtures and Substances', subStrands: [{ name: 'Separation of Mixtures', outcomes: ['Demonstrate filtration', 'Appreciate purity'] }] }]
   },
   {
-    id: 6,
-    name: 'Creative Arts',
-    shortName: 'Arts',
-    code: 'ART',
-    gradeLevel: 'Lower Primary',
-    grades: ['Grade 1', 'Grade 2', 'Grade 3'],
-    color: '#ec4899',
-    icon: '🎨',
-    weight: 0.5,
-    strands: [
-      {
-        id: 1,
-        name: 'Visual Arts',
-        subStrands: [
-          { 
-            name: 'Drawing and Painting', 
-            outcomes: [
-              'Draw simple objects', 
-              'Use colors creatively', 
-              'Express ideas through art'
-            ] 
-          }
-        ]
-      }
-    ]
+    id: 71,
+    name: 'Pre-Technical Studies',
+    shortName: 'Pre-Tech',
+    code: 'PTECH',
+    gradeLevel: 'Junior School',
+    grades: ['Grade 7', 'Grade 8', 'Grade 9'],
+    color: '#64748b',
+    icon: '🛠️',
+    weight: 1.0,
+    strands: [{ id: 1, name: 'Materials', subStrands: [{ name: 'Tools and Safety', outcomes: ['Identify hand tools', 'Follow safety rules'] }] }]
   },
+
+  // SENIOR SCHOOL (Grade 10-12)
   {
-    id: 7,
-    name: 'Physical Education',
-    shortName: 'PE',
-    code: 'PE',
-    gradeLevel: 'Lower Primary',
-    grades: ['Grade 1', 'Grade 2', 'Grade 3'],
-    color: '#f97316',
-    icon: '⚽',
-    weight: 0.5,
-    strands: [
-      {
-        id: 1,
-        name: 'Movement Skills',
-        subStrands: [
-          { 
-            name: 'Basic Movements', 
-            outcomes: [
-              'Run effectively', 
-              'Jump with coordination', 
-              'Throw accurately'
-            ] 
-          }
-        ]
-      }
-    ]
+    id: 100,
+    name: 'Community Service Learning',
+    shortName: 'CSL',
+    code: 'CSL',
+    gradeLevel: 'Senior School',
+    grades: ['Grade 10', 'Grade 11', 'Grade 12'],
+    color: '#f43f5e',
+    icon: '🤝',
+    weight: 1.0,
+    strands: [{ id: 1, name: 'Community Engagement', subStrands: [{ name: 'Social Responsibility', outcomes: ['Participate in local projects'] }] }]
   }
 ];
 

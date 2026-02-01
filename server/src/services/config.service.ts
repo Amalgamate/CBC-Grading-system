@@ -57,6 +57,21 @@ interface StreamConfigInput {
   active?: boolean;
 }
 
+interface UpsertClassInput {
+  id?: string;
+  schoolId: string;
+  branchId?: string | null;
+  name: string;
+  grade: Grade;
+  stream?: string | null;
+  teacherId?: string | null;
+  capacity?: number;
+  room?: string | null;
+  academicYear?: number;
+  term?: Term;
+  active?: boolean;
+}
+
 interface TermConfiguration {
   termConfig: any;
   aggregationConfigs: any[];
@@ -67,7 +82,7 @@ interface TermConfiguration {
 // ============================================
 
 export class ConfigService {
-  
+
   /**
    * Get term configuration for a school
    * Creates default if it doesn't exist
@@ -162,7 +177,7 @@ export class ConfigService {
     endDate: Date;
   } {
     const year = academicYear;
-    
+
     switch (term) {
       case 'TERM_1':
         return {
@@ -247,7 +262,7 @@ export class ConfigService {
 
       const formativeWeight = data.formativeWeight ?? config.formativeWeight;
       const summativeWeight = data.summativeWeight ?? config.summativeWeight;
-      
+
       this.validateWeights(formativeWeight, summativeWeight);
     }
 
@@ -294,7 +309,7 @@ export class ConfigService {
    */
   private validateWeights(formativeWeight: number, summativeWeight: number): void {
     const total = formativeWeight + summativeWeight;
-    
+
     if (Math.abs(total - 100) > 0.01) { // Allow small floating point errors
       throw new Error(
         `Weights must sum to 100%. Current sum: ${total}%`
@@ -562,12 +577,161 @@ export class ConfigService {
     // For now, we rely on the database constraints or soft checks if needed
     // But since Learners use a String field now, there's no FK constraint blocking this directly,
     // though we might want to warn if used.
-    
+
     // Check if any learners are using this stream name? 
     // This is tricky because the Learner model uses a plain string now, not a relation.
     // Ideally, we should check, but for MVP let's allow deletion.
-    
+
     await prisma.streamConfig.delete({
+      where: { id }
+    });
+  }
+
+  // ============================================
+  // CLASS MANAGEMENT METHODS
+  // ============================================
+
+  /**
+   * Get all classes for a school
+   */
+  async getClasses(schoolId: string): Promise<any[]> {
+    return await prisma.class.findMany({
+      where: {
+        branch: {
+          schoolId
+        }
+      },
+      include: {
+        teacher: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true
+          }
+        },
+        branch: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      },
+      orderBy: [
+        { academicYear: 'desc' },
+        { grade: 'asc' },
+        { name: 'asc' }
+      ]
+    });
+  }
+
+  /**
+   * Create or update a class
+   */
+  async upsertClass(data: UpsertClassInput): Promise<any> {
+    const { id, schoolId, ...classData } = data;
+
+    // Ensure we have a branchId
+    let branchId = classData.branchId;
+    if (!branchId) {
+      // Find the first branch for this school
+      const branch = await prisma.branch.findFirst({
+        where: { schoolId }
+      });
+      if (!branch) {
+        throw new Error('No branch found for this school. Cannot create class.');
+      }
+      branchId = branch.id;
+    }
+
+    // Clean data for Prisma (remove schoolId and id from data object)
+    const { branchId: _, ...prismaData } = classData;
+
+    // Normalize optional fields
+    const normalizedData = {
+      ...prismaData,
+      stream: prismaData.stream || null,
+      teacherId: prismaData.teacherId || null,
+      capacity: prismaData.capacity || 40,
+      academicYear: prismaData.academicYear || 2025,
+      term: prismaData.term || 'TERM_1'
+    };
+
+    if (id) {
+      // Update
+      return await prisma.class.update({
+        where: { id },
+        data: {
+          ...normalizedData,
+          branchId: branchId as string
+        },
+        include: {
+          teacher: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true
+            }
+          },
+          branch: true
+        }
+      });
+    } else {
+      // Create
+      console.log('Upserting class with data:', {
+        branchId,
+        ...normalizedData
+      });
+
+      // Check for unique constraint: branchId, grade, stream, academicYear, term
+      const existing = await prisma.class.findFirst({
+        where: {
+          branchId: branchId as string,
+          grade: normalizedData.grade,
+          stream: normalizedData.stream,
+          academicYear: normalizedData.academicYear,
+          term: normalizedData.term
+        }
+      });
+
+      if (existing) {
+        console.warn('Class already exists:', existing.id);
+        throw new Error(`A class with this grade and stream already exists for the selected academic period.`);
+      }
+
+      console.log('Creating new class record...');
+      return await prisma.class.create({
+        data: {
+          ...normalizedData,
+          branchId: branchId as string
+        },
+        include: {
+          teacher: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true
+            }
+          },
+          branch: true
+        }
+      });
+    }
+  }
+
+  /**
+   * Delete a class
+   */
+  async deleteClass(id: string): Promise<void> {
+    // Check for enrollments before deletion
+    const enrollmentCount = await prisma.classEnrollment.count({
+      where: { classId: id }
+    });
+
+    if (enrollmentCount > 0) {
+      throw new Error(`Cannot delete class: ${enrollmentCount} learners are currently enrolled.`);
+    }
+
+    await prisma.class.delete({
       where: { id }
     });
   }

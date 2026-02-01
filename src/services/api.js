@@ -347,11 +347,38 @@ export const configAPI = {
     });
   },
 
+
   /**
    * Get all available grades (Enum)
    */
   getGrades: async () => {
     return fetchWithAuth('/config/grades');
+  },
+
+  /**
+   * Get Classes for a school
+   */
+  getClasses: async (schoolId) => {
+    return fetchWithAuth(`/config/classes/${schoolId}`);
+  },
+
+  /**
+   * Create or Update Class
+   */
+  upsertClass: async (data) => {
+    return fetchWithAuth('/config/classes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete Class
+   */
+  deleteClass: async (id) => {
+    return fetchWithAuth(`/config/classes/${id}`, {
+      method: 'DELETE',
+    });
   },
 };
 

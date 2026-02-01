@@ -446,17 +446,162 @@ Approved By K.I.C.D
 
 GRADE 5
 UPPER PRIMARY.
+ABACUS
+GRADE 5
+Approved By K.I.C.D
+
+CODINGANDROBOTICS
+GRADE 5
+Approved By K.I.C.D
+
+COMPUTERSTUDIES.
+GRADE 5
+Approved By K.I.C.D
+
+FRENCH.
+GRADE 5
+Approved By K.I.C.D
+
+IRE.
+GRADE 5
+Approved By K.I.C.D
+
+CRE
+GRADE 5
+Approved By K.I.C.D
+
+SOCIALSTUDIES.
+GRADE 5
+Approved By K.I.C.D
+
+AGRICULTURE
+GRADE 5
+Approved By K.I.C.D
+
+CREATIVEARTS.
+GRADE 5
+Approved By K.I.C.D
+
+SCIENCEANDTECHNOLOGY.
+GRADE 5
+Approved By K.I.C.D
+
+KISWAHILILUGHA.
+GRADE 5
+Approved By K.I.C.D
+
+ENGLISHLANGUAGE
+GRADE 5
+Approved By K.I.C.D
+
 
 
 ----------------
 
 GRADE 6
 UPPER PRIMARY.
+ABACUS
+GRADE 6
+Approved By K.I.C.D
+
+CODINGANDROBOTICS
+GRADE 6
+Approved By K.I.C.D
+
+COMPUTERSTUDIES.
+GRADE 6
+Approved By K.I.C.D
+
+FRENCH.
+GRADE 6
+Approved By K.I.C.D
+
+IRE.
+GRADE 6
+Approved By K.I.C.D
+
+CRE.
+GRADE 6
+Approved By K.I.C.D
+
+CREATIVEARTS.
+GRADE 6
+Approved By K.I.C.D
+
+AGRICULTURE
+GRADE 6
+Approved By K.I.C.D
+
+SOCIALSTUDIES.
+GRADE 6
+Approved By K.I.C.D
+
+SCIENCEANDTECHNOLOGY.
+GRADE 6
+Approved By K.I.C.D
+
+KISWAHILILUGHA.
+GRADE 6
+Approved By K.I.C.D
+
+ENGLISHLANGUAGE
+GRADE 6
+Approved By K.I.C.D
+
+
 
 ------------------
 
 GRADE 7
 JUNIOR SCHOOL.
+ComputerStudies
+GRADE 7
+Approved By K.I.C.D
+
+Coding&Robotics
+GRADE 7
+Approved By K.I.C.D
+
+French
+GRADE 7
+Approved By K.I.C.D
+
+SocialStudies
+GRADE 7
+Approved By K.I.C.D
+
+KIswahiliLugha.
+GRADE 7
+Approved By K.I.C.D
+
+Integratedscience
+GRADE 7
+Approved By K.I.C.D
+
+Pre-TechnicalStudies.
+GRADE 7
+Approved By K.I.C.D
+
+IslamicReligiousEducation.
+GRADE 7
+Approved By K.I.C.D
+
+EnglishLanguage
+GRADE 7
+Approved By K.I.C.D
+
+CreativeArtsandSports
+GRADE 7
+Approved By K.I.C.D
+
+Agriculture
+GRADE 7
+Approved By K.I.C.D
+
+ChristianReligiousEducation.
+GRADE 7
+Approved By K.I.C.D
+
 
 
 ---------------
@@ -464,17 +609,163 @@ JUNIOR SCHOOL.
 GRADE 8
 JUNIOR SCHOOL.
 
+ComputerStudies
+GRADE 8
+Approved By K.I.C.D
+
+Coding&Robotics
+GRADE 8
+Approved By K.I.C.D
+
+French.
+GRADE 8
+Approved By K.I.C.D
+
+IRE
+GRADE 8
+Approved By K.I.C.D
+
+KIswahiliLugha.
+GRADE 8
+Approved By K.I.C.D
+
+CRE
+GRADE 8
+Approved By K.I.C.D
+
+Pre-TechnicalStudies.
+GRADE 8
+Approved By K.I.C.D
+
+CreativeArtsandSports
+GRADE 8
+Approved By K.I.C.D
+
+Socialstudies
+GRADE 8
+Approved By K.I.C.D
+
+Agriculture
+GRADE 8
+Approved By K.I.C.D
+
+IntegratedScience
+GRADE 8
+Approved By K.I.C.D
+
+EnglishLanguage
+GRADE 8
+Approved By K.I.C.D
 
 --------------
 
 GRADE 9
 JUNIOR SCHOOL.
+ComputerStudies
+GRADE 9
+Approved By K.I.C.D
+
+Coding&Robotics
+GRADE 9
+Approved By K.I.C.D
+
+French.
+GRADE 9
+Approved By K.I.C.D
+
+Mathematics
+GRADE 9
+Approved By K.I.C.D
+
+EnglishLanguage
+GRADE 9
+Approved By K.I.C.D
+
+IntegratedScience
+GRADE 9
+Approved By K.I.C.D
+
+Agriculture
+GRADE 9
+Approved By K.I.C.D
+
+SocialStudies
+GRADE 9
+Approved By K.I.C.D
+
+CreativeArtsandSports
+GRADE 9
+Approved By K.I.C.D
+
+Pre-TechnicalStudies.
+GRADE 9
+Approved By K.I.C.D
+
+CRE
+GRADE 9
+Approved By K.I.C.D
+
+KIswahiliLugha.
+GRADE 9
+Approved By K.I.C.D
+
+ComputerStudies
+GRADE 9
+Approved By K.I.C.D
+
+Coding&Robotics
+GRADE 9
+Approved By K.I.C.D
+
+French.
+GRADE 9
+Approved By K.I.C.D
+
+Mathematics
+GRADE 9
+Approved By K.I.C.D
+
+EnglishLanguage
+GRADE 9
+Approved By K.I.C.D
+
+IntegratedScience
+GRADE 9
+Approved By K.I.C.D
+
+Agriculture
+GRADE 9
+Approved By K.I.C.D
+
+SocialStudies
+GRADE 9
+Approved By K.I.C.D
+
+CreativeArtsandSports
+GRADE 9
+Approved By K.I.C.D
+
+Pre-TechnicalStudies.
+GRADE 9
+Approved By K.I.C.D
+
+CRE
+GRADE 9
+Approved By K.I.C.D
+
+KIswahiliLugha.
+GRADE 9
+Approved By K.I.C.D
+
+
 
 
 ------------------
 
 GRADE 10
 SENIOR SCHOOL.
+
+
 
 ---------------------
 GRADE 11
