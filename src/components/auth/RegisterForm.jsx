@@ -639,7 +639,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         onChange={handleChange}
                         className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.schoolName ? 'border-red-500' : 'border-gray-300'
                           }`}
-                        placeholder="Zawadi JRN Academy"
+                        placeholder="EDucore Academy"
                       />
                     </div>
                     {errors.schoolName && (
