@@ -10,11 +10,14 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
     fullName: '',
     email: '',
     phone: '',
-    username: '',
     password: '',
     confirmPassword: '',
     schoolName: '',
-    role: 'Teacher',
+    schoolType: '',
+    address: '',
+    county: '',
+    subCounty: '',
+    ward: '',
     termsAccepted: false
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -118,11 +121,6 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
     }
 
     if (step === 2) {
-      if (!formData.username.trim()) {
-        newErrors.username = 'Username is required';
-      } else if (formData.username.length < 4) {
-        newErrors.username = 'Username must be at least 4 characters';
-      }
       if (!formData.password) {
         newErrors.password = 'Password is required';
       } else if (formData.password.length < 8) {
@@ -137,6 +135,9 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
     if (step === 3) {
       if (!formData.schoolName.trim()) newErrors.schoolName = 'School name is required';
+      if (!formData.schoolType) newErrors.schoolType = 'School type is required';
+      if (!formData.county) newErrors.county = 'County is required';
+      if (!formData.address.trim()) newErrors.address = 'Physical address is required';
       if (!formData.termsAccepted) newErrors.termsAccepted = 'You must accept the terms and conditions';
     }
 
@@ -170,18 +171,23 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
       console.log('📤 Sending registration request...');
 
       const requestBody = {
-        firstName: formData.fullName.split(' ')[0],
-        lastName: formData.fullName.split(' ').slice(1).join(' ') || formData.fullName.split(' ')[0],
+        fullName: formData.fullName,
         email: formData.email,
-        password: formData.password,
         phone: formData.phone,
-        role: formData.role.toUpperCase()
+        password: formData.password,
+        passwordConfirm: formData.confirmPassword,
+        schoolName: formData.schoolName,
+        schoolType: formData.schoolType,
+        address: formData.address,
+        county: formData.county,
+        subCounty: formData.subCounty,
+        ward: formData.ward
       };
 
       console.log('📋 Request data:', requestBody);
 
-      // Call backend API for registration
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      // Call full onboarding registration endpoint
+      const response = await fetch(`${API_BASE_URL}/onboarding/register-full`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -207,10 +213,10 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
         // Redirect to verification
         setTimeout(() => {
           onRegisterSuccess({
-            email: data.user.email,
-            phone: data.user.phone,
-            name: `${data.user.firstName} ${data.user.lastName}`,
-            role: data.user.role
+            email: data.data.user.email,
+            phone: data.data.user.phone,
+            name: `${data.data.user.firstName} ${data.data.user.lastName}`,
+            role: data.data.user.role
           });
         }, 1000);
       } else {
@@ -281,8 +287,8 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
     switch (currentStep) {
       case 1: return 'Personal Information';
       case 2: return 'Account Security';
-      case 3: return 'School Details';
-      default: return 'Create Account';
+      case 3: return 'School Registration';
+      default: return 'Register School';
     }
   };
 
@@ -526,31 +532,6 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
               {/* Step 2: Account Details */}
               {currentStep === 2 && (
                 <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Username
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <User className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        name="username"
-                        value={formData.username}
-                        onChange={handleChange}
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.username ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        placeholder="johndoe"
-                      />
-                    </div>
-                    {errors.username && (
-                      <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
-                        <AlertCircle size={14} />
-                        <span>{errors.username}</span>
-                      </div>
-                    )}
-                  </div>
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -671,19 +652,86 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Your Role
+                      School Type
                     </label>
                     <select
-                      name="role"
-                      value={formData.role}
+                      name="schoolType"
+                      value={formData.schoolType}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.schoolType ? 'border-red-500' : 'border-gray-300'}`}
                     >
-                      <option value="Teacher">Teacher</option>
-                      <option value="Admin">Administrator</option>
-                      <option value="Staff">Staff Member</option>
-                      <option value="Principal">Principal</option>
+                      <option value="">Select Type</option>
+                      <option>Public Primary School</option>
+                      <option>Public Secondary School</option>
+                      <option>Private Primary School</option>
+                      <option>Private Secondary School</option>
+                      <option>International School</option>
+                      <option>Special Needs School</option>
+                      <option>Technical Training Institute</option>
+                      <option>University/College</option>
                     </select>
+                    {errors.schoolType && (
+                      <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
+                        <AlertCircle size={14} />
+                        <span>{errors.schoolType}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        County
+                      </label>
+                      <select
+                        name="county"
+                        value={formData.county}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.county ? 'border-red-500' : 'border-gray-300'}`}
+                      >
+                        <option value="">Select County</option>
+                        {['Baringo', 'Bomet', 'Bungoma', 'Busia', 'Elgeyo-Marakwet', 'Embu', 'Garissa', 'Homa Bay', 'Isiolo', 'Kajiado', 'Kakamega', 'Kericho', 'Kiambu', 'Kilifi', 'Kirinyaga', 'Kisii', 'Kisumu', 'Kitui', 'Kwale', 'Laikipia', 'Lamu', 'Machakos', 'Makueni', 'Mandera', 'Marsabit', 'Meru', 'Migori', 'Mombasa', 'Murang’a', 'Nairobi', 'Nakuru', 'Nandi', 'Narok', 'Nyamira', 'Nyandarua', 'Nyeri', 'Samburu', 'Siaya', 'Taita-Taveta', 'Tana River', 'Tharaka-Nithi', 'Trans Nzoia', 'Turkana', 'Uasin Gishu', 'Vihiga', 'Wajir', 'West Pokot'].map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      {errors.county && (
+                        <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
+                          <AlertCircle size={14} />
+                          <span>{errors.county}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Sub-County
+                      </label>
+                      <input
+                        type="text"
+                        name="subCounty"
+                        value={formData.subCounty}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        placeholder="e.g. Westlands"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Physical Address
+                    </label>
+                    <input
+                      type="text"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.address ? 'border-red-500' : 'border-gray-300'}`}
+                      placeholder="Street, Town"
+                    />
+                    {errors.address && (
+                      <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
+                        <AlertCircle size={14} />
+                        <span>{errors.address}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

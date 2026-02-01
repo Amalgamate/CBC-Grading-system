@@ -4,7 +4,7 @@ import { useAuth } from './hooks/useAuth';
 import Auth from './pages/Auth';
 import CBCGradingSystem from './components/CBCGrading/CBCGradingSystem';
 import EDucoreLanding from './components/EDucore/EDucoreLanding2';
-import Registration from './components/EDucore/RegistrationFull';
+import Registration from './components/auth/RegisterForm'; // Use the consolidated register form if needed, but we already have routes
 import SuperAdminDashboard from './components/EDucore/SuperAdminDashboard';
 import api from './services/api';
 import { clearPortalSchoolId, setPortalSchoolId } from './services/tenantContext';
@@ -142,7 +142,7 @@ function AppContent() {
 
   const landingProps = {
     onLoginClick: () => navigate('/auth/login'),
-    onGetStartedClick: () => navigate('/get-started'),
+    onGetStartedClick: () => navigate('/auth/register'),
     onOpenAppClick: () => navigate('/app'),
     isAuthenticated: !!isAuthenticated,
   };
@@ -173,7 +173,7 @@ function AppContent() {
   return (
     <Routes>
       <Route path="/" element={<EDucoreLanding {...landingProps} />} />
-      <Route path="/get-started" element={<Registration />} />
+      <Route path="/get-started" element={<Navigate to="/auth/register" replace />} />
       <Route path="/auth" element={<Navigate to="/auth/login" replace />} />
       <Route path="/auth/login" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath="/auth" />} />
       <Route path="/auth/register" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath="/auth" />} />
@@ -188,7 +188,7 @@ function AppContent() {
       <Route path="/t/:schoolId/reset-password" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath={`/t/${urlSchoolId || ''}`} />} />
       <Route path="/t/:schoolId/verify-email" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath={`/t/${urlSchoolId || ''}`} />} />
       <Route path="/t/:schoolId/welcome" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath={`/t/${urlSchoolId || ''}`} />} />
-      <Route path="/t/:schoolId/get-started" element={<Registration />} />
+      <Route path="/t/:schoolId/get-started" element={<Navigate to={`/t/${urlSchoolId}/register`} replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

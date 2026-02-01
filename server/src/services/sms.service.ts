@@ -54,6 +54,22 @@ export class SmsService {
     }
 
     /**
+     * Send welcome SMS to new school admin
+     */
+    static async sendWelcomeSms(schoolId: string, phone: string, schoolName: string): Promise<SendSmsResult> {
+        try {
+            const formattedPhone = this.formatPhoneNumber(phone);
+            const message = `Welcome to EDucore! Your school ${schoolName} is set up. Log in to your dashboard to get started.`;
+
+            console.log(`📱 SMS Service: Sending welcome SMS to ${formattedPhone}`);
+            return await this.sendSms(schoolId, formattedPhone, message);
+        } catch (error: any) {
+            console.error('Welcome SMS Error:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
      * Send assessment report SMS to parent
      */
     static async sendAssessmentReport(data: AssessmentReportData): Promise<SendSmsResult> {

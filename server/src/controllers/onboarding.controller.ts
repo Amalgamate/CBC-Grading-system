@@ -3,6 +3,8 @@ import prisma from '../config/database';
 import bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { gradingService } from '../services/grading.service';
+import { EmailService } from '../services/email.service';
+import { SmsService } from '../services/sms.service';
 
 export class OnboardingController {
   async registerSchool(req: Request, res: Response) {
@@ -247,6 +249,24 @@ export class OnboardingController {
       console.log(`   - Admin: ${result.user.email}`);
       console.log(`   - Streams: A, B, C, D created`);
       console.log(`   - Grading systems initialized`);
+
+      // 7. Trigger Welcome Notifications (outside transaction)
+      const loginUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+      // Send Welcome Email
+      EmailService.sendWelcomeEmail({
+        to: result.user.email,
+        schoolName: result.school.name,
+        adminName: `${result.user.firstName} ${result.user.lastName}`,
+        loginUrl: `${loginUrl}/auth/login`
+      }).catch(err => console.error('Failed to send welcome email:', err));
+
+      // Send Welcome SMS
+      SmsService.sendWelcomeSms(
+        result.school.id,
+        result.user.phone!,
+        result.school.name
+      ).catch(err => console.error('Failed to send welcome SMS:', err));
 
       const { school, user, token, code } = result;
 
