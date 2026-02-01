@@ -149,30 +149,45 @@ export class AuthController {
       throw new ApiError(401, 'Invalid credentials');
     }
 
-    // Check if account is locked
-    if (user.lockedUntil && user.lockedUntil > new Date()) {
-      const minutesLeft = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
-      throw new ApiError(403, `Account locked. Try again in ${minutesLeft} minutes`);
+    // Check if account is locked (graceful handling for missing column)
+    try {
+      if (user.lockedUntil && user.lockedUntil > new Date()) {
+        const minutesLeft = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
+        throw new ApiError(403, `Account locked. Try again in ${minutesLeft} minutes`);
+      }
+    } catch (error: any) {
+      // If column doesn't exist, continue anyway
+      if (!error.message?.includes('does not exist')) {
+        throw error;
+      }
     }
 
     // Check password
     const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
-      // Increment failed login attempts
-      const newAttempts = (user.loginAttempts || 0) + 1;
-      const lockAccount = newAttempts >= 5;
+      // Increment failed login attempts (graceful handling for missing column)
+      try {
+        const newAttempts = (user.loginAttempts || 0) + 1;
+        const lockAccount = newAttempts >= 5;
 
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          loginAttempts: newAttempts,
-          lockedUntil: lockAccount ? new Date(Date.now() + 15 * 60 * 1000) : null, // Lock for 15 minutes
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            ...(user.hasOwnProperty('loginAttempts') && { loginAttempts: newAttempts }),
+            ...(user.hasOwnProperty('lockedUntil') && { lockedUntil: lockAccount ? new Date(Date.now() + 15 * 60 * 1000) : null }),
+          }
+        });
+
+        if (lockAccount) {
+          throw new ApiError(403, 'Too many failed login attempts. Account locked for 15 minutes');
         }
-      });
-
-      if (lockAccount) {
-        throw new ApiError(403, 'Too many failed login attempts. Account locked for 15 minutes');
+      } catch (error: any) {
+        // If columns don't exist, just fail login without account locking
+        if (error.message?.includes('does not exist')) {
+          throw new ApiError(401, 'Invalid credentials');
+        }
+        throw error;
       }
 
       throw new ApiError(401, 'Invalid credentials');
