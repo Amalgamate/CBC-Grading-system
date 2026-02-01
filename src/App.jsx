@@ -31,7 +31,7 @@ function AppContent() {
 
   const [brandingSettings, setBrandingSettings] = useState(() => {
     return {
-      logoUrl: localStorage.getItem('schoolLogo') || '/logo-zawadi.png',
+      logoUrl: localStorage.getItem('schoolLogo') || '/logo-educore.png',
       faviconUrl: localStorage.getItem('schoolFavicon') || '/favicon.png',
       brandColor: localStorage.getItem('brandColor') || '#1e3a8a',
       welcomeTitle: localStorage.getItem('welcomeTitle') || 'Welcome to EDucore V1',

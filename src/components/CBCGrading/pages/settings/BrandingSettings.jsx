@@ -8,16 +8,16 @@ import { useNotifications } from '../../hooks/useNotifications';
 
 const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
   const { showSuccess, showError } = useNotifications();
-  
+
   const [localSettings, setLocalSettings] = useState({
-    welcomeTitle: brandingSettings?.welcomeTitle || 'Welcome to Zawadi JRN Academy',
+    welcomeTitle: brandingSettings?.welcomeTitle || 'Welcome to EDucore V1',
     welcomeMessage: brandingSettings?.welcomeMessage || 'Empowering education through innovative learning management.',
     onboardingTitle: brandingSettings?.onboardingTitle || 'Join Our Community',
     onboardingMessage: brandingSettings?.onboardingMessage || 'Start your journey with us today. Create an account to access powerful tools for managing learning and assessment with ease.',
     brandColor: brandingSettings?.brandColor || '#1e3a8a',
-    logoUrl: brandingSettings?.logoUrl || '/logo-zawadi.png',
+    logoUrl: brandingSettings?.logoUrl || '/logo-educore.png',
     faviconUrl: brandingSettings?.faviconUrl || '/favicon.png',
-    schoolName: brandingSettings?.schoolName || 'Zawadi JRN'
+    schoolName: brandingSettings?.schoolName || 'EDucore V1'
   });
 
   const [logoPreview, setLogoPreview] = useState(localSettings.logoUrl);
@@ -26,16 +26,16 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
   // Sync with parent branding settings
   useEffect(() => {
     setLocalSettings({
-      welcomeTitle: brandingSettings?.welcomeTitle || 'Welcome to Zawadi JRN Academy',
+      welcomeTitle: brandingSettings?.welcomeTitle || 'Welcome to EDucore V1',
       welcomeMessage: brandingSettings?.welcomeMessage || 'Empowering education through innovative learning management.',
       onboardingTitle: brandingSettings?.onboardingTitle || 'Join Our Community',
       onboardingMessage: brandingSettings?.onboardingMessage || 'Start your journey with us today. Create an account to access powerful tools for managing learning and assessment with ease.',
       brandColor: brandingSettings?.brandColor || '#1e3a8a',
-      logoUrl: brandingSettings?.logoUrl || '/logo-zawadi.png',
+      logoUrl: brandingSettings?.logoUrl || '/logo-educore.png',
       faviconUrl: brandingSettings?.faviconUrl || '/favicon.png',
-      schoolName: brandingSettings?.schoolName || 'Zawadi JRN'
+      schoolName: brandingSettings?.schoolName || 'EDucore V1'
     });
-    setLogoPreview(brandingSettings?.logoUrl || '/logo-zawadi.png');
+    setLogoPreview(brandingSettings?.logoUrl || '/logo-educore.png');
     setFaviconPreview(brandingSettings?.faviconUrl || '/favicon.png');
   }, [brandingSettings]);
 
@@ -76,7 +76,7 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
   const handleSave = () => {
     // Update parent state
     setBrandingSettings(localSettings);
-    
+
     // Save to localStorage
     localStorage.setItem('welcomeTitle', localSettings.welcomeTitle);
     localStorage.setItem('welcomeMessage', localSettings.welcomeMessage);
@@ -86,26 +86,26 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
     localStorage.setItem('schoolLogo', localSettings.logoUrl);
     localStorage.setItem('schoolFavicon', localSettings.faviconUrl);
     localStorage.setItem('schoolName', localSettings.schoolName);
-    
+
     showSuccess('Branding settings saved successfully!');
   };
 
   const handleReset = () => {
     const defaultSettings = {
-      welcomeTitle: 'Welcome to Zawadi JRN Academy',
+      welcomeTitle: 'Welcome to EDucore V1',
       welcomeMessage: 'Empowering education through innovative learning management.',
       onboardingTitle: 'Join Our Community',
       onboardingMessage: 'Start your journey with us today. Create an account to access powerful tools for managing learning and assessment with ease.',
       brandColor: '#1e3a8a',
-      logoUrl: '/logo-zawadi.png',
+      logoUrl: '/logo-educore.png',
       faviconUrl: '/favicon.png',
-      schoolName: 'Zawadi JRN'
+      schoolName: 'EDucore V1'
     };
-    
+
     setLocalSettings(defaultSettings);
     setLogoPreview(defaultSettings.logoUrl);
     setFaviconPreview(defaultSettings.faviconUrl);
-    
+
     // Clear localStorage
     localStorage.removeItem('welcomeTitle');
     localStorage.removeItem('welcomeMessage');
@@ -115,7 +115,7 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
     localStorage.removeItem('schoolLogo');
     localStorage.removeItem('schoolFavicon');
     localStorage.removeItem('schoolName');
-    
+
     showSuccess('Reset to default branding');
   };
 
@@ -130,7 +130,7 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
             <Image size={20} className="text-blue-600" />
             School Information
           </h3>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -168,12 +168,12 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
                 School Logo
               </label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                <img 
-                  src={logoPreview} 
-                  alt="Logo Preview" 
+                <img
+                  src={logoPreview}
+                  alt="Logo Preview"
                   className="w-32 h-32 object-contain mx-auto mb-3"
                   onError={(e) => {
-                    e.target.src = '/logo-zawadi.png';
+                    e.target.src = '/logo-educore.png';
                   }}
                 />
                 <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
@@ -195,9 +195,9 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
                 Favicon
               </label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                <img 
-                  src={faviconPreview} 
-                  alt="Favicon Preview" 
+                <img
+                  src={faviconPreview}
+                  alt="Favicon Preview"
                   className="w-16 h-16 object-contain mx-auto mb-3"
                   onError={(e) => {
                     e.target.src = '/favicon.png';
@@ -225,7 +225,7 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
             <MessageSquare size={20} className="text-blue-600" />
             Welcome & Onboarding Messages
           </h3>
-          
+
           <div className="space-y-6">
             {/* Login Page Messages */}
             <div className="border-b pb-6">
@@ -240,7 +240,7 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
                     value={localSettings.welcomeTitle}
                     onChange={(e) => handleChange('welcomeTitle', e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                    placeholder="e.g., Welcome to Zawadi JRN Academy"
+                    placeholder="e.g., Welcome to EDucore Academy"
                   />
                 </div>
 
@@ -303,7 +303,7 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
             <div className="bg-gray-100 px-4 py-2 border-b">
               <p className="text-xs font-semibold text-gray-600">Login Page Preview</p>
             </div>
-            <div 
+            <div
               className="p-8 text-white relative overflow-hidden"
               style={{ backgroundColor: localSettings.brandColor }}
             >
@@ -311,12 +311,12 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
               </div>
               <div className="relative z-10 text-center">
-                <img 
-                  src={logoPreview} 
-                  alt="Logo" 
+                <img
+                  src={logoPreview}
+                  alt="Logo"
                   className="w-24 h-24 object-contain mx-auto mb-4"
                   onError={(e) => {
-                    e.target.src = '/logo-zawadi.png';
+                    e.target.src = '/logo-educore.png';
                   }}
                 />
                 <h3 className="text-xl font-bold mb-2">{localSettings.welcomeTitle}</h3>
@@ -330,7 +330,7 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
             <div className="bg-gray-100 px-4 py-2 border-b">
               <p className="text-xs font-semibold text-gray-600">Registration Page Preview</p>
             </div>
-            <div 
+            <div
               className="p-8 text-white relative overflow-hidden"
               style={{ backgroundColor: localSettings.brandColor }}
             >
@@ -338,12 +338,12 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
               </div>
               <div className="relative z-10 text-center">
-                <img 
-                  src={logoPreview} 
-                  alt="Logo" 
+                <img
+                  src={logoPreview}
+                  alt="Logo"
                   className="w-24 h-24 object-contain mx-auto mb-4"
                   onError={(e) => {
-                    e.target.src = '/logo-zawadi.png';
+                    e.target.src = '/logo-educore.png';
                   }}
                 />
                 <h3 className="text-xl font-bold mb-2">{localSettings.onboardingTitle}</h3>
@@ -356,18 +356,18 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
 
       {/* Action Buttons */}
       <div className="flex justify-between">
-        <button 
-          onClick={handleReset} 
+        <button
+          onClick={handleReset}
           className="flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold transition"
         >
-          <RefreshCw size={20} /> 
+          <RefreshCw size={20} />
           Reset to Default
         </button>
-        <button 
-          onClick={handleSave} 
+        <button
+          onClick={handleSave}
           className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition shadow-lg"
         >
-          <Save size={20} /> 
+          <Save size={20} />
           Save Changes
         </button>
       </div>

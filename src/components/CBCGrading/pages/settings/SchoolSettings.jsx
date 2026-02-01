@@ -36,7 +36,7 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
 
   const [logoPreview, setLogoPreview] = useState(() => {
     const savedLogo = localStorage.getItem('schoolLogo');
-    return savedLogo || brandingSettings?.logoUrl || '/logo-zawadi.png';
+    return savedLogo || brandingSettings?.logoUrl || '/logo-educore.png';
   });
 
   const [faviconPreview, setFaviconPreview] = useState(() => {
@@ -104,7 +104,7 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
             }));
 
             // Update logo/favicon if they exist
-            if (school.logoUrl && school.logoUrl !== '/logo-zawadi.png') {
+            if (school.logoUrl && school.logoUrl !== '/logo-educore.png') {
               setLogoPreview(school.logoUrl);
             }
             if (school.faviconUrl && school.faviconUrl !== '/favicon.png') {
@@ -192,7 +192,7 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
   };
 
   const handleRemoveLogo = () => {
-    setLogoPreview('/logo-zawadi.png');
+    setLogoPreview('/logo-educore.png');
     showSuccess('Logo removed. Click "Save Changes" to persist.');
   };
 
@@ -405,14 +405,14 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
                       alt="School Logo"
                       className="w-full h-full object-contain p-2"
                       onError={(e) => {
-                        e.target.src = '/logo-zawadi.png';
+                        e.target.src = '/logo-educore.png';
                       }}
                     />
                   ) : (
                     <School size={48} className="text-gray-400" />
                   )}
                 </div>
-                {logoPreview && logoPreview !== '/logo-zawadi.png' && (
+                {logoPreview && logoPreview !== '/logo-educore.png' && (
                   <button
                     onClick={handleRemoveLogo}
                     className="absolute -top-2 -right-2 w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center hover:bg-red-700 transition"
@@ -454,7 +454,7 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
                     Upload Logo
                   </button>
 
-                  {logoPreview && logoPreview !== '/logo-zawadi.png' && (
+                  {logoPreview && logoPreview !== '/logo-educore.png' && (
                     <button
                       onClick={handleRemoveLogo}
                       className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
@@ -595,7 +595,7 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
               alt="School Logo Preview"
               className="w-16 h-16 object-contain"
               onError={(e) => {
-                e.target.src = '/logo-zawadi.png';
+                e.target.src = '/logo-educore.png';
               }}
             />
             <div>

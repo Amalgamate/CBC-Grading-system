@@ -26,7 +26,7 @@
 export const createLetterhead = (schoolInfo) => {
   const {
     schoolName = 'Zawadi JRN Academy',
-    logoUrl = '/logo-zawadi.png',
+    logoUrl = '/logo-educore.png',
     brandColor = '#1e3a8a',
     address = 'P.O. Box 1234, Nairobi, Kenya',
     phone = '+254 700 000000',

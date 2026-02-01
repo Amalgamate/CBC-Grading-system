@@ -1,29 +1,29 @@
 import nodemailer from 'nodemailer';
 
 export interface WelcomeEmailData {
-    to: string;
-    schoolName: string;
-    adminName: string;
-    loginUrl: string;
+  to: string;
+  schoolName: string;
+  adminName: string;
+  loginUrl: string;
 }
 
 export class EmailService {
-    private static transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-        },
-    });
+  private static transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
 
-    static async sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
-        const { to, schoolName, adminName, loginUrl } = data;
+  static async sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
+    const { to, schoolName, adminName, loginUrl } = data;
 
-        const brandColor = '#1e3a8a'; // Industry standard blue
+    const brandColor = '#1e3a8a'; // Industry standard blue
 
-        const html = `
+    const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -40,7 +40,7 @@ export class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <img src="https://educore.v1/logo-zawadi.png" alt="EDucore Logo" class="logo">
+            <img src="/logo-educore.png" alt="EDucore Logo" class="logo">
             <h1 style="color: ${brandColor};">Welcome to EDucore!</h1>
           </div>
           <div class="content">
@@ -63,17 +63,17 @@ export class EmailService {
       </html>
     `;
 
-        try {
-            await this.transporter.sendMail({
-                from: `"${schoolName} via EDucore" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
-                to,
-                subject: `Welcome to ${schoolName} on EDucore!`,
-                html,
-            });
-            console.log(`📧 Welcome email sent to ${to}`);
-        } catch (error) {
-            console.error('❌ Failed to send welcome email:', error);
-            // We don't throw here to avoid breaking the registration flow
-        }
+    try {
+      await this.transporter.sendMail({
+        from: `"${schoolName} via EDucore" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+        to,
+        subject: `Welcome to ${schoolName} on EDucore!`,
+        html,
+      });
+      console.log(`📧 Welcome email sent to ${to}`);
+    } catch (error) {
+      console.error('❌ Failed to send welcome email:', error);
+      // We don't throw here to avoid breaking the registration flow
     }
+  }
 }
