@@ -11,7 +11,7 @@ export const CBC_RATINGS = [
   {
     value: 'EE1',
     label: 'EE1 - Outstanding (90-100%)',
-    description: 'Exceeds expectations with distinction and demonstrates mastery of all concepts',
+    description: 'The learner has achieved the learning outcome perfectly and can apply the skill/content in novel situations',
     category: 'Exceeding',
     color: 'green',
     mark: 90,
@@ -22,7 +22,7 @@ export const CBC_RATINGS = [
   {
     value: 'EE2',
     label: 'EE2 - Very High (75-89%)',
-    description: 'Consistently exceeds expectations and applies skills independently',
+    description: 'The learner has achieved the learning outcome very well and can apply the skill/content in most situations',
     category: 'Exceeding',
     color: 'green',
     mark: 75,
@@ -33,7 +33,7 @@ export const CBC_RATINGS = [
   {
     value: 'ME1',
     label: 'ME1 - High Average (58-74%)',
-    description: 'Meets expectations with good understanding and consistent performance',
+    description: 'The learner has achieved the learning outcome and can apply the skill/content in most situations with some support',
     category: 'Meeting',
     color: 'blue',
     mark: 58,
@@ -44,7 +44,7 @@ export const CBC_RATINGS = [
   {
     value: 'ME2',
     label: 'ME2 - Average (41-57%)',
-    description: 'Meets basic expectations with developing understanding',
+    description: 'The learner has achieved the learning outcome and can apply the skill/content in familiar situations with support',
     category: 'Meeting',
     color: 'blue',
     mark: 41,
@@ -55,7 +55,7 @@ export const CBC_RATINGS = [
   {
     value: 'AE1',
     label: 'AE1 - Low Average (31-40%)',
-    description: 'Approaching expectations with emerging understanding',
+    description: 'The learner has partially achieved the learning outcome and is beginning to apply the skill/content in familiar situations',
     category: 'Approaching',
     color: 'yellow',
     mark: 31,
@@ -66,7 +66,7 @@ export const CBC_RATINGS = [
   {
     value: 'AE2',
     label: 'AE2 - Below Average (21-30%)',
-    description: 'Still developing with limited understanding of concepts',
+    description: 'The learner has partially achieved the learning outcome and requires considerable support to apply the skill/content',
     category: 'Approaching',
     color: 'yellow',
     mark: 21,
@@ -77,7 +77,7 @@ export const CBC_RATINGS = [
   {
     value: 'BE1',
     label: 'BE1 - Low (11-20%)',
-    description: 'Below expectations with significant gaps in understanding',
+    description: 'The learner has not achieved the learning outcome and requires substantial support to demonstrate the skill/content',
     category: 'Below',
     color: 'red',
     mark: 11,
@@ -88,7 +88,7 @@ export const CBC_RATINGS = [
   {
     value: 'BE2',
     label: 'BE2 - Very Low (1-10%)',
-    description: 'Significant difficulty with minimal understanding demonstrated',
+    description: 'The learner has not achieved the learning outcome and demonstrates minimal understanding of the skill/content',
     category: 'Below',
     color: 'red',
     mark: 1,

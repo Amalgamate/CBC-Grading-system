@@ -21,56 +21,56 @@ const RatingSelector = ({
       points: 8, 
       percentage: '90-100%', 
       label: 'Outstanding',
-      description: 'Exceptional mastery, creative application, helps others'
+      description: 'The learner has achieved the learning outcome perfectly and can apply the skill/content in novel situations'
     },
     { 
       code: 'EE2', 
       points: 7, 
       percentage: '75-89%', 
       label: 'Very High',
-      description: 'Strong mastery, mostly independent work'
+      description: 'The learner has achieved the learning outcome very well and can apply the skill/content in most situations'
     },
     { 
       code: 'ME1', 
       points: 6, 
       percentage: '58-74%', 
       label: 'High Average',
-      description: 'Good competency, occasional assistance needed'
+      description: 'The learner has achieved the learning outcome and can apply the skill/content in most situations with some support'
     },
     { 
       code: 'ME2', 
       points: 5, 
       percentage: '41-57%', 
       label: 'Average',
-      description: 'Satisfactory competency, regular practice needed'
+      description: 'The learner has achieved the learning outcome and can apply the skill/content in familiar situations with support'
     },
     { 
       code: 'AE1', 
       points: 4, 
       percentage: '31-40%', 
       label: 'Low Average',
-      description: 'Developing skills, needs guidance'
+      description: 'The learner has partially achieved the learning outcome and is beginning to apply the skill/content in familiar situations'
     },
     { 
       code: 'AE2', 
       points: 3, 
       percentage: '21-30%', 
       label: 'Below Average',
-      description: 'Emerging skills, constant support needed'
+      description: 'The learner has partially achieved the learning outcome and requires considerable support to apply the skill/content'
     },
     { 
       code: 'BE1', 
       points: 2, 
       percentage: '11-20%', 
       label: 'Low',
-      description: 'Minimal understanding, intervention needed'
+      description: 'The learner has not achieved the learning outcome and requires substantial support to demonstrate the skill/content'
     },
     { 
       code: 'BE2', 
       points: 1, 
       percentage: '1-10%', 
       label: 'Very Low',
-      description: 'Urgent specialized support needed'
+      description: 'The learner has not achieved the learning outcome and demonstrates minimal understanding of the skill/content'
     }
   ];
 

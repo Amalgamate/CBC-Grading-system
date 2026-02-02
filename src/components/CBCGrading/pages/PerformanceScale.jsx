@@ -15,14 +15,14 @@ import EmptyState from '../shared/EmptyState';
 import ConfirmDialog from '../shared/ConfirmDialog';
 
 const EIGHT_POINT_TEMPLATE = [
-  { mark: 90, score: 8, rating: 'EE1', title: 'Exceeding Expectations 1', desc: 'Exceeds expectations with distinction and demonstrates mastery of all concepts.' },
-  { mark: 75, score: 7, rating: 'EE2', title: 'Exceeding Expectations 2', desc: 'Consistently exceeds expectations and applies skills independently.' },
-  { mark: 58, score: 6, rating: 'ME1', title: 'Meeting Expectations 1', desc: 'Meets all expectations with a high degree of proficiency.' },
-  { mark: 41, score: 5, rating: 'ME2', title: 'Meeting Expectations 2', desc: 'Meets expectations and demonstrates adequate understanding.' },
-  { mark: 31, score: 4, rating: 'AE1', title: 'Approaching Expectations 1', desc: 'Is approaching expectations and showing steady progress.' },
-  { mark: 21, score: 3, rating: 'AE2', title: 'Approaching Expectations 2', desc: 'Is approaching expectations but needs occasional guidance.' },
-  { mark: 11, score: 2, rating: 'BE1', title: 'Below Expectations 1', desc: 'Is below expectations and requires additional support.' },
-  { mark: 1, score: 1, rating: 'BE2', title: 'Below Expectations 2', desc: 'Is below expectations and requires intensive intervention.' }
+  { mark: 90, score: 8, rating: 'EE1', title: 'Exceeding Expectations 1', desc: 'The learner has achieved the learning outcome perfectly and can apply the skill/content in novel situations' },
+  { mark: 75, score: 7, rating: 'EE2', title: 'Exceeding Expectations 2', desc: 'The learner has achieved the learning outcome very well and can apply the skill/content in most situations' },
+  { mark: 58, score: 6, rating: 'ME1', title: 'Meeting Expectations 1', desc: 'The learner has achieved the learning outcome and can apply the skill/content in most situations with some support' },
+  { mark: 41, score: 5, rating: 'ME2', title: 'Meeting Expectations 2', desc: 'The learner has achieved the learning outcome and can apply the skill/content in familiar situations with support' },
+  { mark: 31, score: 4, rating: 'AE1', title: 'Approaching Expectations 1', desc: 'The learner has partially achieved the learning outcome and is beginning to apply the skill/content in familiar situations' },
+  { mark: 21, score: 3, rating: 'AE2', title: 'Approaching Expectations 2', desc: 'The learner has partially achieved the learning outcome and requires considerable support to apply the skill/content' },
+  { mark: 11, score: 2, rating: 'BE1', title: 'Below Expectations 1', desc: 'The learner has not achieved the learning outcome and requires substantial support to demonstrate the skill/content' },
+  { mark: 1, score: 1, rating: 'BE2', title: 'Below Expectations 2', desc: 'The learner has not achieved the learning outcome and demonstrates minimal understanding of the skill/content' }
 ];
 
 const LEARNING_AREAS = [
