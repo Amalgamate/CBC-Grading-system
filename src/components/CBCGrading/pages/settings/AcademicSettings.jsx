@@ -4,7 +4,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Calendar, Save, BookOpen, Plus, Edit, Trash2, Calculator, Users } from 'lucide-react';
+import { Calendar, Save, BookOpen, Plus, Edit, Trash2, Calculator, Users, Loader } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useAuth } from '../../../../hooks/useAuth';
 import { configAPI, authAPI, schoolAPI, userAPI } from '../../../../services/api';
@@ -22,6 +23,23 @@ const AcademicSettings = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'terms';
   const setActiveTab = (tab) => setSearchParams({ tab }, { replace: true });
+
+  // Helper function to show success notifications with both toast and hook
+  const notifySuccess = (message) => {
+    toast.success(message, {
+      duration: 4000,
+      position: 'top-right',
+      style: {
+        background: '#10b981',
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: '14px',
+        padding: '16px',
+        borderRadius: '8px'
+      }
+    });
+    showSuccess(message);
+  };
 
   const [termConfigs, setTermConfigs] = useState([]);
   const [aggregationConfigs, setAggregationConfigs] = useState([]);
@@ -113,22 +131,49 @@ const AcademicSettings = () => {
     try {
       setSeedingLearningAreas(true);
       const result = await configAPI.seedLearningAreas();
-      showSuccess(`✅ Learning areas seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`);
+      
+      // Show success with toast AND notification
+      toast.success(`📚 Learning areas seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`, {
+        duration: 4000,
+        position: 'top-right',
+        style: {
+          background: '#10b981',
+          color: '#fff',
+          fontWeight: '600',
+          fontSize: '14px',
+          padding: '16px',
+          borderRadius: '8px'
+        }
+      });
+      
       await loadLearningAreas();
     } catch (error) {
       console.error('Error seeding learning areas:', error);
-      showError(error?.message || 'Failed to seed learning areas');
+      const errorMsg = error?.response?.data?.error || error?.message || 'Failed to seed learning areas';
+      
+      toast.error(`❌ ${errorMsg}`, {
+        duration: 5000,
+        position: 'top-right',
+        style: {
+          background: '#ef4444',
+          color: '#fff',
+          fontWeight: '600',
+          fontSize: '14px',
+          padding: '16px',
+          borderRadius: '8px'
+        }
+      });
     } finally {
       setSeedingLearningAreas(false);
     }
-  }, [loadLearningAreas, showSuccess, showError]);
+  }, [loadLearningAreas]);
 
   // Seed Classes
   const handleSeedClasses = React.useCallback(async () => {
     try {
       setSeedingClasses(true);
       const result = await configAPI.seedClasses();
-      showSuccess(`✅ Classes seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`);
+      notifySuccess(`✏️ Classes seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`);
       await loadConfigs();
     } catch (error) {
       console.error('Error seeding classes:', error);
@@ -143,7 +188,7 @@ const AcademicSettings = () => {
     try {
       setSeedingStreams(true);
       const result = await configAPI.seedStreams();
-      showSuccess(`✅ Streams seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`);
+      notifySuccess(`🌊 Streams seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`);
       await loadConfigs();
     } catch (error) {
       console.error('Error seeding streams:', error);
@@ -461,10 +506,10 @@ const AcademicSettings = () => {
 
       if (editingClass) {
         await configAPI.upsertClass({ ...payload, id: editingClass.id });
-        showSuccess('Class updated successfully');
+        notifySuccess('✏️ Class updated successfully');
       } else {
         await configAPI.upsertClass(payload);
-        showSuccess('Class created successfully');
+        notifySuccess('✨ Class created successfully');
       }
 
       setShowClassModal(false);
@@ -492,7 +537,7 @@ const AcademicSettings = () => {
     if (!window.confirm('Are you sure you want to delete this class?')) return;
     try {
       await configAPI.deleteClass(id);
-      showSuccess('Class deleted');
+      notifySuccess('🗑️ Class deleted successfully');
       loadConfigs();
     } catch (error) {
       showError(error.message || 'Failed to delete class');
@@ -817,10 +862,24 @@ const AcademicSettings = () => {
               <button
                 onClick={handleSeedLearningAreas}
                 disabled={seedingLearningAreas}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-semibold ${
+                  seedingLearningAreas
+                    ? 'bg-gray-400 text-white cursor-not-allowed opacity-75'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
                 title="Seed default learning areas for all grades"
               >
-                {seedingLearningAreas ? '⏳ Seeding...' : '🌱 Seed Areas'}
+                {seedingLearningAreas ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Seeding...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🌱</span>
+                    <span>Seed Areas</span>
+                  </>
+                )}
               </button>
               <button
                 onClick={() => handleOpenModal()}

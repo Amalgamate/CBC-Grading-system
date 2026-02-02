@@ -3,7 +3,8 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { School, Save, Upload, X, AlertTriangle } from 'lucide-react';
+import { School, Save, Upload, X, AlertTriangle, CheckCircle } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useNotifications } from '../../hooks/useNotifications';
 import { API_BASE_URL } from '../../../../services/api';
 
@@ -318,6 +319,21 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
         ? `✅ School settings saved successfully! ${changes.join(', ')}.`
         : '✅ School settings saved successfully!';
 
+      toast.success(message, {
+        duration: 4000,
+        position: 'top-right',
+        icon: '✅',
+        style: {
+          background: '#10b981',
+          color: '#fff',
+          fontWeight: '600',
+          fontSize: '14px',
+          padding: '16px',
+          borderRadius: '8px'
+        }
+      });
+
+      // Also call the hook's showSuccess for consistency with other parts of the app
       showSuccess(message);
 
       // Update user object in localStorage with new school name
@@ -346,7 +362,20 @@ const SchoolSettings = ({ brandingSettings, setBrandingSettings }) => {
 
     } catch (error) {
       console.error('Error saving settings:', error);
-      showSuccess('⚠️ Settings saved locally, but failed to sync with server. Please check your connection.');
+      const errorMessage = '⚠️ Settings saved locally, but failed to sync with server. Please check your connection.';
+      
+      toast.error(errorMessage, {
+        duration: 5000,
+        position: 'top-right',
+        style: {
+          background: '#ef4444',
+          color: '#fff',
+          fontWeight: '600',
+          fontSize: '14px',
+          padding: '16px',
+          borderRadius: '8px'
+        }
+      });
 
       // Still save locally even if backend fails
       localStorage.setItem('schoolSettings', JSON.stringify(settings));

@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Save, RefreshCw, Upload, Image, MessageSquare } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useNotifications } from '../../hooks/useNotifications';
 
 const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
@@ -87,7 +88,18 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
     localStorage.setItem('schoolFavicon', localSettings.faviconUrl);
     localStorage.setItem('schoolName', localSettings.schoolName);
 
-    showSuccess('Branding settings saved successfully!');
+    toast.success('✨ Branding settings saved successfully!', {
+      duration: 4000,
+      position: 'top-right',
+      style: {
+        background: '#10b981',
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: '14px',
+        padding: '16px',
+        borderRadius: '8px'
+      }
+    });
   };
 
   const handleReset = () => {
@@ -116,7 +128,18 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
     localStorage.removeItem('schoolFavicon');
     localStorage.removeItem('schoolName');
 
-    showSuccess('Reset to default branding');
+    toast.success('🔄 Reset to default branding', {
+      duration: 4000,
+      position: 'top-right',
+      style: {
+        background: '#10b981',
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: '14px',
+        padding: '16px',
+        borderRadius: '8px'
+      }
+    });
   };
 
   return (

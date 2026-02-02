@@ -148,6 +148,67 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
     return Object.keys(newErrors).length === 0;
   };
 
+  // Kenya county coordinates for reverse lookup
+  const kenyaCounties = {
+    'Baringo': { bounds: [[0.05, 35.26], [1.27, 36.47]] },
+    'Bomet': { bounds: [[-0.68, 34.7], [0.42, 35.33]] },
+    'Bungoma': { bounds: [[0.25, 34.33], [1.38, 35.45]] },
+    'Busia': { bounds: [[0.18, 33.89], [0.63, 34.38]] },
+    'Elgeyo-Marakwet': { bounds: [[0.52, 35.15], [1.45, 35.98]] },
+    'Embu': { bounds: [[-0.35, 37.31], [0.43, 37.82]] },
+    'Garissa': { bounds: [[-0.47, 39.18], [2.1, 41.58]] },
+    'Homa Bay': { bounds: [[-0.7, 33.94], [0.18, 34.88]] },
+    'Isiolo': { bounds: [[0.35, 36.66], [2.27, 37.99]] },
+    'Kajiado': { bounds: [[-2.77, 36.53], [-1.05, 37.29]] },
+    'Kakamega': { bounds: [[0.22, 34.83], [0.93, 35.45]] },
+    'Kericho': { bounds: [[-0.37, 35.27], [0.39, 35.83]] },
+    'Kiambu': { bounds: [[-1.04, 36.65], [-0.59, 37.25]] },
+    'Kilifi': { bounds: [[-3.64, 39.35], [-2.62, 40.32]] },
+    'Kirinyaga': { bounds: [[-0.67, 37.32], [-0.07, 37.95]] },
+    'Kisii': { bounds: [[-0.98, 34.78], [-0.56, 35.31]] },
+    'Kisumu': { bounds: [[-0.67, 33.94], [0.18, 34.71]] },
+    'Kitui': { bounds: [[-1.24, 37.86], [0.19, 39.03]] },
+    'Kwale': { bounds: [[-4.68, 39.35], [-3.6, 40.55]] },
+    'Laikipia': { bounds: [[-0.68, 36.63], [0.84, 37.37]] },
+    'Lamu': { bounds: [[-2.62, 40.89], [-1.67, 41.94]] },
+    'Machakos': { bounds: [[-2.22, 37.27], [-1.27, 38.32]] },
+    'Makueni': { bounds: [[-3.29, 37.36], [-2.28, 38.48]] },
+    'Mandera': { bounds: [[2.27, 40.31], [4.7, 41.58]] },
+    'Marsabit': { bounds: [[2.18, 37.09], [4.43, 38.33]] },
+    'Meru': { bounds: [[-1.32, 37.4], [0.68, 38.42]] },
+    'Migori': { bounds: [[-1.73, 33.95], [-0.9, 34.65]] },
+    'Mombasa': { bounds: [[-4.72, 39.15], [-3.98, 39.93]] },
+    'Murang\'a': { bounds: [[-1.08, 36.98], [-0.36, 37.46]] },
+    'Nairobi': { bounds: [[-1.38, 36.68], [-1.17, 37.11]] },
+    'Nakuru': { bounds: [[-1.27, 36.13], [0.27, 36.95]] },
+    'Nandi': { bounds: [[0.14, 34.89], [0.82, 35.45]] },
+    'Narok': { bounds: [[-1.99, 35.3], [-0.74, 36.13]] },
+    'Nyamira': { bounds: [[-0.81, 34.43], [-0.56, 34.98]] },
+    'Nyandarua': { bounds: [[-0.73, 36.71], [-0.15, 37.09]] },
+    'Nyeri': { bounds: [[-0.73, 36.98], [-0.21, 37.41]] },
+    'Samburu': { bounds: [[0.73, 36.52], [2.27, 37.99]] },
+    'Siaya': { bounds: [[-0.15, 33.94], [0.6, 34.57]] },
+    'Taita-Taveta': { bounds: [[-3.99, 37.69], [-3.1, 38.9]] },
+    'Tana River': { bounds: [[-2.62, 39.35], [-1.67, 40.89]] },
+    'Tharaka-Nithi': { bounds: [[-0.35, 37.82], [0.43, 38.52]] },
+    'Trans Nzoia': { bounds: [[0.82, 34.72], [1.52, 35.32]] },
+    'Turkana': { bounds: [[1.27, 34.49], [3.91, 36.47]] },
+    'Uasin Gishu': { bounds: [[0.21, 34.71], [1.14, 35.45]] },
+    'Vihiga': { bounds: [[0.47, 34.72], [0.76, 35.05]] },
+    'Wajir': { bounds: [[1.58, 40.05], [3.91, 41.58]] },
+    'West Pokot': { bounds: [[1.14, 34.8], [2.33, 35.96]] }
+  };
+
+  const getCountyFromCoordinates = (latitude, longitude) => {
+    for (const [county, { bounds }] of Object.entries(kenyaCounties)) {
+      const [[minLat, minLon], [maxLat, maxLon]] = bounds;
+      if (latitude >= minLat && latitude <= maxLat && longitude >= minLon && longitude <= maxLon) {
+        return county;
+      }
+    }
+    return '';
+  };
+
   const handleAutoLocation = async () => {
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser');
@@ -159,43 +220,86 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          // Using Nominatim (OpenStreetMap) for free reverse geocoding
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
-          );
-          const data = await response.json();
+          
+          // First, try to get county from Kenya coordinates
+          const detectedCounty = getCountyFromCoordinates(latitude, longitude);
+          
+          if (!detectedCounty) {
+            setIsDetectingLocation(false);
+            toast.error('Location detected outside Kenya. Please enter manually.');
+            return;
+          }
 
-          if (data.address) {
-            const addr = data.address;
-            // Map common fields. Counties in Kenya are often under 'county' or 'state'
-            const detectedCounty = addr.county || addr.state || '';
-            const detectedSubCounty = addr.suburb || addr.city_district || addr.town || '';
-            const detectedWard = addr.neighbourhood || addr.suburb || '';
-            const detectedAddress = data.display_name.split(',').slice(0, 3).join(',').trim();
+          // Use Nominatim for street-level details
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+              { signal: AbortSignal.timeout(5000) }
+            );
+            
+            if (!response.ok) throw new Error('Nominatim request failed');
+            
+            const data = await response.json();
+            
+            if (data.address) {
+              const addr = data.address;
+              // Extract meaningful address components
+              const subCounty = addr.city || addr.town || addr.suburb || addr.city_district || '';
+              const address = [
+                addr.road || addr.street,
+                addr.village || addr.neighbourhood,
+                subCounty
+              ].filter(Boolean).join(', ').trim() || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
 
+              setFormData(prev => ({
+                ...prev,
+                county: detectedCounty,
+                subCounty: subCounty,
+                address: address
+              }));
+
+              toast.success('Location detected successfully!');
+              setLocationEnabled(true);
+            } else {
+              // Fallback if Nominatim doesn't return address details
+              setFormData(prev => ({
+                ...prev,
+                county: detectedCounty,
+                address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
+              }));
+              toast.success('County detected! Please enter more details.');
+              setLocationEnabled(true);
+            }
+          } catch (nominatimError) {
+            console.warn('Nominatim error, using coordinates fallback:', nominatimError);
             setFormData(prev => ({
               ...prev,
-              county: detectedCounty.replace(' County', '').trim(),
-              subCounty: detectedSubCounty,
-              ward: detectedWard,
-              address: detectedAddress
+              county: detectedCounty,
+              address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
             }));
-
-            toast.success('Location detected successfully!');
+            toast.success('County detected! Please enter more details.');
             setLocationEnabled(true);
           }
         } catch (error) {
           console.error('Location error:', error);
-          toast.error('Failed to resolve address. Please enter manually.');
+          toast.error('Failed to detect location. Please enter manually.');
         } finally {
           setIsDetectingLocation(false);
         }
       },
       (error) => {
         setIsDetectingLocation(false);
-        toast.error('Location access denied. Please enable it in your browser settings.');
+        if (error.code === error.PERMISSION_DENIED) {
+          toast.error('Location access denied. Please enable it in your browser settings.');
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          toast.error('Location information is unavailable.');
+        } else if (error.code === error.TIMEOUT) {
+          toast.error('Location request timed out. Please try again.');
+        } else {
+          toast.error('Unable to retrieve your location.');
+        }
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
