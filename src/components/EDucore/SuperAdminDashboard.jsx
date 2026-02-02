@@ -30,7 +30,7 @@ export default function SuperAdminDashboard({ onLogout }) {
         adminAPI.trialMetrics()
       ]);
       setSchools(s.data || []);
-      setMetrics(m.data || metrics);
+      setMetrics(prev => m.data || prev);
 
       try {
         const planResponse = await adminAPI.listPlans();

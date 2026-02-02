@@ -1,119 +1,38 @@
-/**
- * API Service
- * Centralized service for all backend API calls
- * Base URL: http://localhost:5000/api
- */
+import { getPortalSchoolId, isStoredUserSuperAdmin, ensureSchoolId } from './tenantContext';
+import axiosInstance, { API_BASE_URL } from './axiosConfig';
 
-import { getPortalSchoolId, isStoredUserSuperAdmin } from './tenantContext';
-
-export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+export { API_BASE_URL };
 
 /**
- * Helper function to get auth token from localStorage
- */
-const getAuthToken = () => {
-  return localStorage.getItem('token') || localStorage.getItem('authToken');
-};
-
-/**
- * Helper function to ensure school ID is set
- * Auto-recovers from user data if missing - PREVENTS DATA LOSS
- */
-const ensureSchoolId = () => {
-  let schoolId = localStorage.getItem('currentSchoolId');
-
-  if (!schoolId) {
-    // Try to get from user object
-    try {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        schoolId = user.schoolId || user.school?.id;
-
-        // Save it back to localStorage for future use
-        if (schoolId) {
-          localStorage.setItem('currentSchoolId', schoolId);
-          localStorage.setItem('cbc_last_school_id', schoolId);
-          console.log('✅ School ID auto-recovered from user data:', schoolId);
-        }
-      }
-    } catch (e) {
-      console.error('❌ Error recovering school ID from user data:', e);
-    }
-  }
-
-  return schoolId;
-};
-
-/**
- * Helper function to make authenticated requests
+ * Helper function to make authenticated requests using Axios
  */
 const fetchWithAuth = async (url, options = {}) => {
-  const token = getAuthToken();
-  const isSuperAdmin = isStoredUserSuperAdmin();
+  try {
+    const config = {
+      url,
+      method: options.method || 'GET',
+      data: options.body ? JSON.parse(options.body) : options.data,
+      headers: options.headers || {},
+      params: options.params,
+    };
 
-  // Only SUPER_ADMIN uses header-based school switching.
-  const currentSchoolId = isSuperAdmin ? ensureSchoolId() : null;
-  const portalSchoolId = getPortalSchoolId();
-
-  const defaultHeaders = {
-    'Content-Type': 'application/json',
-  };
-
-  if (token) {
-    defaultHeaders['Authorization'] = `Bearer ${token}`;
-  }
-
-  // SECURITY: Do not send X-School-Id for normal users.
-  // Non-super-admin tenant context is derived from JWT on the server.
-  if (isSuperAdmin && currentSchoolId) defaultHeaders['X-School-Id'] = currentSchoolId;
-
-  // Consistency check: if UI is inside /t/:schoolId portal, send it so backend can reject mismatches.
-  // This header must never be used to resolve tenant.
-  if (!isSuperAdmin && portalSchoolId) defaultHeaders['X-Portal-School-Id'] = portalSchoolId;
-
-  const response = await fetch(`${API_BASE_URL}${url}`, {
-    ...options,
-    headers: {
-      ...defaultHeaders,
-      ...options.headers,
-    },
-  });
-
-  // Handle unauthorized responses
-  if (response.status === 401) {
-    // Token expired or invalid - clear auth and redirect to login
-    localStorage.removeItem('token');
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
-    window.location.href = '/';
-    throw new Error('Unauthorized - Please login again');
-  }
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    let msg;
-    if (typeof data === 'string') {
-      msg = data;
-    } else if (data) {
-      const err = data.error;
-      if (typeof data.message === 'string') {
-        msg = data.message;
-      } else if (typeof err === 'string') {
-        msg = err;
-      } else if (err && typeof err.message === 'string') {
-        msg = err.message;
-      } else {
-        msg = `HTTP ${response.status}`;
-      }
-    } else {
-      msg = `HTTP ${response.status}`;
+    // If body is FormData, don't parse it
+    if (options.body instanceof FormData) {
+      config.data = options.body;
+      delete config.headers['Content-Type'];
     }
-    throw new Error(msg);
-  }
 
-  return data;
+    const response = await axiosInstance(config);
+    return response.data;
+  } catch (error) {
+    // Axios interceptors handle 401 and refresh
+    if (error.response?.data) {
+      const data = error.response.data;
+      let msg = data.message || data.error || `HTTP ${error.response.status}`;
+      throw new Error(msg);
+    }
+    throw error;
+  }
 };
 
 // ============================================
@@ -127,31 +46,16 @@ export const authAPI = {
    * @returns {Promise} User data and token
    */
   login: async (credentials) => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(credentials),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Login failed');
-    }
-
-    return data;
+    const response = await axiosInstance.post('/auth/login', credentials);
+    return response.data;
   },
   /**
    * Fetch public tenant branding info.
    * @param {string} schoolId
    */
   tenantPublic: async (schoolId) => {
-    const response = await fetch(`${API_BASE_URL}/tenants/public/${schoolId}`);
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Failed to load tenant');
-    return data;
+    const response = await axiosInstance.get(`/tenants/public/${schoolId}`);
+    return response.data;
   },
 
   /**
@@ -160,21 +64,8 @@ export const authAPI = {
    * @returns {Promise} User data and token
    */
   register: async (userData) => {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(userData),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Registration failed');
-    }
-
-    return data;
+    const response = await axiosInstance.post('/auth/register', userData);
+    return response.data;
   },
 
   /**
@@ -190,13 +81,12 @@ export const authAPI = {
    * @returns {Promise} List of seeded users
    */
   getSeededUsers: async () => {
-    const response = await fetch(`${API_BASE_URL}/auth/seeded-users`);
-
-    if (!response.ok) {
+    try {
+      const response = await axiosInstance.get('/auth/seeded-users');
+      return response.data;
+    } catch (error) {
       return { users: [] };
     }
-
-    return response.json();
   },
 
   /**
@@ -215,21 +105,8 @@ export const authAPI = {
    * @returns {Promise} Confirmation message
    */
   sendOTP: async (data) => {
-    const response = await fetch(`${API_BASE_URL}/auth/otp/send`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-
-    const responseData = await response.json();
-
-    if (!response.ok) {
-      throw new Error(responseData.message || 'Failed to send OTP');
-    }
-
-    return responseData;
+    const response = await axiosInstance.post('/auth/otp/send', data);
+    return response.data;
   },
 
   /**
@@ -238,30 +115,16 @@ export const authAPI = {
    * @returns {Promise} User data and token
    */
   verifyOTP: async (data) => {
-    const response = await fetch(`${API_BASE_URL}/auth/otp/verify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-
-    const responseData = await response.json();
-
-    if (!response.ok) {
-      throw new Error(responseData.message || 'OTP verification failed');
-    }
-
-    return responseData;
+    const response = await axiosInstance.post('/auth/otp/verify', data);
+    return response.data;
   },
 
   /**
    * Get CSRF token
    */
   getCsrf: async () => {
-    const response = await fetch(`${API_BASE_URL}/auth/csrf`);
-    if (!response.ok) throw new Error('Failed to fetch security token');
-    return response.json();
+    const response = await axiosInstance.get('/auth/csrf');
+    return response.data;
   },
 };
 
@@ -276,22 +139,34 @@ export const onboardingAPI = {
     // Get CSRF token first
     const { token: csrfToken } = await authAPI.getCsrf();
 
-    const response = await fetch(`${API_BASE_URL}/onboarding/register-full`, {
-      method: 'POST',
+    const response = await axiosInstance.post('/onboarding/register-full', data, {
       headers: {
-        'Content-Type': 'application/json',
         'X-CSRF-Token': csrfToken,
       },
-      body: JSON.stringify(data),
     });
 
-    const responseData = await response.json();
-    if (!response.ok) {
-      throw new Error(responseData.message || responseData.error || 'Registration failed');
-    }
-
-    return responseData;
+    return response.data;
   },
+};
+
+// ============================================
+// DASHBOARD API
+// ============================================
+
+export const dashboardAPI = {
+  /**
+   * Get Admin Dashboard metrics
+   */
+  getAdminMetrics: async (filter = 'today') => {
+    return fetchWithAuth(`/dashboard/admin?filter=${filter}`);
+  },
+
+  /**
+   * Get Teacher Dashboard metrics
+   */
+  getTeacherMetrics: async (filter = 'today') => {
+    return fetchWithAuth(`/dashboard/teacher?filter=${filter}`);
+  }
 };
 
 // ============================================
@@ -1583,43 +1458,23 @@ export const reportAPI = {
    * @returns {Promise<Blob>} PDF Blob
    */
   generatePdf: async (data) => {
-    const token = getAuthToken();
-    const portalSchoolId = getPortalSchoolId();
+    try {
+      const response = await axiosInstance.post('/reports/generate-pdf', data, {
+        responseType: 'blob'
+      });
 
-    const headers = {
-      'Content-Type': 'application/json',
-    };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    if (portalSchoolId) headers['X-Portal-School-Id'] = portalSchoolId;
+      const blob = response.data;
+      console.log(`✅ PDF Received: ${blob.size} bytes (${blob.type})`);
 
-    const response = await fetch(`${API_BASE_URL}/reports/generate-pdf`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(data),
-    });
+      if (blob.size < 100) {
+        console.warn('⚠️ PDF Blob is suspiciously small');
+      }
 
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.message || `PDF Generation failed: ${response.status}`);
+      return blob;
+    } catch (error) {
+      console.error('❌ PDF Generation Error:', error);
+      throw new Error(error.response?.data?.message || 'PDF Generation failed');
     }
-
-    const contentType = response.headers.get('Content-Type');
-    if (contentType !== 'application/pdf') {
-      console.error('❌ PDF Generation Error: Received non-PDF content-type:', contentType);
-      // Try to read as JSON to see if it's an error message
-      const text = await response.text().catch(() => 'Unknown content');
-      throw new Error(`Invalid content received from server: ${contentType}. Content: ${text.substring(0, 100)}...`);
-    }
-
-    const blob = await response.blob();
-    console.log(`✅ PDF Received: ${blob.size} bytes (${blob.type})`);
-
-    if (blob.size < 100) {
-      const text = await blob.text().catch(() => 'Unknown');
-      console.warn('⚠️ PDF Blob is suspiciously small:', text);
-    }
-
-    return blob;
   },
 };
 
@@ -1634,8 +1489,8 @@ export const healthAPI = {
    */
   check: async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/health`);
-      return response.json();
+      const response = await axiosInstance.get('/health');
+      return response.data;
     } catch (error) {
       throw new Error('Backend server is not reachable');
     }

@@ -236,7 +236,7 @@ export class SmsService {
             }
 
             const apiKey = decrypt(config.smsApiKey);
-            const senderId = config.smsSenderId || 'ZAWADI'; // Fallback per requirement
+            const senderId = config.smsSenderId || 'MOBILESASA'; // Fallback per requirement
             const baseUrl = config.smsBaseUrl || 'https://api.mobilesasa.com';
 
             // MobileSasa API Implementation

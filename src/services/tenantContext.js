@@ -82,3 +82,28 @@ export function clearBranchId() {
   localStorage.removeItem(TENANT_STORAGE_KEYS.BRANCH_ID);
 }
 
+/**
+ * Ensures a valid school ID is present in localStorage
+ * Auto-recovers from user data if missing.
+ */
+export function ensureSchoolId() {
+  let schoolId = getAdminSchoolId();
+
+  if (!schoolId) {
+    try {
+      const user = getStoredUser();
+      schoolId = user?.schoolId || user?.school?.id;
+
+      if (schoolId) {
+        setAdminSchoolId(schoolId);
+        localStorage.setItem('cbc_last_school_id', schoolId);
+        console.log('✅ School ID auto-recovered from user data:', schoolId);
+      }
+    } catch (e) {
+      console.error('❌ Error recovering school ID:', e);
+    }
+  }
+
+  return schoolId;
+}
+

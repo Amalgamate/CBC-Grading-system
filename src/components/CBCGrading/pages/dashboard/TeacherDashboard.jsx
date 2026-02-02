@@ -5,10 +5,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  ClipboardList, 
-  BookOpen, 
+import { dashboardAPI } from '../../../../services/api';
+import {
+  Users,
+  ClipboardList,
+  BookOpen,
   Clock,
   MessageSquare,
   CheckCircle2,
@@ -18,21 +19,33 @@ import {
 import AnimatedDoughnutChart from '../../shared/AnimatedDoughnutChart';
 
 const TeacherDashboard = ({ learners, user }) => {
-  // TODO: Filter to only students in teacher's assigned classes
-  const myStudents = learners?.filter(l => l.status === 'Active').length || 0;
-  
-  // Mock data
-  const todayClasses = [
-    { id: 1, grade: 'Grade 3A', subject: 'Math', time: '8:00 AM', room: '101', status: 'next' },
-    { id: 2, grade: 'Grade 3B', subject: 'Science', time: '10:00 AM', room: '205', status: 'upcoming' },
-    { id: 3, grade: 'Grade 4A', subject: 'Math', time: '1:00 PM', room: '101', status: 'upcoming' }
-  ];
+  const [loading, setLoading] = useState(false);
+  const [metrics, setMetrics] = useState(null);
+
+  useEffect(() => {
+    const loadMetrics = async () => {
+      try {
+        setLoading(true);
+        const response = await dashboardAPI.getTeacherMetrics();
+        if (response.success) {
+          setMetrics(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load teacher metrics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadMetrics();
+  }, [user]);
+
+  const myStudents = metrics?.stats?.myStudents || learners?.filter(l => l.status === 'Active').length || 0;
+
+  const todayClasses = metrics?.schedule || [];
 
   const pendingTasks = [
-    { id: 1, task: 'Grade Math Test - Grade 3A', priority: 'high' },
-    { id: 2, task: 'Submit Science Report', priority: 'medium' },
-    { id: 3, task: 'Update Progress Notes', priority: 'low' }
-  ];
+    { id: 1, task: 'Ungraded Assessments', count: metrics?.stats?.pendingTasks || 0, priority: 'high' }
+  ].filter(t => t.count > 0);
 
   // Dashboard sections configuration
   const defaultSections = [
@@ -68,7 +81,7 @@ const TeacherDashboard = ({ learners, user }) => {
 
   const handleDrop = (e, targetSection) => {
     e.preventDefault();
-    
+
     if (!draggedItem || draggedItem.id === targetSection.id) {
       return;
     }
@@ -160,8 +173,8 @@ const TeacherDashboard = ({ learners, user }) => {
                     </div>
                     <span className="text-xs text-purple-700 font-medium">Messages</span>
                   </div>
-                  <p className="text-2xl font-bold text-purple-900">8</p>
-                  <p className="text-xs text-purple-600 mt-1">5 unread</p>
+                  <p className="text-2xl font-bold text-purple-900">{metrics?.stats?.messages || 0}</p>
+                  <p className="text-xs text-purple-600 mt-1">Inbox cleared</p>
                 </div>
               </div>
             </div>
@@ -191,7 +204,7 @@ const TeacherDashboard = ({ learners, user }) => {
 
                 <div className="p-3 space-y-2">
                   {todayClasses.map((classItem) => (
-                    <div 
+                    <div
                       key={classItem.id}
                       className="flex items-center justify-between p-3 border border-gray-200 rounded hover:border-gray-300 hover:bg-gray-50 transition-colors"
                     >
@@ -251,15 +264,14 @@ const TeacherDashboard = ({ learners, user }) => {
 
                 <div className="p-3 space-y-2">
                   {pendingTasks.map((task) => (
-                    <div 
+                    <div
                       key={task.id}
                       className="flex items-start gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer group"
                     >
-                      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${
-                        task.priority === 'high' ? 'bg-red-500' :
+                      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${task.priority === 'high' ? 'bg-red-500' :
                         task.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-                      }`}></div>
-                      <p className="text-xs text-gray-700 group-hover:text-gray-900 flex-1">{task.task}</p>
+                        }`}></div>
+                      <p className="text-xs text-gray-700 group-hover:text-gray-900 flex-1">{task.task} ({task.count})</p>
                       <CheckCircle2 className="w-3.5 h-3.5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   ))}
@@ -290,29 +302,19 @@ const TeacherDashboard = ({ learners, user }) => {
                 </div>
 
                 <div className="p-3 space-y-2">
-                  <div className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-1.5"></div>
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-700">Grade 3A attendance marked</p>
-                      <span className="text-xs text-gray-400">2h ago</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-700">Assessment created for Science</p>
-                      <span className="text-xs text-gray-400">Yesterday</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-1.5"></div>
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-700">Parent inquiry received</p>
-                      <span className="text-xs text-gray-400">2d ago</span>
-                    </div>
-                  </div>
+                  {metrics?.recentActivity?.length > 0 ? (
+                    metrics.recentActivity.map((act) => (
+                      <div key={act.id} className="flex items-start gap-2">
+                        <div className={`w-1.5 h-1.5 rounded-full mt-1.5 ${act.type === 'assessment' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-700">{act.text}</p>
+                          <span className="text-xs text-gray-400">{new Date(act.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-center text-gray-400 py-4 italic">No recent activity</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -346,39 +348,39 @@ const TeacherDashboard = ({ learners, user }) => {
                 <div className="p-6">
                   <div className="grid grid-cols-4 gap-6">
                     <AnimatedDoughnutChart
-                      percentage={92}
+                      percentage={metrics?.stats?.analytics?.attendance || 0}
                       size={110}
                       strokeWidth={8}
                       color="#3b82f6"
                       label="Attendance"
-                      sublabel="This week"
+                      sublabel="Avg Rate"
                     />
-                    
+
                     <AnimatedDoughnutChart
-                      percentage={87}
+                      percentage={metrics?.stats?.analytics?.graded || 0}
                       size={110}
                       strokeWidth={8}
                       color="#10b981"
                       label="Graded"
                       sublabel="Assessments"
                     />
-                    
+
                     <AnimatedDoughnutChart
-                      percentage={78}
+                      percentage={metrics?.stats?.analytics?.completion || 0}
                       size={110}
                       strokeWidth={8}
                       color="#f59e0b"
                       label="Completion"
                       sublabel="Course progress"
                     />
-                    
+
                     <AnimatedDoughnutChart
-                      percentage={95}
+                      percentage={metrics?.stats?.analytics?.engagement || 0}
                       size={110}
                       strokeWidth={8}
                       color="#8b5cf6"
                       label="Engagement"
-                      sublabel="Student participation"
+                      sublabel="Participation"
                     />
                   </div>
                 </div>
@@ -400,10 +402,10 @@ const TeacherDashboard = ({ learners, user }) => {
       {/* Compact Status Bar */}
       <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3">
         <p className="text-sm text-gray-600">
-          <span className="font-semibold text-gray-900">Today:</span> {todayClasses.length} classes • {pendingTasks.length} pending tasks
+          <span className="font-semibold text-gray-900">Summary:</span> {todayClasses.length} assigned classes • {metrics?.stats?.pendingTasks || 0} pending tasks
         </p>
         <div className="text-right">
-          <p className="text-xs text-gray-500">Next: <span className="font-semibold text-gray-900">Math • 45 min</span></p>
+          <p className="text-xs text-gray-500">Live Status: <span className="font-semibold text-green-600">Online</span></p>
         </div>
       </div>
 

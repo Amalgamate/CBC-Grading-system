@@ -103,9 +103,8 @@ function AppContent() {
     document.title = title;
   }, [isAuthenticated, pathname, user, brandingSettings.schoolName]);
 
-  const handleAuthSuccess = (userData) => {
-    const token = localStorage.getItem('token') || localStorage.getItem('authToken') || 'temp-token';
-    login(userData, token);
+  const handleAuthSuccess = (userData, token, refreshToken) => {
+    login(userData, token, refreshToken);
     navigate(userData?.role === 'SUPER_ADMIN' ? '/superadmin' : '/app', { replace: true });
   };
 

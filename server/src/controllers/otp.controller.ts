@@ -83,13 +83,15 @@ export const verifyOTP = async (req: Request, res: Response) => {
             });
         }
 
-        // Generate JWT token (same as regular login)
+        // Generate JWT tokens
         const token = generateAccessToken(result.user);
+        const refreshToken = (await import('../utils/jwt.util')).generateRefreshToken(result.user);
 
         res.status(200).json({
             success: true,
             message: 'Login successful',
             token,
+            refreshToken,
             user: result.user
         });
 

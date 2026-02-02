@@ -34,8 +34,8 @@ function Auth({ onAuthSuccess, brandingSettings, basePath = '/auth' }) {
   const toRegister = () => navigate(`${basePath}/register`);
   const toForgotPassword = () => navigate(`${basePath}/forgot-password`);
 
-  const handleLoginSuccess = (user) => {
-    onAuthSuccess(user);
+  const handleLoginSuccess = (userData, token, refreshToken) => {
+    onAuthSuccess(userData, token, refreshToken);
   };
 
   const handleRegisterSuccess = (user) => {

@@ -19,28 +19,27 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
 
   // Use centralized hooks for assessment state management
   const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
-  const selection = useLearnerSelection(learners || [], { status: ['ACTIVE', 'Active'] });
   const learningAreasMgr = useLearningAreas(setup.selectedGrade);
 
   // View State
   const [step, setStep] = useState(initialTestId ? 2 : 1); // 1: Setup, 2: Assess (Skip setup if test ID provided)
-  const [loading, setLoading] = useState(false);
-  const [, setLoadingScale] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadingScale, setLoadingScale] = useState(false);
   const [lockingTest, setLockingTest] = useState(false);
   const [isTestLocked, setIsTestLocked] = useState(false);
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
-
-  // Test Selection State (using setup and selection hooks for grade/stream/term)
-  const [selectedTestId, setSelectedTestId] = useState(initialTestId || '');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Data State
   const [tests, setTests] = useState([]);
   const [selectedLearningArea, setSelectedLearningArea] = useState('');
+  const [selectedTestId, setSelectedTestId] = useState('');
   const [marks, setMarks] = useState({});
   const [gradingScale, setGradingScale] = useState(null);
+  const [isDraft, setIsDraft] = useState(false);
+  const [lastSaved, setLastSaved] = useState(null);
   const [availableGrades, setAvailableGrades] = useState([]);
   const [availableTerms, setAvailableTerms] = useState([]);
   const [availableStreams, setAvailableStreams] = useState([]);
@@ -50,6 +49,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
   const schoolId = user?.school?.id || user?.schoolId || localStorage.getItem('currentSchoolId') || 'default-school-e082e9a4';
 
   // Load Tests
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const fetchTests = async () => {
       setLoading(true);
@@ -82,6 +82,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
 
 
   // Load Grades, Terms, and Streams for selectors
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const loadOptions = async () => {
       try {
@@ -257,13 +258,11 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
         const savedDraft = localStorage.getItem(draftKey);
 
         if (savedDraft) {
-          const userConfirmed = window.confirm('Found unsaved draft marks. Do you want to restore them?');
-          if (userConfirmed) {
-            setMarks(JSON.parse(savedDraft));
-            showSuccess('Draft marks restored successfully!');
-          } else {
-            localStorage.removeItem(draftKey);
-          }
+          const parsedDraft = JSON.parse(savedDraft);
+          setMarks(parsedDraft);
+          setIsDraft(true);
+          setLastSaved(new Date());
+          showSuccess('Draft marks restored automatically');
         } else {
           const resultsResponse = await assessmentAPI.getTestResults(selectedTestId);
           const results = resultsResponse.data || resultsResponse || [];
@@ -275,6 +274,8 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
             }
           });
           setMarks(existingMarks);
+          setIsDraft(false);
+          setLastSaved(null);
         }
 
       } catch (error) {
@@ -287,21 +288,23 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
     loadTestDetails();
   }, [selectedTestId, tests, schoolId]);
 
-  // Auto-save marks to localStorage every 30 seconds
+  // Auto-save marks to localStorage with debouncing
   useEffect(() => {
+    if (!selectedTestId || isTestLocked) return;
+
     const draftKey = `draft-marks-${selectedTestId}`;
-    const autoSaveInterval = setInterval(() => {
-      if (Object.keys(marks).length > 0 && !isTestLocked) {
+
+    // Only save if there are marks and they aren't the same as existing (to avoid initial blank save)
+    const timeoutId = setTimeout(() => {
+      if (Object.keys(marks).length > 0) {
         localStorage.setItem(draftKey, JSON.stringify(marks));
+        setIsDraft(true);
+        setLastSaved(new Date());
         console.log('Draft marks auto-saved.');
       }
-    }, 30000);
+    }, 2000); // 2 second debounce
 
-    return () => {
-      clearInterval(autoSaveInterval);
-      // Optionally clear draft when component unmounts or test changes
-      // localStorage.removeItem(draftKey);
-    };
+    return () => clearTimeout(timeoutId);
   }, [marks, selectedTestId, isTestLocked]);
 
   // Derived Data
@@ -361,6 +364,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
   );
 
   // Fetch Learners when moving to Step 2 or filters change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (step === 2 && selectedTest) {
       const fetchLearners = async () => {
@@ -848,10 +852,10 @@ Are you sure you want to unlock this test?`;
                 Progress: {assessmentProgress.assessed}/{assessmentProgress.total}
               </span>
               <span className={`px-3 py-1 rounded-full text-xs font-semibold ${assessmentProgress.percentage === 100
-                  ? 'bg-green-100 text-green-700'
-                  : assessmentProgress.percentage >= 50
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-orange-100 text-orange-700'
+                ? 'bg-green-100 text-green-700'
+                : assessmentProgress.percentage >= 50
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-orange-100 text-orange-700'
                 }`}>
                 {assessmentProgress.percentage}%
               </span>
@@ -860,9 +864,26 @@ Are you sure you want to unlock this test?`;
                   ✅ Complete
                 </span>
               )}
+              {isDraft && (
+                <span className="text-[10px] text-gray-500 italic flex items-center gap-1 ml-2">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                  Draft Saved {lastSaved && `at ${lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                </span>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Test Name Header Badge - Centered between title and buttons */}
+        <div className="hidden lg:flex items-center">
+          <div className="flex flex-col items-center border border-blue-100 bg-blue-50/50 px-4 py-1 rounded-md shadow-sm">
+            <span className="text-[8px] font-black text-blue-400 uppercase tracking-tighter leading-none mb-1">Active Test</span>
+            <span className="text-[11px] font-bold text-blue-700 uppercase tracking-widest leading-none">
+              {selectedTest?.title || selectedTest?.name}
+            </span>
+          </div>
+        </div>
+
         <div className="flex items-center gap-3">
           {/* Print Report Button */}
           <button
@@ -950,7 +971,6 @@ Are you sure you want to unlock this test?`;
                   .sort(([, a], [, b]) => b - a) // Sort by count descending
                   .slice(0, 6) // Limit to 6 cards for the top row
                   .map(([grade, count], idx) => {
-                    const gradeColor = getGradeColor(grade);
                     const isGreen = idx % 2 === 0; // Alternate colors (green, blue, green, blue...)
                     const cardColor = isGreen ? '#10b981' : '#3b82f6'; // Green or Blue
                     const cardBgColor = isGreen ? '#ecfdf5' : '#eff6ff'; // Light green or light blue
@@ -1225,8 +1245,8 @@ Are you sure you want to unlock this test?`;
                             onChange={(e) => handleMarkChange(learner.id, e.target.value)}
                             disabled={isTestLocked}
                             className={`w-full px-2 py-1 border rounded focus:ring-2 focus:ring-blue-500 outline-none transition text-center font-semibold text-xs ${isTestLocked
-                                ? 'bg-gray-100 border-gray-200 cursor-not-allowed text-gray-500'
-                                : 'border-gray-300 bg-white'
+                              ? 'bg-gray-100 border-gray-200 cursor-not-allowed text-gray-500'
+                              : 'border-gray-300 bg-white'
                               }`}
                             placeholder="-"
                           />
@@ -1381,95 +1401,6 @@ const PieChartWithLabels = ({ data }) => {
         fill="#64748b"
         fontWeight="600"
       >
-        Students
-      </text>
-    </g>
-  );
-};
-
-// Helper component for Pie Chart - ENHANCED with percentage labels
-const PieChart = ({ data }) => {
-  const total = Object.values(data).reduce((sum, val) => sum + val, 0);
-  let currentAngle = -90; // Start from top
-
-  return (
-    <g>
-      {Object.entries(data).map(([grade, count]) => {
-        const percentage = (count / total) * 100;
-        const angle = (percentage / 100) * 360;
-        const startAngle = currentAngle;
-        const endAngle = currentAngle + angle;
-
-        // Calculate slice path
-        const startX = 100 + 80 * Math.cos((startAngle * Math.PI) / 180);
-        const startY = 100 + 80 * Math.sin((startAngle * Math.PI) / 180);
-        const endX = 100 + 80 * Math.cos((endAngle * Math.PI) / 180);
-        const endY = 100 + 80 * Math.sin((endAngle * Math.PI) / 180);
-
-        const largeArcFlag = angle > 180 ? 1 : 0;
-
-        const pathData = [
-          `M 100 100`,
-          `L ${startX} ${startY}`,
-          `A 80 80 0 ${largeArcFlag} 1 ${endX} ${endY}`,
-          `Z`
-        ].join(' ');
-
-        // Calculate label position (middle of slice)
-        const middleAngle = (startAngle + endAngle) / 2;
-        const labelRadius = 55;
-        const labelX = 100 + labelRadius * Math.cos((middleAngle * Math.PI) / 180);
-        const labelY = 100 + labelRadius * Math.sin((middleAngle * Math.PI) / 180);
-
-        currentAngle = endAngle;
-
-        return (
-          <g key={grade}>
-            {/* Pie slice with proper CBC color */}
-            <path
-              d={pathData}
-              fill={getGradeColor(grade)}
-              stroke="#ffffff"
-              strokeWidth="2.5"
-            />
-
-            {/* Percentage label ON the slice (only if >= 5%) */}
-            {percentage >= 5 && (
-              <>
-                {/* White background for readability */}
-                <circle
-                  cx={labelX}
-                  cy={labelY}
-                  r="11"
-                  fill="white"
-                  fillOpacity="0.9"
-                />
-                {/* Percentage text */}
-                <text
-                  x={labelX}
-                  y={labelY + 1}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fontSize="9"
-                  fontWeight="bold"
-                  fill="#1e293b"
-                >
-                  {percentage.toFixed(0)}%
-                </text>
-              </>
-            )}
-          </g>
-        );
-      })}
-
-      {/* Center white circle */}
-      <circle cx="100" cy="100" r="32" fill="white" stroke="#e5e7eb" strokeWidth="2.5" />
-
-      {/* Total count in center */}
-      <text x="100" y="95" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#1e293b">
-        {total}
-      </text>
-      <text x="100" y="108" textAnchor="middle" fontSize="9" fill="#64748b">
         Students
       </text>
     </g>

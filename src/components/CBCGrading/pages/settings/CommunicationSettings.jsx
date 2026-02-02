@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Mail, MessageSquare, Send, Save,
-  TestTube, CheckCircle, XCircle, Loader, AlertTriangle
+  TestTube, CheckCircle, XCircle, Loader
 } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications';
 import { communicationAPI } from '../../../../services/api';
@@ -54,7 +54,6 @@ const CommunicationSettings = () => {
 
 
   const [testContact, setTestContact] = useState('');
-  const [testAmount, setTestAmount] = useState('10');
   const [testMessage, setTestMessage] = useState('This is a test message from EDucore.');
 
   // Load Configuration on Mount

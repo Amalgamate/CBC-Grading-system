@@ -436,7 +436,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <RoleDashboard learners={learners} pagination={pagination} teachers={teachers} user={user} />;
+        return <RoleDashboard learners={learners} pagination={pagination} teachers={teachers} user={user} onNavigate={handleNavigate} />;
 
       // Learners Module
       case 'learners-list':

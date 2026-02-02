@@ -35,13 +35,15 @@ const LightStatCard = ({ title, value, icon: Icon, color, subtitle }) => {
 export default function Overview({ metrics: initialMetrics }) {
   const [metrics, setMetrics] = useState(initialMetrics || { active: 0, inactive: 0, trial: 0, conversionRate: 0 });
 
-  useEffect(() => {
-    if (!initialMetrics) {
-      adminAPI.trialMetrics().then((m) => setMetrics(m.data || metrics)).catch(() => { });
-    } else {
-      setMetrics(initialMetrics);
-    }
-  }, [initialMetrics]);
+useEffect(() => {
+  if (!initialMetrics) {
+    adminAPI.trialMetrics()
+      .then((m) => setMetrics(prev => m.data || prev))
+      .catch(() => { });
+  } else {
+    setMetrics(initialMetrics);
+  }
+}, [initialMetrics]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">

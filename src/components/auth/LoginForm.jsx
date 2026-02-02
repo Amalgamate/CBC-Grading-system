@@ -14,8 +14,6 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  const [branchOptions, setBranchOptions] = useState([]);
-  const [selectedBranch, setSelectedBranch] = useState('');
 
   const [showOTPVerification, setShowOTPVerification] = useState(false);
   const [pendingUserData, setPendingUserData] = useState(null);
@@ -79,6 +77,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
     if (!validateForm()) return;
 
     setIsLoading(true);
+    setErrors({});
 
     try {
       // Step 1: Validate credentials
@@ -92,6 +91,9 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
         // Direct login without OTP verification
         if (credentialsData.token) {
           localStorage.setItem('token', credentialsData.token);
+          if (credentialsData.refreshToken) {
+            localStorage.setItem('refreshToken', credentialsData.refreshToken);
+          }
           if (formData.rememberMe) {
             localStorage.setItem('authToken', credentialsData.token);
           }
@@ -111,34 +113,40 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
         };
 
         // Persist tenancy context
-        let sid = credentialsData.user.schoolId || credentialsData.user.school?.id || '';
+        const sid = credentialsData.user.schoolId || credentialsData.user.school?.id || '';
         const bid = credentialsData.user.branchId || credentialsData.user.branch?.id || '';
 
         if (sid) setAdminSchoolId(sid);
         if (bid) setBranchId(bid);
 
-        onLoginSuccess(userData);
+        onLoginSuccess(userData, credentialsData.token, credentialsData.refreshToken);
         return;
       }
 
-      // Step 2: Send OTP to phone (if not skipping)
+      // Step 2: Send OTP to phone
       try {
-        await authAPI.sendOTP({
-          email: formData.email
+        const sid = credentialsData.user?.schoolId || credentialsData.user?.school?.id || '';
+        const result = await authAPI.sendOTP({
+          email: formData.email,
+          schoolId: sid
         });
+        console.log('OTP Send Result:', result);
 
         // Store pending user data for OTP verification
         setPendingUserData({
           email: formData.email,
-          phone: credentialsData.user?.phone || '+254XXXXXXXX',
+          phone: credentialsData.user?.phone || credentialsData.user?.school?.phone || '+254XXXXXXXX',
           user: credentialsData.user,
-          token: credentialsData.token
+          token: credentialsData.token,
+          refreshToken: credentialsData.refreshToken
         });
 
         // Show OTP verification screen
+        console.log('Switching to OTP Verification Form');
         setShowOTPVerification(true);
         setErrors({});
       } catch (otpError) {
+        console.error('OTP Send Error:', otpError);
         // If OTP fails but credentials are valid, show the error but keep form
         setErrors({
           form: otpError.message || 'Failed to send OTP. Please try again.'
@@ -148,58 +156,22 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
       console.error('Login error:', error);
       setErrors({
         email: error.message || 'Invalid email or password',
-        password: error.message || 'Invalid email or password'
+        password: error.message || 'Invalid email or password',
+        form: error.message || 'Authentication failed'
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const loginAsSuperAdmin = async () => {
-    setIsLoading(true);
+  const loginAsSuperAdmin = () => {
+    // Instead of auto-login, we set the email and clear password to "ask for credentials"
+    setFormData(prev => ({
+      ...prev,
+      email: 'superadmin@local.test',
+      password: ''
+    }));
     setErrors({});
-    try {
-      const email = 'superadmin@local.test';
-      const password = process.env.REACT_APP_SUPER_ADMIN_PASSWORD || 'ChangeMeNow123!';
-      const data = await authAPI.login({ email, password });
-
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('authToken', data.token);
-      }
-
-      let userData = {
-        email: data.user.email,
-        name: `${data.user.firstName} ${data.user.lastName}`,
-        role: data.user.role,
-        id: data.user.id,
-        firstName: data.user.firstName,
-        lastName: data.user.lastName,
-        schoolId: data.user.schoolId || data.user.school?.id || null,
-        branchId: data.user.branchId || data.user.branch?.id || null,
-        school: data.user.school || null,
-        branch: data.user.branch || null
-      };
-
-      // SUPER_ADMIN: Auto-assign first available school for switching UX.
-      let sid = data.user.schoolId || data.user.school?.id || '';
-      if (!sid) {
-        const assigned = await assignFirstAvailableSchoolForSuperAdmin({ token: data.token, userData });
-        sid = assigned.schoolId || sid;
-        userData = assigned.userData || userData;
-      }
-
-      if (sid) setAdminSchoolId(sid);
-
-      onLoginSuccess(userData);
-    } catch (error) {
-      setErrors({
-        email: error.message || 'Login failed',
-        password: error.message || 'Login failed'
-      });
-    } finally {
-      setIsLoading(false);
-    }
   };
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -220,6 +192,9 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
     // Complete the login flow with the OTP-verified user
     if (pendingUserData?.token) {
       localStorage.setItem('token', pendingUserData.token);
+      if (pendingUserData.refreshToken) {
+        localStorage.setItem('refreshToken', pendingUserData.refreshToken);
+      }
       if (formData.rememberMe) {
         localStorage.setItem('authToken', pendingUserData.token);
       }
@@ -240,12 +215,23 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
 
     // Persist tenancy context
     let sid = pendingUserData.user.schoolId || pendingUserData.user.school?.id || '';
+
+    // SUPER_ADMIN: Auto-assign first available school for switching UX if missing.
+    if (pendingUserData.user.role === 'SUPER_ADMIN' && !sid) {
+      const assigned = await assignFirstAvailableSchoolForSuperAdmin({
+        token: pendingUserData.token,
+        userData: loginUserData
+      });
+      sid = assigned.schoolId || sid;
+      loginUserData = assigned.userData || loginUserData;
+    }
+
     const bid = pendingUserData.user.branchId || pendingUserData.user.branch?.id || '';
 
     if (sid) setAdminSchoolId(sid);
     if (bid) setBranchId(bid);
 
-    onLoginSuccess(loginUserData);
+    onLoginSuccess(loginUserData, pendingUserData.token, pendingUserData.refreshToken);
   };
 
   const handleBackToLogin = () => {
@@ -319,6 +305,13 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">EDucore V1 — Login</h1>
                 <p className="text-gray-600">Sign in to continue to your dashboard</p>
               </div>
+
+              {errors.form && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 text-red-700 animate-shake">
+                  <AlertCircle className="h-5 w-5 mt-0.5 shrink-0" />
+                  <div className="text-sm font-medium">{errors.form}</div>
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Email Field */}
@@ -402,6 +395,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                     Forgot password?
                   </button>
                 </div>
+
 
                 {/* Skip OTP Checkbox (Development) */}
                 <label className="flex items-center">

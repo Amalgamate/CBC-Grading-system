@@ -96,63 +96,63 @@ async function main() {
     role: UserRole;
     phone: string;
   }> = [
-    {
-      email: 'superadmin@local.test',
-      password: process.env.SUPER_ADMIN_PASSWORD || 'ChangeMeNow123!',
-      firstName: 'Super',
-      lastName: 'Admin',
-      role: 'SUPER_ADMIN',
-      phone: '+254712345001'
-    },
-    {
-      email: 'admin@local.test',
-      password: 'Admin123!',
-      firstName: 'School',
-      lastName: 'Admin',
-      role: 'ADMIN',
-      phone: '+254712345002'
-    },
-    {
-      email: 'headteacher@local.test',
-      password: 'HeadTeacher123!',
-      firstName: 'Head',
-      lastName: 'Teacher',
-      role: 'HEAD_TEACHER',
-      phone: '+254712345003'
-    },
-    {
-      email: 'teacher@local.test',
-      password: 'Teacher123!',
-      firstName: 'John',
-      lastName: 'Teacher',
-      role: 'TEACHER',
-      phone: '+254712345004'
-    },
-    {
-      email: 'parent@local.test',
-      password: 'Parent123!',
-      firstName: 'Jane',
-      lastName: 'Parent',
-      role: 'PARENT',
-      phone: '+254712345005'
-    },
-    {
-      email: 'accountant@local.test',
-      password: 'Accountant123!',
-      firstName: 'Finance',
-      lastName: 'Officer',
-      role: 'ACCOUNTANT',
-      phone: '+254712345006'
-    },
-    {
-      email: 'receptionist@local.test',
-      password: 'Receptionist123!',
-      firstName: 'Front',
-      lastName: 'Desk',
-      role: 'RECEPTIONIST',
-      phone: '+254712345007'
-    }
-  ];
+      {
+        email: 'superadmin@local.test',
+        password: process.env.SUPER_ADMIN_PASSWORD || 'ChangeMeNow123!',
+        firstName: 'Super',
+        lastName: 'Admin',
+        role: 'SUPER_ADMIN',
+        phone: '+254713612141'
+      },
+      {
+        email: 'admin@local.test',
+        password: 'Admin123!',
+        firstName: 'School',
+        lastName: 'Admin',
+        role: 'ADMIN',
+        phone: '+254712345002'
+      },
+      {
+        email: 'headteacher@local.test',
+        password: 'HeadTeacher123!',
+        firstName: 'Head',
+        lastName: 'Teacher',
+        role: 'HEAD_TEACHER',
+        phone: '+254712345003'
+      },
+      {
+        email: 'teacher@local.test',
+        password: 'Teacher123!',
+        firstName: 'John',
+        lastName: 'Teacher',
+        role: 'TEACHER',
+        phone: '+254712345004'
+      },
+      {
+        email: 'parent@local.test',
+        password: 'Parent123!',
+        firstName: 'Jane',
+        lastName: 'Parent',
+        role: 'PARENT',
+        phone: '+254712345005'
+      },
+      {
+        email: 'accountant@local.test',
+        password: 'Accountant123!',
+        firstName: 'Finance',
+        lastName: 'Officer',
+        role: 'ACCOUNTANT',
+        phone: '+254712345006'
+      },
+      {
+        email: 'receptionist@local.test',
+        password: 'Receptionist123!',
+        firstName: 'Front',
+        lastName: 'Desk',
+        role: 'RECEPTIONIST',
+        phone: '+254712345007'
+      }
+    ];
 
   console.log('👥 Creating development users...');
 
@@ -218,10 +218,10 @@ async function main() {
   // Create default subscription plans if none exist
   console.log('\n💳 Checking for subscription plans...');
   const planCount = await prisma.subscriptionPlan.count();
-  
+
   if (planCount === 0) {
     console.log('   📝 Creating default subscription plans...');
-    
+
     const plans = [
       {
         name: 'Starter',
@@ -300,13 +300,13 @@ async function main() {
   // Seed streams for all schools
   console.log('\n📚 Seeding streams A-D...');
   const schools = await prisma.school.findMany({ where: { active: true } });
-  
+
   if (schools.length > 0) {
     const streamNames = ['A', 'B', 'C', 'D'];
-    
+
     for (const school of schools) {
       console.log(`   📝 Creating streams for ${school.name}...`);
-      
+
       for (const streamName of streamNames) {
         try {
           // Check if stream already exists

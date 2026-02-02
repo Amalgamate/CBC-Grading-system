@@ -4,14 +4,13 @@
  * Redesigned with Compact Context Header Pattern
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { FileText, Loader, Printer, Edit3, User, Filter } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { FileText, Loader, Printer, Edit3, User } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import api from '../../../services/api';
 import { generatePDFWithLetterhead } from '../../../utils/simplePdfGenerator';
 import DownloadReportButton from '../shared/DownloadReportButton';
 import SmartLearnerSearch from '../shared/SmartLearnerSearch';
-import { TERMS } from '../../../constants/terms';
 import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { useLearnerSelection } from '../hooks/useLearnerSelection';
 

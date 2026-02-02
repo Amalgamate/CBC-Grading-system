@@ -4,16 +4,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Calendar, Save, BookOpen, Plus, Edit, Trash2, Calculator, Users, Loader } from 'lucide-react';
+import { Calendar, Save, BookOpen, Plus, Edit, Trash2, Calculator, Users } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useAuth } from '../../../../hooks/useAuth';
 import { configAPI, authAPI, schoolAPI, userAPI } from '../../../../services/api';
 import academicYearConfig from '../../utils/academicYear';
-import {
-  getAllLearningAreas,
-  GRADE_LEARNING_AREAS_MAP
-} from '../../../../constants/learningAreas';
+import {} from '../../../../constants/learningAreas';
 import { gradeStructure } from '../../data/gradeStructure';
 import HierarchicalLearningAreas from './HierarchicalLearningAreas';
 
@@ -48,7 +45,7 @@ const AcademicSettings = () => {
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showContextPrompt, setShowContextPrompt] = useState(false);
-  const [schools, setSchools] = useState([]);
+  const [schools] = useState([]);
   const [selectedContextSchool, setSelectedContextSchool] = useState('');
   const [branches, setBranches] = useState([]);
   const [selectedContextBranch, setSelectedContextBranch] = useState('');
@@ -98,7 +95,7 @@ const AcademicSettings = () => {
     } finally {
       setLoading(false);
     }
-  }, [user?.school?.id, user?.schoolId]);
+  }, [user?.school?.id, user?.schoolId, updateUser, showError]);
 
   // Load Learning Areas from Database
   const loadLearningAreas = React.useCallback(async () => {
@@ -181,7 +178,7 @@ const AcademicSettings = () => {
     } finally {
       setSeedingClasses(false);
     }
-  }, [loadConfigs, showSuccess, showError]);
+  }, [loadConfigs, notifySuccess, showError]);
 
   // Seed Streams
   const handleSeedStreams = React.useCallback(async () => {
@@ -196,7 +193,7 @@ const AcademicSettings = () => {
     } finally {
       setSeedingStreams(false);
     }
-  }, [loadConfigs, showSuccess, showError]);
+  }, [loadConfigs, notifySuccess, showError]);
 
   useEffect(() => {
     if (user?.school?.id || user?.schoolId) {

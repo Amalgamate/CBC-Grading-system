@@ -3,15 +3,13 @@
  * Now with PDF Download functionality!
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { FileText, Printer, Edit3, User, ArrowRight, Filter } from 'lucide-react';
 import { generatePDFWithLetterhead } from '../../../utils/simplePdfGenerator';
 import { useNotifications } from '../hooks/useNotifications';
 import api from '../../../services/api';
 import DownloadReportButton from '../shared/DownloadReportButton';
 import SmartLearnerSearch from '../shared/SmartLearnerSearch';
-import { getCurrentAcademicYear } from '../utils/academicYear';
-import { TERMS } from '../../../constants/terms';
 import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { useLearnerSelection } from '../hooks/useLearnerSelection';
 

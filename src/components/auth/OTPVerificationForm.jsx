@@ -69,10 +69,13 @@ export default function OTPVerificationForm({
       if (response.token) {
         localStorage.setItem('token', response.token);
         localStorage.setItem('authToken', response.token);
+        if (response.refreshToken) {
+          localStorage.setItem('refreshToken', response.refreshToken);
+        }
       }
 
       setTimeout(() => {
-        onVerifySuccess(response.user || { email });
+        onVerifySuccess(response.user || { email }, response.token, response.refreshToken);
       }, 1000);
     } catch (err) {
       setError(err.message || 'Verification failed');
@@ -134,10 +137,10 @@ export default function OTPVerificationForm({
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 disabled={isLoading || success}
                 className={`w-12 h-14 sm:w-14 sm:h-16 text-3xl font-bold text-center border-2 rounded-xl transition-all ${success
-                    ? 'border-green-500 bg-green-50 text-green-600'
-                    : error
-                      ? 'border-red-500 bg-red-50'
-                      : 'border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
+                  ? 'border-green-500 bg-green-50 text-green-600'
+                  : error
+                    ? 'border-red-500 bg-red-50'
+                    : 'border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
                   } shadow-sm`}
               />
             ))}

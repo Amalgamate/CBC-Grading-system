@@ -33,7 +33,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [searchTerm, onFetchParents]);
+  }, [searchTerm, onFetchParents, pagination?.limit]);
 
   // Handle page change
   const handlePageChange = (newPage) => {

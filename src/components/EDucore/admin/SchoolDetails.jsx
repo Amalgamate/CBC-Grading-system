@@ -6,9 +6,9 @@
 import React, { useEffect, useState } from 'react';
 import {
   ArrowLeft, Building2, Users, Activity, FileText, Award,
-  Eye, EyeOff, Mail, Shield, AlertCircle, CheckCircle, XCircle, Clock, Trash2
+  Eye, EyeOff, Mail, AlertCircle, CheckCircle, XCircle, Clock, Trash2
 } from 'lucide-react';
-import { schoolAPI, adminAPI, learnerAPI, assessmentAPI, userAPI } from '../../../services/api';
+import { schoolAPI, learnerAPI, assessmentAPI, userAPI } from '../../../services/api';
 
 export default function SchoolDetails({ schoolId, onBack }) {
   const [school, setSchool] = useState(null);
@@ -18,7 +18,6 @@ export default function SchoolDetails({ schoolId, onBack }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [showPasswords, setShowPasswords] = useState({});
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
@@ -96,7 +95,6 @@ export default function SchoolDetails({ schoolId, onBack }) {
     try {
       await assessmentAPI.deleteTest(testId);
       setTests(prev => prev.filter(t => t.id !== testId));
-      setShowDeleteConfirm(null);
       alert(`Test "${testTitle}" deleted successfully!`);
     } catch (error) {
       alert(`Failed to delete test: ${error.message}`);

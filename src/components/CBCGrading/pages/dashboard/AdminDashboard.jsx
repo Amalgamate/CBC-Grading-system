@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { API_BASE_URL } from '../../../../services/api';
+import { schoolAPI, dashboardAPI } from '../../../../services/api';
 import {
   Users,
   GraduationCap,
@@ -147,21 +147,33 @@ const QuickActionButton = ({ icon: Icon, label, color, onClick }) => {
   );
 };
 
-const AdminDashboard = ({ learners = [], pagination, teachers = [], user }) => {
+const AdminDashboard = ({ learners = [], pagination, teachers = [], user, onNavigate }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [timeFilter, setTimeFilter] = useState('today'); // today, week, month, term
   const [trialInfo, setTrialInfo] = useState(null);
+  const [metrics, setMetrics] = useState(null);
+
+  const loadMetrics = async (filter) => {
+    try {
+      setRefreshing(true);
+      const response = await dashboardAPI.getAdminMetrics(filter || timeFilter);
+      if (response.success) {
+        setMetrics(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to load dashboard metrics:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     const schoolId = user?.school?.id || user?.schoolId || localStorage.getItem('currentSchoolId');
     if (!schoolId) return;
-    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-    fetch(`${API_BASE_URL}/schools/${schoolId}`, {
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
-    })
-      .then(res => res.json())
-      .then(data => {
-        const school = data?.data;
+
+    schoolAPI.getById(schoolId)
+      .then(response => {
+        const school = response.data;
         if (!school) return;
         const start = school.trialStart ? new Date(school.trialStart) : null;
         const days = school.trialDays || 30;
@@ -175,28 +187,30 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [], user }) => {
           remainingDays: remaining,
         });
       })
-      .catch(() => { });
-  }, [user]);
+      .catch((err) => console.error('Error fetching school info:', err));
 
-  // Calculate statistics
+    loadMetrics(timeFilter);
+  }, [user, timeFilter]);
+
+  // Use fetched metrics or fall back to properties/defaults
   const stats = {
-    totalStudents: pagination?.total || learners.length,
-    activeStudents: learners.filter(l => l.status === 'ACTIVE').length,
-    totalTeachers: teachers.length,
-    activeTeachers: teachers.filter(t => t.status === 'ACTIVE').length,
-    presentToday: 245, // This would come from attendance API
-    absentToday: 12,
-    lateToday: 8,
-    totalClasses: 15,
-    avgAttendance: 94.5
+    totalStudents: metrics?.stats?.totalStudents || pagination?.total || learners.length || 0,
+    activeStudents: metrics?.stats?.activeStudents || learners.filter(l => l.status === 'ACTIVE').length || 0,
+    totalTeachers: metrics?.stats?.totalTeachers || teachers.length || 0,
+    activeTeachers: metrics?.stats?.activeTeachers || teachers.filter(t => t.status === 'ACTIVE').length || 0,
+    presentToday: metrics?.stats?.presentToday || 0,
+    absentToday: metrics?.stats?.absentToday || 0,
+    lateToday: metrics?.stats?.lateToday || 0,
+    totalClasses: metrics?.stats?.totalClasses || 0,
+    avgAttendance: metrics?.stats?.avgAttendance || 0
   };
 
-  // Student distribution by grade (sample data - replace with real data)
-  const studentsByGrade = [
-    { label: 'PP1-PP2', value: 45, color: '#3b82f6' },
-    { label: 'Grade 1-3', value: 89, color: '#10b981' },
-    { label: 'Grade 4-6', value: 67, color: '#8b5cf6' },
-    { label: 'Grade 7-9', value: 54, color: '#f59e0b' }
+  // Student distribution by grade
+  const studentsByGrade = metrics?.distributions?.studentsByGrade || [
+    { label: 'PP1-PP2', value: 0, color: '#3b82f6' },
+    { label: 'Grade 1-3', value: 0, color: '#10b981' },
+    { label: 'Grade 4-6', value: 0, color: '#8b5cf6' },
+    { label: 'Grade 7-9', value: 0, color: '#f59e0b' }
   ];
 
   // Attendance overview
@@ -207,24 +221,22 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [], user }) => {
   ];
 
   // Staff distribution
-  const staffData = [
-    { label: 'Teachers', value: 18, color: '#3b82f6' },
-    { label: 'Admin Staff', value: 5, color: '#8b5cf6' },
-    { label: 'Support Staff', value: 7, color: '#06b6d4' }
+  const staffData = metrics?.distributions?.staff || [
+    { label: 'Teachers', value: stats.totalTeachers, color: '#3b82f6' },
+    { label: 'Admin Staff', value: 0, color: '#8b5cf6' },
+    { label: 'Support Staff', value: 0, color: '#06b6d4' }
   ];
 
-  // Assessment overview
+  // Assessment overview (still partly mock until we have a proper agg)
   const assessmentData = [
-    { label: 'Exceeding', value: 45, color: '#10b981' },
-    { label: 'Meeting', value: 128, color: '#3b82f6' },
-    { label: 'Approaching', value: 67, color: '#f59e0b' },
-    { label: 'Below', value: 15, color: '#ef4444' }
+    { label: 'Exceeding', value: metrics?.stats?.performance?.ee || 0, color: '#10b981' },
+    { label: 'Meeting', value: metrics?.stats?.performance?.me || 0, color: '#3b82f6' },
+    { label: 'Approaching', value: metrics?.stats?.performance?.ae || 0, color: '#f59e0b' },
+    { label: 'Below', value: metrics?.stats?.performance?.be || 0, color: '#ef4444' }
   ];
 
   const handleRefresh = () => {
-    setRefreshing(true);
-    // Simulate data refresh
-    setTimeout(() => setRefreshing(false), 1000);
+    loadMetrics();
   };
 
   return (
@@ -285,8 +297,6 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [], user }) => {
         <ModernStatsCard
           title="Total Students"
           value={stats.totalStudents}
-          change="5.2%"
-          trend="up"
           icon={Users}
           color="blue"
           subtitle={`${stats.activeStudents} active`}
@@ -295,18 +305,14 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [], user }) => {
         <ModernStatsCard
           title="Teaching Staff"
           value={stats.totalTeachers}
-          change="2.1%"
-          trend="up"
           icon={GraduationCap}
           color="green"
           subtitle={`${stats.activeTeachers} active`}
         />
 
         <ModernStatsCard
-          title="Attendance Today"
+          title="Attendance"
           value={`${stats.avgAttendance}%`}
-          change="1.2%"
-          trend="up"
           icon={UserCheck}
           color="purple"
           subtitle={`${stats.presentToday}/${stats.totalStudents} present`}
@@ -386,25 +392,25 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [], user }) => {
               icon={Users}
               label="Add Student"
               color="blue"
-              onClick={() => { }}
+              onClick={() => onNavigate('learners-admissions')}
             />
             <QuickActionButton
               icon={GraduationCap}
               label="Add Teacher"
               color="green"
-              onClick={() => { }}
+              onClick={() => onNavigate('teachers-list')}
             />
             <QuickActionButton
               icon={BookOpen}
               label="New Class"
               color="purple"
-              onClick={() => { }}
+              onClick={() => onNavigate('settings-academic')}
             />
             <QuickActionButton
               icon={Download}
               label="Reports"
               color="orange"
-              onClick={() => { }}
+              onClick={() => onNavigate('assess-summative-report')}
             />
           </div>
         </div>
@@ -419,65 +425,39 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [], user }) => {
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-              <div className="bg-green-100 p-2 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">
-                  Grade 5A Attendance Marked
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  All 28 students present • Mrs. Johnson
-                </p>
-                <p className="text-xs text-gray-400 mt-1">5 minutes ago</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="bg-blue-100 p-2 rounded-lg">
-                <Users className="w-5 h-5 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">
-                  New Student Admitted
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  Sarah Kimani - Grade 3B • ADM-2025-256
-                </p>
-                <p className="text-xs text-gray-400 mt-1">1 hour ago</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-              <div className="bg-purple-100 p-2 rounded-lg">
-                <Award className="w-5 h-5 text-purple-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">
-                  Assessment Completed
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  Mathematics formative - Grade 4 • 32 students
-                </p>
-                <p className="text-xs text-gray-400 mt-1">2 hours ago</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-              <div className="bg-orange-100 p-2 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-orange-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">
-                  Pending Fee Payment
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  12 students with outstanding fees this term
-                </p>
-                <p className="text-xs text-gray-400 mt-1">1 day ago</p>
-              </div>
-            </div>
+            {metrics?.recentActivity?.admissions?.length > 0 ? (
+              metrics.recentActivity.admissions.map((student, idx) => (
+                <div key={`adm-${idx}`} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="bg-blue-100 p-2 rounded-lg">
+                    <Users className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900">New Student Admitted</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {student.firstName} {student.lastName} - {student.grade.replace('_', ' ')} • {student.admissionNumber}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">{new Date(student.createdAt).toLocaleString()}</p>
+                  </div>
+                </div>
+              ))
+            ) : metrics?.recentActivity?.assessments?.length > 0 ? (
+              metrics.recentActivity.assessments.map((assessment, idx) => (
+                <div key={`as-${idx}`} className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <div className="bg-purple-100 p-2 rounded-lg">
+                    <Award className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900">{assessment.title}</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {assessment.learningArea} • {assessment.learner.firstName} {assessment.learner.lastName}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">{new Date(assessment.createdAt).toLocaleString()}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500 italic">No recent activity found</div>
+            )}
           </div>
         </div>
       </div>
@@ -488,16 +468,16 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [], user }) => {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h3 className="text-lg font-bold text-gray-900 mb-4">Top Performing Classes</h3>
           <div className="space-y-3">
-            {[
-              { grade: 'Grade 6A', avg: 92, students: 30, color: 'green' },
-              { grade: 'Grade 5B', avg: 89, students: 28, color: 'blue' },
+            {(metrics?.topPerformingClasses || [
+              { grade: 'Grade 6A', avg: 92, students: 30, color: 'blue' },
+              { grade: 'Grade 5B', avg: 89, students: 28, color: 'green' },
               { grade: 'Grade 4A', avg: 87, students: 32, color: 'purple' },
-              { grade: 'Grade 3B', avg: 85, students: 29, color: 'cyan' }
-            ].map((cls, idx) => (
+              { grade: 'Grade 3B', avg: 85, students: 29, color: 'orange' }
+            ]).map((cls, idx) => (
               <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg bg-${cls.color}-100 flex items-center justify-center`}>
-                    <span className={`text-${cls.color}-600 font-bold text-sm`}>
+                  <div className={`w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center`}>
+                    <span className={`text-blue-600 font-bold text-sm`}>
                       {idx + 1}
                     </span>
                   </div>
@@ -519,39 +499,25 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [], user }) => {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h3 className="text-lg font-bold text-gray-900 mb-4">Upcoming Events</h3>
           <div className="space-y-3">
-            {[
+            {(metrics?.upcomingEvents || [
               {
                 title: 'Parent-Teacher Meeting',
-                date: 'Jan 25, 2026',
+                date: 'Feb 15, 2026',
                 time: '2:00 PM',
                 type: 'meeting',
                 color: 'blue'
               },
               {
                 title: 'End of Term Exams',
-                date: 'Feb 1-5, 2026',
+                date: 'Mar 1-5, 2026',
                 time: 'All Week',
                 type: 'exam',
                 color: 'purple'
-              },
-              {
-                title: 'Sports Day',
-                date: 'Feb 10, 2026',
-                time: '9:00 AM',
-                type: 'event',
-                color: 'green'
-              },
-              {
-                title: 'Report Card Distribution',
-                date: 'Feb 12, 2026',
-                time: '10:00 AM',
-                type: 'admin',
-                color: 'orange'
               }
-            ].map((event, idx) => (
-              <div key={idx} className={`flex items-center gap-3 p-3 bg-${event.color}-50 rounded-lg border border-${event.color}-200`}>
-                <div className={`bg-${event.color}-100 p-2 rounded-lg`}>
-                  <Calendar className={`w-5 h-5 text-${event.color}-600`} />
+            ]).map((event, idx) => (
+              <div key={idx} className={`flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200`}>
+                <div className={`bg-blue-100 p-2 rounded-lg`}>
+                  <Calendar className={`w-5 h-5 text-blue-600`} />
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-gray-900 text-sm">{event.title}</p>

@@ -13,6 +13,8 @@ const AssignClassModal = ({ isOpen, onClose, teacher, onAssign }) => {
   const [success, setSuccess] = useState(false);
   const [workload, setWorkload] = useState(null);
 
+  // We intentionally only re-run when modal opens or teacher changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isOpen && teacher) {
       fetchClasses();

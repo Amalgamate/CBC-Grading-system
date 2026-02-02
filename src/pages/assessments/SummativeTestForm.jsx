@@ -49,6 +49,7 @@ const SummativeTestForm = ({ onBack, onSuccess }) => {
   ];
 
   // Load grades, terms, and scales on component mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadGrades = useCallback(async () => {
     setLoadingGrades(true);
     try {

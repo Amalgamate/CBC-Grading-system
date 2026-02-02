@@ -9,25 +9,20 @@ import RatingSelector from '../shared/RatingSelector';
 import { useNotifications } from '../hooks/useNotifications';
 import api, { workflowAPI } from '../../../services/api';
 import SmartLearnerSearch from '../shared/SmartLearnerSearch';
-import { getCurrentAcademicYear } from '../utils/academicYear';
-import { TERMS } from '../../../constants/terms';
 import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { useLearnerSelection } from '../hooks/useLearnerSelection';
 import { useLearningAreas } from '../hooks/useLearningAreas';
 
 const FormativeAssessment = ({ learners }) => {
   const { showSuccess, showError } = useNotifications();
-  
+
   // Use centralized hooks for assessment state management
   const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
   const selection = useLearnerSelection(learners || [], { status: ['ACTIVE', 'Active'] });
   const learningAreas = useLearningAreas(setup.selectedGrade);
-  
+
   // View State
   const [viewMode, setViewMode] = useState('setup'); // 'setup' | 'assess' | 'review'
-  
-  // Data State
-  const [loadingGrades, setLoadingGrades] = useState(false);
 
   // Context State (Step 1) - FormativeAssessment specific
   const [selectedArea, setSelectedArea] = useState('Mathematics');
@@ -49,6 +44,7 @@ const FormativeAssessment = ({ learners }) => {
 
   // Use grades and selection from setup hook
   const grades = setup.grades || [];
+  const loadingGrades = false; // Grades are static in the hook
   const setSelectedGrade = setup.updateGrade;
   const selectedGrade = setup.selectedGrade;
   const setSelectedTerm = setup.updateTerm;
@@ -58,22 +54,11 @@ const FormativeAssessment = ({ learners }) => {
   const searchLearnerId = selection.selectedLearnerId;
   const setSearchLearnerId = selection.selectLearner;
 
-  const learningAreas_items = [
-    'Mathematics', 
-    'English Activities', 
-    'Kiswahili Activities', 
-    'Environmental Activities',
-    'Integrated Science',
-    'Social Studies',
-    'Creative Arts & Sports',
-    'Religious Education'
-  ];
-
   // Fetch Grades from DB
   // Grades are now managed by setup hook
 
   // Filter learners by selected grade
-  const classLearners = learners?.filter(l => 
+  const classLearners = learners?.filter(l =>
     l.grade === selectedGrade && (l.status === 'ACTIVE' || l.status === 'Active')
   ) || [];
 
@@ -94,17 +79,17 @@ const FormativeAssessment = ({ learners }) => {
         return;
       }
     }
-    
+
     if (viewMode === 'setup') setViewMode('assess');
     else if (viewMode === 'assess') setViewMode('review');
-    
+
     window.scrollTo(0, 0);
   };
 
   const goToPrevStep = () => {
     if (viewMode === 'assess') setViewMode('setup');
     else if (viewMode === 'review') setViewMode('assess');
-    
+
     window.scrollTo(0, 0);
   };
 
@@ -114,9 +99,9 @@ const FormativeAssessment = ({ learners }) => {
       const learner = learners.find(l => l.id === id);
       if (learner && learner.grade !== selectedGrade) {
         if (viewMode === 'assess') {
-           showError(`Learner is in ${learner.grade}. Please switch grade in Setup step.`);
+          showError(`Learner is in ${learner.grade}. Please switch grade in Setup step.`);
         } else {
-           setSelectedGrade(learner.grade);
+          setSelectedGrade(learner.grade);
         }
       }
     }
@@ -193,7 +178,7 @@ const FormativeAssessment = ({ learners }) => {
         showSuccess(`Successfully saved ${successCount} assessment(s)!`);
         setSavedAssessments(prev => ({ ...prev, ...newSavedAssessments }));
       } else if (errorCount === 0) {
-         showSuccess('No new assessments to save.');
+        showSuccess('No new assessments to save.');
       }
 
       if (errorCount > 0) {
@@ -242,7 +227,7 @@ const FormativeAssessment = ({ learners }) => {
         showSuccess(`Successfully submitted ${successCount} assessment(s) for approval!`);
         setSavedAssessments(updatedSavedAssessments);
       }
-      
+
       if (errorCount > 0) {
         showError(`Failed to submit ${errorCount} assessment(s)`);
       } else if (successCount === 0) {
@@ -309,10 +294,10 @@ const FormativeAssessment = ({ learners }) => {
           </div>
           <span className="text-xs font-semibold mt-2">Setup</span>
         </div>
-        
+
         {/* Connector */}
         <div className={`w-24 h-1 -mt-6 mx-2 ${viewMode === 'assess' || viewMode === 'review' ? 'bg-blue-600' : 'bg-gray-200'}`} />
-        
+
         {/* Step 2 */}
         <div className={`flex flex-col items-center relative z-10 ${viewMode === 'assess' || viewMode === 'review' ? 'text-blue-600' : 'text-gray-400'}`}>
           <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${viewMode === 'assess' || viewMode === 'review' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300'}`}>
@@ -337,7 +322,7 @@ const FormativeAssessment = ({ learners }) => {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
-      
+
       {/* Wizard Progress */}
       <StepIndicator />
 
@@ -350,7 +335,7 @@ const FormativeAssessment = ({ learners }) => {
               <p className="text-xs text-gray-500">Configure the class, subject, and assessment details</p>
             </div>
             <div className="flex items-center gap-2">
-               <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">Step 1 of 3</span>
+              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">Step 1 of 3</span>
             </div>
           </div>
 
@@ -362,17 +347,17 @@ const FormativeAssessment = ({ learners }) => {
                   <Users size={16} className="text-gray-400" />
                   <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Academic Context</h3>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1.5">Grade / Class</label>
-                    <select 
-                      value={selectedGrade} 
+                    <select
+                      value={selectedGrade}
                       onChange={(e) => {
                         setSelectedGrade(e.target.value);
                         setAssessments({}); // Clear assessments when grade changes
                         setSavedAssessments({});
-                      }} 
+                      }}
                       disabled={loadingGrades}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm bg-white disabled:bg-gray-100 disabled:text-gray-400"
                     >
@@ -388,9 +373,9 @@ const FormativeAssessment = ({ learners }) => {
 
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1.5">Term</label>
-                    <select 
-                      value={selectedTerm} 
-                      onChange={(e) => setSelectedTerm(e.target.value)} 
+                    <select
+                      value={selectedTerm}
+                      onChange={(e) => setSelectedTerm(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm bg-white"
                     >
                       {terms.map(t => (
@@ -402,12 +387,12 @@ const FormativeAssessment = ({ learners }) => {
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">Learning Area</label>
-                  <select 
-                    value={selectedArea} 
+                  <select
+                    value={selectedArea}
                     onChange={(e) => {
                       setSelectedArea(e.target.value);
                       learningAreas.selectLearningArea(e.target.value);
-                    }} 
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm bg-white"
                     disabled={!setup.selectedGrade}
                   >
@@ -423,22 +408,22 @@ const FormativeAssessment = ({ learners }) => {
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">Strand</label>
-                  <input 
-                    type="text" 
-                    value={strand} 
-                    onChange={(e) => setStrand(e.target.value)} 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm" 
+                  <input
+                    type="text"
+                    value={strand}
+                    onChange={(e) => setStrand(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
                     placeholder="e.g., Numbers"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">Sub-Strand <span className="text-gray-400 font-normal">(Optional)</span></label>
-                  <input 
-                    type="text" 
-                    value={subStrand} 
-                    onChange={(e) => setSubStrand(e.target.value)} 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm" 
+                  <input
+                    type="text"
+                    value={subStrand}
+                    onChange={(e) => setSubStrand(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
                     placeholder="e.g., Addition and Subtraction"
                   />
                 </div>
@@ -453,20 +438,20 @@ const FormativeAssessment = ({ learners }) => {
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">Assessment Title <span className="text-red-500">*</span></label>
-                  <input 
-                    type="text" 
-                    value={assessmentTitle} 
-                    onChange={(e) => setAssessmentTitle(e.target.value)} 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm" 
+                  <input
+                    type="text"
+                    value={assessmentTitle}
+                    onChange={(e) => setAssessmentTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
                     placeholder="e.g., Weekly Quiz 1"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">Assessment Type</label>
-                  <select 
-                    value={assessmentType} 
-                    onChange={(e) => setAssessmentType(e.target.value)} 
+                  <select
+                    value={assessmentType}
+                    onChange={(e) => setAssessmentType(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm bg-white"
                   >
                     <option value="QUIZ">Quiz</option>
@@ -482,25 +467,25 @@ const FormativeAssessment = ({ learners }) => {
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1.5">Weight</label>
                     <div className="relative">
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         step="0.1"
                         min="0"
-                        value={assessmentWeight} 
-                        onChange={(e) => setAssessmentWeight(Number(e.target.value))} 
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm" 
+                        value={assessmentWeight}
+                        onChange={(e) => setAssessmentWeight(Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
                       />
                       <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">pts</span>
                     </div>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1.5">Max Score <span className="text-gray-400 font-normal">(Optional)</span></label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       min="0"
-                      value={maxScore || ''} 
-                      onChange={(e) => setMaxScore(e.target.value ? Number(e.target.value) : null)} 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm" 
+                      value={maxScore || ''}
+                      onChange={(e) => setMaxScore(e.target.value ? Number(e.target.value) : null)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
                       placeholder="e.g. 100"
                     />
                   </div>
@@ -545,7 +530,7 @@ const FormativeAssessment = ({ learners }) => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button 
+              <button
                 onClick={() => setViewMode('setup')}
                 className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium"
               >
@@ -594,8 +579,8 @@ const FormativeAssessment = ({ learners }) => {
                 </div>
               ) : filteredLearners.length === 0 ? (
                 <div className="text-center py-12">
-                   <p className="text-gray-500">No learners match your search</p>
-                   <button 
+                  <p className="text-gray-500">No learners match your search</p>
+                  <button
                     onClick={() => setSearchLearnerId(null)}
                     className="mt-2 text-blue-600 hover:text-blue-700 text-sm font-semibold"
                   >
@@ -607,16 +592,16 @@ const FormativeAssessment = ({ learners }) => {
                   {filteredLearners.map(learner => {
                     const assessment = assessments[learner.id];
                     const isSaved = savedAssessments[learner.id];
-                    
+
                     return (
-                      <div 
-                        key={learner.id} 
+                      <div
+                        key={learner.id}
                         className={`
                           border-2 rounded-xl p-6 transition-all duration-200
                           ${isSaved
-                            ? 'border-purple-200 bg-purple-50/50' 
-                            : assessment?.detailedRating 
-                              ? 'border-green-200 bg-green-50/50' 
+                            ? 'border-purple-200 bg-purple-50/50'
+                            : assessment?.detailedRating
+                              ? 'border-green-200 bg-green-50/50'
                               : 'border-gray-100 hover:border-blue-200 hover:shadow-md'
                           }
                         `}
@@ -638,9 +623,9 @@ const FormativeAssessment = ({ learners }) => {
                           </div>
 
                           <div className="flex-1">
-                             <RatingSelector
+                            <RatingSelector
                               value={assessment?.detailedRating || ''}
-                              onChange={(code, points, percentage) => 
+                              onChange={(code, points, percentage) =>
                                 handleRatingChange(learner.id, code, points, percentage)
                               }
                               label="Rating"
@@ -650,23 +635,23 @@ const FormativeAssessment = ({ learners }) => {
                           </div>
 
                           {assessment?.detailedRating && (
-                             <div className="flex items-center gap-3">
-                                {isSaved && <CheckCircle className="text-purple-600" size={24} />}
-                                {isSaved && (
-                                  <button
-                                    onClick={() => handleSendWhatsApp(learner.id)}
-                                    disabled={sendingWhatsApp[learner.id]}
-                                    className="p-2 bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition"
-                                    title="Send WhatsApp"
-                                  >
-                                    {sendingWhatsApp[learner.id] ? (
-                                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-green-600 border-t-transparent" />
-                                    ) : (
-                                      <Send size={20} />
-                                    )}
-                                  </button>
-                                )}
-                             </div>
+                            <div className="flex items-center gap-3">
+                              {isSaved && <CheckCircle className="text-purple-600" size={24} />}
+                              {isSaved && (
+                                <button
+                                  onClick={() => handleSendWhatsApp(learner.id)}
+                                  disabled={sendingWhatsApp[learner.id]}
+                                  className="p-2 bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition"
+                                  title="Send WhatsApp"
+                                >
+                                  {sendingWhatsApp[learner.id] ? (
+                                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-green-600 border-t-transparent" />
+                                  ) : (
+                                    <Send size={20} />
+                                  )}
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
 
@@ -712,7 +697,7 @@ const FormativeAssessment = ({ learners }) => {
       {/* STEP 3: REVIEW */}
       {viewMode === 'review' && (
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
-           <div className="text-center mb-8">
+          <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-gray-800">Assessment Summary</h2>
             <p className="text-gray-500">Review your progress for {grades.find(g => g.value === selectedGrade)?.label} - {selectedArea}</p>
           </div>

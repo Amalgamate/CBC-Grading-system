@@ -19,6 +19,7 @@ import workflowRoutes from './workflow.routes';
 import communicationRoutes from './communication.routes';
 import adminRoutes from './admin.routes';
 import learningAreaRoutes from './learningArea.routes';
+import dashboardRoutes from './dashboard.routes';
 import { checkSchoolActive } from '../middleware/trial.guard';
 import onboardingRoutes from './onboarding.routes';
 import { issueCsrfToken } from '../middleware/csrf.middleware';
@@ -69,5 +70,6 @@ router.use('/config', checkSchoolActive, configRoutes);
 router.use('/learning-areas', checkSchoolActive, learningAreaRoutes);
 router.use('/workflow', workflowRoutes);
 router.use('/communication', checkSchoolActive, communicationRoutes);
+router.use('/dashboard', dashboardRoutes);
 
 export default router;

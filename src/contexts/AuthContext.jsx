@@ -26,6 +26,7 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = () => {
       try {
         const token = localStorage.getItem('token');
+        const refreshToken = localStorage.getItem('refreshToken');
         const storedUser = localStorage.getItem('user');
 
         if (token && storedUser) {
@@ -44,6 +45,7 @@ export const AuthProvider = ({ children }) => {
         console.error('Error restoring auth state:', error);
         // Clear invalid data
         localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
         localStorage.removeItem('currentSchoolId');
       } finally {
@@ -54,10 +56,13 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = useCallback((userData, token) => {
+  const login = useCallback((userData, token, refreshToken) => {
     try {
-      // Store token
+      // Store tokens
       localStorage.setItem('token', token);
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken);
+      }
 
       // Store user data
       localStorage.setItem('user', JSON.stringify(userData));
@@ -82,6 +87,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('authToken'); // Also clear legacy authToken if present
     clearAdminSchoolId();
     clearPortalSchoolId();
     clearBranchId();

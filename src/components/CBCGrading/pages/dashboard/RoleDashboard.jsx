@@ -13,7 +13,7 @@ import ParentDashboard from './ParentDashboard';
 import AccountantDashboard from './AccountantDashboard';
 import ReceptionistDashboard from './ReceptionistDashboard';
 
-const RoleDashboard = ({ learners, pagination, teachers, user }) => {
+const RoleDashboard = ({ learners, pagination, teachers, user, onNavigate }) => {
   const { role } = usePermissions();
 
   // Render dashboard based on user role
@@ -22,22 +22,22 @@ const RoleDashboard = ({ learners, pagination, teachers, user }) => {
       return <Overview />;
 
     case 'ADMIN':
-      return <AdminDashboard learners={learners} pagination={pagination} teachers={teachers} user={user} />;
+      return <AdminDashboard learners={learners} pagination={pagination} teachers={teachers} user={user} onNavigate={onNavigate} />;
 
     case 'HEAD_TEACHER':
-      return <HeadTeacherDashboard learners={learners} pagination={pagination} teachers={teachers} user={user} />;
+      return <HeadTeacherDashboard learners={learners} pagination={pagination} teachers={teachers} user={user} onNavigate={onNavigate} />;
 
     case 'TEACHER':
-      return <TeacherDashboard learners={learners} pagination={pagination} teachers={teachers} user={user} />;
+      return <TeacherDashboard learners={learners} pagination={pagination} teachers={teachers} user={user} onNavigate={onNavigate} />;
 
     case 'PARENT':
-      return <ParentDashboard user={user} />;
+      return <ParentDashboard user={user} onNavigate={onNavigate} />;
 
     case 'ACCOUNTANT':
-      return <AccountantDashboard learners={learners} pagination={pagination} user={user} />;
+      return <AccountantDashboard learners={learners} pagination={pagination} user={user} onNavigate={onNavigate} />;
 
     case 'RECEPTIONIST':
-      return <ReceptionistDashboard learners={learners} pagination={pagination} user={user} />;
+      return <ReceptionistDashboard learners={learners} pagination={pagination} user={user} onNavigate={onNavigate} />;
 
     default:
       return (
