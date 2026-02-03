@@ -4,6 +4,7 @@ import {
     getCommunicationConfig,
     saveCommunicationConfig,
     sendTestSms,
+    sendTestEmail,
     getBirthdaysToday,
     sendBirthdayWishes
 } from '../controllers/communication.controller';
@@ -38,6 +39,14 @@ router.post(
     '/test/sms',
     requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
     sendTestSms
+);
+
+// Send Test Email
+// Allowed: Admin, Super Admin
+router.post(
+    '/test/email',
+    requireRole(['SUPER_ADMIN', 'ADMIN']),
+    sendTestEmail
 );
 
 // Birthday Birthdays Today

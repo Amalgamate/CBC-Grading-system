@@ -103,6 +103,20 @@ export class AuthController {
       }
     });
 
+    // Send Welcome Email
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const loginUrl = finalSchoolId
+      ? `${frontendUrl}/t/${finalSchoolId}/login`
+      : `${frontendUrl}/login`;
+
+    EmailService.sendWelcomeEmail({
+      to: email,
+      schoolName: 'EDucore Platform', // Or fetch school name if we had it handy, but for speed 'EDucore Platform' works or we can make it optional
+      adminName: `${firstName} ${lastName}`,
+      loginUrl,
+      schoolId: finalSchoolId || undefined
+    }).catch(err => console.error('Failed to send welcome email:', err));
+
     // Generate tokens
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);

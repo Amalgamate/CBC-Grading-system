@@ -398,6 +398,16 @@ export const communicationAPI = {
   },
 
   /**
+   * Send Test Email
+   */
+  sendTestEmail: async (data) => {
+    return fetchWithAuth('/communication/test/email', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
    * Get Birthdays Today
    */
   getBirthdaysToday: async (schoolId) => {

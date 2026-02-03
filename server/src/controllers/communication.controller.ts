@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { encrypt } from '../utils/encryption.util';
 import { SmsService } from '../services/sms.service';
+import { EmailService } from '../services/email-resend.service';
 import { AuthRequest } from '../middleware/permissions.middleware';
 
 /**
@@ -72,7 +73,8 @@ export const getCommunicationConfig = async (req: AuthRequest, res: Response) =>
                     provider: config.emailProvider,
                     fromEmail: config.emailFrom,
                     fromName: config.emailFromName,
-                    hasApiKey: !!config.emailApiKey
+                    hasApiKey: !!config.emailApiKey,
+                    emailTemplates: config.emailTemplates
                 },
                 mpesa: {
                     enabled: config.mpesaEnabled,
@@ -150,6 +152,11 @@ export const saveCommunicationConfig = async (req: AuthRequest, res: Response) =
 
             if (email.apiKey) {
                 data.emailApiKey = encrypt(email.apiKey);
+            }
+
+            // Save templates if provided
+            if (email.emailTemplates) {
+                data.emailTemplates = email.emailTemplates;
             }
         }
 
@@ -230,6 +237,67 @@ export const sendTestSms = async (req: AuthRequest, res: Response) => {
     } catch (error: any) {
         console.error('Send Test SMS Error:', error);
         res.status(500).json({ error: error.message || 'Failed to send test SMS' });
+    }
+};
+
+/**
+ * Send Test Email
+ * POST /api/communication/test/email
+ */
+export const sendTestEmail = async (req: AuthRequest, res: Response) => {
+    try {
+        const { schoolId, email, template = 'welcome' } = req.body;
+
+        if (!schoolId || !email) {
+            return res.status(400).json({
+                error: 'schoolId and email are required'
+            });
+        }
+
+        // Tenant check
+        if (req.user?.schoolId && req.user.schoolId !== schoolId) {
+            return res.status(403).json({ error: 'Unauthorized access to school configuration' });
+        }
+
+        // Fetch School Name for context
+        const school = await prisma.school.findUnique({
+            where: { id: schoolId },
+            select: { name: true }
+        });
+        const schoolName = school?.name || 'Your School';
+        const adminName = req.user?.userId ? (await prisma.user.findUnique({ where: { id: req.user.userId } }))?.firstName || 'Admin' : 'Admin';
+
+        const frontendUrl = process.env.FRONTEND_URL || 'https://educorev1.up.railway.app';
+        const loginUrl = `${frontendUrl}/t/${schoolId}/login`;
+
+        // Send Email based on template selection
+        if (template === 'onboarding') {
+            await EmailService.sendOnboardingEmail({
+                to: email,
+                schoolName,
+                adminName,
+                loginUrl,
+                schoolId
+            });
+        } else {
+            // Default to Welcome
+            await EmailService.sendWelcomeEmail({
+                to: email,
+                schoolName,
+                adminName,
+                loginUrl,
+                schoolId
+            });
+        }
+
+        res.status(200).json({
+            message: `Test email (${template}) sent successfully to ${email}`,
+            provider: 'resend' // We know it's resend
+        });
+
+    } catch (error: any) {
+        console.error('Send Test Email Error:', error);
+        res.status(500).json({ error: error.message || 'Failed to send test email' });
     }
 };
 

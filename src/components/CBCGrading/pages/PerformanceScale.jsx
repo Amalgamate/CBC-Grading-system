@@ -4,7 +4,7 @@
  * ENHANCED: Multi-grade selection with "Select All"
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft, Plus, Trash2, Loader, Search,
   ChevronDown, ChevronRight, CheckCircle, Info, Database, ListChecks
@@ -81,7 +81,11 @@ const PerformanceScale = () => {
     }
   });
 
-  const loadData = useCallback(async () => {
+  useEffect(() => {
+    loadData();
+  }, [schoolId]);
+
+  const loadData = async () => {
     if (!schoolId) return;
     setLoading(true);
     try {
@@ -96,11 +100,7 @@ const PerformanceScale = () => {
     } finally {
       setLoading(false);
     }
-  }, [schoolId, showError]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  };
 
   const handleGradeToggle = (grade) => {
     setSelectedGrades(prev => {

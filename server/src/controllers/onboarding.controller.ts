@@ -254,15 +254,15 @@ export class OnboardingController {
       const frontendUrl = process.env.FRONTEND_URL || 'https://educorev1.up.railway.app';
       const loginUrl = `${frontendUrl}/t/${result.school.id}/login`;
 
-      // Send Welcome Email (async - don't block response)
-      EmailService.sendWelcomeEmail({
+      // Send Onboarding Email (async - don't block response)
+      EmailService.sendOnboardingEmail({
         to: result.user.email,
         schoolName: result.school.name,
         adminName: `${result.user.firstName} ${result.user.lastName}`,
         loginUrl,
         schoolId: result.school.id
       }).catch(err => {
-        console.error('❌ Failed to send welcome email:', err);
+        console.error('❌ Failed to send onboarding email:', err);
       });
 
       // Send Welcome SMS (async - don't block response)

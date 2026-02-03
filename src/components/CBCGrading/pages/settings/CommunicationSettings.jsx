@@ -24,6 +24,13 @@ const CommunicationSettings = () => {
   const [editingSenderId, setEditingSenderId] = useState(false);
   const [editingTestContact, setEditingTestContact] = useState(false);
 
+  // Template State
+  const [editingTemplate, setEditingTemplate] = useState('welcome');
+  const [templates, setTemplates] = useState({
+    welcome: { heading: '', body: '' },
+    onboarding: { heading: '', body: '' }
+  });
+
   // Hardcoded defaults per user request
   const DEFAULT_API_KEY = 'UrkwuO5UfKfN6wuwwQPG3KkCfIvtgiWOa0EPcGb7R1r5JsVSxgEz4zR0fSdq';
   const DEFAULT_SENDER_ID = 'MOBILESASA';
@@ -100,6 +107,14 @@ const CommunicationSettings = () => {
               fromName: data.email.fromName || '',
               hasApiKey: data.email.hasApiKey
             }));
+
+            // Load templates
+            if (data.email.emailTemplates) {
+              setTemplates(prev => ({
+                ...prev,
+                ...data.email.emailTemplates
+              }));
+            }
           }
 
           // Update SMS Settings
@@ -156,7 +171,8 @@ const CommunicationSettings = () => {
           fromEmail: emailSettings.fromEmail,
           fromName: emailSettings.fromName,
           // Only send API key if it's changed (not empty)
-          apiKey: emailSettings.apiKey || undefined
+          apiKey: emailSettings.apiKey || undefined,
+          emailTemplates: templates // Persist templates
         };
       }
 
@@ -247,7 +263,22 @@ const CommunicationSettings = () => {
           {['email', 'sms'].map((tab) => (
             <button
               key={tab}
-              onClick={() => { setActiveTab(tab); setTestResult(null); }}
+              onClick={() => {
+                setActiveTab(tab);
+                setTestResult(null);
+                // Reset test fields based on tab
+                if (tab === 'email') {
+                  setTestContact('');
+                  setTestMessage('welcome');
+                  const saved = localStorage.getItem('testContactEmail');
+                  if (saved) setTestContact(saved);
+                } else {
+                  setTestContact('');
+                  setTestMessage('This is a test message from EDucore.');
+                  const saved = localStorage.getItem('testContactPhone');
+                  if (saved) setTestContact(saved);
+                }
+              }}
               className={`flex items-center gap-2 px-6 py-4 font-semibold transition ${activeTab === tab
                 ? 'border-b-2 border-blue-600 text-blue-600'
                 : 'text-gray-600 hover:text-gray-800'
@@ -344,6 +375,206 @@ const CommunicationSettings = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Template Editor */}
+      {activeTab === 'email' && (
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+            <MessageSquare size={20} className="text-purple-600" />
+            Email Templates
+          </h3>
+
+          <div className="space-y-6">
+            {/* Template Selector */}
+            <div className="flex gap-4">
+              {['welcome', 'onboarding'].map(t => (
+                <button
+                  key={t}
+                  onClick={() => setEditingTemplate(t)}
+                  className={`px-4 py-2 rounded-lg capitalize border ${editingTemplate === t
+                    ? 'bg-purple-50 border-purple-200 text-purple-700 font-semibold'
+                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                >
+                  {t} Email
+                </button>
+              ))}
+            </div>
+
+            {/* Editor Fields */}
+            <div className="space-y-4 border p-4 rounded-lg bg-gray-50">
+              <div>
+                <label className="block text-sm font-semibold mb-2">Email Heading</label>
+                <input
+                  type="text"
+                  value={templates[editingTemplate]?.heading || ''}
+                  onChange={(e) => setTemplates(prev => ({
+                    ...prev,
+                    [editingTemplate]: { ...prev[editingTemplate], heading: e.target.value }
+                  }))}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  placeholder={editingTemplate === 'welcome' ? 'Welcome to your new School Management System' : "Let's get your school set up"}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-2">Body Content (HTML/Text)</label>
+                <textarea
+                  value={templates[editingTemplate]?.body || ''}
+                  onChange={(e) => setTemplates(prev => ({
+                    ...prev,
+                    [editingTemplate]: { ...prev[editingTemplate], body: e.target.value }
+                  }))}
+                  className="w-full px-4 py-3 border rounded-lg font-mono text-sm"
+                  rows={6}
+                  placeholder="Type your custom message here. You can use HTML tags like <b>bold</b> or <br/> for line breaks."
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Leave blank to use the system default template.
+                </p>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={() => handleSave('Email')}
+                  className="text-sm px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                >
+                  Save Template
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Test Email */}
+      {activeTab === 'email' && (
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <TestTube size={20} className="text-blue-600" />
+            Test Email
+          </h3>
+          <div className="space-y-4">
+            <div className="p-4 bg-blue-50 text-blue-800 rounded-lg text-sm">
+              <p className="font-semibold">Verify your templates:</p>
+              <ul className="list-disc list-inside mt-1">
+                <li><strong>Welcome Email:</strong> Standard greeting for new users.</li>
+                <li><strong>Onboarding Email:</strong> Step-by-step guide for new schools.</li>
+              </ul>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2">Template to Test</label>
+              <div className="flex gap-4">
+                {['welcome', 'onboarding'].map(t => (
+                  <label key={t} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="template"
+                      value={t}
+                      checked={testMessage === t} // Reusing testMessage state for template name
+                      onChange={() => setTestMessage(t)}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <span className="capitalize">{t} Email</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2">Recipient Email</label>
+              {!editingTestContact ? (
+                <div className="flex items-center justify-between px-4 py-2 border rounded-lg bg-gray-50">
+                  <span className="text-gray-800 font-mono font-semibold">{testContact}</span>
+                  <button
+                    onClick={() => setEditingTestContact(true)}
+                    className="p-1 text-blue-600 hover:bg-blue-100 rounded transition"
+                    title="Edit Email Address"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="email"
+                    value={testContact}
+                    onChange={(e) => {
+                      const newValue = e.target.value;
+                      setTestContact(newValue);
+                      if (newValue) localStorage.setItem('testContactEmail', newValue);
+                    }}
+                    className="flex-1 px-4 py-2 border rounded-lg"
+                    placeholder="admin@school.com"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => setEditingTestContact(false)}
+                    className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                  >
+                    ✓
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={async () => {
+                if (!testContact || !testContact.includes('@')) {
+                  showError('Enter valid email');
+                  return;
+                }
+                setTesting(true);
+                setTestResult(null);
+                try {
+                  const res = await communicationAPI.sendTestEmail({
+                    schoolId,
+                    email: testContact,
+                    template: testMessage // "welcome" or "onboarding"
+                  });
+                  setTestResult({
+                    success: true,
+                    message: res.message,
+                    timestamp: new Date().toLocaleString()
+                  });
+                  showSuccess('Email sent successfully!');
+                } catch (err) {
+                  setTestResult({
+                    success: false,
+                    message: err.message || 'Failed to send email',
+                    timestamp: new Date().toLocaleString(),
+                    errorDetails: err.toString()
+                  });
+                  showError('Failed to send Test Email');
+                } finally {
+                  setTesting(false);
+                }
+              }}
+              disabled={testing || !testContact}
+              className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+            >
+              {testing ? <Loader size={20} className="animate-spin" /> : <Send size={20} />}
+              {testing ? 'Sending...' : 'Send Test Email'}
+            </button>
+
+            {testResult && (
+              <div className={`p-4 rounded-lg border ${testResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                <div className="flex items-start gap-3">
+                  {testResult.success ? <CheckCircle className="text-green-600" size={20} /> : <XCircle className="text-red-600" size={20} />}
+                  <div>
+                    <p className="font-semibold">{testResult.message}</p>
+                    <p className="text-xs text-gray-600 mt-1">{testResult.timestamp}</p>
+                    {testResult.errorDetails && (
+                      <p className="text-xs text-red-700 mt-2 font-mono whitespace-pre-wrap">{testResult.errorDetails}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
