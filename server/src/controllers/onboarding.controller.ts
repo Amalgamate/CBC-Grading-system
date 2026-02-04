@@ -112,9 +112,11 @@ export class OnboardingController {
       if (!email || !emailRegex.test(email)) {
         return res.status(400).json({ success: false, error: 'Invalid email' });
       }
-      const phoneRegex = /^(?:\+254|0)7\d{8}$/;
-      if (!phone || !phoneRegex.test(phone)) {
-        return res.status(400).json({ success: false, error: 'Invalid phone' });
+      // Relaxed phone regex: supports + prefixed international or local 07/01/02
+      // Supports: +254..., 07..., 01..., 02...
+      const phoneRegex = /^(\+?[1-9]\d{1,14}|0[1-9]\d{8})$/;
+      if (!phone || !phoneRegex.test(phone.replace(/\s+/g, ''))) {
+        return res.status(400).json({ success: false, error: 'Invalid phone format (e.g., 0712345678 or +254712345678)' });
       }
       if (!address || !county || !schoolName || !password || !passwordConfirm) {
         return res.status(400).json({ success: false, error: 'Missing required fields' });
@@ -122,15 +124,18 @@ export class OnboardingController {
       if (password !== passwordConfirm) {
         return res.status(400).json({ success: false, error: 'Passwords do not match' });
       }
+      // Password strength: Match frontend (8+ chars) but keeping some complexity
       const strong =
-        password.length >= 12 &&
+        password.length >= 8 &&
         /[A-Z]/.test(password) &&
         /[a-z]/.test(password) &&
-        /\d/.test(password) &&
-        /[^A-Za-z0-9]/.test(password) &&
-        !/(password|qwerty|1234|admin|school)/i.test(password);
+        /\d/.test(password);
+
       if (!strong) {
-        return res.status(400).json({ success: false, error: 'Weak password' });
+        return res.status(400).json({
+          success: false,
+          error: 'Password must be at least 8 characters and include uppercase, lowercase, and numbers'
+        });
       }
 
       const existingUser = await prisma.user.findFirst({
