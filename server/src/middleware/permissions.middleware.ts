@@ -21,6 +21,7 @@ export interface AuthRequest extends Request {
   };
   file?: any;
   files?: any;
+  [key: string]: any; // Fallback for other properties like query, headers, etc.
 }
 
 /**
