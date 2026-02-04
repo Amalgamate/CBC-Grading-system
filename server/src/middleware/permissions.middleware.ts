@@ -9,7 +9,7 @@ import { Request, Response, NextFunction } from 'express';
 import { Permission, Role, hasPermission } from '../config/permissions';
 
 /**
- * Extended Request interface with user information
+ * Extended Request interface with user information and common middleware properties
  */
 export interface AuthRequest extends Request {
   user?: {
@@ -19,6 +19,8 @@ export interface AuthRequest extends Request {
     schoolId?: string | null;
     branchId?: string | null;
   };
+  file?: any;
+  files?: any;
 }
 
 /**
@@ -34,7 +36,7 @@ export const requirePermission = (permission: Permission) => {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
     try {
       const userRole = req.user?.role;
-      
+
       if (!userRole) {
         res.status(401).json({
           success: false,
@@ -42,7 +44,7 @@ export const requirePermission = (permission: Permission) => {
         });
         return;
       }
-      
+
       if (!hasPermission(userRole, permission)) {
         res.status(403).json({
           success: false,
@@ -52,7 +54,7 @@ export const requirePermission = (permission: Permission) => {
         });
         return;
       }
-      
+
       next();
     } catch (error) {
       next(error);
@@ -73,7 +75,7 @@ export const requireAnyPermission = (permissions: Permission[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
     try {
       const userRole = req.user?.role;
-      
+
       if (!userRole) {
         res.status(401).json({
           success: false,
@@ -81,11 +83,11 @@ export const requireAnyPermission = (permissions: Permission[]) => {
         });
         return;
       }
-      
-      const hasAnyPermission = permissions.some(permission => 
+
+      const hasAnyPermission = permissions.some(permission =>
         hasPermission(userRole, permission)
       );
-      
+
       if (!hasAnyPermission) {
         res.status(403).json({
           success: false,
@@ -95,7 +97,7 @@ export const requireAnyPermission = (permissions: Permission[]) => {
         });
         return;
       }
-      
+
       next();
     } catch (error) {
       next(error);
@@ -116,7 +118,7 @@ export const requireRole = (roles: Role[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
     try {
       const userRole = req.user?.role;
-      
+
       if (!userRole) {
         res.status(401).json({
           success: false,
@@ -124,7 +126,7 @@ export const requireRole = (roles: Role[]) => {
         });
         return;
       }
-      
+
       if (!roles.includes(userRole)) {
         res.status(403).json({
           success: false,
@@ -134,7 +136,7 @@ export const requireRole = (roles: Role[]) => {
         });
         return;
       }
-      
+
       next();
     } catch (error) {
       next(error);
@@ -158,19 +160,19 @@ export class ResourceAccessControl {
       try {
         const userRole = req.user?.role;
         const userId = req.user?.userId;
-        
+
         if (!userRole || !userId) {
           return res.status(401).json({
             success: false,
             message: 'Authentication required'
           });
         }
-        
+
         // SUPER_ADMIN, ADMIN, HEAD_TEACHER can access all learners
         if (['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'].includes(userRole)) {
           return next();
         }
-        
+
         // ACCOUNTANT and RECEPTIONIST can view but not modify
         if (['ACCOUNTANT', 'RECEPTIONIST'].includes(userRole)) {
           if (req.method === 'GET') {
@@ -181,7 +183,7 @@ export class ResourceAccessControl {
             message: 'You can only view learner information'
           });
         }
-        
+
         // TEACHER - check if learner is in their class (implement later with actual DB check)
         if (userRole === 'TEACHER') {
           // TODO: Check if teacher has this learner in their class
@@ -189,7 +191,7 @@ export class ResourceAccessControl {
           // if (hasAccess) return next();
           return next(); // Temporary - allow for now
         }
-        
+
         // PARENT - check if learner is their child (implement later with actual DB check)
         if (userRole === 'PARENT') {
           // TODO: Check if this is their child
@@ -197,7 +199,7 @@ export class ResourceAccessControl {
           // if (hasAccess) return next();
           return next(); // Temporary - allow for now
         }
-        
+
         return res.status(403).json({
           success: false,
           message: 'Cannot access this learner'
@@ -207,7 +209,7 @@ export class ResourceAccessControl {
       }
     };
   }
-  
+
   /**
    * Check if user can access a specific assessment
    */
@@ -216,25 +218,25 @@ export class ResourceAccessControl {
       try {
         const userRole = req.user?.role;
         const userId = req.user?.userId;
-        
+
         if (!userRole || !userId) {
           return res.status(401).json({
             success: false,
             message: 'Authentication required'
           });
         }
-        
+
         // SUPER_ADMIN, ADMIN, HEAD_TEACHER can access all assessments
         if (['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'].includes(userRole)) {
           return next();
         }
-        
+
         // TEACHER - can access assessments for their classes
         if (userRole === 'TEACHER') {
           // TODO: Check if assessment belongs to their class/subject
           return next(); // Temporary - allow for now
         }
-        
+
         // PARENT - can view assessments for their children
         if (userRole === 'PARENT') {
           if (req.method === 'GET') {
@@ -246,7 +248,7 @@ export class ResourceAccessControl {
             message: 'Parents can only view assessments'
           });
         }
-        
+
         return res.status(403).json({
           success: false,
           message: 'Cannot access this assessment'
@@ -275,7 +277,7 @@ export const auditLog = (action: string) => {
       path: req.path,
       params: req.params,
     });
-    
+
     next();
   };
 };

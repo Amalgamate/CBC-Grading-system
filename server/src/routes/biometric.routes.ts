@@ -5,7 +5,7 @@
  * @module routes/biometric.routes
  */
 
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { authenticate } from '../middleware/auth.middleware';
 import { requirePermission } from '../middleware/permissions.middleware';
 
@@ -26,7 +26,7 @@ router.get(
   '/devices',
   authenticate,
   requirePermission('MANAGE_BIOMETRIC_DEVICES'),
-  (req, res) => {
+  (req: Request, res: Response) => {
     res.status(501).json({
       success: false,
       message: 'Biometric device management coming soon',
@@ -58,7 +58,7 @@ router.post(
   '/devices',
   authenticate,
   requirePermission('MANAGE_BIOMETRIC_DEVICES'),
-  (req, res) => {
+  (req: Request, res: Response) => {
     res.status(501).json({
       success: false,
       message: 'Device registration coming soon',
@@ -91,7 +91,7 @@ router.post(
   '/enroll/learner/:learnerId',
   authenticate,
   requirePermission('ENROLL_FINGERPRINTS'),
-  (req, res) => {
+  (req: Request, res: Response) => {
     res.status(501).json({
       success: false,
       message: 'Fingerprint enrollment coming soon',
@@ -111,7 +111,7 @@ router.post(
   '/enroll/staff/:staffId',
   authenticate,
   requirePermission('ENROLL_FINGERPRINTS'),
-  (req, res) => {
+  (req: Request, res: Response) => {
     res.status(501).json({
       success: false,
       message: 'Staff fingerprint enrollment coming soon',
@@ -147,7 +147,7 @@ router.post(
 router.post(
   '/attendance/log',
   // Note: This would use device token authentication instead of user JWT
-  (req, res) => {
+  (req: Request, res: Response) => {
     res.status(501).json({
       success: false,
       message: 'Biometric attendance logging coming soon',
@@ -175,7 +175,7 @@ router.get(
   '/attendance/logs',
   authenticate,
   requirePermission('VIEW_BIOMETRIC_LOGS'),
-  (req, res) => {
+  (req: Request, res: Response) => {
     res.status(501).json({
       success: false,
       message: 'Biometric logs retrieval coming soon',
@@ -202,7 +202,7 @@ router.post(
   '/sync/:deviceId',
   authenticate,
   requirePermission('MANAGE_BIOMETRIC_DEVICES'),
-  (req, res) => {
+  (req: Request, res: Response) => {
     res.status(501).json({
       success: false,
       message: 'Device sync coming soon',
@@ -222,7 +222,7 @@ router.post(
   '/verify',
   authenticate,
   requirePermission('ENROLL_FINGERPRINTS'),
-  (req, res) => {
+  (req: Request, res: Response) => {
     res.status(501).json({
       success: false,
       message: 'Fingerprint verification coming soon',
@@ -246,7 +246,7 @@ router.get(
   '/reports/daily',
   authenticate,
   requirePermission('VIEW_BIOMETRIC_LOGS'),
-  (req, res) => {
+  (req: Request, res: Response) => {
     res.status(501).json({
       success: false,
       message: 'Biometric reports coming soon',
@@ -270,7 +270,7 @@ router.get(
   '/devices/:deviceId/status',
   authenticate,
   requirePermission('MANAGE_BIOMETRIC_DEVICES'),
-  (req, res) => {
+  (req: Request, res: Response) => {
     res.status(501).json({
       success: false,
       message: 'Device status monitoring coming soon',
@@ -304,7 +304,7 @@ router.put(
   '/config',
   authenticate,
   requirePermission('CONFIGURE_BIOMETRIC_API'),
-  (req, res) => {
+  (req: Request, res: Response) => {
     res.status(501).json({
       success: false,
       message: 'Biometric configuration coming soon',
