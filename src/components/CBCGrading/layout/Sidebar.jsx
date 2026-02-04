@@ -297,21 +297,23 @@ const Sidebar = ({
   }, [can]);
 
   return (
-  return (
     <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-[#2e1d2b] text-white transition-all duration-300 flex flex-col border-r border-gray-800`}>
       {/* Logo/Brand */}
       <div className="p-5 border-b border-white/10 bg-[#714B67]">
-        <div className="flex items-center gap-3">
-          <img
-            src={brandingSettings?.logoUrl || '/logo-new.png'}
-            alt="EDucore Logo"
-            className="w-10 h-10 object-contain"
-            onError={(e) => { e.target.src = '/logo-new.png'; }}
-          />
-          {sidebarOpen && (
-            <span className="font-extrabold text-lg tracking-tight text-white">
-              {brandingSettings?.schoolName || 'ElimuCrown'}
-            </span>
+        <div className="flex items-center gap-3 justify-center">
+          {sidebarOpen ? (
+            <img
+              src={brandingSettings?.logoUrl || '/logo-landscape.png'}
+              alt="EDucore Logo"
+              className="h-10 w-auto object-contain"
+              onError={(e) => { e.target.src = '/logo-landscape.png'; }}
+            />
+          ) : (
+            <img
+              src={'/logo-new.png'}
+              alt="EDucore Icon"
+              className="w-10 h-10 object-contain"
+            />
           )}
         </div>
       </div>
