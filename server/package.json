@@ -7,7 +7,7 @@
     "dev": "nodemon",
     "build": "tsc",
     "postinstall": "prisma generate --schema ./prisma/schema.prisma",
-    "start": "prisma migrate resolve --applied add_user_security_columns --schema ./prisma/schema.prisma 2>/dev/null || true && prisma migrate deploy --schema ./prisma/schema.prisma && node dist/index.js",
+    "start": "node dist/index.js",
     "db:reset": "prisma migrate reset --force --schema ./prisma/schema.prisma",
     "seed": "ts-node prisma/seed.ts",
     "seed:streams": "ts-node prisma/seed-streams.ts",
