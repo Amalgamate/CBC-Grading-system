@@ -290,30 +290,32 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
         </div>
 
         {/* Right Column - Dynamic Content */}
-        <div className="w-full lg:w-1/2 h-full p-6 lg:p-24 flex flex-col justify-center bg-white">
+        <div className="w-full lg:w-1/2 h-full flex flex-col justify-center items-center bg-[#F9FAFB] p-4 lg:p-0">
           {showOTPVerification && pendingUserData ? (
-            <OTPVerificationForm
-              email={pendingUserData.email}
-              phone={pendingUserData.phone}
-              onVerifySuccess={handleOTPVerifySuccess}
-              onBackToLogin={handleBackToLogin}
-              brandingSettings={brandingSettings}
-            />
+            <div className="bg-white p-8 sm:p-12 rounded-2xl shadow-xl w-full max-w-lg border border-gray-100">
+              <OTPVerificationForm
+                email={pendingUserData.email}
+                phone={pendingUserData.phone}
+                onVerifySuccess={handleOTPVerifySuccess}
+                onBackToLogin={handleBackToLogin}
+                brandingSettings={brandingSettings}
+              />
+            </div>
           ) : (
-            <div className="max-w-md mx-auto w-full animate-fade-in">
-              <div className="mb-10">
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-[#111827] mb-3">Sign In</h1>
-                <p className="text-slate-500 text-lg">Access your institution's dashboard.</p>
+            <div className="bg-white p-8 sm:p-12 rounded-2xl shadow-xl w-full max-w-lg border border-gray-100 animate-fade-in relative z-20">
+              <div className="mb-8 text-center">
+                <h1 className="text-3xl font-extrabold text-[#111827] mb-2">Sign In</h1>
+                <p className="text-slate-500 text-base">Access your institution's dashboard.</p>
               </div>
 
               {errors.form && (
-                <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-lg flex items-start gap-3 text-red-700 animate-shake shadow-sm">
+                <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg flex items-start gap-3 text-red-700 animate-shake shadow-sm">
                   <AlertCircle className="h-5 w-5 mt-0.5 shrink-0" />
                   <div className="text-sm font-medium">{errors.form}</div>
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Email Field */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">
@@ -328,7 +330,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all outline-none text-gray-900 ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-[#714B67]/50'
+                      className={`w-full pl-11 pr-4 py-3 bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all outline-none text-gray-900 ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-[#714B67]/50'
                         }`}
                       placeholder="name@school.com"
                     />
@@ -343,9 +345,19 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
 
                 {/* Password Field */}
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Password
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-bold text-gray-700">
+                      Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={onSwitchToForgotPassword}
+                      className="text-sm font-bold text-[#714B67] hover:text-[#5d3d54] hover:underline transition-all"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <Lock className="h-5 w-5 text-gray-400" />
@@ -355,7 +367,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
-                      className={`w-full pl-11 pr-12 py-3.5 bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all outline-none text-gray-900 ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-[#714B67]/50'
+                      className={`w-full pl-11 pr-12 py-3 bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all outline-none text-gray-900 ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-[#714B67]/50'
                         }`}
                       placeholder="••••••••••••"
                     />
@@ -375,8 +387,8 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                   )}
                 </div>
 
-                {/* Remember Me & Forgot Password */}
-                <div className="flex items-center justify-between pt-2">
+                {/* Remember Me */}
+                <div className="flex items-center pt-2">
                   <label className="flex items-center cursor-pointer group">
                     <input
                       type="checkbox"
@@ -387,13 +399,6 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                     />
                     <span className="ml-2 text-sm text-gray-600 group-hover:text-gray-900 transition-colors">Remember me</span>
                   </label>
-                  <button
-                    type="button"
-                    onClick={onSwitchToForgotPassword}
-                    className="text-sm font-bold text-[#714B67] hover:text-[#5d3d54] hover:underline transition-all"
-                  >
-                    Forgot password?
-                  </button>
                 </div>
 
 
@@ -413,7 +418,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-[#714B67] text-white py-4 rounded-lg font-bold hover:bg-[#5d3d54] focus:ring-4 focus:ring-purple-200 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none text-lg flex items-center justify-center"
+                  className="w-full bg-[#714B67] text-white py-4 rounded-lg font-bold hover:bg-[#5d3d54] focus:ring-4 focus:ring-purple-200 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none text-lg flex items-center justify-center transform active:scale-95"
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center gap-3">
@@ -425,12 +430,10 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                   )}
                 </button>
 
-                {/* Branch Selection */}
-
               </form>
 
               {/* Sign Up Link */}
-              <div className="mt-8 text-center pt-8 border-t border-gray-100">
+              <div className="mt-8 text-center pt-6 border-t border-gray-100">
                 <p className="text-base text-gray-600">
                   Don't have an account?{' '}
                   <button
