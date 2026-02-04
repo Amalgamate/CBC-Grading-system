@@ -3,7 +3,8 @@
     "target": "ES2020",
     "module": "commonjs",
     "lib": [
-      "ES2020"
+      "ES2020",
+      "DOM"
     ],
     "outDir": "./dist",
     "rootDir": "./src",
@@ -29,9 +30,10 @@
     "node_modules",
     "dist",
     "tests",
+    "src/__tests__",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
     "src/examples/**/*",
-    "src/routes/biometric.routes.ts",
-    "scripts/**/*",
-    "../migration-fixes/**/*"
+    "scripts/**/*"
   ]
 }
