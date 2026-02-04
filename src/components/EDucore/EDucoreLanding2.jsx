@@ -62,7 +62,7 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
               <Zap className="w-5 h-5 text-blue-600" />
               <span className="text-sm font-bold text-blue-700">CBC Assessment Made Simple</span>
             </div>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 leading-tight tracking-tight mb-6">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight tracking-tight mb-6">
               Stop Wrestling with<br />
               <span className="text-blue-600">School Management</span>
             </h2>
