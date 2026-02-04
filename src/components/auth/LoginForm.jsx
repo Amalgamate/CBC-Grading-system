@@ -249,10 +249,14 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
         <div
           className="w-full lg:w-1/2 h-full p-8 lg:p-16 flex flex-col justify-between items-center text-white relative bg-[#714B67]"
         >
-          {/* Decorative Elements (Subtle Odoo-like patterns) */}
-          <div className="absolute inset-0 overflow-hidden opacity-10">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#0D9488] rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl"></div>
+          {/* Decorative Elements - Restored Blobs */}
+          <div className="absolute inset-0 overflow-hidden">
+            {/* Top Right Blob - Teal Tint */}
+            <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#0D9488] rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+            {/* Bottom Left Blob - Darker Purple Tint */}
+            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-[#2e1d2b] rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
+            {/* Center Blob - Light Accent */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-purple-400 rounded-full mix-blend-overlay filter blur-3xl opacity-10 animate-blob animation-delay-4000"></div>
           </div>
 
           {/* Main Content */}
