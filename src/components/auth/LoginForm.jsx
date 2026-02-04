@@ -292,7 +292,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
         {/* Right Column - Dynamic Content */}
         <div className="w-full lg:w-1/2 h-full flex flex-col justify-center items-center bg-[#F9FAFB] p-4 lg:p-0">
           {showOTPVerification && pendingUserData ? (
-            <div className="bg-white p-8 sm:p-12 rounded-2xl shadow-xl w-full max-w-lg border border-gray-100">
+            <div className="w-full max-w-md px-6">
               <OTPVerificationForm
                 email={pendingUserData.email}
                 phone={pendingUserData.phone}
@@ -302,7 +302,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
               />
             </div>
           ) : (
-            <div className="bg-white p-8 sm:p-12 rounded-2xl shadow-xl w-full max-w-lg border border-gray-100 animate-fade-in relative z-20">
+            <div className="w-full max-w-md px-6 animate-fade-in relative z-20">
               <div className="mb-8 text-center">
                 <h1 className="text-3xl font-extrabold text-[#111827] mb-2">Sign In</h1>
                 <p className="text-slate-500 text-base">Access your institution's dashboard.</p>
