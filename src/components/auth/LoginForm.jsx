@@ -259,7 +259,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
           <div className="flex-1 flex items-center justify-center relative z-10">
             <div className="max-w-md text-center">
               {/* Logo */}
-              <div className="mb-8 sm:mb-10 bg-white/10 p-6 rounded-3xl backdrop-blur-sm border border-white/10 shadow-2xl">
+              <div className="mb-8 sm:mb-10">
                 <img
                   src={brandingSettings?.logoUrl || '/logo-new.png'}
                   alt="Elimcrown Logo"
