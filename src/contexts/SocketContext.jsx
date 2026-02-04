@@ -10,10 +10,9 @@ export const useSocket = () => useContext(SocketContext);
 export const SocketProvider = ({ children }) => {
     const [socket, setSocket] = useState(null);
 
-    // Clean URL to base domain/port
-    const SOCKET_URL = API_BASE_URL.replace(/\/api$/, '');
-
     useEffect(() => {
+        // Clean URL to base domain/port
+        const SOCKET_URL = API_BASE_URL.replace(/\/api$/, '');
         const token = localStorage.getItem('token');
 
         if (token) {
