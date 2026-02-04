@@ -23,7 +23,7 @@ export const useLearners = () => {
       setLoading(true);
       setError(null);
       const response = await api.learners.getAll(params);
-      
+
       if (response.success) {
         if (response.pagination) {
           setPagination(response.pagination);
@@ -62,7 +62,7 @@ export const useLearners = () => {
           admissionDate: new Date(learner.admissionDate).toLocaleDateString(),
           createdAt: learner.createdAt,
         }));
-        
+
         setLearners(transformedLearners);
       }
     } catch (err) {
@@ -89,9 +89,9 @@ export const useLearners = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await api.learners.create(learnerData);
-      
+
       if (response.success) {
         await fetchLearners();
         return { success: true, data: response.data };
@@ -109,13 +109,13 @@ export const useLearners = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await api.learners.update(id, learnerData);
-      
+
       if (response.success) {
-        await fetchLearners({ 
-          page: pagination.page, 
-          limit: pagination.limit 
+        await fetchLearners({
+          page: pagination.page,
+          limit: pagination.limit
         });
         return { success: true, data: response.data };
       }
@@ -132,13 +132,13 @@ export const useLearners = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await api.learners.delete(id);
-      
+
       if (response.success) {
-        await fetchLearners({ 
-          page: pagination.page, 
-          limit: pagination.limit 
+        await fetchLearners({
+          page: pagination.page,
+          limit: pagination.limit
         });
         return { success: true };
       } else {
@@ -159,7 +159,7 @@ export const useLearners = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const deletePromises = ids.map(async (id) => {
         try {
           return await api.learners.delete(id);
@@ -167,23 +167,23 @@ export const useLearners = () => {
           return { success: false, message: e.message };
         }
       });
-      
+
       const results = await Promise.all(deletePromises);
       const failures = results.filter(r => !r.success);
-      
-      await fetchLearners({ 
-        page: pagination.page, 
-        limit: pagination.limit 
+
+      await fetchLearners({
+        page: pagination.page,
+        limit: pagination.limit
       });
 
       if (failures.length > 0) {
-        return { 
-          success: false, 
+        return {
+          success: false,
           error: `Failed to delete ${failures.length} out of ${ids.length} learners`,
-          results 
+          results
         };
       }
-      
+
       return { success: true };
     } catch (err) {
       console.error('Error in bulk delete:', err);

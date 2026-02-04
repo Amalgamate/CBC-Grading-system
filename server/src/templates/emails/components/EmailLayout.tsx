@@ -11,6 +11,8 @@ import {
     Img,
     Link,
     Hr,
+    Row,
+    Column,
 } from '@react-email/components';
 
 interface EmailLayoutProps {
@@ -23,12 +25,16 @@ interface EmailLayoutProps {
 }
 
 const baseUrl = process.env.FRONTEND_URL || 'https://educorev1.up.railway.app';
-const brandColor = '#1e3a8a';
+const brandColor = '#714B67'; // Elimcrown Purple
+const tealColor = '#017E84'; // Elimcrown Teal
+
+// For testing purposes, we use a public icon that won't break in Gmail
+const publicLogoUrl = 'https://img.icons8.com/fluency-systems-filled/96/714B67/graduation-cap.png';
 
 export const EmailLayout = ({
     previewText,
     heading,
-    schoolName = 'EDucore Platform',
+    schoolName = 'Elimcrown Platform',
     children,
 }: EmailLayoutProps) => {
     return (
@@ -39,33 +45,41 @@ export const EmailLayout = ({
                 <Container style={container}>
                     {/* Header */}
                     <Section style={header}>
-                        <Img
-                            src={`${baseUrl}/logo-educore.png`} // Ensure this asset exists publicly or use a CDN
-                            width="50"
-                            height="50"
-                            alt="EDucore Logo"
-                            style={logo}
-                        />
-                        <Text style={brandName}>{schoolName}</Text>
+                        <Row style={logoRow}>
+                            <Column style={logoColumn}>
+                                <Img
+                                    src={publicLogoUrl}
+                                    width="42"
+                                    height="42"
+                                    alt="E"
+                                    style={logo}
+                                />
+                            </Column>
+                            <Column>
+                                <Text style={brandName}>Elimcrown</Text>
+                            </Column>
+                        </Row>
                     </Section>
 
                     {/* Main Content Card */}
                     <Section style={contentContainer}>
+                        <Text style={schoolNameHeader}>{schoolName}</Text>
                         {heading && <Heading style={h1}>{heading}</Heading>}
+                        <Hr style={divider} />
                         {children}
                     </Section>
 
                     {/* Footer */}
                     <Section style={footer}>
                         <Text style={footerText}>
-                            &copy; {new Date().getFullYear()} EDucore V1. All rights reserved.
+                            &copy; {new Date().getFullYear()} Elimcrown Inc. All rights reserved.
                         </Text>
                         <Text style={footerText}>
                             <Link href={`${baseUrl}/support`} style={link}>Help Center</Link> •{' '}
                             <Link href={`${baseUrl}/privacy`} style={link}>Privacy Policy</Link>
                         </Text>
                         <Text style={footerSubText}>
-                            You represent an educational institution using the EDucore Platform.
+                            The Operating System for Modern Schools
                         </Text>
                     </Section>
                 </Container>
@@ -77,74 +91,100 @@ export const EmailLayout = ({
 // Styles
 const main = {
     backgroundColor: '#f3f4f6',
-    fontFamily:
-        '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+    fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
 };
 
 const container = {
     backgroundColor: '#ffffff',
-    margin: '0 auto',
+    margin: '40px auto',
     padding: '0',
-    marginBottom: '64px',
-    marginTop: '40px',
     borderRadius: '12px',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-    maxWidth: '600px',
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    maxWidth: '580px',
+    border: '1px solid #e5e7eb',
     overflow: 'hidden',
 };
 
 const header = {
-    padding: '32px 32px 20px',
-    textAlign: 'center' as const,
-    borderBottom: '1px solid #f0f0f0',
+    padding: '30px 48px',
     backgroundColor: '#ffffff',
+    borderBottom: '1px solid #f3f4f6',
 };
 
-const brandName = {
-    color: '#0f172a',
-    fontSize: '18px',
-    fontWeight: '600',
-    marginTop: '8px',
+const logoRow = {
+    display: 'inline-block',
+    textAlign: 'center' as const,
+    margin: '0 auto',
+};
+
+const logoColumn = {
+    verticalAlign: 'middle',
+    paddingRight: '12px',
 };
 
 const logo = {
-    margin: '0 auto',
+    borderRadius: '8px',
+};
+
+const brandName = {
+    color: '#714B67',
+    fontSize: '26px',
+    fontWeight: '800' as const,
+    margin: '0',
+    letterSpacing: '-1px',
+    verticalAlign: 'middle',
 };
 
 const contentContainer = {
     padding: '40px 48px',
 };
 
-const h1 = {
-    color: '#1e293b',
-    fontSize: '24px',
+const schoolNameHeader = {
+    color: '#017E84',
+    fontSize: '13px',
     fontWeight: '700',
-    lineHeight: '32px',
-    margin: '0 0 24px',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '1.5px',
+    margin: '0 0 10px',
+};
+
+const h1 = {
+    color: '#111827',
+    fontSize: '32px',
+    fontWeight: '800',
+    lineHeight: '40px',
+    margin: '0 0 20px',
     textAlign: 'left' as const,
 };
 
+const divider = {
+    borderColor: '#f3f4f6',
+    margin: '0 0 30px',
+};
+
 const footer = {
-    padding: '32px',
-    backgroundColor: '#f8fafc',
+    padding: '40px',
+    backgroundColor: '#f9fafb',
     textAlign: 'center' as const,
-    borderTop: '1px solid #f0f0f0',
+    borderTop: '1px solid #f3f4f6',
 };
 
 const footerText = {
     fontSize: '14px',
-    color: '#64748b',
-    margin: '8px 0',
+    color: '#6b7280',
+    margin: '4px 0',
 };
 
 const footerSubText = {
     fontSize: '12px',
-    color: '#94a3b8',
-    margin: '12px 0 0',
+    color: '#9ca3af',
+    margin: '16px 0 0',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '1px',
 };
 
 const link = {
     color: brandColor,
     textDecoration: 'none',
-    fontWeight: '500',
+    fontWeight: '600',
 };

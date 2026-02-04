@@ -6,6 +6,7 @@ interface OnboardingEmailProps {
     schoolName: string;
     adminName: string;
     loginUrl: string;
+    email?: string; // Add email prop for credentials display
     customHeading?: string;
     customBody?: string;
 }
@@ -14,14 +15,15 @@ export const OnboardingEmail = ({
     schoolName,
     adminName,
     loginUrl,
+    email,
     customHeading,
     customBody,
 }: OnboardingEmailProps) => {
     return (
         <EmailLayout
-            previewText="Getting Started with EDucore - Your Setup Guide"
+            previewText={`Welcome to Elimcrown - Setup ${schoolName}`}
             schoolName={schoolName}
-            heading={customHeading || "Let's get your school set up"}
+            heading={customHeading || "Welcome to your new school Operating System"}
         >
             <Text style={text}>
                 Hello <strong>{adminName}</strong>,
@@ -32,8 +34,36 @@ export const OnboardingEmail = ({
             ) : (
                 <>
                     <Text style={text}>
-                        To get the most out of EDucore, we recommend following this quick setup guide.
-                        A properly configured system ensures accurate reporting and grading from day one.
+                        Thank you for choosing <strong>Elimcrown</strong>. We have set up a secure environment for <strong>{schoolName}</strong>.
+                        <br />
+                        You are now ready to modernize your school operations with the most advanced CBC-native assessment and finance platform.
+                    </Text>
+
+                    {/* Credentials Section */}
+                    <Section style={credentialsContainer}>
+                        <Heading as="h3" style={credentialsTitle}>Your Login Details</Heading>
+                        <Row>
+                            <Column>
+                                <Text style={credentialLabel}>School Portal:</Text>
+                                <Text style={credentialValue}>{loginUrl}</Text>
+                            </Column>
+                        </Row>
+                        <Row>
+                            <Column>
+                                <Text style={credentialLabel}>Username:</Text>
+                                <Text style={credentialValue}>{email}</Text>
+                            </Column>
+                        </Row>
+                        <Row>
+                            <Column>
+                                <Text style={credentialLabel}>Password:</Text>
+                                <Text style={credentialValue}>The password you set during registration</Text>
+                            </Column>
+                        </Row>
+                    </Section>
+
+                    <Text style={text}>
+                        Follow your <strong>Quick Start Guide</strong> below to get running in minutes:
                     </Text>
 
                     <Section style={stepsContainer}>
@@ -45,7 +75,7 @@ export const OnboardingEmail = ({
                         <Step
                             number="2"
                             title="Add Your People"
-                            description="Navigate to 'User Management' to invite Teachers and add Students. You can bulk import students via Excel."
+                            description="Navigate to 'User Management' to invite Teachers. You can bulk import students via Excel later."
                         />
                         <Step
                             number="3"
@@ -58,7 +88,7 @@ export const OnboardingEmail = ({
 
             <Section style={btnContainer}>
                 <Button style={button} href={loginUrl}>
-                    Start Setup Now
+                    Login to Dashboard
                 </Button>
             </Section>
 
@@ -87,10 +117,46 @@ const Step = ({ number, title, description }: { number: string, title: string, d
 );
 
 const text = {
-    color: '#334155',
+    color: '#374151',
+    fontSize: '15px',
+    lineHeight: '24px',
+    marginBottom: '20px',
+};
+
+const credentialsContainer = {
+    backgroundColor: '#f9fafb',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    padding: '24px',
+    marginBottom: '32px',
+};
+
+const credentialsTitle = {
+    color: '#714B67', // Purple
     fontSize: '16px',
-    lineHeight: '26px',
-    marginBottom: '24px',
+    fontWeight: '700',
+    marginTop: '0',
+    marginBottom: '16px',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+};
+
+const credentialLabel = {
+    color: '#6b7280',
+    fontSize: '13px',
+    fontWeight: '600',
+    marginBottom: '4px',
+    marginTop: '0',
+    textTransform: 'uppercase' as const,
+};
+
+const credentialValue = {
+    color: '#111827',
+    fontSize: '15px',
+    fontWeight: '500', // normal weight
+    fontFamily: 'Consolas, monospace', // monospaced likely better for credentials
+    marginBottom: '16px',
+    marginTop: '0',
 };
 
 const stepsContainer = {
@@ -111,40 +177,40 @@ const numberCol = {
 const circle = {
     width: '32px',
     height: '32px',
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#f0fdfa', // Light teal bg
     borderRadius: '50%',
-    border: '1px solid #1e3a8a',
+    border: '1px solid #017E84', // Teal border
     textAlign: 'center' as const,
 };
 
 const numberText = {
-    color: '#1e3a8a',
+    color: '#017E84', // Teal text
     fontSize: '16px',
     fontWeight: 'bold',
-    marginTop: '2px', // Visual centering adjustment
+    marginTop: '2px',
     marginBottom: '0',
 };
 
 const stepTitle = {
-    color: '#1e293b', // darker slate
+    color: '#1f2937',
     fontSize: '16px',
     fontWeight: '700',
     marginTop: '0',
-    marginBottom: '8px',
+    marginBottom: '4px',
 };
 
 const stepDescription = {
-    color: '#64748b',
-    fontSize: '15px',
-    lineHeight: '24px',
+    color: '#6b7280',
+    fontSize: '14px',
+    lineHeight: '22px',
     marginTop: '0',
     marginBottom: '0',
 };
 
 const subText = {
-    color: '#64748b',
-    fontSize: '14px',
-    lineHeight: '22px',
+    color: '#9ca3af',
+    fontSize: '13px',
+    lineHeight: '20px',
 };
 
 const btnContainer = {
@@ -153,19 +219,19 @@ const btnContainer = {
 };
 
 const button = {
-    backgroundColor: '#1e3a8a',
+    backgroundColor: '#714B67', // Purple
     borderRadius: '6px',
     color: '#fff',
     fontSize: '16px',
-    fontWeight: '600',
+    fontWeight: 'bold',
     textDecoration: 'none',
-    padding: '12px 24px',
+    padding: '12px 32px',
     display: 'inline-block',
-    boxShadow: '0 4px 6px -1px rgba(30, 58, 138, 0.2)',
+    boxShadow: '0 4px 6px -1px rgba(113, 75, 103, 0.2)',
 };
 
 const hr = {
-    borderColor: '#e2e8f0',
+    borderColor: '#f3f4f6',
     margin: '32px 0 24px',
 };
 

@@ -20,7 +20,7 @@ export const useTeachers = () => {
       setLoading(true);
       setError(null);
       const response = await api.teachers.getAll();
-      
+
       if (response.success) {
         // Transform backend data to match frontend format
         const transformedTeachers = response.data.map(teacher => ({
@@ -34,11 +34,11 @@ export const useTeachers = () => {
           classAssigned: 'N/A', // TODO: Add class assignment to backend
           status: teacher.status,
           joinDate: new Date(teacher.createdAt).toLocaleDateString(),
-          lastLogin: teacher.lastLogin 
-            ? new Date(teacher.lastLogin).toLocaleDateString() 
+          lastLogin: teacher.lastLogin
+            ? new Date(teacher.lastLogin).toLocaleDateString()
             : 'Never'
         }));
-        
+
         setTeachers(transformedTeachers);
       }
     } catch (err) {
@@ -57,11 +57,11 @@ export const useTeachers = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       console.log('Creating teacher with data:', teacherData);
       const response = await api.teachers.create(teacherData);
       console.log('Teacher creation response:', response);
-      
+
       if (response.success) {
         await fetchTeachers(); // Refresh the list
         return { success: true, data: response.data };
@@ -83,9 +83,9 @@ export const useTeachers = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await api.teachers.update(id, teacherData);
-      
+
       if (response.success) {
         await fetchTeachers(); // Refresh the list
         return { success: true, data: response.data };
@@ -106,9 +106,9 @@ export const useTeachers = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await api.teachers.delete(id);
-      
+
       if (response.success) {
         await fetchTeachers(); // Refresh the list
         return { success: true };

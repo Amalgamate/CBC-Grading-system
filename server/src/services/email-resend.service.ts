@@ -8,6 +8,7 @@ import * as React from 'react';
 import WelcomeEmail from '../templates/emails/WelcomeEmail';
 import OnboardingEmail from '../templates/emails/OnboardingEmail';
 import PasswordResetEmail from '../templates/emails/PasswordResetEmail';
+import TicketCreatedEmail from '../templates/emails/TicketCreatedEmail';
 
 export interface WelcomeEmailData {
   to: string;
@@ -32,6 +33,15 @@ export interface PasswordResetEmailData {
   schoolName: string;
   resetLink: string;
   schoolId?: string;
+}
+
+export interface TicketCreatedEmailData {
+  schoolName: string;
+  userName: string;
+  ticketSubject: string;
+  ticketPriority: string;
+  ticketMessage: string;
+  ticketId: string;
 }
 
 export class EmailService {
@@ -126,6 +136,7 @@ export class EmailService {
           schoolName,
           adminName,
           loginUrl,
+          email: to, // Pass the recipient email for display
           customHeading: config?.emailTemplates?.onboarding?.heading,
           customBody: config?.emailTemplates?.onboarding?.body
         })
@@ -187,6 +198,51 @@ export class EmailService {
     } catch (error) {
       console.error('❌ Failed to send password reset email:', error);
       throw error;
+    }
+  }
+
+  static async sendTicketCreated(data: TicketCreatedEmailData): Promise<void> {
+    // This email goes to the SUPER ADMIN / SUPPORT TEAM
+    // So we use the system default Resend key, not the school's specific one
+    const client = this.getResendClient();
+    const fromEmail = this.defaultFrom;
+
+    // Support Email Destination
+    // In production, this should be env var like SUPPORT_EMAIL
+    const toEmail = process.env.SUPPORT_EMAIL || 'support@educore.dev';
+
+    if (!client) {
+      console.warn(`⚠️ Skipped Ticket Notification: No Resend API Key configured.`);
+      return;
+    }
+
+    try {
+      const html = await render(
+        React.createElement(TicketCreatedEmail, {
+          schoolName: data.schoolName,
+          userName: data.userName,
+          ticketSubject: data.ticketSubject,
+          ticketPriority: data.ticketPriority,
+          ticketMessage: data.ticketMessage,
+          ticketLink: `${process.env.FRONTEND_URL}/superadmin/support?id=${data.ticketId}`
+        })
+      );
+
+      const response = await client.emails.send({
+        from: `EDucore Support <${fromEmail}>`,
+        to: [toEmail],
+        subject: `[${data.ticketPriority}] New Ticket: ${data.ticketSubject}`,
+        html,
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      console.log(`📧 Support Notification sent for ticket ${data.ticketId} (ID: ${response.data?.id})`);
+    } catch (error) {
+      // Log but don't blocking ticket creation
+      console.error('❌ Failed to send support notification:', error);
     }
   }
 }

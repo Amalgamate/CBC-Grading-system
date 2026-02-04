@@ -20,6 +20,7 @@ import communicationRoutes from './communication.routes';
 import adminRoutes from './admin.routes';
 import learningAreaRoutes from './learningArea.routes';
 import dashboardRoutes from './dashboard.routes';
+import supportRoutes from './support.routes';
 import { checkSchoolActive } from '../middleware/trial.guard';
 import onboardingRoutes from './onboarding.routes';
 import { issueCsrfToken } from '../middleware/csrf.middleware';
@@ -49,6 +50,7 @@ router.use(enforcePortalTenantMatch);
 // Admin routes must come BEFORE requireTenant middleware
 // because super admins need access to ALL schools
 router.use('/admin', adminRoutes);
+router.use('/support', supportRoutes);
 
 // Apply tenant middleware to all other routes
 router.use(requireTenant);

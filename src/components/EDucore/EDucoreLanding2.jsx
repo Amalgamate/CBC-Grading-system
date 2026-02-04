@@ -13,9 +13,9 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
       <header className="sticky top-0 bg-white/95 backdrop-blur-sm shadow-sm z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-4">
           <div className="flex items-center gap-3">
-            <img src="/logo-educore.png" alt="EDucore" className="w-10 h-10" />
+            <img src="/logo-educore.png" alt="Elimcrown" className="w-10 h-10" />
             <div>
-              <h1 className="text-xl font-bold text-gray-900">EDucore V1</h1>
+              <h1 className="text-xl font-bold text-gray-900">Elimcrown V1</h1>
               <p className="text-xs text-gray-500">School Management Platform</p>
             </div>
           </div>
@@ -276,9 +276,9 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
       <section id="about" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">About EDucore</h2>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">About Elimcrown</h2>
             <p className="text-gray-700 leading-relaxed max-w-3xl mx-auto">
-              EDucore helps Kenyan schools implement CBC assessments efficiently with powerful analytics, secure data management, and intuitive tools that save time and improve learning outcomes.
+              Elimcrown helps Kenyan schools implement CBC assessments efficiently with powerful analytics, secure data management, and intuitive tools that save time and improve learning outcomes.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
@@ -319,7 +319,7 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
               <h3 className="text-lg font-black text-gray-900 mb-4">Contact Information</h3>
               <div className="space-y-3 text-gray-700">
                 <p className="flex items-start gap-2">
-                  <span className="font-bold">Email:</span> support@educore.local
+                  <span className="font-bold">Email:</span> support@elimcrown.local
                 </p>
                 <p className="flex items-start gap-2">
                   <span className="font-bold">Phone:</span> +254 700 000 000
@@ -337,13 +337,13 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <img src="/logo-educore.png" alt="EDucore" className="w-8 h-8" />
+              <img src="/logo-educore.png" alt="Elimcrown" className="w-8 h-8" />
               <div>
-                <p className="font-bold text-gray-900">EDucore V1</p>
+                <p className="font-bold text-gray-900">Elimcrown V1</p>
                 <p className="text-xs text-gray-500">School Management Platform</p>
               </div>
             </div>
-            <p className="text-sm text-gray-600">© 2026 EDucore. All rights reserved.</p>
+            <p className="text-sm text-gray-600">© 2026 Elimcrown. All rights reserved.</p>
           </div>
         </div>
       </footer>

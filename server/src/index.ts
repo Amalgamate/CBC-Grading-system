@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import app from './server';
 import prisma from './config/database';
+import http from 'http';
+import { initializeSocket } from './services/socket.service';
 
 const PORT = process.env.PORT || 5000;
 
@@ -10,8 +12,17 @@ async function startServer() {
     await prisma.$connect();
     console.log('✅ Database connected successfully');
 
+    // Create HTTP server
+    const httpServer = http.createServer(app);
+
+    // Initialize Socket.io
+    const io = initializeSocket(httpServer);
+
+    // Store io instance in app for access in controllers (optional, but good practice)
+    app.set('io', io);
+
     // Start server
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, () => {
       console.log('🚀 Server started successfully!');
       console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🌐 API: http://localhost:${PORT}/api`);

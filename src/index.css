@@ -22,42 +22,44 @@ code {
  */
 
 @media print {
+
   /* Hide interactive elements in print */
   .no-print {
     display: none !important;
   }
-  
+
   /* Show PDF-only elements */
   .print-only {
     display: block !important;
   }
-  
+
   /* Force page breaks */
   [style*="pageBreakAfter: always"],
   [style*="page-break-after: always"] {
     page-break-after: always !important;
     break-after: always !important;
   }
-  
+
   /* Prevent breaking inside elements */
   [style*="pageBreakInside: avoid"],
   [style*="page-break-inside: avoid"] {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
-  
+
   /* Ensure proper page margins */
   @page {
     margin: 20mm;
-    size: landscape; /* Match the PDF orientation */
+    size: landscape;
+    /* Match the PDF orientation */
   }
-  
+
   /* Body styling for print */
   body {
     print-color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;
   }
-  
+
   /* Ensure colors are printed */
   * {
     print-color-adjust: exact !important;
@@ -66,6 +68,7 @@ code {
 }
 
 @media screen {
+
   /* Hide PDF-only elements on screen */
   .print-only {
     display: none !important;
@@ -81,4 +84,63 @@ code {
   .screen-only {
     display: none !important;
   }
+}
+
+/* force rebuild */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+@layer utilities {
+  .odoo-purple {
+    @apply text-[#714B67];
+  }
+
+  .bg-odoo-purple {
+    @apply bg-[#714B67];
+  }
+
+  .odoo-teal {
+    @apply text-[#00A09D];
+  }
+
+  .bg-odoo-teal {
+    @apply bg-[#00A09D];
+  }
+}
+
+
+.animate-fade-up {
+  animation: fadeUp 0.8s ease-out forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Odoo-style card hover effect */
+.hover-card {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.hover-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
 }

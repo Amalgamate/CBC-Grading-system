@@ -102,6 +102,11 @@ model User {
 
   // For SummativeResultHistory
   summativeResultHistories    SummativeResultHistory[] @relation("ChangedBy")
+
+  // Support System Relations
+  tickets                     SupportTicket[]          @relation("UserTickets")
+  assignedTickets             SupportTicket[]          @relation("AssignedTickets")
+  sentMessages                SupportMessage[]         @relation("SentMessages")
   
   @@map("users")
   @@index([schoolId])
@@ -300,6 +305,7 @@ model School {
   summativeResults        SummativeResult[]
   feeStructures           FeeStructure[]
   learningAreas           LearningArea[]        @relation("SchoolLearningAreas")
+  supportTickets          SupportTicket[]
   
   @@map("schools")
   @@index([county])
@@ -1698,4 +1704,75 @@ model LearningArea {
   @@index([gradeLevel])
   @@index([schoolId])
   @@map("learning_areas")
+}
+
+// ============================================
+// SUPPORT & CHAT SYSTEM
+// ============================================
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model SupportTicket {
+  id            String         @id @default(uuid())
+  subject       String
+  priority      TicketPriority @default(MEDIUM)
+  status        TicketStatus   @default(OPEN)
+  
+  // Who opened the ticket
+  userId        String?
+  user          User?          @relation("UserTickets", fields: [userId], references: [id], onDelete: SetNull)
+  
+  // Guest Details (if not logged in)
+  guestName     String?
+  guestEmail    String?
+  
+  // Which school (usually context, optional as SUPER_ADMIN might open one)
+  schoolId      String?
+  school        School?        @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+
+  // Assigned Staff (Super Admin)
+  assignedToId  String?
+  assignedTo    User?          @relation("AssignedTickets", fields: [assignedToId], references: [id])
+
+  messages      SupportMessage[]
+  
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@map("support_tickets")
+  @@index([userId])
+  @@index([schoolId])
+  @@index([status])
+}
+
+model SupportMessage {
+  id            String        @id @default(uuid())
+  message       String        @db.Text
+  
+  ticketId      String
+  ticket        SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  senderId      String?
+  sender        User?          @relation("SentMessages", fields: [senderId], references: [id])
+  
+  read          Boolean       @default(false)
+  readAt        DateTime?
+  
+  createdAt     DateTime      @default(now())
+  
+  @@map("support_messages")
+  @@index([ticketId])
+  @@index([senderId])
 }

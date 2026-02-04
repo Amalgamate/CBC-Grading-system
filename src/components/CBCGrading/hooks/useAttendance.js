@@ -13,7 +13,7 @@ export const useAttendance = (initialRecords = []) => {
   const [selectedDate, setSelectedDate] = useState(getCurrentDate());
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedStream, setSelectedStream] = useState('');
-  const [loading] = useState(false);
+  const [loading,] = useState(false);
 
   /**
    * Mark attendance for a learner
@@ -48,7 +48,7 @@ export const useAttendance = (initialRecords = []) => {
 
     if (existingIndex >= 0) {
       // Update existing record
-      setAttendanceRecords(prev => 
+      setAttendanceRecords(prev =>
         prev.map((record, index) => index === existingIndex ? newRecord : record)
       );
     } else {
@@ -81,7 +81,7 @@ export const useAttendance = (initialRecords = []) => {
 
     setAttendanceRecords(prev => {
       // Remove existing records for this date/class
-      const filtered = prev.filter(record => 
+      const filtered = prev.filter(record =>
         record.date !== date || !learners.find(l => l.id === record.learnerId)
       );
       return [...filtered, ...newRecords];
@@ -127,7 +127,7 @@ export const useAttendance = (initialRecords = []) => {
    * @returns {Array} Array of attendance records
    */
   const getAttendanceByDateRange = useCallback((startDate, endDate) => {
-    return attendanceRecords.filter(record => 
+    return attendanceRecords.filter(record =>
       record.date >= startDate && record.date <= endDate
     );
   }, [attendanceRecords]);
@@ -144,7 +144,7 @@ export const useAttendance = (initialRecords = []) => {
 
     // Filter by date range if provided
     if (startDate && endDate) {
-      records = records.filter(record => 
+      records = records.filter(record =>
         record.date >= startDate && record.date <= endDate
       );
     }
@@ -212,17 +212,17 @@ export const useAttendance = (initialRecords = []) => {
     const countBefore = attendanceRecords.length;
     setAttendanceRecords(prev => prev.filter(record => record.date !== date));
     const countAfter = attendanceRecords.length;
-    
+
     return { success: true, count: countBefore - countAfter };
   }, [attendanceRecords]);
 
   // Computed values
-  const todayAttendance = useMemo(() => 
+  const todayAttendance = useMemo(() =>
     getAttendanceByDate(getCurrentDate()),
     [getAttendanceByDate]
   );
 
-  const totalRecords = useMemo(() => 
+  const totalRecords = useMemo(() =>
     attendanceRecords.length,
     [attendanceRecords]
   );
