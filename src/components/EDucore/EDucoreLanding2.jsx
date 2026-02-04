@@ -13,10 +13,10 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
       <header className="sticky top-0 bg-white/95 backdrop-blur-sm shadow-sm z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-4">
           <div className="flex items-center gap-3">
-            <img src="/logo-educore.png" alt="Elimcrown" className="w-10 h-10" />
+            <img src="/logo-educore.png" alt="ElimCrown" className="w-10 h-10" />
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Elimcrown V1</h1>
-              <p className="text-xs text-gray-500">School Management Platform</p>
+              <h1 className="text-xl font-bold text-gray-900">ElimCrown</h1>
+              <p className="text-xs text-gray-500">Bridging the Assessment Gaps</p>
             </div>
           </div>
           <div className="hidden md:flex flex-1 items-center justify-center gap-1">
@@ -58,48 +58,56 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
         </div>
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 mb-8 px-5 py-2.5 bg-blue-100 rounded-full">
-              <Zap className="w-5 h-5 text-blue-600" />
-              <span className="text-sm font-bold text-blue-700">CBC Assessment Made Simple</span>
+            <div className="inline-flex items-center gap-2 mb-8 px-5 py-2.5 bg-purple-100 rounded-full">
+              <Zap className="w-5 h-5 text-purple-600" />
+              <span className="text-sm font-bold text-purple-700">A Practical Way to Deliver CBC</span>
             </div>
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight tracking-tight mb-6">
-              Stop Wrestling with<br />
-              <span className="text-blue-600">School Management</span>
+              Where Play Becomes Learning,<br />
+              <span className="text-purple-600">and Learning Becomes Competence</span>
             </h2>
             <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed font-medium">
-              Track assessments, manage learners, and generate reports in minutes—not hours.
+              ElimCrown is a competency-based learning and assessment platform that helps schools teach coding, robotics, and digital skills through play, while automatically capturing clear CBC evidence.
             </p>
+
+            {/* Key Message */}
+            <div className="bg-teal-50 border-l-4 border-teal-500 p-4 mb-8">
+              <p className="text-gray-700 font-medium">
+                Learning happens through exploration.<br />
+                Assessment happens in the background.
+              </p>
+            </div>
 
             {/* Problem Points */}
             <div className="space-y-4 mb-10">
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" />
+                <CheckCircle2 className="w-6 h-6 text-teal-600 flex-shrink-0 mt-1" />
                 <div>
-                  <p className="font-bold text-gray-900">CBC Grading Done Right</p>
-                  <p className="text-sm text-gray-600">8-level rubrics, competencies, and values assessment</p>
+                  <p className="font-bold text-gray-900">Coding Through Play</p>
+                  <p className="text-sm text-gray-600">Block-based and text-based programming</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" />
+                <CheckCircle2 className="w-6 h-6 text-teal-600 flex-shrink-0 mt-1" />
                 <div>
-                  <p className="font-bold text-gray-900">Instant Report Cards</p>
-                  <p className="text-sm text-gray-600">Generate comprehensive reports with one click</p>
+                  <p className="font-bold text-gray-900">Virtual Robotics Labs</p>
+                  <p className="text-sm text-gray-600">Program robots without physical kits</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" />
+                <CheckCircle2 className="w-6 h-6 text-teal-600 flex-shrink-0 mt-1" />
                 <div>
-                  <p className="font-bold text-gray-900">Parent Communication</p>
-                  <p className="text-sm text-gray-600">Keep parents informed automatically</p>
+                  <p className="font-bold text-gray-900">Automated CBC Assessment</p>
+                  <p className="text-sm text-gray-600">Evidence captured automatically</p>
                 </div>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-4 mb-8">
-              <button onClick={onGetStartedClick} className="px-8 py-4 rounded-xl bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition shadow-lg hover:shadow-xl">
-                Start Free Trial
+              <button onClick={onGetStartedClick} className="px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-teal-600 text-white font-bold text-lg hover:brightness-110 transition shadow-lg hover:shadow-xl">
+                Explore the Playroom
               </button>
-              <button onClick={onLoginClick} className="px-8 py-4 rounded-xl border-2 border-gray-300 text-gray-700 font-bold text-lg hover:bg-gray-50 transition">
+              <button onClick={onLoginClick} className="px-8 py-4 rounded-xl border-2 border-purple-600 text-purple-700 font-bold text-lg hover:bg-purple-50 transition">
                 Sign In
               </button>
             </div>
