@@ -297,84 +297,80 @@ const Sidebar = ({
   }, [can]);
 
   return (
-    <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-blue-900 to-blue-800 text-white transition-all duration-300 flex flex-col`}>
+  return (
+    <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-[#2e1d2b] text-white transition-all duration-300 flex flex-col border-r border-gray-800`}>
       {/* Logo/Brand */}
-      <div className="p-4 border-b border-blue-700">
+      <div className="p-5 border-b border-white/10 bg-[#714B67]">
         <div className="flex items-center gap-3">
           <img
-            src={brandingSettings?.logoUrl || '/logo-educore.png'}
+            src={brandingSettings?.logoUrl || '/logo-new.png'}
             alt="EDucore Logo"
             className="w-10 h-10 object-contain"
-            onError={(e) => { e.target.src = '/logo-educore.png'; }}
+            onError={(e) => { e.target.src = '/logo-new.png'; }}
           />
           {sidebarOpen && (
-            <span className="font-bold text-lg">
-              {brandingSettings?.schoolName || 'EDucore V1'}
+            <span className="font-extrabold text-lg tracking-tight text-white">
+              {brandingSettings?.schoolName || 'ElimuCrown'}
             </span>
           )}
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-2 space-y-1">
+      <nav className="flex-1 overflow-y-auto p-3 space-y-1 bg-[#2e1d2b]">
         {navSections.map((section) => (
           <div key={section.id}>
             {section.items.length > 0 ? (
               <>
                 <button
                   onClick={() => toggleSection(section.id)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition ${section.id === 'assessment'
-                    ? (expandedSections[section.id] ? 'bg-yellow-600 text-gray-900 font-bold shadow-lg' : 'bg-yellow-500 text-gray-900 font-bold hover:bg-yellow-600 shadow-md')
-                    : (expandedSections[section.id] ? 'bg-blue-700' : 'text-blue-100 hover:bg-blue-700')
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-all duration-200 group ${section.id === 'assessment'
+                    ? (expandedSections[section.id] ? 'bg-[#F59E0B] text-gray-900 font-bold shadow-lg' : 'bg-[#F59E0B]/10 text-[#F59E0B] hover:bg-[#F59E0B] hover:text-gray-900 border border-[#F59E0B]/20')
+                    : (expandedSections[section.id] ? 'bg-[#0D9488] text-white font-bold shadow-md' : 'text-gray-300 hover:bg-white/10 hover:text-white')
                     }`}
                 >
                   <div className="flex items-center gap-3 flex-1">
-                    <section.icon size={20} className={section.id === 'assessment' ? 'text-gray-900' : ''} />
-                    {sidebarOpen && <span className={`text-sm font-semibold ${section.id === 'assessment' ? 'text-gray-900' : ''}`}>{section.label}</span>}
+                    <section.icon size={20} className={section.id === 'assessment' && !expandedSections[section.id] ? 'text-[#F59E0B] group-hover:text-gray-900' : ''} />
+                    {sidebarOpen && <span className="text-sm font-medium">{section.label}</span>}
                   </div>
                   {sidebarOpen && (
                     <ChevronDown
                       size={16}
-                      className={`transition ${expandedSections[section.id] ? 'rotate-180' : ''} ${section.id === 'assessment' ? 'text-gray-900' : ''}`}
+                      className={`transition ${expandedSections[section.id] ? 'rotate-180' : ''}`}
                     />
                   )}
                 </button>
                 {expandedSections[section.id] && sidebarOpen && (
-                  <div className="ml-4 space-y-1 mt-1">
+                  <div className="ml-3 space-y-1 mt-1 pl-2 border-l border-white/10">
                     {section.items.map((item) => {
                       if (item.type === 'group') {
                         return (
-                          <div key={item.id} className="mb-2 mt-1">
+                          <div key={item.id} className="mb-2 mt-2">
                             <button
                               onClick={() => toggleSubSection(item.id)}
-                              className={`w-full flex items-center justify-between px-3 py-1 text-[10px] uppercase font-bold tracking-wider mb-1 transition-colors hover:text-white ${section.id === 'assessment' ? 'text-gray-900 opacity-60' : 'text-blue-300'
-                                }`}
+                              className="w-full flex items-center justify-between px-2 py-1 text-[10px] uppercase font-bold tracking-widest text-gray-500 hover:text-white transition-colors mb-1"
                             >
                               <span>{item.label}</span>
                               <ChevronDown size={10} className={`transition-transform duration-200 ${expandedSubSections[item.id] ? 'rotate-180' : ''}`} />
                             </button>
 
                             {expandedSubSections[item.id] && (
-                              <div className="space-y-1 pl-2 border-l-2 border-white/10 ml-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                              <div className="space-y-1 ml-1 animate-in fade-in slide-in-from-top-1 duration-200">
                                 {item.items.map(subItem => (
                                   <button
                                     key={subItem.id}
                                     onClick={() => (subItem.comingSoon || subItem.greyedOut) ? null : onNavigate(subItem.path)}
-                                    className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between ${subItem.comingSoon || subItem.greyedOut
-                                      ? 'text-blue-300 cursor-not-allowed opacity-40 grayscale'
-                                      : section.id === 'assessment'
-                                        ? (currentPage === subItem.path
-                                          ? 'bg-yellow-600 text-gray-900 font-bold shadow-md'
-                                          : 'bg-yellow-500/20 text-yellow-100 hover:bg-yellow-500/30 border border-yellow-500/30')
-                                        : (currentPage === subItem.path
-                                          ? 'bg-blue-500 text-white font-semibold'
-                                          : 'text-blue-100 hover:bg-blue-700')
+                                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition flex items-center justify-between ${subItem.comingSoon || subItem.greyedOut
+                                      ? 'text-gray-600 cursor-not-allowed'
+                                      : (currentPage === subItem.path
+                                        ? 'bg-white/10 text-[#0D9488] font-bold border-l-4 border-[#0D9488]'
+                                        : 'text-gray-400 hover:text-white hover:bg-white/5')
                                       }`}
                                     disabled={subItem.comingSoon || subItem.greyedOut}
                                   >
                                     <span>{subItem.label}</span>
                                     {subItem.comingSoon && (
-                                      <span className="text-[10px] bg-yellow-500 text-blue-900 px-2 py-0.5 rounded-full font-bold">
+                                      <span className="text-[9px] bg-[#F59E0B] text-white px-1.5 py-0.5 rounded font-bold uppercase">
                                         Soon
                                       </span>
                                     )}
@@ -389,21 +385,17 @@ const Sidebar = ({
                         <button
                           key={item.id}
                           onClick={() => (item.comingSoon || item.greyedOut) ? null : onNavigate(item.path)}
-                          className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center justify-between ${item.comingSoon || item.greyedOut
-                            ? 'text-blue-300 cursor-not-allowed opacity-40 grayscale'
-                            : section.id === 'assessment'
-                              ? (currentPage === item.path
-                                ? 'bg-yellow-600 text-gray-900 font-bold shadow-md'
-                                : 'bg-yellow-500/20 text-yellow-100 hover:bg-yellow-500/30 border border-yellow-500/30')
-                              : (currentPage === item.path
-                                ? 'bg-blue-500 text-white font-semibold'
-                                : 'text-blue-100 hover:bg-blue-700')
+                          className={`w-full text-left px-3 py-2 rounded-md text-sm transition flex items-center justify-between ${item.comingSoon || item.greyedOut
+                            ? 'text-gray-600 cursor-not-allowed'
+                            : (currentPage === item.path
+                              ? 'bg-white/10 text-[#0D9488] font-bold border-l-4 border-[#0D9488]'
+                              : 'text-gray-400 hover:text-white hover:bg-white/5')
                             }`}
                           disabled={item.comingSoon || item.greyedOut}
                         >
                           <span>{item.label}</span>
                           {item.comingSoon && (
-                            <span className="text-[10px] bg-yellow-500 text-blue-900 px-2 py-0.5 rounded-full font-bold">
+                            <span className="text-[9px] bg-[#F59E0B] text-white px-1.5 py-0.5 rounded font-bold uppercase">
                               Soon
                             </span>
                           )}
@@ -416,13 +408,13 @@ const Sidebar = ({
             ) : (
               <button
                 onClick={() => onNavigate(section.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${currentPage === section.id
-                  ? 'bg-blue-500'
-                  : 'text-blue-100 hover:bg-blue-700'
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition ${currentPage === section.id
+                  ? 'bg-[#0D9488] text-white shadow-md'
+                  : 'text-gray-300 hover:bg-white/10 hover:text-white'
                   }`}
               >
                 <section.icon size={20} />
-                {sidebarOpen && <span className="text-sm font-semibold">{section.label}</span>}
+                {sidebarOpen && <span className="text-sm font-medium">{section.label}</span>}
               </button>
             )}
           </div>
@@ -432,7 +424,7 @@ const Sidebar = ({
       {/* Toggle Button */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="p-4 border-t border-blue-700 hover:bg-blue-700 transition"
+        className="p-4 border-t border-white/10 hover:bg-[#0D9488] transition-colors text-gray-400 hover:text-white"
       >
         {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
       </button>

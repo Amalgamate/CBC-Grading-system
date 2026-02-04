@@ -8,10 +8,11 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#111827', // Almost black for text
-          teal: '#0D9488', // Odoo-like Teal accent
-          purple: '#714B67', // Odoo-like Aubergine for primary buttons
-          light: '#F9FAFB', // Background off-white
+          dark: '#111827', // Text: Almost black
+          teal: '#0D9488', // Secondary: Cyan/Teal
+          purple: '#714B67', // Primary: Aubergine
+          yellow: '#F59E0B', // Accent: Deep Amber/Yellow for attention
+          light: '#F9FAFB', // Backgrounds
         }
       },
       animation: {

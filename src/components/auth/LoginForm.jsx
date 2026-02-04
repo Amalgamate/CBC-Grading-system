@@ -241,56 +241,56 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
   };
 
   return (
-    <div className="w-full h-screen bg-white">
+    <div className="w-full h-screen bg-brand-light font-sans text-brand-dark">
       {/* Main Layout Container */}
       <div className="bg-white h-full flex flex-col lg:flex-row items-stretch">
 
-        {/* Left Column - Branding Area */}
+        {/* Left Column - Branding Area (Enterprise Purple) */}
         <div
-          className="w-full lg:w-1/2 h-full p-8 lg:p-16 flex flex-col justify-between items-center text-white relative bg-gradient-to-br from-blue-800 to-indigo-800"
+          className="w-full lg:w-1/2 h-full p-8 lg:p-16 flex flex-col justify-between items-center text-white relative bg-[#714B67]"
         >
-          {/* Decorative Elements */}
+          {/* Decorative Elements (Subtle Odoo-like patterns) */}
           <div className="absolute inset-0 overflow-hidden opacity-10">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
+            <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#0D9488] rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl"></div>
           </div>
 
           {/* Main Content */}
           <div className="flex-1 flex items-center justify-center relative z-10">
             <div className="max-w-md text-center">
               {/* Logo */}
-              <div className="mb-8 sm:mb-10">
+              <div className="mb-8 sm:mb-10 bg-white/10 p-6 rounded-3xl backdrop-blur-sm border border-white/10 shadow-2xl">
                 <img
-                  src={brandingSettings?.logoUrl || '/logo-educore.png'}
-                  alt="EDucore Logo"
-                  className="w-28 h-28 sm:w-36 sm:h-36 lg:w-48 lg:h-48 object-contain mx-auto drop-shadow-2xl"
+                  src={brandingSettings?.logoUrl || '/logo-new.png'}
+                  alt="Elimcrown Logo"
+                  className="w-32 h-32 sm:w-40 sm:h-40 object-contain mx-auto drop-shadow-xl"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = '/logo-educore.png';
+                    e.target.src = '/logo-new.png';
                   }}
                 />
               </div>
 
               {/* Welcome Message */}
-              <h2 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4 drop-shadow-md text-center">
-                Welcome to EDucore V1
+              <h2 className="text-3xl sm:text-5xl font-extrabold mb-4 drop-shadow-md text-center tracking-tight">
+                ElimuCrown
               </h2>
-              <p className="text-blue-100 text-base sm:text-lg leading-relaxed text-center">
-                Unified education management for schools and institutions.
+              <p className="text-purple-100 text-lg sm:text-xl leading-relaxed text-center font-light">
+                Amazing software for amazing schools.
               </p>
             </div>
           </div>
 
           {/* Footer Copyright */}
-          <div className="relative z-10 text-center">
-            <p className="text-blue-100 text-sm">
-              © {new Date().getFullYear()} EDucore V1. All rights reserved.
+          <div className="relative z-10 text-center text-purple-200 text-sm">
+            <p>
+              © {new Date().getFullYear()} Elimcrown Inc. All rights reserved.
             </p>
           </div>
         </div>
 
         {/* Right Column - Dynamic Content */}
-        <div className="w-full lg:w-1/2 h-full p-6 lg:p-16 flex flex-col justify-center">
+        <div className="w-full lg:w-1/2 h-full p-6 lg:p-24 flex flex-col justify-center bg-white">
           {showOTPVerification && pendingUserData ? (
             <OTPVerificationForm
               email={pendingUserData.email}
@@ -301,13 +301,13 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
             />
           ) : (
             <div className="max-w-md mx-auto w-full animate-fade-in">
-              <div className="mb-8">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">EDucore V1 — Login</h1>
-                <p className="text-gray-600">Sign in to continue to your dashboard</p>
+              <div className="mb-10">
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-[#111827] mb-3">Sign In</h1>
+                <p className="text-slate-500 text-lg">Access your institution's dashboard.</p>
               </div>
 
               {errors.form && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 text-red-700 animate-shake">
+                <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-lg flex items-start gap-3 text-red-700 animate-shake shadow-sm">
                   <AlertCircle className="h-5 w-5 mt-0.5 shrink-0" />
                   <div className="text-sm font-medium">{errors.form}</div>
                 </div>
@@ -316,11 +316,11 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Email Field */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
                     Email Address
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <Mail className="h-5 w-5 text-gray-400" />
                     </div>
                     <input
@@ -328,13 +328,13 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.email ? 'border-red-500' : 'border-gray-300'
+                      className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all outline-none text-gray-900 ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-[#714B67]/50'
                         }`}
-                      placeholder="you@example.com"
+                      placeholder="name@school.com"
                     />
                   </div>
                   {errors.email && (
-                    <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
+                    <div className="flex items-center gap-1 mt-2 text-red-600 text-sm font-medium">
                       <AlertCircle size={14} />
                       <span>{errors.email}</span>
                     </div>
@@ -343,11 +343,11 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
 
                 {/* Password Field */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
                     Password
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <Lock className="h-5 w-5 text-gray-400" />
                     </div>
                     <input
@@ -355,20 +355,20 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
-                      className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.password ? 'border-red-500' : 'border-gray-300'
+                      className={`w-full pl-11 pr-12 py-3.5 bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#714B67] focus:border-transparent transition-all outline-none text-gray-900 ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-[#714B67]/50'
                         }`}
-                      placeholder="Enter your password"
+                      placeholder="••••••••••••"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-[#714B67] transition-colors"
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
                   {errors.password && (
-                    <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
+                    <div className="flex items-center gap-1 mt-2 text-red-600 text-sm font-medium">
                       <AlertCircle size={14} />
                       <span>{errors.password}</span>
                     </div>
@@ -376,21 +376,21 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                 </div>
 
                 {/* Remember Me & Forgot Password */}
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center">
+                <div className="flex items-center justify-between pt-2">
+                  <label className="flex items-center cursor-pointer group">
                     <input
                       type="checkbox"
                       name="rememberMe"
                       checked={formData.rememberMe}
                       onChange={handleChange}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-5 h-5 text-[#714B67] border-gray-300 rounded focus:ring-[#714B67] cursor-pointer"
                     />
-                    <span className="ml-2 text-sm text-gray-700">Remember me</span>
+                    <span className="ml-2 text-sm text-gray-600 group-hover:text-gray-900 transition-colors">Remember me</span>
                   </label>
                   <button
                     type="button"
                     onClick={onSwitchToForgotPassword}
-                    className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition"
+                    className="text-sm font-bold text-[#714B67] hover:text-[#5d3d54] hover:underline transition-all"
                   >
                     Forgot password?
                   </button>
@@ -398,7 +398,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
 
 
                 {/* Skip OTP Checkbox (Development) */}
-                <label className="flex items-center">
+                <label className="flex items-center p-3 bg-orange-50 rounded-lg border border-orange-100 cursor-pointer hover:bg-orange-100 transition-colors">
                   <input
                     type="checkbox"
                     name="skipOTP"
@@ -406,18 +406,18 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                     onChange={handleChange}
                     className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
                   />
-                  <span className="ml-2 text-sm text-orange-600 font-medium">Skip OTP verification (Testing)</span>
+                  <span className="ml-3 text-sm text-orange-700 font-semibold">Skip OTP verification (Dev Check)</span>
                 </label>
 
                 {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 focus:ring-4 focus:ring-blue-300 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-[#714B67] text-white py-4 rounded-lg font-bold hover:bg-[#5d3d54] focus:ring-4 focus:ring-purple-200 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none text-lg flex items-center justify-center"
                 >
                   {isLoading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       <span>Signing in...</span>
                     </div>
                   ) : (
@@ -430,21 +430,21 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
               </form>
 
               {/* Sign Up Link */}
-              <div className="mt-6 text-center">
-                <p className="text-sm text-gray-600">
+              <div className="mt-8 text-center pt-8 border-t border-gray-100">
+                <p className="text-base text-gray-600">
                   Don't have an account?{' '}
                   <button
                     type="button"
                     onClick={onSwitchToRegister}
-                    className="font-semibold text-blue-600 hover:text-blue-700 transition"
+                    className="font-bold text-[#0D9488] hover:text-[#0a756b] hover:underline transition-all"
                   >
                     Create an account
                   </button>
                 </p>
-                <div className="mt-2">
+                <div className="mt-4">
                   <button
                     type="button"
-                    className="text-xs text-gray-600 underline hover:text-gray-800"
+                    className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
                     onClick={loginAsSuperAdmin}
                   >
                     Login as Super Admin
@@ -470,7 +470,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
           }
         }
         .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
+          animation: fade-in 0.4s ease-out;
         }
       `}</style>
     </div>

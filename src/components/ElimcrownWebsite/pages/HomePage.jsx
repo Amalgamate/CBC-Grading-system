@@ -29,7 +29,7 @@ const HomePage = (props) => {
 
                     {/* CTA Buttons - Odoo specific colors */}
                     <div className={`flex flex-col sm:flex-row items-center justify-center gap-5 mb-20 transition-all duration-700 delay-200 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-                        <button onClick={props.onGetStartedClick} className="px-10 py-4 bg-brand-purple hover:bg-[#5d3d54] text-white font-bold rounded shadow-md hover:shadow-xl transition-all text-xl flex items-center gap-2">
+                        <button onClick={props.onGetStartedClick} className="px-10 py-4 bg-[#F59E0B] hover:bg-yellow-600 text-[#111827] font-extrabold rounded shadow-md hover:shadow-xl transition-all text-xl flex items-center gap-2">
                             Start now — It's free
                         </button>
                         <button onClick={props.onLoginClick} className="px-10 py-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold rounded shadow-sm hover:shadow transition-all text-xl">
@@ -140,7 +140,7 @@ const HomePage = (props) => {
                 <div className="max-w-5xl mx-auto px-6 text-center">
                     <h2 className="text-4xl md:text-6xl font-extrabold text-brand-dark mb-8">7 million users grow with Elimcrown</h2>
                     <div className="flex flex-col sm:flex-row gap-5 justify-center">
-                        <button onClick={props.onGetStartedClick} className="px-10 py-4 bg-brand-teal hover:bg-[#006b70] text-white font-bold rounded shadow-md hover:shadow-xl transition-all text-xl">
+                        <button onClick={props.onGetStartedClick} className="px-10 py-4 bg-[#F59E0B] hover:bg-yellow-600 text-[#111827] font-extrabold rounded shadow-md hover:shadow-xl transition-all text-xl">
                             Start now — It's free
                         </button>
                         <button onClick={props.onLoginClick} className="px-10 py-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold rounded shadow-sm hover:shadow transition-all text-xl">
