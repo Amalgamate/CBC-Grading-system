@@ -6,6 +6,14 @@ export default {
   ],
   theme: {
     extend: {
+      colors: {
+        brand: {
+          dark: '#111827', // Almost black for text
+          teal: '#0D9488', // Odoo-like Teal accent
+          purple: '#714B67', // Odoo-like Aubergine for primary buttons
+          light: '#F9FAFB', // Background off-white
+        }
+      },
       animation: {
         marquee: 'marquee 25s linear infinite',
         float: 'float 6s ease-in-out infinite',
