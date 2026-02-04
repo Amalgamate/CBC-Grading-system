@@ -1,12 +1,21 @@
-/**
- * Permissions Middleware
- * Handles authorization checks for different user roles and permissions
- * 
- * @module middleware/permissions
- */
-
 import { Request, Response, NextFunction } from 'express';
 import { Permission, Role, hasPermission } from '../config/permissions';
+
+// Globally augment Express Request to include school and user info
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        userId: string;
+        email: string;
+        role: Role;
+        schoolId?: string | null;
+        branchId?: string | null;
+      };
+    }
+  }
+}
+
 
 /**
  * Extended Request interface with user information and common middleware properties
@@ -21,7 +30,10 @@ export interface AuthRequest extends Request {
   };
   file?: any;
   files?: any;
-  [key: string]: any; // Fallback for other properties like query, headers, etc.
+  headers: any;
+  body: any;
+  query: any;
+  [key: string]: any;
 }
 
 /**
