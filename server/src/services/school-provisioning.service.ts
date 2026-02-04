@@ -6,17 +6,17 @@ export interface SchoolProvisioningData {
   schoolName: string;
   admissionFormatType: 'NO_BRANCH' | 'BRANCH_PREFIX_START' | 'BRANCH_PREFIX_MIDDLE' | 'BRANCH_PREFIX_END';
   branchSeparator?: string;
-  
+
   // Admin user details
   adminEmail: string;
   adminFirstName: string;
   adminLastName: string;
   adminPhone?: string;
-  
+
   // Subscription details
   planId?: string;
   trialDays?: number;
-  
+
   // Optional school details
   registrationNo?: string;
   address?: string;
@@ -50,17 +50,17 @@ export interface ProvisioningResult {
 export async function provisionNewSchool(
   data: SchoolProvisioningData
 ): Promise<ProvisioningResult> {
-  
+
   // Generate temporary password (12 characters, alphanumeric + special chars)
   const tempPassword = generateTempPassword();
   const hashedPassword = await bcrypt.hash(tempPassword, 10);
-  
+
   // Get default trial plan if not specified
   const planId = data.planId || await getDefaultTrialPlanId();
-  
+
   // Execute in transaction to ensure all-or-nothing
   const result = await prisma.$transaction(async (tx) => {
-    
+
     // 1. Create School
     console.log('📚 Creating school:', data.schoolName);
     const school = await tx.school.create({
@@ -89,7 +89,7 @@ export async function provisionNewSchool(
         assessmentMode: 'MIXED'
       }
     });
-    
+
     // 2. Create Admin User
     console.log('👤 Creating admin user:', data.adminEmail);
     const adminUser = await tx.user.create({
@@ -107,12 +107,12 @@ export async function provisionNewSchool(
         emailVerified: false
       }
     });
-    
+
     // 3. Create Trial Subscription
     console.log('💳 Creating subscription with plan:', planId);
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + (data.trialDays || 30));
-    
+
     const subscription = await tx.schoolSubscription.create({
       data: {
         schoolId: school.id,
@@ -122,7 +122,7 @@ export async function provisionNewSchool(
         status: 'ACTIVE'
       }
     });
-    
+
     // 4. Create Default Branch (if multi-branch format)
     let defaultBranch = null;
     if (data.admissionFormatType !== 'NO_BRANCH') {
@@ -140,7 +140,7 @@ export async function provisionNewSchool(
         }
       });
     }
-    
+
     // 5. Create Admission Sequence for current year
     const currentYear = new Date().getFullYear();
     console.log('🔢 Creating admission sequence for year:', currentYear);
@@ -151,10 +151,20 @@ export async function provisionNewSchool(
         currentValue: 0
       }
     });
-    
+
+    // 6. Create Default Communication Config
+    await tx.communicationConfig.create({
+      data: {
+        schoolId: school.id,
+        smsEnabled: true,
+        smsProvider: 'mobilesasa',
+        smsBaseUrl: 'https://api.mobilesasa.com',
+      }
+    });
+
     return { school, adminUser, subscription, defaultBranch, admissionSequence };
   });
-  
+
   // 6. Send welcome email to admin (outside transaction)
   try {
     await sendWelcomeEmail({
@@ -168,9 +178,9 @@ export async function provisionNewSchool(
     console.error('⚠️ Failed to send welcome email:', error);
     // Don't fail the whole operation if email fails
   }
-  
+
   console.log('✅ School provisioning complete!');
-  
+
   return {
     ...result,
     tempPassword,
@@ -186,21 +196,21 @@ function generateTempPassword(): string {
   const lowercase = 'abcdefghjkmnpqrstuvwxyz';
   const numbers = '23456789';
   const special = '!@#$%';
-  
+
   let password = '';
-  
+
   // Ensure at least one of each type
   password += uppercase.charAt(Math.floor(Math.random() * uppercase.length));
   password += lowercase.charAt(Math.floor(Math.random() * lowercase.length));
   password += numbers.charAt(Math.floor(Math.random() * numbers.length));
   password += special.charAt(Math.floor(Math.random() * special.length));
-  
+
   // Fill the rest randomly
   const allChars = uppercase + lowercase + numbers + special;
   for (let i = password.length; i < 12; i++) {
     password += allChars.charAt(Math.floor(Math.random() * allChars.length));
   }
-  
+
   // Shuffle the password
   return password.split('').sort(() => Math.random() - 0.5).join('');
 }
@@ -212,7 +222,7 @@ async function getDefaultTrialPlanId(): Promise<string> {
   let plan = await prisma.subscriptionPlan.findFirst({
     where: { name: 'Trial Plan', isActive: true }
   });
-  
+
   // Create default trial plan if it doesn't exist
   if (!plan) {
     console.log('📋 Creating default trial plan');
@@ -238,7 +248,7 @@ async function getDefaultTrialPlanId(): Promise<string> {
       }
     });
   }
-  
+
   return plan.id;
 }
 
@@ -265,7 +275,7 @@ async function sendWelcomeEmail(data: {
   console.log('='.repeat(70));
   console.log('⚠️  Please save this password and share it securely with the admin.');
   console.log('='.repeat(70) + '\n');
-  
+
   // Actual implementation would use nodemailer:
   /*
   const transporter = nodemailer.createTransport({

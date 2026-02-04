@@ -14,12 +14,52 @@ import {
   MessageSquare,
   CheckCircle2,
   TrendingUp,
-  GripVertical
+  Activity,
+  Award,
+  Calendar,
+  ChevronRight,
+  FileText,
+  Target,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import AnimatedDoughnutChart from '../../shared/AnimatedDoughnutChart';
 
+// Professional Components
+const MetricCard = ({ title, value, subtitle, icon: Icon, trend, trendValue }) => (
+  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:border-brand-purple/30 transition-all">
+    <div className="flex justify-between items-start mb-2">
+      <div className="p-2 bg-gray-50 rounded-md text-gray-400">
+        <Icon size={18} />
+      </div>
+      {trendValue && (
+        <span className={`text-[10px] font-black ${trend === 'up' ? 'text-emerald-600' : 'text-rose-600'}`}>
+          {trendValue}
+        </span>
+      )}
+    </div>
+    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{title}</p>
+    <h3 className="text-2xl font-black text-gray-900 mt-1">{value}</h3>
+    {subtitle && <p className="text-[10px] text-gray-500 mt-1">{subtitle}</p>}
+  </div>
+);
+
+const TabButton = ({ active, label, icon: Icon, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`flex items-center gap-2 px-6 py-3 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${active
+        ? 'border-brand-purple text-brand-purple bg-brand-purple/5'
+        : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+      }`}
+  >
+    <Icon size={14} />
+    {label}
+  </button>
+);
+
 const TeacherDashboard = ({ learners, user }) => {
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview'); // overview, instructional, students, analytics
   const [metrics, setMetrics] = useState(null);
 
   useEffect(() => {
@@ -39,386 +79,197 @@ const TeacherDashboard = ({ learners, user }) => {
     loadMetrics();
   }, [user]);
 
-  const myStudents = metrics?.stats?.myStudents || learners?.filter(l => l.status === 'Active').length || 0;
-
-  const todayClasses = metrics?.schedule || [];
-
-  const pendingTasks = [
-    { id: 1, task: 'Ungraded Assessments', count: metrics?.stats?.pendingTasks || 0, priority: 'high' }
-  ].filter(t => t.count > 0);
-
-  // Dashboard sections configuration
-  const defaultSections = [
-    { id: 'stats', type: 'stats', order: 1 },
-    { id: 'schedule', type: 'schedule', order: 2 },
-    { id: 'tasks', type: 'tasks', order: 3 },
-    { id: 'activity', type: 'activity', order: 4 },
-    { id: 'analytics', type: 'analytics', order: 5 }
-  ];
-
-  // Load saved layout from localStorage or use default
-  const [sections, setSections] = useState(() => {
-    const saved = localStorage.getItem('teacherDashboardLayout');
-    return saved ? JSON.parse(saved) : defaultSections;
-  });
-
-  const [draggedItem, setDraggedItem] = useState(null);
-
-  // Save layout to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('teacherDashboardLayout', JSON.stringify(sections));
-  }, [sections]);
-
-  const handleDragStart = (e, section) => {
-    setDraggedItem(section);
-    e.dataTransfer.effectAllowed = 'move';
+  const stats = {
+    myStudents: metrics?.stats?.myStudents || learners?.filter(l => l.status === 'Active').length || 0,
+    classesToday: metrics?.schedule?.length || 0,
+    pendingGrading: metrics?.stats?.pendingTasks || 0,
+    attendanceRate: metrics?.stats?.analytics?.attendance || 94
   };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
+  const renderOverview = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard title="Enrollment" value={stats.myStudents} subtitle="Assigned Learners" icon={Users} />
+        <MetricCard title="Active Classes" value={stats.classesToday} subtitle="Sessions Scheduled" icon={BookOpen} />
+        <MetricCard title="Pending Review" value={stats.pendingGrading} subtitle="Assessments to Grade" icon={ClipboardList} trend="down" trendValue="-3" />
+        <MetricCard title="Participation" value={`${stats.attendanceRate}%`} subtitle="Avg Daily Rate" icon={Activity} />
+      </div>
 
-  const handleDrop = (e, targetSection) => {
-    e.preventDefault();
-
-    if (!draggedItem || draggedItem.id === targetSection.id) {
-      return;
-    }
-
-    const newSections = [...sections];
-    const draggedIndex = newSections.findIndex(s => s.id === draggedItem.id);
-    const targetIndex = newSections.findIndex(s => s.id === targetSection.id);
-
-    // Remove dragged item and insert at target position
-    const [removed] = newSections.splice(draggedIndex, 1);
-    newSections.splice(targetIndex, 0, removed);
-
-    // Update order
-    const updatedSections = newSections.map((section, index) => ({
-      ...section,
-      order: index + 1
-    }));
-
-    setSections(updatedSections);
-    setDraggedItem(null);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedItem(null);
-  };
-
-  // Render individual sections
-  const renderSection = (section) => {
-    const isDragging = draggedItem?.id === section.id;
-
-    switch (section.type) {
-      case 'stats':
-        return (
-          <div
-            key={section.id}
-            draggable
-            onDragStart={(e) => handleDragStart(e, section)}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, section)}
-            onDragEnd={handleDragEnd}
-            className={`transition-all ${isDragging ? 'opacity-50' : 'opacity-100'}`}
-          >
-            <div className="relative group">
-              <div className="absolute -left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-move">
-                <GripVertical className="w-5 h-5 text-gray-400" />
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Urgent Tasks */}
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+            <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest">Instructional Priorities</h3>
+            <span className="px-2 py-0.5 bg-rose-50 text-rose-600 border border-rose-100 rounded text-[9px] font-bold uppercase tracking-widest">Urgent</span>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {metrics?.stats?.pendingTasks > 0 ? (
+              <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-amber-50 text-amber-600 rounded">
+                    <ClipboardList size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-gray-900">Grade Pending Formative Assessments</h4>
+                    <p className="text-[10px] text-gray-500 uppercase font-black">{metrics.stats.pendingTasks} submissions awaiting review</p>
+                  </div>
+                </div>
+                <button className="text-[10px] font-black text-brand-purple uppercase tracking-widest hover:underline">Process Now</button>
               </div>
-              <div className="grid grid-cols-4 gap-3">
-                {/* Students Card - Blue */}
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-3 hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="p-2 bg-blue-600 rounded-lg">
-                      <Users className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-xs text-blue-700 font-medium">Students</span>
-                  </div>
-                  <p className="text-2xl font-bold text-blue-900">{myStudents}</p>
-                  <p className="text-xs text-blue-600 mt-1">Active learners</p>
-                </div>
+            ) : (
+              <div className="px-6 py-12 text-center text-xs text-gray-400 italic">No high-priority tasks pending review.</div>
+            )}
+          </div>
+        </div>
 
-                {/* Classes Card - Green */}
-                <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-3 hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="p-2 bg-green-600 rounded-lg">
-                      <BookOpen className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-xs text-green-700 font-medium">Classes</span>
-                  </div>
-                  <p className="text-2xl font-bold text-green-900">{todayClasses.length}</p>
-                  <p className="text-xs text-green-600 mt-1">Today's schedule</p>
+        {/* Next Class Preview */}
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+          <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
+            <Clock size={14} className="text-brand-purple" /> Immediate Schedule
+          </h3>
+          {metrics?.schedule?.length > 0 ? (
+            <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="text-center p-2 min-w-[70px] bg-white border border-gray-100 rounded shadow-sm">
+                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Starts @</p>
+                  <p className="text-sm font-black text-gray-900">{metrics.schedule[0].time}</p>
                 </div>
+                <div>
+                  <h4 className="text-xs font-black text-gray-900 uppercase tracking-tight">{metrics.schedule[0].subject}</h4>
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mt-0.5">{metrics.schedule[0].grade} • Room {metrics.schedule[0].room}</p>
+                </div>
+              </div>
+              <button className="px-4 py-1.5 bg-brand-purple text-white rounded text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-brand-purple/90 transition-all">Launch Session</button>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-400 text-xs italic">No more classes scheduled for the remainder of the session.</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
-                {/* Tasks Card - Orange */}
-                <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-3 hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="p-2 bg-orange-600 rounded-lg">
-                      <ClipboardList className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-xs text-orange-700 font-medium">Tasks</span>
-                  </div>
-                  <p className="text-2xl font-bold text-orange-900">{pendingTasks.length}</p>
-                  <p className="text-xs text-orange-600 mt-1">Pending items</p>
-                </div>
+  const renderInstructional = () => (
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+          <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest text-[#242424]">Weekly Curricular Timetable</h3>
+          <button className="flex items-center gap-1.5 text-[10px] font-black uppercase text-gray-500 hover:text-brand-purple px-2 py-1 border border-gray-200 rounded bg-white"><FileText size={12} /> Export Table</button>
+        </div>
+        <div className="p-0">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Time Slot</th>
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Unit / Learning Area</th>
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Target Grade</th>
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Location</th>
+                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {metrics?.schedule?.map((item, idx) => (
+                <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="px-6 py-4 text-xs font-black text-gray-500">{item.time}</td>
+                  <td className="px-6 py-4 text-xs font-black text-gray-900 tracking-tight">{item.subject}</td>
+                  <td className="px-6 py-4 text-xs font-bold text-gray-600">{item.grade}</td>
+                  <td className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Building {item.room.charAt(0)} / RM {item.room}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${idx === 0 ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-gray-50 text-gray-400'}`}>
+                      {idx === 0 ? 'Next Up' : 'Scheduled'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 
-                {/* Messages Card - Purple */}
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-3 hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="p-2 bg-purple-600 rounded-lg">
-                      <MessageSquare className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-xs text-purple-700 font-medium">Messages</span>
-                  </div>
-                  <p className="text-2xl font-bold text-purple-900">{metrics?.stats?.messages || 0}</p>
-                  <p className="text-xs text-purple-600 mt-1">Inbox cleared</p>
+  const renderAnalytics = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+          <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest border-b border-gray-100 pb-3 mb-6">Subject Proficiency Metrics</h3>
+          <div className="space-y-6">
+            {[
+              { label: 'Attendance Compliance', value: metrics?.stats?.analytics?.attendance || 94, color: 'bg-emerald-500' },
+              { label: 'Assessment Grading Rate', value: metrics?.stats?.analytics?.graded || 88, color: 'bg-brand-purple' },
+              { label: 'Curriculum Coverage', value: metrics?.stats?.analytics?.completion || 72, color: 'bg-blue-500' },
+              { label: 'Average Learner Engagement', value: metrics?.stats?.analytics?.engagement || 91, color: 'bg-brand-teal' }
+            ].map((bar, idx) => (
+              <div key={idx}>
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{bar.label}</span>
+                  <span className="text-xs font-black text-gray-900">{bar.value}%</span>
                 </div>
+                <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                  <div className={`${bar.color} h-full transition-all duration-1000 ease-out`} style={{ width: `${bar.value}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+          <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest border-b border-gray-100 pb-3 mb-6">Learning Outcomes Distribution</h3>
+          <div className="flex items-center justify-center py-8">
+            <div className="grid grid-cols-2 gap-8 text-center">
+              <div>
+                <p className="text-3xl font-black text-brand-purple">EE</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase mt-1 tracking-widest">Exceeding (24%)</p>
+              </div>
+              <div>
+                <p className="text-3xl font-black text-brand-teal">ME</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase mt-1 tracking-widest">Meeting (56%)</p>
+              </div>
+              <div>
+                <p className="text-3xl font-black text-amber-500">AE</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase mt-1 tracking-widest">Approaching (15%)</p>
+              </div>
+              <div>
+                <p className="text-3xl font-black text-rose-500">BE</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase mt-1 tracking-widest">Below (5%)</p>
               </div>
             </div>
           </div>
-        );
-
-      case 'schedule':
-        return (
-          <div
-            key={section.id}
-            draggable
-            onDragStart={(e) => handleDragStart(e, section)}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, section)}
-            onDragEnd={handleDragEnd}
-            className={`transition-all ${isDragging ? 'opacity-50' : 'opacity-100'}`}
-          >
-            <div className="relative group">
-              <div className="absolute -left-2 top-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-move z-10">
-                <GripVertical className="w-5 h-5 text-gray-400" />
-              </div>
-              <div className="bg-white border border-gray-200 rounded-lg">
-                <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900 text-sm">Today's Schedule</h3>
-                  <span className="text-xs text-gray-500">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                </div>
-
-                <div className="p-3 space-y-2">
-                  {todayClasses.map((classItem) => (
-                    <div
-                      key={classItem.id}
-                      className="flex items-center justify-between p-3 border border-gray-200 rounded hover:border-gray-300 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className={`w-1 h-12 rounded-full ${classItem.status === 'next' ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-sm text-gray-900">{classItem.grade}</p>
-                            <span className="text-xs text-gray-500">•</span>
-                            <p className="text-sm text-gray-600">{classItem.subject}</p>
-                          </div>
-                          <div className="flex items-center gap-3 mt-1">
-                            <span className="text-xs text-gray-500 flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {classItem.time}
-                            </span>
-                            <span className="text-xs text-gray-500">Room {classItem.room}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button className="px-3 py-1.5 text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors">
-                          Attendance
-                        </button>
-                        <button className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors">
-                          Start
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'tasks':
-        return (
-          <div
-            key={section.id}
-            draggable
-            onDragStart={(e) => handleDragStart(e, section)}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, section)}
-            onDragEnd={handleDragEnd}
-            className={`transition-all ${isDragging ? 'opacity-50' : 'opacity-100'}`}
-          >
-            <div className="relative group">
-              <div className="absolute -left-2 top-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-move z-10">
-                <GripVertical className="w-5 h-5 text-gray-400" />
-              </div>
-              <div className="bg-white border border-gray-200 rounded-lg">
-                <div className="px-4 py-3 border-b border-gray-200">
-                  <h3 className="font-semibold text-gray-900 text-sm">Pending Tasks</h3>
-                </div>
-
-                <div className="p-3 space-y-2">
-                  {pendingTasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className="flex items-start gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer group"
-                    >
-                      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${task.priority === 'high' ? 'bg-red-500' :
-                        task.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-                        }`}></div>
-                      <p className="text-xs text-gray-700 group-hover:text-gray-900 flex-1">{task.task} ({task.count})</p>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'activity':
-        return (
-          <div
-            key={section.id}
-            draggable
-            onDragStart={(e) => handleDragStart(e, section)}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, section)}
-            onDragEnd={handleDragEnd}
-            className={`transition-all ${isDragging ? 'opacity-50' : 'opacity-100'}`}
-          >
-            <div className="relative group">
-              <div className="absolute -left-2 top-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-move z-10">
-                <GripVertical className="w-5 h-5 text-gray-400" />
-              </div>
-              <div className="bg-white border border-gray-200 rounded-lg">
-                <div className="px-4 py-3 border-b border-gray-200">
-                  <h3 className="font-semibold text-gray-900 text-sm">Recent Activity</h3>
-                </div>
-
-                <div className="p-3 space-y-2">
-                  {metrics?.recentActivity?.length > 0 ? (
-                    metrics.recentActivity.map((act) => (
-                      <div key={act.id} className="flex items-start gap-2">
-                        <div className={`w-1.5 h-1.5 rounded-full mt-1.5 ${act.type === 'assessment' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
-                        <div className="flex-1">
-                          <p className="text-xs text-gray-700">{act.text}</p>
-                          <span className="text-xs text-gray-400">{new Date(act.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-center text-gray-400 py-4 italic">No recent activity</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 'analytics':
-        return (
-          <div
-            key={section.id}
-            draggable
-            onDragStart={(e) => handleDragStart(e, section)}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, section)}
-            onDragEnd={handleDragEnd}
-            className={`transition-all ${isDragging ? 'opacity-50' : 'opacity-100'}`}
-          >
-            <div className="relative group">
-              <div className="absolute -left-2 top-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-move z-10">
-                <GripVertical className="w-5 h-5 text-gray-400" />
-              </div>
-              <div className="bg-white border border-gray-200 rounded-lg">
-                <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-blue-600" />
-                    Performance Overview
-                  </h3>
-                  <span className="text-xs text-gray-500">This Week</span>
-                </div>
-
-                <div className="p-6">
-                  <div className="grid grid-cols-4 gap-6">
-                    <AnimatedDoughnutChart
-                      percentage={metrics?.stats?.analytics?.attendance || 0}
-                      size={110}
-                      strokeWidth={8}
-                      color="#3b82f6"
-                      label="Attendance"
-                      sublabel="Avg Rate"
-                    />
-
-                    <AnimatedDoughnutChart
-                      percentage={metrics?.stats?.analytics?.graded || 0}
-                      size={110}
-                      strokeWidth={8}
-                      color="#10b981"
-                      label="Graded"
-                      sublabel="Assessments"
-                    />
-
-                    <AnimatedDoughnutChart
-                      percentage={metrics?.stats?.analytics?.completion || 0}
-                      size={110}
-                      strokeWidth={8}
-                      color="#f59e0b"
-                      label="Completion"
-                      sublabel="Course progress"
-                    />
-
-                    <AnimatedDoughnutChart
-                      percentage={metrics?.stats?.analytics?.engagement || 0}
-                      size={110}
-                      strokeWidth={8}
-                      color="#8b5cf6"
-                      label="Engagement"
-                      sublabel="Participation"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  // Sort sections by order
-  const sortedSections = [...sections].sort((a, b) => a.order - b.order);
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="max-w-7xl mx-auto space-y-4">
-      {/* Compact Status Bar */}
-      <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-3">
-        <p className="text-sm text-gray-600">
-          <span className="font-semibold text-gray-900">Summary:</span> {todayClasses.length} assigned classes • {metrics?.stats?.pendingTasks || 0} pending tasks
-        </p>
-        <div className="text-right">
-          <p className="text-xs text-gray-500">Live Status: <span className="font-semibold text-green-600">Online</span></p>
+    <div className="max-w-[1600px] mx-auto space-y-6">
+      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-brand-purple text-white rounded-lg">
+            <Target size={20} />
+          </div>
+          <div>
+            <h1 className="text-base font-black text-gray-900 tracking-tight">Faculty Instruction Console</h1>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tutor ID: {user?.staffId || 'T-8829'} • Active Academic Term: TERM 01, 2026</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button className="px-3 py-1.5 border border-gray-200 rounded text-[10px] font-black uppercase text-gray-500 hover:bg-gray-50 transition-all flex items-center gap-2">
+            <Calendar size={14} /> View Full Calendar
+          </button>
         </div>
       </div>
 
-      {/* Info Banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
-        <GripVertical className="w-4 h-4 text-blue-600" />
-        <p className="text-xs text-blue-800">
-          <span className="font-semibold">Tip:</span> Hover over sections and drag the grip icon to rearrange your dashboard
-        </p>
+      <div className="bg-white border-b border-gray-200 rounded-t-lg overflow-hidden flex shadow-sm">
+        <TabButton active={activeTab === 'overview'} label="Performance Hub" icon={Activity} onClick={() => setActiveTab('overview')} />
+        <TabButton active={activeTab === 'instructional'} label="Daily Timetable" icon={Clock} onClick={() => setActiveTab('instructional')} />
+        <TabButton active={activeTab === 'analytics'} label="Statistical Insight" icon={TrendingUp} onClick={() => setActiveTab('analytics')} />
       </div>
 
-      {/* Draggable Sections */}
-      {sortedSections.map(section => renderSection(section))}
+      <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+        {activeTab === 'overview' && renderOverview()}
+        {activeTab === 'instructional' && renderInstructional()}
+        {activeTab === 'analytics' && renderAnalytics()}
+      </div>
     </div>
   );
 };

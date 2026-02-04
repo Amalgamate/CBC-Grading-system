@@ -92,8 +92,8 @@ const TransferOutPage = ({ learners = [], onTransferOut, showNotification }) => 
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md p-8">
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-2">
-              <AlertCircle className="text-orange-600" size={24} />
-              <h3 className="text-xl font-bold text-orange-700">Transfer Information</h3>
+              <AlertCircle className="text-brand-purple" size={24} />
+              <h3 className="text-xl font-bold text-brand-purple">Transfer Information</h3>
             </div>
             <p className="text-gray-600 text-sm">
               Complete all required fields to process the transfer
@@ -109,9 +109,8 @@ const TransferOutPage = ({ learners = [], onTransferOut, showNotification }) => 
               <select
                 value={formData.learnerId}
                 onChange={(e) => handleChange('learnerId', e.target.value)}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 ${
-                  errors.learnerId ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple ${errors.learnerId ? 'border-red-500' : 'border-gray-300'
+                  }`}
               >
                 <option value="">-- Select Learner --</option>
                 {activeLearners.map(learner => (
@@ -135,9 +134,8 @@ const TransferOutPage = ({ learners = [], onTransferOut, showNotification }) => 
                   type="date"
                   value={formData.transferDate}
                   onChange={(e) => handleChange('transferDate', e.target.value)}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 ${
-                    errors.transferDate ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple ${errors.transferDate ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 />
                 {errors.transferDate && (
                   <p className="text-red-500 text-sm mt-1">{errors.transferDate}</p>
@@ -154,7 +152,7 @@ const TransferOutPage = ({ learners = [], onTransferOut, showNotification }) => 
                   value={formData.certificateNumber}
                   onChange={(e) => handleChange('certificateNumber', e.target.value)}
                   placeholder="TC-2026-001"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple"
                 />
               </div>
             </div>
@@ -169,9 +167,8 @@ const TransferOutPage = ({ learners = [], onTransferOut, showNotification }) => 
                 value={formData.destinationSchool}
                 onChange={(e) => handleChange('destinationSchool', e.target.value)}
                 placeholder="e.g., Nairobi Academy"
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 ${
-                  errors.destinationSchool ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple ${errors.destinationSchool ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
               {errors.destinationSchool && (
                 <p className="text-red-500 text-sm mt-1">{errors.destinationSchool}</p>
@@ -188,7 +185,7 @@ const TransferOutPage = ({ learners = [], onTransferOut, showNotification }) => 
                 onChange={(e) => handleChange('destinationAddress', e.target.value)}
                 placeholder="Enter full address of destination school"
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple"
               />
             </div>
 
@@ -200,9 +197,8 @@ const TransferOutPage = ({ learners = [], onTransferOut, showNotification }) => 
               <select
                 value={formData.reason}
                 onChange={(e) => handleChange('reason', e.target.value)}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 ${
-                  errors.reason ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple ${errors.reason ? 'border-red-500' : 'border-gray-300'
+                  }`}
               >
                 <option value="">-- Select Reason --</option>
                 {TRANSFER_REASONS.map((reason, index) => (
@@ -218,7 +214,7 @@ const TransferOutPage = ({ learners = [], onTransferOut, showNotification }) => 
             <div className="border-t pt-6 flex items-center gap-4">
               <button
                 type="submit"
-                className="flex items-center gap-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition font-semibold"
+                className="flex items-center gap-2 px-6 py-3 bg-brand-purple text-white rounded-lg hover:opacity-90 transition font-bold"
               >
                 <CheckCircle size={20} />
                 Process Transfer
@@ -232,7 +228,7 @@ const TransferOutPage = ({ learners = [], onTransferOut, showNotification }) => 
               </button>
               <button
                 type="button"
-                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold ml-auto"
+                className="flex items-center gap-2 px-6 py-3 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition font-bold ml-auto"
               >
                 <FileText size={20} />
                 Generate Transfer Documents

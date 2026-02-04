@@ -3,6 +3,7 @@ import prisma from '../config/database';
 import { generateAccessToken } from '../utils/jwt.util';
 import { provisionNewSchool } from '../services/school-provisioning.service';
 import { deleteSchoolSafely, restoreSchool, getDeletedSchools } from '../services/school-deletion.service';
+import { encrypt } from '../utils/encryption.util';
 
 export class AdminController {
   async listSchools(_req: Request, res: Response) {
@@ -491,6 +492,67 @@ export class AdminController {
         error: 'Failed to fetch school statistics',
         details: error.message
       });
+    }
+  }
+
+  /**
+   * Get school communication configuration
+   * GET /api/admin/schools/:schoolId/communication
+   */
+  async getSchoolCommunication(req: Request, res: Response) {
+    try {
+      const { schoolId } = req.params;
+      const config = await prisma.communicationConfig.findUnique({
+        where: { schoolId }
+      });
+
+      if (!config) {
+        return res.json({
+          success: true,
+          data: {
+            smsEnabled: true, // Default to true as per request
+            smsProvider: 'mobilesasa',
+            emailProvider: 'resend',
+            mpesaProvider: 'intasend'
+          }
+        });
+      }
+
+      res.json({ success: true, data: config });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: 'Failed to fetch communication config' });
+    }
+  }
+
+  /**
+   * Update school communication configuration
+   * PUT /api/admin/schools/:schoolId/communication
+   */
+  async updateSchoolCommunication(req: Request, res: Response) {
+    try {
+      const { schoolId } = req.params;
+      const updateData = { ...req.body };
+
+      // Encrypt sensitive keys if provided
+      if (updateData.smsApiKey) updateData.smsApiKey = encrypt(updateData.smsApiKey);
+      if (updateData.emailApiKey) updateData.emailApiKey = encrypt(updateData.emailApiKey);
+      if (updateData.mpesaSecretKey) updateData.mpesaSecretKey = encrypt(updateData.mpesaSecretKey);
+      if (updateData.mpesaPublicKey) updateData.mpesaPublicKey = encrypt(updateData.mpesaPublicKey);
+      if (updateData.smsCustomToken) updateData.smsCustomToken = encrypt(updateData.smsCustomToken);
+
+      const config = await prisma.communicationConfig.upsert({
+        where: { schoolId },
+        create: {
+          ...updateData,
+          schoolId
+        },
+        update: updateData
+      });
+
+      res.json({ success: true, data: config });
+    } catch (error: any) {
+      console.error('Update communication error:', error);
+      res.status(500).json({ success: false, error: 'Failed to update communication config' });
     }
   }
 }

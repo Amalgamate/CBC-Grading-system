@@ -68,13 +68,13 @@ const TransfersInPage = () => {
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-blue-700 text-sm font-semibold">Total Transfers</p>
-          <p className="text-3xl font-bold text-blue-800">{stats.total}</p>
+        <div className="bg-brand-purple/10 border border-brand-purple/20 rounded-lg p-4">
+          <p className="text-brand-purple text-sm font-bold uppercase tracking-wider">Total Transfers</p>
+          <p className="text-3xl font-bold text-brand-purple">{stats.total}</p>
         </div>
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <p className="text-orange-700 text-sm font-semibold">Pending</p>
-          <p className="text-3xl font-bold text-orange-800">{stats.pending}</p>
+        <div className="bg-brand-teal/10 border border-brand-teal/20 rounded-lg p-4">
+          <p className="text-brand-teal text-sm font-bold uppercase tracking-wider">Pending</p>
+          <p className="text-3xl font-bold text-brand-teal">{stats.pending}</p>
         </div>
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <p className="text-green-700 text-sm font-semibold">Approved</p>
@@ -95,7 +95,7 @@ const TransfersInPage = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple"
               placeholder="Search by name or school..."
             />
           </div>
@@ -104,7 +104,7 @@ const TransfersInPage = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple"
             >
               <option value="all">All Statuses</option>
               <option value="Pending">Pending</option>
@@ -149,11 +149,10 @@ const TransfersInPage = () => {
                     <td className="px-6 py-4 text-gray-700">{transfer.grade} - {transfer.stream}</td>
                     <td className="px-6 py-4 text-gray-600">{transfer.transferDate}</td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
-                        transfer.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                        transfer.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                        'bg-orange-100 text-orange-800'
-                      }`}>
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${transfer.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                          transfer.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                            'bg-brand-teal/10 text-brand-teal'
+                        }`}>
                         {transfer.status}
                       </span>
                     </td>
@@ -161,7 +160,7 @@ const TransfersInPage = () => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => { setSelectedTransfer(transfer); setShowDetailsModal(true); }}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                          className="p-2 text-brand-purple hover:bg-brand-purple/10 rounded-lg transition"
                           title="View Details"
                         >
                           <Eye size={18} />
@@ -215,11 +214,10 @@ const TransfersInPage = () => {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-600">Status</p>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
-                    selectedTransfer.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                    selectedTransfer.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                    'bg-orange-100 text-orange-800'
-                  }`}>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${selectedTransfer.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                      selectedTransfer.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                        'bg-brand-teal/10 text-brand-teal'
+                    }`}>
                     {selectedTransfer.status}
                   </span>
                 </div>

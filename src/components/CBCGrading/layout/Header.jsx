@@ -176,7 +176,7 @@ const Header = ({ user, onLogout, brandingSettings, title }) => {
     <div className="bg-white border-b border-gray-200 shadow-sm px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-6">
         <div>
-          <h1 className="text-2xl font-bold text-transparent bg-gradient-to-r from-blue-900 to-blue-600 bg-clip-text">
+          <h1 className="text-2xl font-bold text-transparent bg-gradient-to-r from-indigo-900 to-indigo-600 bg-clip-text">
             {isSuperAdmin && selectedSchool ? selectedSchool.name : (title || brandingSettings?.schoolName || 'EDucore V1')}
           </h1>
           <p className="text-xs text-gray-600">
@@ -189,7 +189,7 @@ const Header = ({ user, onLogout, brandingSettings, title }) => {
           <div className="relative" ref={schoolPickerRef}>
             <button
               onClick={() => setShowSchoolPicker(!showSchoolPicker)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-sm font-semibold transition"
+              className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-sm font-semibold transition"
             >
               <Building2 size={16} />
               <span>Switch School</span>
@@ -205,7 +205,7 @@ const Header = ({ user, onLogout, brandingSettings, title }) => {
                 <div className="overflow-y-auto flex-1">
                   {loadingSchools ? (
                     <div className="p-8 text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
                       <p className="text-sm text-gray-500 mt-2">Loading schools...</p>
                     </div>
                   ) : schools.length === 0 ? (
@@ -215,14 +215,14 @@ const Header = ({ user, onLogout, brandingSettings, title }) => {
                       <div key={school.id} className="border-b last:border-0">
                         <button
                           onClick={() => handleSchoolSwitch(school)}
-                          className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition flex items-center justify-between ${selectedSchool?.id === school.id ? 'bg-blue-50/50 border-l-4 border-blue-600' : ''}`}
+                          className={`w-full text-left px-4 py-3 hover:bg-indigo-50 transition flex items-center justify-between ${selectedSchool?.id === school.id ? 'bg-indigo-50/50 border-l-4 border-indigo-600' : ''}`}
                         >
                           <div>
                             <p className="font-bold text-gray-800">{school.name}</p>
                             <p className="text-xs text-gray-500">{school.county || 'No County'} School</p>
                           </div>
                           {selectedSchool?.id === school.id && (
-                            <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                            <div className="w-2 h-2 rounded-full bg-indigo-600"></div>
                           )}
                         </button>
 
@@ -238,7 +238,7 @@ const Header = ({ user, onLogout, brandingSettings, title }) => {
                                     e.stopPropagation();
                                     handleBranchSwitch(branch);
                                   }}
-                                  className={`px-2 py-1 rounded text-[10px] font-bold border transition ${selectedBranch?.id === branch.id ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300'}`}
+                                  className={`px-2 py-1 rounded text-[10px] font-bold border transition ${selectedBranch?.id === branch.id ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-indigo-300'}`}
                                 >
                                   {branch.name}
                                 </button>
@@ -302,7 +302,7 @@ const Header = ({ user, onLogout, brandingSettings, title }) => {
             <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 z-[110] overflow-hidden">
               <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
                 <h3 className="text-sm font-bold text-gray-800">Notifications</h3>
-                <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
                   Updates
                 </span>
               </div>
@@ -316,7 +316,7 @@ const Header = ({ user, onLogout, brandingSettings, title }) => {
                     </div>
                     {birthdays.map((b) => (
                       <div key={b.id} className="p-3 hover:bg-gray-50 rounded-lg transition flex items-start gap-4 border-b border-gray-50 last:border-0 group">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0 shadow-sm transition-transform group-hover:scale-110 ${b.isToday ? 'bg-pink-100 text-pink-700 border-2 border-pink-400 animate-bounce' : 'bg-blue-50 text-blue-700'}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0 shadow-sm transition-transform group-hover:scale-110 ${b.isToday ? 'bg-pink-100 text-pink-700 border-2 border-pink-400 animate-bounce' : 'bg-indigo-50 text-indigo-700'}`}>
                           {b.name.split(' ').map(n => n[0]).join('')}
                         </div>
                         <div className="flex-1">
@@ -344,7 +344,7 @@ const Header = ({ user, onLogout, brandingSettings, title }) => {
               <div className="p-3 bg-gray-50 border-t text-center">
                 <button
                   onClick={() => setShowNotifications(false)}
-                  className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 transition"
+                  className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition"
                 >
                   Clear All View
                 </button>
@@ -360,7 +360,7 @@ const Header = ({ user, onLogout, brandingSettings, title }) => {
               {isSuperAdmin ? 'Global Super Admin' : (user?.role || 'System Admin')}
             </p>
           </div>
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
             {(user?.name || 'AU').substring(0, 2).toUpperCase()}
           </div>
           <button

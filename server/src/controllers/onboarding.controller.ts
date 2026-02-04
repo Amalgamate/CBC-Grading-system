@@ -63,6 +63,16 @@ export class OnboardingController {
           });
         }
 
+        // 5. Create Default Communication Config
+        await tx.communicationConfig.create({
+          data: {
+            schoolId: school.id,
+            smsEnabled: true,
+            smsProvider: 'mobilesasa',
+            smsBaseUrl: 'https://api.mobilesasa.com',
+          }
+        });
+
         return { school, branch };
       });
 
@@ -201,7 +211,17 @@ export class OnboardingController {
           });
         }
 
-        // 5. Create Admin User
+        // 5. Create Default Communication Config
+        await tx.communicationConfig.create({
+          data: {
+            schoolId: school.id,
+            smsEnabled: true,
+            smsProvider: 'mobilesasa',
+            smsBaseUrl: 'https://api.mobilesasa.com',
+          }
+        });
+
+        // 6. Create Admin User
         const [firstName, ...rest] = fullName.trim().split(' ');
         const lastName = rest.join(' ') || ' ';
         const hashed = await bcrypt.hash(password, 12);

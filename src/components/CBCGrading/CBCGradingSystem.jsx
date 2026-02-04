@@ -190,6 +190,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
     createTeacher,
     updateTeacher,
     deleteTeacher,
+    archiveTeacher,
   } = useTeachers();
 
   const {
@@ -250,12 +251,12 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
 
   const handleAddLearner = () => {
     setEditingLearner(null);
-    setShowLearnerModal(true);
+    setCurrentPage('learners-admissions');
   };
 
   const handleEditLearner = (learner) => {
     setEditingLearner(learner);
-    setShowLearnerModal(true);
+    setCurrentPage('learners-admissions');
   };
 
   const handleViewLearner = (learner) => {
@@ -358,11 +359,15 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
 
   const handleDeleteTeacher = async (teacherId) => {
     setConfirmAction(() => async () => {
-      const result = await deleteTeacher(teacherId);
+      const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+      const result = isSuperAdmin
+        ? await deleteTeacher(teacherId)
+        : await archiveTeacher(teacherId);
+
       if (result.success) {
-        showSuccess('Tutor deleted successfully');
+        showSuccess(isSuperAdmin ? 'Tutor deleted successfully' : 'Tutor archived successfully');
       } else {
-        showSuccess('Error deleting tutor: ' + result.error);
+        showSuccess('Error: ' + result.error);
       }
       setShowConfirmDialog(false);
     });
@@ -456,7 +461,16 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
           />
         );
       case 'learners-admissions':
-        return <AdmissionsPage />;
+        return (
+          <AdmissionsPage
+            onSave={handleSaveLearner}
+            onCancel={() => {
+              setCurrentPage('learners-list');
+              setEditingLearner(null);
+            }}
+            learner={editingLearner}
+          />
+        );
       case 'learners-transfers-in':
         return <TransfersInPage />;
       case 'learners-exited':
@@ -636,16 +650,6 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
         teacher={editingTeacher}
       />
 
-      {/* Add/Edit Learner Modal */}
-      <AddEditLearnerModal
-        show={showLearnerModal}
-        onClose={() => {
-          setShowLearnerModal(false);
-          setEditingLearner(null);
-        }}
-        onSave={handleSaveLearner}
-        learner={editingLearner}
-      />
 
       {/* View Learner Modal */}
       <ViewLearnerModal

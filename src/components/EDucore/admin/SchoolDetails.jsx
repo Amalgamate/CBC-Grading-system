@@ -6,9 +6,11 @@
 import React, { useEffect, useState } from 'react';
 import {
   ArrowLeft, Building2, Users, Activity, FileText, Award,
-  Eye, EyeOff, Mail, AlertCircle, CheckCircle, XCircle, Clock, Trash2
+  Eye, EyeOff, Mail, AlertCircle, CheckCircle, XCircle, Clock, Trash2,
+  MessageSquare, CreditCard, Shield, Save
 } from 'lucide-react';
-import { schoolAPI, learnerAPI, assessmentAPI, userAPI } from '../../../services/api';
+import { adminAPI, schoolAPI, learnerAPI, assessmentAPI, userAPI } from '../../../services/api';
+import { toast } from 'react-hot-toast';
 
 export default function SchoolDetails({ schoolId, onBack }) {
   const [school, setSchool] = useState(null);
@@ -19,6 +21,23 @@ export default function SchoolDetails({ schoolId, onBack }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [showPasswords, setShowPasswords] = useState({});
   const [deleting, setDeleting] = useState(false);
+  const [commConfig, setCommConfig] = useState({
+    smsEnabled: true,
+    smsProvider: 'mobilesasa',
+    smsApiKey: '',
+    smsSenderId: '',
+    emailEnabled: false,
+    emailProvider: 'resend',
+    emailApiKey: '',
+    emailFrom: '',
+    emailFromName: '',
+    mpesaEnabled: false,
+    mpesaProvider: 'intasend',
+    mpesaBusinessNo: '',
+    mpesaPublicKey: '',
+    mpesaSecretKey: ''
+  });
+  const [savingComm, setSavingComm] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -63,6 +82,12 @@ export default function SchoolDetails({ schoolId, onBack }) {
       }
       setUsers(usersData); // Backend already filtered by schoolId
 
+      // Load communication config
+      const commRes = await adminAPI.getSchoolCommunication(schoolId).catch(() => null);
+      if (commRes?.success && commRes.data) {
+        setCommConfig(prev => ({ ...prev, ...commRes.data, smsEnabled: commRes.data.smsEnabled ?? true }));
+      }
+
       // Restore previous context
       if (previousSchoolId) {
         localStorage.setItem('currentSchoolId', previousSchoolId);
@@ -86,20 +111,15 @@ export default function SchoolDetails({ schoolId, onBack }) {
     }));
   };
 
-  const handleDeleteTest = async (testId, testTitle) => {
-    if (!window.confirm(`Are you sure you want to delete "${testTitle}"? This action cannot be undone.`)) {
-      return;
-    }
-
-    setDeleting(true);
+  const handleSaveComm = async () => {
+    setSavingComm(true);
     try {
-      await assessmentAPI.deleteTest(testId);
-      setTests(prev => prev.filter(t => t.id !== testId));
-      alert(`Test "${testTitle}" deleted successfully!`);
+      await adminAPI.updateSchoolCommunication(schoolId, commConfig);
+      toast.success('Communication settings updated!');
     } catch (error) {
-      alert(`Failed to delete test: ${error.message}`);
+      toast.error('Failed to update settings: ' + error.message);
     } finally {
-      setDeleting(false);
+      setSavingComm(false);
     }
   };
 
@@ -113,14 +133,45 @@ export default function SchoolDetails({ schoolId, onBack }) {
     return colors[role] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
-  const getStatusBadge = (status) => {
+  const handleStatusBadge = (status) => {
     if (status === 'ACTIVE') return { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50', label: 'Active' };
     if (status === 'INACTIVE') return { icon: XCircle, color: 'text-red-600', bg: 'bg-red-50', label: 'Inactive' };
     return { icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-50', label: 'Pending' };
   };
 
+  const handleDeleteTest = async (testId, title) => {
+    if (!window.confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      // Temporarily set school context for the delete operation
+      const previousSchoolId = localStorage.getItem('currentSchoolId');
+      localStorage.setItem('currentSchoolId', schoolId);
+
+      await assessmentAPI.deleteTest(testId);
+      toast.success('Test deleted successfully');
+
+      // Refresh the list
+      load();
+
+      // Restore context
+      if (previousSchoolId) {
+        localStorage.setItem('currentSchoolId', previousSchoolId);
+      } else {
+        localStorage.removeItem('currentSchoolId');
+      }
+    } catch (error) {
+      toast.error('Failed to delete test: ' + error.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Building2 },
+    { id: 'communication', label: 'Communication', icon: MessageSquare }, // New tab
     { id: 'users', label: 'Users', icon: Users, count: users.length },
     { id: 'learners', label: 'Learners', icon: FileText, count: learners.length },
     { id: 'tests', label: 'Tests', icon: Award, count: tests.filter(t => t.testType || t.learningArea).length },
@@ -198,8 +249,8 @@ export default function SchoolDetails({ schoolId, onBack }) {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === tab.id
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                      : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                    : 'text-gray-600 hover:bg-gray-100'
                     }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -258,6 +309,165 @@ export default function SchoolDetails({ schoolId, onBack }) {
           </div>
         )}
 
+        {/* Communication Tab */}
+        {activeTab === 'communication' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Communication & Payments</h2>
+                  <p className="text-sm text-gray-500">Configure SMS, Email and Payment triggers for this school</p>
+                </div>
+                <button
+                  onClick={handleSaveComm}
+                  disabled={savingComm}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-50"
+                >
+                  {savingComm ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Save Settings
+                </button>
+              </div>
+
+              <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* SMS Settings */}
+                <div className="space-y-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="w-5 h-5 text-indigo-600" />
+                      <h3 className="font-bold text-gray-900">SMS (MobileSasa)</h3>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={commConfig.smsEnabled}
+                        onChange={(e) => setCommConfig({ ...commConfig, smsEnabled: e.target.checked })}
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 uppercase mb-1">API Key</label>
+                      <input
+                        type="password"
+                        value={commConfig.smsApiKey}
+                        onChange={(e) => setCommConfig({ ...commConfig, smsApiKey: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        placeholder="••••••••••••••••"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Sender ID</label>
+                      <input
+                        type="text"
+                        value={commConfig.smsSenderId}
+                        onChange={(e) => setCommConfig({ ...commConfig, smsSenderId: e.target.value.toUpperCase() })}
+                        maxLength={11}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        placeholder="e.g. EDucore"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Email Settings */}
+                <div className="space-y-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-5 h-5 text-indigo-600" />
+                      <h3 className="font-bold text-gray-900">Email (Resend)</h3>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={commConfig.emailEnabled}
+                        onChange={(e) => setCommConfig({ ...commConfig, emailEnabled: e.target.checked })}
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Resend API Key</label>
+                      <input
+                        type="password"
+                        value={commConfig.emailApiKey}
+                        onChange={(e) => setCommConfig({ ...commConfig, emailApiKey: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        placeholder="re_••••••••••••"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 uppercase mb-1">From Email</label>
+                      <input
+                        type="email"
+                        value={commConfig.emailFrom}
+                        onChange={(e) => setCommConfig({ ...commConfig, emailFrom: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        placeholder="noreply@school.com"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* M-Pesa Settings */}
+                <div className="space-y-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-indigo-600" />
+                      <h3 className="font-bold text-gray-900">M-Pesa Payments</h3>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={commConfig.mpesaEnabled}
+                        onChange={(e) => setCommConfig({ ...commConfig, mpesaEnabled: e.target.checked })}
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Business No (Paybill)</label>
+                      <input
+                        type="text"
+                        value={commConfig.mpesaBusinessNo}
+                        onChange={(e) => setCommConfig({ ...commConfig, mpesaBusinessNo: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        placeholder="e.g. 400200"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Public Key</label>
+                      <input
+                        type="password"
+                        value={commConfig.mpesaPublicKey}
+                        onChange={(e) => setCommConfig({ ...commConfig, mpesaPublicKey: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        placeholder="ISPK_••••••••"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center gap-4">
+                <Shield className="w-5 h-5 text-indigo-500" />
+                <p className="text-xs text-gray-500 leading-relaxed font-medium">
+                  Settings here affect all automated communication for <strong>{school?.name}</strong>.
+                  Keys are stored using AES-256 encryption. Changes are audit-logged for security.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Users Tab */}
         {activeTab === 'users' && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -303,7 +513,7 @@ export default function SchoolDetails({ schoolId, onBack }) {
                       </tr>
                     ) : (
                       users.map((user) => {
-                        const statusInfo = getStatusBadge(user.status);
+                        const statusInfo = handleStatusBadge(user.status);
                         const StatusIcon = statusInfo.icon;
 
                         return (

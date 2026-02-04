@@ -288,30 +288,30 @@ const FormativeAssessment = ({ learners }) => {
     <div className="flex items-center justify-center mb-8">
       <div className="flex items-center">
         {/* Step 1 */}
-        <div className={`flex flex-col items-center relative z-10 ${viewMode !== 'setup' ? 'text-blue-600' : 'text-blue-600'}`}>
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${viewMode === 'setup' || viewMode === 'assess' || viewMode === 'review' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300'}`}>
+        <div className={`flex flex-col items-center relative z-10 ${viewMode !== 'setup' ? 'text-brand-purple' : 'text-brand-purple'}`}>
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${viewMode === 'setup' || viewMode === 'assess' || viewMode === 'review' ? 'bg-brand-purple border-brand-purple text-white' : 'bg-white border-gray-300'}`}>
             {viewMode !== 'setup' ? <Check size={20} /> : <FileText size={20} />}
           </div>
           <span className="text-xs font-semibold mt-2">Setup</span>
         </div>
 
         {/* Connector */}
-        <div className={`w-24 h-1 -mt-6 mx-2 ${viewMode === 'assess' || viewMode === 'review' ? 'bg-blue-600' : 'bg-gray-200'}`} />
+        <div className={`w-24 h-1 -mt-6 mx-2 ${viewMode === 'assess' || viewMode === 'review' ? 'bg-brand-purple' : 'bg-gray-200'}`} />
 
         {/* Step 2 */}
-        <div className={`flex flex-col items-center relative z-10 ${viewMode === 'assess' || viewMode === 'review' ? 'text-blue-600' : 'text-gray-400'}`}>
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${viewMode === 'assess' || viewMode === 'review' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300'}`}>
+        <div className={`flex flex-col items-center relative z-10 ${viewMode === 'assess' || viewMode === 'review' ? 'text-brand-purple' : 'text-gray-400'}`}>
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${viewMode === 'assess' || viewMode === 'review' ? 'bg-brand-purple border-brand-purple text-white' : 'bg-white border-gray-300'}`}>
             {viewMode === 'review' ? <Check size={20} /> : <Users size={20} />}
           </div>
           <span className="text-xs font-semibold mt-2">Assess</span>
         </div>
 
         {/* Connector */}
-        <div className={`w-24 h-1 -mt-6 mx-2 ${viewMode === 'review' ? 'bg-blue-600' : 'bg-gray-200'}`} />
+        <div className={`w-24 h-1 -mt-6 mx-2 ${viewMode === 'review' ? 'bg-brand-purple' : 'bg-gray-200'}`} />
 
         {/* Step 3 */}
-        <div className={`flex flex-col items-center relative z-10 ${viewMode === 'review' ? 'text-blue-600' : 'text-gray-400'}`}>
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${viewMode === 'review' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300'}`}>
+        <div className={`flex flex-col items-center relative z-10 ${viewMode === 'review' ? 'text-brand-purple' : 'text-gray-400'}`}>
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${viewMode === 'review' ? 'bg-brand-purple border-brand-purple text-white' : 'bg-white border-gray-300'}`}>
             <BarChart2 size={20} />
           </div>
           <span className="text-xs font-semibold mt-2">Review</span>
@@ -359,7 +359,7 @@ const FormativeAssessment = ({ learners }) => {
                         setSavedAssessments({});
                       }}
                       disabled={loadingGrades}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple transition-all text-sm bg-white disabled:bg-gray-100 disabled:text-gray-400"
                     >
                       {loadingGrades ? (
                         <option>Loading grades...</option>
@@ -376,7 +376,7 @@ const FormativeAssessment = ({ learners }) => {
                     <select
                       value={selectedTerm}
                       onChange={(e) => setSelectedTerm(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm bg-white"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple transition-all text-sm bg-white"
                     >
                       {terms.map(t => (
                         <option key={t.value} value={t.value}>{t.label}</option>
@@ -393,7 +393,7 @@ const FormativeAssessment = ({ learners }) => {
                       setSelectedArea(e.target.value);
                       learningAreas.selectLearningArea(e.target.value);
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple transition-all text-sm bg-white"
                     disabled={!setup.selectedGrade}
                   >
                     <option value="">Select a learning area</option>
@@ -412,7 +412,7 @@ const FormativeAssessment = ({ learners }) => {
                     type="text"
                     value={strand}
                     onChange={(e) => setStrand(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple transition-all text-sm"
                     placeholder="e.g., Numbers"
                   />
                 </div>
@@ -423,7 +423,7 @@ const FormativeAssessment = ({ learners }) => {
                     type="text"
                     value={subStrand}
                     onChange={(e) => setSubStrand(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple transition-all text-sm"
                     placeholder="e.g., Addition and Subtraction"
                   />
                 </div>
@@ -442,7 +442,7 @@ const FormativeAssessment = ({ learners }) => {
                     type="text"
                     value={assessmentTitle}
                     onChange={(e) => setAssessmentTitle(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple transition-all text-sm"
                     placeholder="e.g., Weekly Quiz 1"
                   />
                 </div>
@@ -452,7 +452,7 @@ const FormativeAssessment = ({ learners }) => {
                   <select
                     value={assessmentType}
                     onChange={(e) => setAssessmentType(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple transition-all text-sm bg-white"
                   >
                     <option value="QUIZ">Quiz</option>
                     <option value="ASSIGNMENT">Assignment</option>
@@ -473,7 +473,7 @@ const FormativeAssessment = ({ learners }) => {
                         min="0"
                         value={assessmentWeight}
                         onChange={(e) => setAssessmentWeight(Number(e.target.value))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple transition-all text-sm"
                       />
                       <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">pts</span>
                     </div>
@@ -485,7 +485,7 @@ const FormativeAssessment = ({ learners }) => {
                       min="0"
                       value={maxScore || ''}
                       onChange={(e) => setMaxScore(e.target.value ? Number(e.target.value) : null)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple transition-all text-sm"
                       placeholder="e.g. 100"
                     />
                   </div>
@@ -497,7 +497,7 @@ const FormativeAssessment = ({ learners }) => {
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
             <button
               onClick={goToNextStep}
-              className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold shadow-sm hover:shadow text-sm"
+              className="flex items-center gap-2 px-6 py-2.5 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition-all font-bold shadow-sm hover:shadow text-sm"
             >
               Start Assessment
               <ArrowRight size={16} />
@@ -510,9 +510,9 @@ const FormativeAssessment = ({ learners }) => {
       {viewMode === 'assess' && (
         <div className="space-y-6">
           {/* Context Header */}
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-blue-100 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-4 z-20">
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-brand-purple/10 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-4 z-20">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm">
+              <div className="w-10 h-10 bg-gradient-to-br from-brand-purple to-brand-teal rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm">
                 <FileText size={20} />
               </div>
               <div>
@@ -541,14 +541,14 @@ const FormativeAssessment = ({ learners }) => {
               <button
                 onClick={handleSaveAll}
                 disabled={saving}
-                className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm font-semibold disabled:opacity-70"
+                className="flex items-center gap-2 px-6 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-sm font-bold disabled:opacity-70"
               >
                 {saving ? 'Saving...' : 'Save Progress'}
                 <Save size={18} />
               </button>
               <button
                 onClick={goToNextStep}
-                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition shadow-sm font-semibold"
+                className="flex items-center gap-2 px-6 py-2 bg-brand-purple text-white rounded-lg hover:bg-brand-purple/90 transition shadow-sm font-bold"
               >
                 Review
                 <ArrowRight size={18} />
@@ -582,7 +582,7 @@ const FormativeAssessment = ({ learners }) => {
                   <p className="text-gray-500">No learners match your search</p>
                   <button
                     onClick={() => setSearchLearnerId(null)}
-                    className="mt-2 text-blue-600 hover:text-blue-700 text-sm font-semibold"
+                    className="mt-2 text-brand-purple hover:text-brand-purple/80 text-sm font-bold"
                   >
                     Clear Search
                   </button>
@@ -602,14 +602,14 @@ const FormativeAssessment = ({ learners }) => {
                             ? 'border-purple-200 bg-purple-50/50'
                             : assessment?.detailedRating
                               ? 'border-green-200 bg-green-50/50'
-                              : 'border-gray-100 hover:border-blue-200 hover:shadow-md'
+                              : 'border-gray-100 hover:border-brand-purple/30 hover:shadow-md'
                           }
                         `}
                       >
                         {/* Learner Header */}
                         <div className="flex flex-col md:flex-row md:items-center gap-6 mb-6">
                           <div className="flex items-center gap-4 min-w-[200px]">
-                            <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-sm">
+                            <div className="w-14 h-14 bg-gradient-to-br from-brand-purple to-brand-teal rounded-full flex items-center justify-center text-white font-bold text-xl shadow-sm">
                               {learner.firstName[0]}{learner.lastName[0]}
                             </div>
                             <div>
@@ -666,7 +666,7 @@ const FormativeAssessment = ({ learners }) => {
                                 value={assessment.strengths || ''}
                                 onChange={(e) => handleFeedbackChange(learner.id, 'strengths', e.target.value)}
                                 rows="2"
-                                className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent text-sm"
                                 placeholder="Key strengths..."
                               />
                             </div>
@@ -678,7 +678,7 @@ const FormativeAssessment = ({ learners }) => {
                                 value={assessment.areasImprovement || ''}
                                 onChange={(e) => handleFeedbackChange(learner.id, 'areasImprovement', e.target.value)}
                                 rows="2"
-                                className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent text-sm"
                                 placeholder="Areas to improve..."
                               />
                             </div>
@@ -704,17 +704,17 @@ const FormativeAssessment = ({ learners }) => {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-blue-50 rounded-xl p-4 text-center">
-              <p className="text-sm text-blue-600 font-semibold uppercase">Total Learners</p>
-              <p className="text-3xl font-bold text-blue-900">{stats.total}</p>
+            <div className="bg-brand-purple/10 rounded-xl p-4 text-center">
+              <p className="text-sm text-brand-purple font-bold uppercase">Total Learners</p>
+              <p className="text-3xl font-black text-brand-purple">{stats.total}</p>
             </div>
-            <div className="bg-green-50 rounded-xl p-4 text-center">
-              <p className="text-sm text-green-600 font-semibold uppercase">Assessed</p>
-              <p className="text-3xl font-bold text-green-900">{stats.assessed}</p>
+            <div className="bg-brand-teal/10 rounded-xl p-4 text-center">
+              <p className="text-sm text-brand-teal font-bold uppercase">Assessed</p>
+              <p className="text-3xl font-black text-brand-teal">{stats.assessed}</p>
             </div>
-            <div className="bg-purple-50 rounded-xl p-4 text-center">
-              <p className="text-sm text-purple-600 font-semibold uppercase">Saved</p>
-              <p className="text-3xl font-bold text-purple-900">{stats.saved}</p>
+            <div className="bg-brand-purple/10 rounded-xl p-4 text-center">
+              <p className="text-sm text-brand-purple font-bold uppercase">Saved</p>
+              <p className="text-3xl font-black text-brand-purple">{stats.saved}</p>
             </div>
             <div className="bg-gray-50 rounded-xl p-4 text-center">
               <p className="text-sm text-gray-600 font-semibold uppercase">Remaining</p>
@@ -738,14 +738,14 @@ const FormativeAssessment = ({ learners }) => {
                 setViewMode('setup');
                 window.scrollTo(0, 0);
               }}
-              className="px-8 py-3 bg-white border-2 border-blue-600 text-blue-600 rounded-xl hover:bg-blue-50 font-semibold shadow-sm hover:shadow-md transition"
+              className="px-8 py-3 bg-white border-2 border-brand-purple text-brand-purple rounded-xl hover:bg-brand-purple/5 font-bold shadow-sm hover:shadow-md transition"
             >
               Start New Assessment
             </button>
             <button
               onClick={handleSubmitForApproval}
               disabled={submitting}
-              className="px-8 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 font-semibold shadow-lg hover:shadow-xl transition flex items-center gap-2"
+              className="px-8 py-3 bg-brand-teal text-white rounded-xl hover:bg-brand-teal/90 font-bold shadow-lg hover:shadow-xl transition flex items-center gap-2"
             >
               {submitting ? (
                 <>

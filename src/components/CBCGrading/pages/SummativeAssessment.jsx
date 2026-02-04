@@ -705,7 +705,7 @@ Are you sure you want to unlock this test?`;
                 setSelectedLearningArea('');
                 setSelectedTestId('');
               }}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple bg-white"
             >
               <option value="">Select Grade</option>
               {availableGrades.map(g => (
@@ -719,7 +719,7 @@ Are you sure you want to unlock this test?`;
             <select
               value={setup.selectedStream}
               onChange={(e) => setup.updateStream(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple bg-white"
             >
               <option value="">Select Stream</option>
               {availableStreams.map(s => (
@@ -737,7 +737,7 @@ Are you sure you want to unlock this test?`;
                 setSelectedLearningArea('');
                 setSelectedTestId('');
               }}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple bg-white"
             >
               <option value="">Select Term</option>
               {availableTerms.map(t => (
@@ -756,7 +756,7 @@ Are you sure you want to unlock this test?`;
                 setSelectedLearningArea(e.target.value);
                 setSelectedTestId('');
               }}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple bg-white"
               disabled={!setup.selectedGrade || !setup.selectedTerm || availableLearningAreas.length === 0}
             >
               <option value="">
@@ -777,7 +777,7 @@ Are you sure you want to unlock this test?`;
             <select
               value={selectedTestId}
               onChange={(e) => setSelectedTestId(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition bg-white"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple outline-none transition bg-white"
               disabled={finalTests.length === 0}
             >
               <option value="">{finalTests.length === 0 ? (selectedLearningArea ? 'No tests for this area' : 'Select Learning Area first') : 'Select Test'}</option>
@@ -812,7 +812,7 @@ Are you sure you want to unlock this test?`;
               else showError('Please select a test');
             }}
             disabled={!selectedTestId}
-            className="px-8 py-3 bg-[#1e293b] text-white rounded-lg hover:bg-[#334155] transition font-semibold disabled:opacity-50 shadow-sm"
+            className="px-8 py-3 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition font-bold disabled:opacity-50 shadow-sm"
           >
             Assess
           </button>
@@ -851,10 +851,10 @@ Are you sure you want to unlock this test?`;
               <span className="text-sm text-gray-600 font-medium">
                 Progress: {assessmentProgress.assessed}/{assessmentProgress.total}
               </span>
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${assessmentProgress.percentage === 100
-                ? 'bg-green-100 text-green-700'
+              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${assessmentProgress.percentage === 100
+                ? 'bg-brand-teal/10 text-brand-teal'
                 : assessmentProgress.percentage >= 50
-                  ? 'bg-blue-100 text-blue-700'
+                  ? 'bg-brand-purple/10 text-brand-purple'
                   : 'bg-orange-100 text-orange-700'
                 }`}>
                 {assessmentProgress.percentage}%
@@ -876,9 +876,9 @@ Are you sure you want to unlock this test?`;
 
         {/* Test Name Header Badge - Centered between title and buttons */}
         <div className="hidden lg:flex items-center">
-          <div className="flex flex-col items-center border border-blue-100 bg-blue-50/50 px-4 py-1 rounded-md shadow-sm">
-            <span className="text-[8px] font-black text-blue-400 uppercase tracking-tighter leading-none mb-1">Active Test</span>
-            <span className="text-[11px] font-bold text-blue-700 uppercase tracking-widest leading-none">
+          <div className="flex flex-col items-center border border-brand-purple/20 bg-brand-purple/5 px-4 py-2 rounded-lg shadow-sm">
+            <span className="text-[10px] font-black text-brand-purple uppercase tracking-widest leading-none mb-1">Active Test</span>
+            <span className="text-xs font-black text-brand-purple uppercase tracking-tighter leading-none">
               {selectedTest?.title || selectedTest?.name}
             </span>
           </div>
@@ -889,7 +889,7 @@ Are you sure you want to unlock this test?`;
           <button
             onClick={() => setShowPDFPreview(true)}
             disabled={generatingPDF || filteredLearners.length === 0}
-            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-6 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition font-bold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Printer size={18} />
             Preview & Print
@@ -898,7 +898,7 @@ Are you sure you want to unlock this test?`;
           <button
             onClick={() => setShowBulkImportModal(true)}
             disabled={isTestLocked || !selectedTestId || loading || loadingLearners}
-            className="flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-6 py-2 bg-brand-purple text-white rounded-lg hover:bg-brand-purple/90 transition font-bold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <UploadCloud size={18} />
             Import Marks
@@ -936,7 +936,7 @@ Are you sure you want to unlock this test?`;
           <button
             onClick={() => handleSave()}
             disabled={loading || isTestLocked}
-            className="flex items-center gap-2 px-6 py-2 bg-[#1e293b] text-white rounded-lg hover:bg-[#334155] transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-6 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition font-bold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? <Loader className="animate-spin" size={18} /> : <Save size={18} />}
             Save Results
@@ -1197,19 +1197,19 @@ Are you sure you want to unlock this test?`;
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name or adm no..."
-              className="w-full pl-9 pr-4 py-1.5 border rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full pl-9 pr-4 py-1.5 border rounded-lg text-xs focus:ring-2 focus:ring-brand-purple outline-none"
             />
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-[#1e3a8a] text-white">
+            <thead className="bg-brand-purple text-white">
               <tr>
-                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-10 border-r border-blue-700">No</th>
-                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-20 border-r border-blue-700">Adm No</th>
-                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide border-r border-blue-700">Student Name</th>
-                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-20 border-r border-blue-700">Score</th>
+                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-10 border-r border-brand-purple/20">No</th>
+                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-20 border-r border-brand-purple/20">Adm No</th>
+                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide border-r border-brand-purple/20">Student Name</th>
+                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-20 border-r border-brand-purple/20">Score</th>
                 <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide w-72">Performance Descriptor</th>
               </tr>
             </thead>
@@ -1244,7 +1244,7 @@ Are you sure you want to unlock this test?`;
                             value={marks[learner.id] ?? ''}
                             onChange={(e) => handleMarkChange(learner.id, e.target.value)}
                             disabled={isTestLocked}
-                            className={`w-full px-2 py-1 border rounded focus:ring-2 focus:ring-blue-500 outline-none transition text-center font-semibold text-xs ${isTestLocked
+                            className={`w-full px-2 py-1 border rounded focus:ring-2 focus:ring-brand-purple outline-none transition text-center font-semibold text-xs ${isTestLocked
                               ? 'bg-gray-100 border-gray-200 cursor-not-allowed text-gray-500'
                               : 'border-gray-300 bg-white'
                               }`}

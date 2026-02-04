@@ -327,18 +327,18 @@ const NoticesPage = () => {
         <div className="flex">
           <button
             onClick={() => handleTabChange('notices')}
-            className={`px-6 py-4 text-sm font-bold flex items-center gap-2 transition-all border-b-2 ${activeTab === 'notices' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`px-6 py-4 text-sm font-bold flex items-center gap-2 transition-all border-b-2 ${activeTab === 'notices' ? 'border-brand-teal text-brand-teal' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             <Megaphone size={16} />
             <span>School Notices</span>
           </button>
           <button
             onClick={() => handleTabChange('birthdays')}
-            className={`px-6 py-4 text-sm font-bold flex items-center gap-2 transition-all border-b-2 ${activeTab === 'birthdays' ? 'border-pink-600 text-pink-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`px-6 py-4 text-sm font-bold flex items-center gap-2 transition-all border-b-2 ${activeTab === 'birthdays' ? 'border-brand-purple text-brand-purple' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             <Cake size={16} />
             <span>This Week's Birthdays</span>
-            {birthdays.length > 0 && <span className="bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full text-[10px]">{birthdays.length}</span>}
+            {birthdays.length > 0 && <span className="bg-brand-purple/10 text-brand-purple px-2 py-0.5 rounded-full text-[10px]">{birthdays.length}</span>}
           </button>
         </div>
 
@@ -355,7 +355,7 @@ const NoticesPage = () => {
       {activeTab === 'notices' ? (
         <div className="space-y-6">
           <div className="flex justify-end mb-4 pt-2">
-            <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md">
+            <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 shadow-md font-bold">
               <Plus size={20} />
               <span>Create Notice</span>
             </button>
@@ -363,12 +363,12 @@ const NoticesPage = () => {
 
           <div className="grid grid-cols-1 gap-4">
             {notices.map(notice => (
-              <div key={notice.id} className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500 hover:shadow-lg transition">
+              <div key={notice.id} className="bg-white rounded-xl shadow-md p-6 border-l-4 border-brand-teal hover:shadow-lg transition">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="text-lg font-bold text-gray-800">{notice.title}</h3>
-                      <span className={`px-2 py-1 text-[10px] font-black uppercase rounded ${notice.priority === 'High' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>{notice.priority}</span>
+                      <span className={`px-2 py-1 text-[10px] font-black uppercase rounded ${notice.priority === 'High' ? 'bg-red-100 text-red-800' : 'bg-brand-teal/10 text-brand-teal'}`}>{notice.priority}</span>
                       <span className="px-2 py-1 text-[10px] font-black uppercase bg-gray-100 text-gray-800 rounded">{notice.category}</span>
                     </div>
                     <p className="text-gray-600 mb-3">{notice.content}</p>
@@ -379,7 +379,7 @@ const NoticesPage = () => {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Eye size={18} /></button>
+                    <button className="p-2 text-brand-teal hover:bg-brand-teal/10 rounded-lg"><Eye size={18} /></button>
                     <button className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><Edit size={18} /></button>
                     <button onClick={() => { setNotices(prev => prev.filter(n => n.id !== notice.id)); showSuccess('Notice deleted'); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={18} /></button>
                   </div>
@@ -392,8 +392,8 @@ const NoticesPage = () => {
         <div className="bg-white rounded-b-xl shadow-md p-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-pink-100 rounded-2xl">
-                <Cake size={32} className="text-pink-600" />
+              <div className="p-3 bg-brand-purple/10 rounded-2xl">
+                <Cake size={32} className="text-brand-purple" />
               </div>
               <div>
                 <h2 className="text-2xl font-black text-gray-800">Birthday Celebrations</h2>
@@ -407,14 +407,14 @@ const NoticesPage = () => {
                 <span className="text-sm font-bold text-gray-700">Automation</span>
                 <button
                   onClick={() => setBirthdaySettings(prev => ({ ...prev, enabled: !prev.enabled }))}
-                  className={`w-10 h-5 rounded-full transition-colors relative ${birthdaySettings.enabled ? 'bg-green-500' : 'bg-gray-300'}`}
+                  className={`w-10 h-5 rounded-full transition-colors relative ${birthdaySettings.enabled ? 'bg-brand-teal' : 'bg-gray-300'}`}
                 >
                   <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${birthdaySettings.enabled ? 'right-0.5' : 'left-0.5'}`} />
                 </button>
               </div>
               <button
                 onClick={() => setEditingPhone({ type: 'settings' })}
-                className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-semibold"
+                className="text-xs text-brand-teal hover:underline flex items-center gap-1 font-bold"
               >
                 <Edit size={12} /> Edit Template
               </button>
@@ -423,20 +423,20 @@ const NoticesPage = () => {
 
           {/* Birthdays Today Quick Actions */}
           {birthdaysToday.length > 0 && (
-            <div className="mb-6 p-4 bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl border border-pink-100 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="mb-6 p-4 bg-gradient-to-r from-brand-purple/5 to-brand-teal/5 rounded-xl border border-brand-purple/10 flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-pink-500 text-white rounded-full">
+                <div className="p-2 bg-brand-purple text-white rounded-full">
                   <Cake size={18} />
                 </div>
                 <div>
-                  <p className="font-bold text-pink-900">{birthdaysToday.length} Celebrations Today!</p>
-                  <p className="text-xs text-pink-700">Send wishes to all parents with one click.</p>
+                  <p className="font-bold text-brand-purple">{birthdaysToday.length} Celebrations Today!</p>
+                  <p className="text-xs text-brand-purple/70">Send wishes to all parents with one click.</p>
                 </div>
               </div>
               <button
                 onClick={() => handleSendWish(null, true)}
                 disabled={isBulkSending}
-                className="flex items-center gap-2 px-6 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition font-bold shadow-md disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-2 bg-brand-purple text-white rounded-lg hover:bg-brand-purple/90 transition font-bold shadow-md disabled:opacity-50"
               >
                 {isBulkSending ? <Loader size={18} className="animate-spin" /> : <Send size={18} />}
                 Send Wishes to All
@@ -446,17 +446,17 @@ const NoticesPage = () => {
 
           {loadingBirthdays ? (
             <div className="p-12 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-purple mx-auto"></div>
               <p className="mt-4 text-gray-500 font-medium">Loading upcoming celebrations...</p>
             </div>
           ) : birthdays.length > 0 ? (
             <div className="space-y-4">
               {/* Bulk Action Bar */}
               {(selectedLearners.length > 0 || birthdaysToday.length > 0) && (
-                <div className="flex flex-wrap items-center gap-2 mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100 animate-in slide-in-from-top duration-300">
+                <div className="flex flex-wrap items-center gap-2 mb-4 bg-brand-teal/5 p-3 rounded-lg border border-brand-teal/10 animate-in slide-in-from-top duration-300">
                   <div className="flex-1 flex items-center gap-2">
-                    <CheckCircle className="text-blue-600" size={18} />
-                    <span className="text-sm font-bold text-blue-800">
+                    <CheckCircle className="text-brand-teal" size={18} />
+                    <span className="text-sm font-bold text-brand-teal">
                       {selectedLearners.length > 0 ? `${selectedLearners.length} students selected` : `All students of today (${birthdaysToday.length})`}
                     </span>
                   </div>
@@ -464,7 +464,7 @@ const NoticesPage = () => {
                     <button
                       onClick={() => handleSendWish(null, true)}
                       disabled={isBulkSending || isBulkSendingWhatsApp}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-bold text-sm disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition font-bold text-sm disabled:opacity-50"
                     >
                       {isBulkSending ? <Loader size={16} className="animate-spin" /> : <Send size={16} />}
                       <span>Send SMS</span>
@@ -495,7 +495,7 @@ const NoticesPage = () => {
                             type="checkbox"
                             checked={selectedLearners.length === birthdays.length && birthdays.length > 0}
                             onChange={selectAllBirthdays}
-                            className="rounded border-gray-300 text-pink-600 focus:ring-pink-500"
+                            className="rounded border-gray-300 text-brand-purple focus:ring-brand-purple"
                           />
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Student Name</th>
@@ -509,19 +509,19 @@ const NoticesPage = () => {
                       {birthdays.map((b) => (
                         <tr
                           key={b.id}
-                          className={`hover:bg-gray-50 transition ${b.isToday ? 'bg-pink-50' : ''}`}
+                          className={`hover:bg-gray-50 transition ${b.isToday ? 'bg-brand-purple/5' : ''}`}
                         >
                           <td className="px-4 py-3">
                             <input
                               type="checkbox"
                               checked={selectedLearners.includes(b.id)}
                               onChange={() => toggleSelectLearner(b.id)}
-                              className="rounded border-gray-300 text-pink-600 focus:ring-pink-500"
+                              className="rounded border-gray-300 text-brand-purple focus:ring-brand-purple"
                             />
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center text-pink-600 font-bold text-xs">
+                              <div className="w-8 h-8 bg-brand-purple/10 rounded-full flex items-center justify-center text-brand-purple font-bold text-xs">
                                 {b.name?.charAt(0) || 'L'}
                               </div>
                               <div>
@@ -565,7 +565,7 @@ const NoticesPage = () => {
                                 }}
                                 onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
                                 placeholder="Add contact..."
-                                className={`w-full pl-8 pr-2 py-1.5 text-xs font-mono font-bold bg-transparent border-2 border-transparent hover:border-blue-100 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-50/50 rounded-lg transition-all outline-none ${!b.guardianPhone ? 'placeholder-red-300' : 'text-gray-700'}`}
+                                className={`w-full pl-8 pr-2 py-1.5 text-xs font-mono font-bold bg-transparent border-2 border-transparent hover:border-brand-teal/20 focus:border-brand-teal focus:bg-white focus:ring-4 focus:ring-brand-teal/5 rounded-lg transition-all outline-none ${!b.guardianPhone ? 'placeholder-red-300' : 'text-gray-700'}`}
                               />
                             </div>
                           </td>
@@ -601,7 +601,7 @@ const NoticesPage = () => {
                     <span className="font-semibold text-gray-700">Total: {birthdays.length} this week</span>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-pink-500"></div> Today: {birthdays.filter(b => b.isToday).length}</span>
+                    <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-brand-purple"></div> Today: {birthdays.filter(b => b.isToday).length}</span>
                     <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-gray-300"></div> Upcoming: {birthdays.filter(b => !b.isToday).length}</span>
                   </div>
                 </div>
@@ -664,7 +664,7 @@ const NoticesPage = () => {
                     <button
                       key={p}
                       onClick={() => setBirthdaySettings(prev => ({ ...prev, template: prev.template + (prev.template.endsWith(' ') || prev.template === '' ? '' : ' ') + p }))}
-                      className="px-2 py-1 bg-pink-50 text-pink-600 border border-pink-100 rounded hover:bg-pink-100 transition font-mono"
+                      className="px-2 py-1 bg-brand-purple/5 text-brand-purple border border-brand-purple/10 rounded hover:bg-brand-purple/10 transition font-mono"
                     >
                       {p}
                     </button>

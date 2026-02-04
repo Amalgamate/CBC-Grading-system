@@ -216,7 +216,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
         {/* Left Column - Branding Area */}
         <div
           className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative overflow-hidden"
-          style={{ backgroundColor: brandingSettings?.brandColor || '#1e3a8a' }}
+          style={{ backgroundColor: brandingSettings?.brandColor || '#714B67' }}
         >
           {/* Decorative Elements */}
           <div className="absolute inset-0 overflow-hidden opacity-10">
@@ -246,7 +246,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                 <h2 className="text-4xl font-bold drop-shadow-md">
                   {isOtpSent ? 'Almost There!' : 'Secure Your Account'}
                 </h2>
-                <p className="text-blue-100 text-lg leading-relaxed">
+                <p className="text-white/80 text-lg leading-relaxed">
                   {isOtpSent
                     ? "We've sent you a verification code to confirm your identity. Enter the code to complete your registration."
                     : "To complete your registration, please choose how you'd like to receive your 6-digit verification code."}
@@ -260,7 +260,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                     </div>
                     <div>
                       <h4 className="font-semibold text-white">Secure Verification</h4>
-                      <p className="text-blue-100 text-sm">Your code is valid for 10 minutes</p>
+                      <p className="text-white/70 text-sm">Your code is valid for 10 minutes</p>
                     </div>
                   </div>
 
@@ -270,7 +270,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                     </div>
                     <div>
                       <h4 className="font-semibold text-white">Multiple Options</h4>
-                      <p className="text-blue-100 text-sm">Receive code via Email, SMS, or WhatsApp</p>
+                      <p className="text-white/70 text-sm">Receive code via Email, SMS, or WhatsApp</p>
                     </div>
                   </div>
 
@@ -280,7 +280,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                     </div>
                     <div>
                       <h4 className="font-semibold text-white">Instant Access</h4>
-                      <p className="text-blue-100 text-sm">Get started immediately after verification</p>
+                      <p className="text-white/70 text-sm">Get started immediately after verification</p>
                     </div>
                   </div>
                 </div>
@@ -290,7 +290,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
 
           {/* Footer Copyright */}
           <div className="relative z-10 text-center">
-            <p className="text-blue-100 text-sm">
+            <p className="text-white/60 text-sm">
               © 2025 {brandingSettings?.schoolName || 'Zawadi JRN Academy'}. All rights reserved.
             </p>
           </div>
@@ -301,7 +301,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
           <div className="max-w-md mx-auto w-full">
             {/* Header */}
             <div className="mb-8 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl mb-4 shadow-lg">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-brand-purple to-brand-teal rounded-2xl mb-4 shadow-lg">
                 {getVerificationIcon()}
               </div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -311,7 +311,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                 {isOtpSent ? "We've sent a 6-digit code to" : "Select your preferred method below"}
               </p>
               {isOtpSent && (
-                <p className="text-blue-600 font-semibold text-lg">{getVerificationDestination()}</p>
+                <p className="text-brand-purple font-semibold text-lg">{getVerificationDestination()}</p>
               )}
             </div>
 
@@ -326,7 +326,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                   disabled={isTriggering}
                   onClick={() => handleMethodSelect('email')}
                   className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${verificationMethod === 'email'
-                    ? 'border-blue-600 bg-blue-50 text-blue-600'
+                    ? 'border-brand-purple bg-brand-purple/5 text-brand-purple'
                     : 'border-gray-200 hover:border-gray-300 text-gray-600'
                     } ${isTriggering && verificationMethod === 'email' ? 'animate-pulse' : ''}`}
                 >
@@ -339,7 +339,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                   disabled={isTriggering}
                   onClick={() => handleMethodSelect('sms')}
                   className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${verificationMethod === 'sms'
-                    ? 'border-blue-600 bg-blue-50 text-blue-600'
+                    ? 'border-brand-purple bg-brand-purple/5 text-brand-purple'
                     : 'border-gray-200 hover:border-gray-300 text-gray-600'
                     } ${isTriggering && verificationMethod === 'sms' ? 'animate-pulse' : ''}`}
                 >
@@ -352,7 +352,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                   disabled={isTriggering}
                   onClick={() => handleMethodSelect('whatsapp')}
                   className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${verificationMethod === 'whatsapp'
-                    ? 'border-blue-600 bg-blue-50 text-blue-600'
+                    ? 'border-brand-purple bg-brand-purple/5 text-brand-purple'
                     : 'border-gray-200 hover:border-gray-300 text-gray-600'
                     } ${isTriggering && verificationMethod === 'whatsapp' ? 'animate-pulse' : ''}`}
                 >
@@ -381,7 +381,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                           onChange={(e) => handleChange(index, e.target.value)}
                           onKeyDown={(e) => handleKeyDown(index, e)}
                           onPaste={handlePaste}
-                          className={`w-12 h-14 text-center text-xl font-bold border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${error ? 'border-red-500' : 'border-gray-300'
+                          className={`w-12 h-14 text-center text-xl font-bold border-2 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${error ? 'border-red-500' : 'border-gray-300'
                             }`}
                           autoFocus={index === 0}
                         />
@@ -401,7 +401,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                   <button
                     type="submit"
                     disabled={isLoading || otp.join('').length !== 6}
-                    className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 focus:ring-4 focus:ring-blue-300 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-gradient-to-r from-brand-purple to-brand-teal text-white py-3 rounded-lg font-semibold hover:from-brand-purple/90 hover:to-brand-teal/90 focus:ring-4 focus:ring-brand-purple/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? (
                       <div className="flex items-center justify-center gap-2">
@@ -421,7 +421,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                     onClick={handleResend}
                     disabled={!canResend || isTriggering}
                     className={`inline-flex items-center gap-2 font-semibold transition ${canResend && !isTriggering
-                      ? 'text-blue-600 hover:text-blue-700'
+                      ? 'text-brand-purple hover:text-brand-purple/80'
                       : 'text-gray-400 cursor-not-allowed'
                       }`}
                   >
@@ -434,7 +434,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                   </button>
                 </div>
 
-                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="mt-6 p-4 bg-brand-purple/5 border border-brand-purple/10 rounded-lg">
                   <p className="text-sm text-gray-700 text-center">
                     💡 <strong>Tip:</strong> Check your spam folder if using email verification
                   </p>
@@ -443,7 +443,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
             ) : (
               <div className="text-center p-8 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                  <RefreshCw className="text-blue-500 animate-pulse" size={32} />
+                  <RefreshCw className="text-brand-teal animate-pulse" size={32} />
                 </div>
                 <p className="text-gray-600">Choose a method above to receive your verification code</p>
               </div>

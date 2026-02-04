@@ -186,7 +186,7 @@ const LearnersList = ({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by name or admission number..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple"
               />
             </div>
 
@@ -195,7 +195,7 @@ const LearnersList = ({
               <select
                 value={filterGrade}
                 onChange={(e) => setFilterGrade(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple bg-white"
               >
                 <option value="all">All Grades</option>
                 <optgroup label="Early Years">
@@ -229,7 +229,7 @@ const LearnersList = ({
               <select
                 value={filterStream}
                 onChange={(e) => setFilterStream(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple bg-white"
               >
                 <option value="all">All Streams</option>
                 {availableStreams.map(stream => (
@@ -242,7 +242,7 @@ const LearnersList = ({
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple bg-white"
               >
                 <option value="all">All Status</option>
                 <option value="ACTIVE">Active</option>
@@ -309,7 +309,7 @@ const LearnersList = ({
 
                 <button
                   onClick={onAddLearner}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
+                  className="flex items-center gap-2 px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-sm font-bold"
                 >
                   <Plus size={18} />
                   <span className="hidden sm:inline">Add Student</span>
@@ -333,17 +333,17 @@ const LearnersList = ({
 
       {/* Bulk Actions Toolbar */}
       {selectedLearners.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between animate-fade-in">
+        <div className="bg-brand-purple/5 border border-brand-purple/10 rounded-xl p-4 flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-3">
-            <span className="bg-blue-600 text-white text-sm font-bold px-3 py-1 rounded-full">
+            <span className="bg-brand-purple text-white text-sm font-bold px-3 py-1 rounded-full">
               {selectedLearners.length}
             </span>
-            <span className="text-blue-900 font-medium">Students Selected</span>
+            <span className="text-brand-purple font-medium">Students Selected</span>
           </div>
           <div className="flex gap-3">
             <button
               onClick={() => setSelectedLearners([])}
-              className="px-4 py-2 text-blue-700 hover:bg-blue-100 rounded-lg transition text-sm font-medium"
+              className="px-4 py-2 text-brand-purple hover:bg-brand-purple/10 rounded-lg transition text-sm font-medium"
             >
               Cancel
             </button>
@@ -368,7 +368,7 @@ const LearnersList = ({
       {/* Learners Table */}
       {loading && displayLearners.length === 0 ? (
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-teal"></div>
         </div>
       ) : displayLearners.length === 0 ? (
         <EmptyState
@@ -390,7 +390,7 @@ const LearnersList = ({
                     type="checkbox"
                     checked={displayLearners.length > 0 && selectedLearners.length === displayLearners.length}
                     onChange={handleSelectAll}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-brand-teal border-gray-300 rounded focus:ring-brand-teal"
                   />
                 </th>
                 <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Student</th>
@@ -403,13 +403,13 @@ const LearnersList = ({
             </thead>
             <tbody className="divide-y divide-gray-200">
               {displayLearners.map((learner) => (
-                <tr key={learner.id} className={`hover:bg-gray-50 ${selectedLearners.includes(learner.id) ? 'bg-blue-50' : ''}`}>
+                <tr key={learner.id} className={`hover:bg-gray-50 ${selectedLearners.includes(learner.id) ? 'bg-brand-purple/5' : ''}`}>
                   <td className="px-3 py-2">
                     <input
                       type="checkbox"
                       checked={selectedLearners.includes(learner.id)}
                       onChange={() => handleSelectLearner(learner.id)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-brand-teal border-gray-300 rounded focus:ring-brand-teal"
                     />
                   </td>
                   <td className="px-3 py-2">
@@ -434,7 +434,7 @@ const LearnersList = ({
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => onViewLearner(learner)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        className="p-1.5 text-brand-teal hover:bg-brand-teal/10 rounded-lg transition"
                         title="View Details"
                       >
                         <Eye size={16} />
@@ -483,7 +483,7 @@ const LearnersList = ({
                 <button
                   onClick={() => handlePageChange(pagination.page - 1)}
                   disabled={pagination.page === 1}
-                  className="flex items-center gap-1 px-3 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium text-gray-700"
+                  className="flex items-center gap-1 px-3 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-bold text-brand-purple"
                 >
                   <ChevronLeft size={16} />
                   Previous
@@ -494,7 +494,7 @@ const LearnersList = ({
                 <button
                   onClick={() => handlePageChange(pagination.page + 1)}
                   disabled={pagination.page === pagination.pages}
-                  className="flex items-center gap-1 px-3 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium text-gray-700"
+                  className="flex items-center gap-1 px-3 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-bold text-brand-purple"
                 >
                   Next
                   <ChevronRight size={16} />

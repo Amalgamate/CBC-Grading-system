@@ -151,9 +151,9 @@ const SummativeTests = ({ onNavigate }) => {
   const getStatusBadgeStyles = (status) => {
     const s = status?.toUpperCase();
     switch (s) {
-      case 'PUBLISHED': return 'bg-green-100 text-green-800 border-green-200';
-      case 'APPROVED': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'SUBMITTED': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'PUBLISHED': return 'bg-brand-teal/10 text-brand-teal border-brand-teal/20';
+      case 'APPROVED': return 'bg-brand-purple/10 text-brand-purple border-brand-purple/20';
+      case 'SUBMITTED': return 'bg-brand-purple/5 text-brand-purple/80 border-brand-purple/10';
       case 'ARCHIVED': return 'bg-gray-100 text-gray-800 border-gray-200';
       default: return 'bg-orange-100 text-orange-800 border-orange-200';
     }
@@ -512,8 +512,8 @@ const SummativeTests = ({ onNavigate }) => {
       <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
         <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
           {selectedIds.length > 0 ? (
-            <div className="flex items-center gap-4 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100 flex-1">
-              <span className="text-sm font-bold text-blue-700">{selectedIds.length} Selected</span>
+            <div className="flex items-center gap-4 bg-brand-purple/5 px-4 py-2 rounded-lg border border-brand-purple/10 flex-1">
+              <span className="text-sm font-bold text-brand-purple">{selectedIds.length} Selected</span>
               <div className="flex gap-2">
                 <button
                   onClick={handleBulkDelete}
@@ -564,13 +564,13 @@ const SummativeTests = ({ onNavigate }) => {
               {canApproveAll && (
                 <button
                   onClick={() => setShowApproveAll(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition shadow-sm font-bold"
+                  className="flex items-center gap-2 px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-sm font-bold"
                   title="Approve tests by exam group"
                 >
                   <CheckCircle size={20} /> <span className="hidden sm:inline">Approve All</span><span className="inline sm:hidden">Approve</span>
                 </button>
               )}
-              <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm font-bold">
+              <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-sm font-bold">
                 <Plus size={20} /> <span className="hidden sm:inline">Create New Test</span><span className="inline sm:hidden">New</span>
               </button>
             </div>
@@ -580,7 +580,7 @@ const SummativeTests = ({ onNavigate }) => {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader className="animate-spin text-blue-600" size={32} />
+          <Loader className="animate-spin text-brand-teal" size={32} />
         </div>
       ) : Object.keys(groupedData).length > 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -598,7 +598,7 @@ const SummativeTests = ({ onNavigate }) => {
                     <div className="flex items-center gap-3">
                       {isExpanded ? <ChevronDown size={20} className="text-gray-400" /> : <ChevronRight size={20} className="text-gray-400" />}
                       <h3 className="font-bold text-gray-800 text-lg">{formatGradeDisplay(gradeKey)}</h3>
-                      <span className="text-xs font-medium bg-blue-50 text-blue-600 px-2 py-1 rounded-full border border-blue-100">
+                      <span className="text-xs font-bold bg-brand-purple/10 text-brand-purple px-2 py-1 rounded-full border border-brand-purple/20">
                         {testCount} {testCount === 1 ? 'Test' : 'Tests'}
                       </span>
                     </div>
@@ -609,7 +609,7 @@ const SummativeTests = ({ onNavigate }) => {
                       {Object.entries(seriesGroups).map(([seriesName, data]) => (
                         <div key={seriesName} className="mb-4 last:mb-0">
                           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-                            <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 flex items-center justify-between">
+                            <div className="px-4 py-3 bg-gradient-to-r from-brand-purple/5 to-brand-teal/5 border-b border-gray-200 flex items-center justify-between">
                               <div>
                                 <h4 className="font-bold text-gray-800">{seriesName}</h4>
                                 <p className="text-xs text-gray-600 mt-1">
@@ -625,7 +625,7 @@ const SummativeTests = ({ onNavigate }) => {
                                     <th className="px-4 py-2 w-10">
                                       <input
                                         type="checkbox"
-                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        className="rounded border-gray-300 text-brand-teal focus:ring-brand-teal"
                                         onChange={(e) => {
                                           const testIds = data.tests.map(t => t.id);
                                           if (e.target.checked) {
@@ -645,11 +645,11 @@ const SummativeTests = ({ onNavigate }) => {
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
                                   {data.tests.map(test => (
-                                    <tr key={test.id} className={`hover:bg-blue-50/30 transition ${selectedIds.includes(test.id) ? 'bg-blue-50/50' : ''}`}>
+                                    <tr key={test.id} className={`hover:bg-brand-purple/5 transition ${selectedIds.includes(test.id) ? 'bg-brand-purple/10' : ''}`}>
                                       <td className="px-4 py-3">
                                         <input
                                           type="checkbox"
-                                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                          className="rounded border-gray-300 text-brand-teal focus:ring-brand-teal"
                                           checked={selectedIds.includes(test.id)}
                                           onChange={() => toggleSelect(test.id)}
                                         />
@@ -682,7 +682,7 @@ const SummativeTests = ({ onNavigate }) => {
                                         <div className="flex justify-end gap-1">
                                           <button
                                             onClick={() => onNavigate('summative-results', { testId: test.id })}
-                                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition"
+                                            className="p-1.5 text-brand-teal hover:bg-brand-teal/10 rounded transition"
                                             title="View Results"
                                           >
                                             <Eye size={16} />
@@ -738,7 +738,7 @@ const SummativeTests = ({ onNavigate }) => {
         confirmText={confirmConfig.confirmText || 'Confirm'}
         onConfirm={confirmConfig.onConfirm}
         onCancel={() => setShowConfirm(false)}
-        confirmButtonClass={confirmConfig.title?.includes('Delete') ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}
+        confirmButtonClass={confirmConfig.title?.includes('Delete') ? 'bg-red-600 hover:bg-red-700' : 'bg-brand-teal hover:bg-brand-teal/90'}
       />
 
       {/* Approve All Dialog */}
@@ -774,7 +774,7 @@ const SummativeTests = ({ onNavigate }) => {
                       value={approveAllQuery}
                       onChange={(e) => setApproveAllQuery(e.target.value)}
                       placeholder="Search grade or exam group..."
-                      className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple"
                       disabled={approvingAll}
                     />
                   </div>
@@ -783,7 +783,7 @@ const SummativeTests = ({ onNavigate }) => {
                 <label className="flex items-center gap-2 text-sm font-bold text-gray-700 select-none">
                   <input
                     type="checkbox"
-                    className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                    className="rounded border-gray-300 text-brand-teal focus:ring-brand-teal"
                     checked={unapprovedGroups.length > 0 && unapprovedGroups.every(g => selectedGroupKeys.has(g.key))}
                     onChange={(e) => setAllVisibleGroupsSelected(e.target.checked)}
                     disabled={approvingAll || unapprovedGroups.length === 0}
@@ -793,7 +793,7 @@ const SummativeTests = ({ onNavigate }) => {
               </div>
 
               {unapprovedGroups.length === 0 ? (
-                <div className="bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-lg p-4 text-sm font-medium">
+                <div className="bg-brand-teal/10 border border-brand-teal/20 text-brand-teal rounded-lg p-4 text-sm font-bold">
                   No unapproved exam groups found.
                 </div>
               ) : (
@@ -803,7 +803,7 @@ const SummativeTests = ({ onNavigate }) => {
                       <label key={group.key} className="flex items-start gap-3 p-4 hover:bg-gray-50 cursor-pointer">
                         <input
                           type="checkbox"
-                          className="mt-1 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                          className="mt-1 rounded border-gray-300 text-brand-teal focus:ring-brand-teal"
                           checked={selectedGroupKeys.has(group.key)}
                           onChange={() => toggleGroupKey(group.key)}
                           disabled={approvingAll}
@@ -820,7 +820,7 @@ const SummativeTests = ({ onNavigate }) => {
                             </div>
                             <div className="flex items-center gap-2">
                               {group.submittedCount > 0 && (
-                                <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-100">
+                                <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-brand-purple/10 text-brand-purple border border-brand-purple/20">
                                   SUBMITTED {group.submittedCount}
                                 </span>
                               )}
@@ -858,7 +858,7 @@ const SummativeTests = ({ onNavigate }) => {
                 </button>
                 <button
                   onClick={handleApproveAllSelectedGroups}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={approvingAll || selectedGroupKeys.size === 0}
                 >
                   {approvingAll ? <Loader className="animate-spin" size={16} /> : <CheckCircle size={16} />}

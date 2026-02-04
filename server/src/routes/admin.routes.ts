@@ -16,6 +16,8 @@ router.get('/schools/deleted', admin.listDeletedSchools); // New: List soft-dele
 router.get('/schools/:schoolId/statistics', admin.getSchoolStatistics); // New: Detailed stats
 router.delete('/schools/:schoolId', admin.deleteSchoolWithOptions); // Enhanced: With options
 router.post('/schools/:schoolId/restore', admin.restoreSchool); // New: Restore deleted school
+router.get('/schools/:schoolId/communication', admin.getSchoolCommunication); // New: Manage school SMS/Email/Mpesa
+router.put('/schools/:schoolId/communication', admin.updateSchoolCommunication);
 
 // Subscription & Plans
 router.get('/plans', admin.listPlans);

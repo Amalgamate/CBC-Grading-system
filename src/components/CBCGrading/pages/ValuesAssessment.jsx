@@ -136,7 +136,7 @@ const ValuesAssessment = ({ learners }) => {
   // Get color for rating display
   const getRatingColor = (rating) => {
     if (rating.startsWith('EE')) return 'bg-green-100 border-green-300 text-green-800';
-    if (rating.startsWith('ME')) return 'bg-blue-100 border-blue-300 text-blue-800';
+    if (rating.startsWith('ME')) return 'bg-brand-purple/10 border-brand-purple/30 text-brand-purple';
     if (rating.startsWith('AE')) return 'bg-yellow-100 border-yellow-300 text-yellow-800';
     if (rating.startsWith('BE')) return 'bg-red-100 border-red-300 text-red-800';
     return 'bg-gray-100 border-gray-300 text-gray-800';
@@ -144,13 +144,13 @@ const ValuesAssessment = ({ learners }) => {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
-      
+
       {/* SETUP MODE */}
       {viewMode === 'setup' && (
         <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100 max-w-3xl mx-auto mt-8">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-rose-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-600">
-               <Heart size={32} />
+            <div className="w-16 h-16 bg-gradient-to-br from-brand-purple/10 to-brand-teal/10 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-purple">
+              <Heart size={32} />
             </div>
             <h2 className="text-2xl font-bold text-gray-800">National Values Assessment</h2>
             <p className="text-gray-500">Select a learner to begin assessing values</p>
@@ -173,7 +173,7 @@ const ValuesAssessment = ({ learners }) => {
                 <select
                   value={setup.selectedTerm}
                   onChange={(e) => setup.updateTerm(e.target.value)}
-                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
+                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple"
                 >
                   {setup.terms.map(t => (
                     <option key={t.value} value={t.value}>{t.label}</option>
@@ -187,7 +187,7 @@ const ValuesAssessment = ({ learners }) => {
                   type="number"
                   value={setup.academicYear}
                   onChange={(e) => setup.updateAcademicYear(parseInt(e.target.value))}
-                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
+                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple"
                 />
               </div>
             </div>
@@ -197,7 +197,7 @@ const ValuesAssessment = ({ learners }) => {
             <button
               onClick={handleStartAssessment}
               disabled={!selection.selectedLearnerId}
-              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-rose-600 to-pink-600 text-white rounded-xl hover:from-rose-700 hover:to-pink-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-brand-purple to-brand-teal text-white rounded-xl hover:opacity-90 transition-all font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               Start Assessment
               <ArrowRight size={20} />
@@ -210,9 +210,9 @@ const ValuesAssessment = ({ learners }) => {
       {viewMode === 'assess' && selection.selectedLearner && (
         <>
           {/* Compact Context Header */}
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-rose-100 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-4 z-20">
-             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm">
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-brand-purple/10 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-4 z-20">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-brand-purple to-brand-teal rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm">
                 {selection.selectedLearner.firstName[0]}{selection.selectedLearner.lastName[0]}
               </div>
               <div>
@@ -221,7 +221,7 @@ const ValuesAssessment = ({ learners }) => {
                 </h3>
                 <div className="flex items-center gap-3 text-sm text-gray-500 font-medium">
                   <span>{selection.selectedLearner.admissionNumber}</span>
-                  <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full text-xs">
+                  <span className="bg-brand-purple/10 text-brand-purple px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
                     {setup.terms.find(t => t.value === setup.selectedTerm)?.label} {setup.academicYear}
                   </span>
                 </div>
@@ -229,7 +229,7 @@ const ValuesAssessment = ({ learners }) => {
             </div>
 
             <div className="flex items-center gap-3">
-              <button 
+              <button
                 onClick={() => setViewMode('setup')}
                 className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium"
               >
@@ -240,7 +240,7 @@ const ValuesAssessment = ({ learners }) => {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-rose-600 to-pink-600 text-white rounded-lg hover:from-rose-700 hover:to-pink-700 transition shadow-sm font-semibold disabled:opacity-70"
+                className="flex items-center gap-2 px-6 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-sm font-bold disabled:opacity-70"
               >
                 {saving ? 'Saving...' : 'Save Assessment'}
                 <Save size={18} />
@@ -251,7 +251,7 @@ const ValuesAssessment = ({ learners }) => {
           {/* Values Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {Object.entries(valueDefinitions).map(([key, definition]) => (
-              <div key={key} className="bg-white rounded-xl shadow-sm p-6 border-2 border-gray-100 hover:border-rose-200 transition-all hover:shadow-md">
+              <div key={key} className="bg-white rounded-xl shadow-sm p-6 border-2 border-gray-100 hover:border-brand-purple/20 transition-all hover:shadow-md">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="text-3xl filter drop-shadow-sm">{definition.icon}</div>
                   <div>
@@ -264,7 +264,7 @@ const ValuesAssessment = ({ learners }) => {
                   <select
                     value={ratings.ratings[key] || 'ME1'}
                     onChange={(e) => ratings.setRating(key, e.target.value)}
-                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-rose-500 font-semibold text-sm transition-colors cursor-pointer appearance-none ${getRatingColor(ratings.ratings[key] || 'ME1')}`}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-brand-purple focus:border-brand-purple font-bold text-sm transition-all cursor-pointer appearance-none ${getRatingColor(ratings.ratings[key] || 'ME1')}`}
                   >
                     {CBC_RATINGS.map(r => (
                       <option key={r.value} value={r.value}>{r.label}</option>
@@ -286,26 +286,26 @@ const ValuesAssessment = ({ learners }) => {
               onChange={(e) => ratings.setComment('general', e.target.value)}
               placeholder="Add overall observations about the learner's demonstration of values..."
               rows={4}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-500 resize-none transition-all"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-purple focus:border-brand-purple resize-none transition-all font-medium"
             />
           </div>
 
           {/* Bottom Actions */}
           <div className="flex justify-end gap-4 pb-12">
-             <button
+            <button
               onClick={handleSave}
-              className="px-8 py-3 bg-white border-2 border-rose-100 text-rose-600 font-bold rounded-xl hover:bg-rose-50 transition"
+              className="px-8 py-3 bg-white border-2 border-brand-purple/20 text-brand-purple font-bold rounded-xl hover:bg-brand-purple/5 transition"
             >
               Save & Stay
             </button>
-             <button
+            <button
               onClick={() => {
                 handleSave();
                 setViewMode('setup');
                 selection.clearSelection();
                 window.scrollTo(0, 0);
               }}
-              className="px-8 py-3 bg-gray-800 text-white font-bold rounded-xl hover:bg-gray-900 transition flex items-center gap-2 shadow-lg"
+              className="px-8 py-3 bg-brand-purple text-white font-bold rounded-xl hover:opacity-90 transition flex items-center gap-2 shadow-lg"
             >
               Finish & Next Learner
               <ArrowRight size={20} />

@@ -122,6 +122,29 @@ export const useTeachers = () => {
     }
   }, [fetchTeachers]);
 
+  /**
+   * Archive teacher (soft delete)
+   */
+  const archiveTeacher = useCallback(async (id) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await api.users.archive(id);
+
+      if (response.success) {
+        await fetchTeachers(); // Refresh the list
+        return { success: true };
+      }
+    } catch (err) {
+      console.error('Error archiving teacher:', err);
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchTeachers]);
+
   // Fetch teachers on mount
   useEffect(() => {
     fetchTeachers();
@@ -137,5 +160,6 @@ export const useTeachers = () => {
     createTeacher,
     updateTeacher,
     deleteTeacher,
+    archiveTeacher,
   };
 };

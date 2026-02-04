@@ -10,6 +10,7 @@ import prisma from '../config/database';
 import { ApiError } from '../utils/error.util';
 import { AuthRequest } from '../middleware/permissions.middleware';
 import { Grade, LearnerStatus, Gender } from '@prisma/client';
+import { generateAdmissionNumber } from '../services/admissionNumber.service';
 
 export class LearnerController {
   /**
@@ -296,20 +297,47 @@ export class LearnerController {
 
       if (req.user.branchId) {
         branchId = req.user.branchId;
-      } else {
-        // Verify branch belongs to school
-        if (branchId) {
-          const branch = await prisma.branch.findUnique({ where: { id: branchId } });
-          if (!branch || branch.schoolId !== schoolId) {
-            throw new ApiError(400, 'Invalid branch for this school');
-          }
-        }
       }
     }
 
-    // Validate required fields
-    if (!schoolId || !branchId || !admissionNumber || !firstName || !lastName || !dateOfBirth || !gender || !grade) {
-      throw new ApiError(400, 'Missing required fields: schoolId, branchId, admissionNumber, firstName, lastName, dateOfBirth, gender, grade');
+    if (!schoolId) {
+      throw new ApiError(400, 'schoolId is required');
+    }
+
+    // Default to the first branch if branchId is still missing
+    if (!branchId) {
+      const branches = await prisma.branch.findMany({ where: { schoolId } });
+      if (branches.length > 0) {
+        branchId = branches[0].id;
+      } else {
+        throw new ApiError(400, 'School has no branches. Please create a branch first.');
+      }
+    }
+
+    // Auto-generate admission number if not provided
+    if (!admissionNumber) {
+      try {
+        // Get branch code for generation
+        const branch = await prisma.branch.findUnique({
+          where: { id: branchId },
+          select: { code: true }
+        });
+
+        if (!branch) {
+          throw new ApiError(400, 'Selected branch not found');
+        }
+
+        const currentYear = new Date().getFullYear();
+        admissionNumber = await generateAdmissionNumber(schoolId, branch.code, currentYear);
+      } catch (error: any) {
+        console.error('Failed to generate admission number:', error);
+        throw new ApiError(500, 'Could not generate admission number automatically: ' + error.message);
+      }
+    }
+
+    // Validate remaining required fields
+    if (!firstName || !lastName || !dateOfBirth || !gender || !grade) {
+      throw new ApiError(400, 'Missing required fields: firstName, lastName, dateOfBirth, gender, grade');
     }
 
     // Check if admission number already exists within school

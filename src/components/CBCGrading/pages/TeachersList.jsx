@@ -52,7 +52,7 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by name, employee number, or subject..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent"
               />
             </div>
 
@@ -61,7 +61,7 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple bg-white"
               >
                 <option value="all">All Status</option>
                 <option value="Active">Active</option>
@@ -124,7 +124,7 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
 
             <button
               onClick={onAddTeacher}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-sm font-bold"
             >
               <Plus size={18} />
               <span className="hidden sm:inline">Add Tutor</span>
@@ -175,7 +175,7 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
                   <td className="px-3 py-2 text-sm font-semibold">{teacher.role}</td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1">
-                      <BookOpen size={16} className="text-blue-600" />
+                      <BookOpen size={16} className="text-brand-teal" />
                       <span className="text-sm">{teacher.subject}</span>
                     </div>
                   </td>
@@ -190,21 +190,21 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setSelectedTeacherForAssignment(teacher)}
-                        className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition"
+                        className="p-1.5 text-brand-purple hover:bg-brand-purple/10 rounded-lg transition"
                         title="Assign to Grade"
                       >
                         <GraduationCap size={16} />
                       </button>
                       <button
                         onClick={() => onViewTeacher(teacher)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        className="p-1.5 text-brand-teal hover:bg-brand-teal/10 rounded-lg transition"
                         title="View Details"
                       >
                         <Eye size={16} />
                       </button>
                       <button
                         onClick={() => onEditTeacher(teacher)}
-                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition"
+                        className="p-1.5 text-brand-purple hover:bg-brand-purple/10 rounded-lg transition"
                         title="Edit"
                       >
                         <Edit size={16} />

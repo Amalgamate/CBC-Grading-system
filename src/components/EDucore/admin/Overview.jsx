@@ -2,80 +2,79 @@ import React, { useEffect, useState } from 'react';
 import { Activity, Building2, CheckCircle2, TrendingUp, BarChart3, Clock, Globe } from 'lucide-react';
 import { adminAPI } from '../../../services/api';
 
-const LightStatCard = ({ title, value, icon: Icon, color, subtitle }) => {
-  const colors = {
-    indigo: 'bg-indigo-50 text-indigo-600',
-    orange: 'bg-orange-50 text-orange-600',
-    purple: 'bg-purple-50 text-purple-600',
-    emerald: 'bg-emerald-50 text-emerald-600',
-    blue: 'bg-blue-50 text-blue-600'
-  };
-  const baseColor = colors[color] || colors.indigo;
-
-  return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
-      <div className="flex items-center justify-between mb-4">
-        <div className={`p-3 rounded-xl ${baseColor}`}>
-          <Icon size={24} strokeWidth={2.5} />
-        </div>
-        <div className="flex items-center text-emerald-500 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-full">
-          <TrendingUp size={12} className="mr-1" />
-          +12%
-        </div>
-      </div>
-      <div>
-        <p className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">{title}</p>
-        <h3 className="text-2xl font-bold text-gray-900 mt-1">{value}</h3>
-        {subtitle && <p className="text-[10px] text-gray-400 font-medium mt-1">{subtitle}</p>}
+const MetricCard = ({ title, value, subtitle, icon: Icon, colorClass = "text-gray-400" }) => (
+  <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:border-brand-purple/30 transition-all">
+    <div className="flex justify-between items-start mb-2">
+      <div className={`p-2 bg-gray-50 rounded-md ${colorClass}`}>
+        <Icon size={20} />
       </div>
     </div>
-  );
-};
+    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{title}</p>
+    <h3 className="text-2xl font-black text-gray-900 mt-1">{value}</h3>
+    {subtitle && <p className="text-[10px] text-gray-500 mt-1 font-medium">{subtitle}</p>}
+  </div>
+);
 
 export default function Overview({ metrics: initialMetrics }) {
   const [metrics, setMetrics] = useState(initialMetrics || { active: 0, inactive: 0, trial: 0, conversionRate: 0 });
 
-useEffect(() => {
-  if (!initialMetrics) {
-    adminAPI.trialMetrics()
-      .then((m) => setMetrics(prev => m.data || prev))
-      .catch(() => { });
-  } else {
-    setMetrics(initialMetrics);
-  }
-}, [initialMetrics]);
+  useEffect(() => {
+    if (!initialMetrics) {
+      adminAPI.trialMetrics()
+        .then((m) => setMetrics(prev => m.data || prev))
+        .catch(() => { });
+    } else {
+      setMetrics(initialMetrics);
+    }
+  }, [initialMetrics]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Metrics Row */}
+      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-gray-900 text-white rounded-lg">
+            <Globe size={20} />
+          </div>
+          <div>
+            <h1 className="text-base font-black text-gray-900 tracking-tight">Enterprise Infrastructure Oversight</h1>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Global Network Status • System Load: <span className="text-emerald-500 font-black">STABLE</span></p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button className="px-3 py-1.5 bg-gray-900 text-white rounded text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-gray-800 transition-all flex items-center gap-2">
+            Infrastructure Logs
+          </button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <LightStatCard
+        <MetricCard
           title="Active Schools"
           value={metrics.active}
           icon={Building2}
-          color="indigo"
-          subtitle="Currently operational tenants"
+          colorClass="text-indigo-500"
+          subtitle="Revenue-generating tenants"
         />
-        <LightStatCard
+        <MetricCard
           title="Inactive Schools"
           value={metrics.inactive}
           icon={Clock}
-          color="orange"
-          subtitle="Awaiting reactivation"
+          colorClass="text-amber-500"
+          subtitle="Provisioned / Sleeping"
         />
-        <LightStatCard
-          title="Active Trials"
+        <MetricCard
+          title="Trial Nodes"
           value={metrics.trial}
           icon={Activity}
-          color="purple"
-          subtitle="Potential conversions"
+          colorClass="text-brand-purple"
+          subtitle="Evaluation pipelines"
         />
-        <LightStatCard
-          title="Conversion Rate"
+        <MetricCard
+          title="Conversion"
           value={`${Math.round((metrics.conversionRate || 0) * 100)}%`}
           icon={CheckCircle2}
-          color="emerald"
-          subtitle="Trial to paid status"
+          colorClass="text-emerald-500"
+          subtitle="Win rate this cycle"
         />
       </div>
 

@@ -4,9 +4,13 @@ import { CheckCircle, ArrowRight } from 'lucide-react';
 export default function WelcomeScreen({ user, onGetStarted, brandingSettings }) {
   return (
     <div
-      className="w-full h-screen flex items-center justify-center"
-      style={{ backgroundColor: brandingSettings?.brandColor || '#1e3a8a' }}
+      className="w-full h-screen flex items-center justify-center p-4 overflow-hidden relative"
+      style={{ backgroundColor: brandingSettings?.brandColor || '#714B67' }}
     >
+      {/* Decorative Blobs */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-brand-teal/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
+
       {/* Simple centered content */}
       <div className="text-center px-6 max-w-2xl">
         {/* Logo */}
@@ -26,25 +30,25 @@ export default function WelcomeScreen({ user, onGetStarted, brandingSettings }) 
         </div>
 
         {/* Welcome Message */}
-        <h1 className="text-4xl font-bold text-white mb-3">
+        <h1 className="text-4xl lg:text-5xl font-bold text-white mb-4 drop-shadow-sm">
           Welcome, {user?.name || 'User'}!
         </h1>
-        <p className="text-xl text-blue-100 mb-8">
-          Your account has been successfully created
+        <p className="text-xl text-white/80 mb-10 leading-relaxed max-w-lg mx-auto">
+          Your account has been successfully created. We're excited to have you on board!
         </p>
 
         {/* Get Started Button */}
         <button
           onClick={onGetStarted}
-          className="inline-flex items-center gap-3 bg-white text-blue-900 px-8 py-4 rounded-xl font-bold text-lg hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl"
+          className="group inline-flex items-center gap-3 bg-white text-brand-purple px-10 py-4 rounded-2xl font-bold text-xl hover:bg-white/90 transition-all shadow-2xl hover:shadow-brand-teal/20 hover:scale-105 active:scale-95"
         >
           Get Started
-          <ArrowRight size={24} />
+          <ArrowRight className="group-hover:translate-x-1 transition-transform" size={24} />
         </button>
 
         {/* Footer */}
-        <p className="text-blue-100 text-sm mt-8">
-          © 2025 {brandingSettings?.schoolName || 'Zawadi JRN Academy'}
+        <p className="text-white/40 text-sm mt-12 font-medium tracking-wide">
+          © 2025 {brandingSettings?.schoolName || 'Zawadi JRN Academy'} • CBC Grading System
         </p>
       </div>
     </div>

@@ -130,7 +130,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
       {viewMode === 'setup' && (
         <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100 max-w-3xl mx-auto mt-8">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
+            <div className="w-16 h-16 bg-gradient-to-br from-brand-purple/10 to-brand-teal/10 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-purple">
               <FileText size={32} />
             </div>
             <h2 className="text-2xl font-bold text-gray-800">Termly Report</h2>
@@ -154,8 +154,8 @@ const TermlyReport = ({ learners, brandingSettings }) => {
                       setSelectedLearnerId(''); // Clear selection on filter change
                     }}
                     className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold transition-all ${selectedGrade === grade.value
-                        ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-100'
-                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+                      ? 'bg-brand-purple text-white shadow-md ring-2 ring-brand-purple/20'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
                       }`}
                   >
                     {grade.label}
@@ -178,7 +178,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
               <select
                 value={selectedTerm}
                 onChange={(e) => setSelectedTerm(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple"
               >
                 {terms.map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -191,7 +191,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
             <button
               onClick={handleGenerateReport}
               disabled={!selectedLearnerId || loading}
-              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-brand-purple to-brand-teal text-white rounded-xl hover:opacity-90 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {loading ? 'Generating...' : 'Generate Report'}
               <ArrowRight size={20} />
@@ -204,9 +204,9 @@ const TermlyReport = ({ learners, brandingSettings }) => {
       {viewMode === 'report' && reportData && (
         <>
           {/* Compact Context Header - Hidden on Print */}
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-blue-100 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-4 z-20 print:hidden">
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-brand-purple/10 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-4 z-20 print:hidden">
             <div className="flex items-center gap-4">
-              <div className="bg-blue-50 p-3 rounded-lg text-blue-600">
+              <div className="bg-brand-purple/10 p-3 rounded-lg text-brand-purple">
                 <User size={24} />
               </div>
               <div>
@@ -215,7 +215,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
                 </h3>
                 <div className="flex items-center gap-3 text-sm text-gray-500 font-medium">
                   <span>{reportData.learner.admissionNumber}</span>
-                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">
+                  <span className="bg-brand-purple/10 text-brand-purple px-2 py-0.5 rounded-full text-xs">
                     {reportData.term} {reportData.academicYear}
                   </span>
                 </div>
@@ -234,7 +234,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
               <DownloadReportButton
                 onDownload={handleDownloadPDF}
                 label="PDF"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm font-semibold text-sm flex items-center gap-2"
+                className="px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-sm font-semibold text-sm flex items-center gap-2"
               />
 
               <button
@@ -251,7 +251,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
           <div className="bg-white rounded-xl shadow-md overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
 
             {/* On-Screen Header (Hidden in Print/PDF as Letterhead is added) */}
-            <div className="bg-blue-900 text-white p-4 text-center print:hidden">
+            <div className="bg-brand-purple text-white p-4 text-center print:hidden">
               <h2 className="text-xl font-bold">Zawadi Junior School</h2>
               <p className="opacity-80 text-sm">Excellence in Competency Based Curriculum</p>
             </div>
@@ -293,7 +293,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
 
                 {(reportData.summative?.summary?.bySubject || []).length > 0 ? (
                   <table className="w-full mb-4 border-collapse text-xs">
-                    <thead className="bg-blue-600 text-white">
+                    <thead className="bg-brand-purple text-white">
                       <tr>
                         <th className="px-2 py-1.5 text-left font-semibold">Subject</th>
                         <th className="px-2 py-1.5 text-center font-semibold">Marks</th>
@@ -307,8 +307,8 @@ const TermlyReport = ({ learners, brandingSettings }) => {
                           <td className="px-2 py-1.5 text-center text-gray-700">{subject.averagePercentage}%</td>
                           <td className="px-2 py-1.5 text-center">
                             <span className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] font-bold ${['A', 'B'].includes(subject.grade) ? 'bg-green-100 text-green-800' :
-                                ['C'].includes(subject.grade) ? 'bg-blue-100 text-blue-800' :
-                                  'bg-yellow-100 text-yellow-800'
+                              ['C'].includes(subject.grade) ? 'bg-brand-purple/10 text-brand-purple' :
+                                'bg-yellow-100 text-yellow-800'
                               }`}>
                               {subject.grade}
                             </span>
@@ -325,9 +325,9 @@ const TermlyReport = ({ learners, brandingSettings }) => {
 
                 {/* Comments Section */}
                 <div className="space-y-2">
-                  <div className="bg-blue-50 p-2 rounded-lg border-l-4 border-blue-500 text-xs">
+                  <div className="bg-brand-purple/5 p-2 rounded-lg border-l-4 border-brand-purple text-xs">
                     <p className="font-bold text-gray-800 mb-0.5 flex items-center gap-1.5 text-[10px] uppercase tracking-wider">
-                      <span className="text-blue-600">📝</span>
+                      <span className="text-brand-purple">📝</span>
                       Class Teacher's Comment
                     </p>
                     <p className="text-gray-700 leading-snug">

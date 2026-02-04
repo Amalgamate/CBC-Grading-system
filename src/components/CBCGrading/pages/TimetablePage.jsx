@@ -13,7 +13,7 @@ const TimetablePage = () => {
 
   // Placeholder data - will be replaced with real API data
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-  
+
   const placeholderSchedule = {
     'Monday': [
       { time: '8:00 AM - 9:30 AM', subject: 'Mathematics', grade: 'Grade 3A', room: 'Room 101' },
@@ -48,36 +48,38 @@ const TimetablePage = () => {
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex justify-end mb-4">
-          <div className="flex items-center gap-2">
-            <button
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-              disabled
-            >
-              <Download size={18} />
-              Export
-            </button>
-            <button
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition opacity-50 cursor-not-allowed"
-              disabled
-            >
-              <Plus size={18} />
-              Add Lesson
-            </button>
-          </div>
+        <div className="flex items-center gap-2">
+          <button
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+            disabled
+          >
+            <Download size={18} />
+            Export
+          </button>
+          <button
+            className="flex items-center gap-2 px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition opacity-50 cursor-not-allowed font-bold"
+            disabled
+          >
+            <Plus size={18} />
+            Add Lesson
+          </button>
+        </div>
       </div>
 
       {/* Coming Soon Banner */}
-      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl p-6 text-white">
+      <div className="bg-gradient-to-r from-brand-purple to-brand-teal rounded-xl p-6 text-white shadow-lg overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-brand-teal/20 rounded-full -ml-16 -mb-16 blur-2xl"></div>
         <div className="flex items-start gap-4">
           <div className="p-3 bg-white/20 rounded-lg">
             <Calendar className="w-8 h-8" />
           </div>
           <div className="flex-1">
             <h3 className="text-xl font-bold mb-2">Full Timetable Management Coming Soon!</h3>
-            <p className="text-blue-100 mb-4">
+            <p className="text-white/80 mb-4 font-medium">
               We're working on a comprehensive timetable management system with features like:
             </p>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-blue-100">
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-white/90 font-medium">
               <li className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                 Automatic timetable generation
@@ -120,11 +122,10 @@ const TimetablePage = () => {
             <button
               key={day}
               onClick={() => setSelectedDay(day)}
-              className={`flex-1 px-6 py-3 text-sm font-medium transition-colors ${
-                selectedDay === day
-                  ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
+              className={`flex-1 px-6 py-4 text-sm font-black uppercase tracking-widest transition-all ${selectedDay === day
+                ? 'bg-brand-purple/5 text-brand-purple border-b-2 border-brand-purple'
+                : 'text-gray-500 hover:bg-gray-50'
+                }`}
             >
               {day}
             </button>
@@ -144,13 +145,13 @@ const TimetablePage = () => {
               {schedule.map((lesson, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-brand-purple/30 hover:bg-brand-purple/5 transition-colors"
                 >
                   <div className="flex items-center gap-4 flex-1">
                     {/* Time */}
                     <div className="flex items-center gap-2 min-w-[200px]">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Clock className="w-5 h-5 text-blue-600" />
+                      <div className="p-2 bg-brand-teal/10 rounded-lg">
+                        <Clock className="w-5 h-5 text-brand-teal" />
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-gray-900">{lesson.time}</p>
@@ -160,8 +161,8 @@ const TimetablePage = () => {
 
                     {/* Subject & Grade */}
                     <div className="flex items-center gap-2 min-w-[200px]">
-                      <div className="p-2 bg-green-100 rounded-lg">
-                        <BookOpen className="w-5 h-5 text-green-600" />
+                      <div className="p-2 bg-brand-purple/10 rounded-lg">
+                        <BookOpen className="w-5 h-5 text-brand-purple" />
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-gray-900">{lesson.subject}</p>
@@ -171,8 +172,8 @@ const TimetablePage = () => {
 
                     {/* Room */}
                     <div className="flex items-center gap-2">
-                      <div className="p-2 bg-purple-100 rounded-lg">
-                        <MapPin className="w-5 h-5 text-purple-600" />
+                      <div className="p-2 bg-brand-teal/10 rounded-lg">
+                        <MapPin className="w-5 h-5 text-brand-teal" />
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-gray-900">{lesson.room}</p>
@@ -184,14 +185,14 @@ const TimetablePage = () => {
                   {/* Actions */}
                   <div className="flex items-center gap-2">
                     <button
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition opacity-50 cursor-not-allowed"
+                      className="p-2 text-brand-purple hover:bg-brand-purple/10 rounded-lg transition opacity-50 cursor-not-allowed"
                       disabled
                       title="Coming soon"
                     >
                       <Edit size={18} />
                     </button>
                     <button
-                      className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition opacity-50 cursor-not-allowed"
+                      className="px-3 py-2 text-sm bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition opacity-50 cursor-not-allowed font-bold"
                       disabled
                       title="Coming soon"
                     >
@@ -234,9 +235,9 @@ const TimetablePage = () => {
                   return (
                     <td key={day} className="border border-gray-200 px-4 py-3">
                       {lesson ? (
-                        <div className="bg-blue-50 border border-blue-200 rounded p-2">
-                          <p className="text-sm font-semibold text-blue-900">{lesson.subject}</p>
-                          <p className="text-xs text-blue-600">{lesson.grade}</p>
+                        <div className="bg-brand-purple/5 border border-brand-purple/10 rounded p-2">
+                          <p className="text-sm font-semibold text-brand-purple">{lesson.subject}</p>
+                          <p className="text-xs text-brand-purple/70">{lesson.grade}</p>
                         </div>
                       ) : (
                         <div className="text-center text-gray-400 text-sm">Free</div>
@@ -254,9 +255,9 @@ const TimetablePage = () => {
                   return (
                     <td key={day} className="border border-gray-200 px-4 py-3">
                       {lesson ? (
-                        <div className="bg-green-50 border border-green-200 rounded p-2">
-                          <p className="text-sm font-semibold text-green-900">{lesson.subject}</p>
-                          <p className="text-xs text-green-600">{lesson.grade}</p>
+                        <div className="bg-brand-teal/5 border border-brand-teal/10 rounded p-2">
+                          <p className="text-sm font-semibold text-brand-teal">{lesson.subject}</p>
+                          <p className="text-xs text-brand-teal/70">{lesson.grade}</p>
                         </div>
                       ) : (
                         <div className="text-center text-gray-400 text-sm">Free</div>
@@ -274,9 +275,9 @@ const TimetablePage = () => {
                   return (
                     <td key={day} className="border border-gray-200 px-4 py-3">
                       {lesson ? (
-                        <div className="bg-purple-50 border border-purple-200 rounded p-2">
-                          <p className="text-sm font-semibold text-purple-900">{lesson.subject}</p>
-                          <p className="text-xs text-purple-600">{lesson.grade}</p>
+                        <div className="bg-brand-purple/5 border border-brand-purple/10 rounded p-2">
+                          <p className="text-sm font-semibold text-brand-purple">{lesson.subject}</p>
+                          <p className="text-xs text-brand-purple/70">{lesson.grade}</p>
                         </div>
                       ) : (
                         <div className="text-center text-gray-400 text-sm">Free</div>
@@ -294,7 +295,7 @@ const TimetablePage = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <BookOpen className="w-5 h-5 text-blue-600" />
+            <BookOpen className="w-5 h-5 text-brand-purple" />
             <span className="text-xs text-gray-500">This Week</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">15</p>
@@ -303,7 +304,7 @@ const TimetablePage = () => {
 
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <Users className="w-5 h-5 text-green-600" />
+            <Users className="w-5 h-5 text-brand-teal" />
             <span className="text-xs text-gray-500">Unique</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">3</p>
@@ -312,7 +313,7 @@ const TimetablePage = () => {
 
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <Clock className="w-5 h-5 text-orange-600" />
+            <Clock className="w-5 h-5 text-brand-purple" />
             <span className="text-xs text-gray-500">Total</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">22.5</p>
@@ -321,7 +322,7 @@ const TimetablePage = () => {
 
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <MapPin className="w-5 h-5 text-purple-600" />
+            <MapPin className="w-5 h-5 text-brand-teal" />
             <span className="text-xs text-gray-500">Primary</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">101</p>

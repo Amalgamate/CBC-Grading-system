@@ -69,16 +69,16 @@ function Auth({ onAuthSuccess, brandingSettings, basePath = '/auth' }) {
     return null;
   }
 
-  const layoutClass = showBlobBackground(view) ? 'bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100 flex items-center justify-center p-4' : '';
+  const layoutClass = showBlobBackground(view) ? 'bg-gradient-to-br from-brand-purple/5 via-brand-teal/5 to-brand-purple/10 flex items-center justify-center p-4' : '';
   const contentClass = FULL_VIEWS.includes(view) ? 'w-full h-screen' : 'relative z-10 w-full flex items-center justify-center';
 
   return (
     <div className={`min-h-screen ${layoutClass}`}>
       {showBlobBackground(view) && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob" />
-          <div className="absolute top-40 right-10 w-72 h-72 bg-cyan-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000" />
-          <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000" />
+          <div className="absolute top-20 left-10 w-72 h-72 bg-brand-purple rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob" />
+          <div className="absolute top-40 right-10 w-72 h-72 bg-brand-teal rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob animation-delay-2000" />
+          <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-brand-purple rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob animation-delay-4000" />
         </div>
       )}
       <div className={contentClass}>

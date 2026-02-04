@@ -10,6 +10,9 @@ export const issueCsrfToken = (req: Request, res: Response) => {
 };
 
 export const requireCsrf = (req: Request, res: Response, next: NextFunction) => {
+  if (process.env.NODE_ENV === 'development') {
+    return next();
+  }
   const key = String(req.ip || req.headers['x-forwarded-for'] || 'local');
   const token = req.header('X-CSRF-Token') || '';
   if (!store[key] || store[key] !== token) {

@@ -399,7 +399,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                       name="rememberMe"
                       checked={formData.rememberMe}
                       onChange={handleChange}
-                      className="w-5 h-5 text-[#714B67] border-gray-300 rounded focus:ring-[#714B67] cursor-pointer"
+                      className="w-5 h-5 text-brand-purple border-gray-300 rounded focus:ring-brand-purple cursor-pointer"
                     />
                     <span className="ml-2 text-sm text-gray-600 group-hover:text-gray-900 transition-colors">Remember me</span>
                   </label>
@@ -422,7 +422,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-[#714B67] text-white py-4 rounded-lg font-bold hover:bg-[#5d3d54] focus:ring-4 focus:ring-purple-200 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none text-lg flex items-center justify-center transform active:scale-95"
+                  className="w-full bg-brand-purple text-white py-4 rounded-lg font-bold hover:bg-brand-purple/90 focus:ring-4 focus:ring-brand-purple/20 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none text-lg flex items-center justify-center transform active:scale-95"
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center gap-3">
@@ -443,7 +443,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                   <button
                     type="button"
                     onClick={onSwitchToRegister}
-                    className="font-bold text-[#0D9488] hover:text-[#0a756b] hover:underline transition-all"
+                    className="font-bold text-brand-teal hover:text-brand-teal/80 hover:underline transition-all"
                   >
                     Create an account
                   </button>

@@ -33,16 +33,16 @@ const PromotionPage = ({ learners = [], onPromote, showNotification }) => {
   }, [user?.schoolId]);
 
   // Get learners for selected class
-  const classLearners = learners.filter(l => 
-    l.grade === sourceGrade && 
+  const classLearners = learners.filter(l =>
+    l.grade === sourceGrade &&
     l.status === 'Active' &&
     (sourceStream === 'all' || l.stream === sourceStream)
   );
 
   // Toggle learner selection
   const toggleLearner = (learnerId) => {
-    setSelectedLearners(prev => 
-      prev.includes(learnerId) 
+    setSelectedLearners(prev =>
+      prev.includes(learnerId)
         ? prev.filter(id => id !== learnerId)
         : [...prev, learnerId]
     );
@@ -82,7 +82,7 @@ const PromotionPage = ({ learners = [], onPromote, showNotification }) => {
 
       {/* Step 1: Select Source Class */}
       <div className="bg-white rounded-xl shadow-md p-6">
-        <h3 className="text-lg font-bold mb-4 text-green-700">Step 1: Select Source Class</h3>
+        <h3 className="text-lg font-black mb-4 text-brand-purple uppercase tracking-widest">Step 1: Select Source Class</h3>
         <div className="flex items-center gap-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Grade</label>
@@ -92,7 +92,7 @@ const PromotionPage = ({ learners = [], onPromote, showNotification }) => {
                 setSourceGrade(e.target.value);
                 setSelectedLearners([]);
               }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple"
             >
               <option value="Grade 1">Grade 1</option>
               <option value="Grade 2">Grade 2</option>
@@ -110,7 +110,7 @@ const PromotionPage = ({ learners = [], onPromote, showNotification }) => {
                 setSourceStream(e.target.value);
                 setSelectedLearners([]);
               }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple"
             >
               <option value="all">All Streams</option>
               {availableStreams.map(stream => (
@@ -123,7 +123,7 @@ const PromotionPage = ({ learners = [], onPromote, showNotification }) => {
           <div className="flex items-end gap-2">
             <button
               onClick={selectAll}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+              className="px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-sm font-bold"
             >
               Select All
             </button>
@@ -139,10 +139,10 @@ const PromotionPage = ({ learners = [], onPromote, showNotification }) => {
 
       {/* Step 2: Select Learners */}
       <div className="bg-white rounded-xl shadow-md p-6">
-        <h3 className="text-lg font-bold mb-4 text-green-700">
+        <h3 className="text-lg font-black mb-4 text-brand-purple uppercase tracking-widest">
           Step 2: Select Learners to Promote ({selectedLearners.length} selected)
         </h3>
-        
+
         {classLearners.length === 0 ? (
           <EmptyState
             icon={Users}
@@ -154,21 +154,20 @@ const PromotionPage = ({ learners = [], onPromote, showNotification }) => {
             {classLearners.map((learner) => {
               const nextGrade = getNextGrade(learner.grade);
               const isSelected = selectedLearners.includes(learner.id);
-              
+
               return (
                 <div
                   key={learner.id}
                   onClick={() => toggleLearner(learner.id)}
-                  className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                    isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
-                  }`}
+                  className={`p-4 border-2 rounded-lg cursor-pointer transition ${isSelected ? 'border-brand-teal bg-brand-teal/5' : 'border-gray-200 hover:border-brand-teal/30'
+                    }`}
                 >
                   <div className="flex items-center gap-3 mb-2">
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      onChange={() => {}}
-                      className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+                      onChange={() => { }}
+                      className="w-5 h-5 text-brand-teal rounded focus:ring-brand-teal"
                     />
                     <span className="text-2xl">{learner.avatar}</span>
                     <div className="flex-1">
@@ -178,8 +177,8 @@ const PromotionPage = ({ learners = [], onPromote, showNotification }) => {
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 rounded px-2 py-1">
                     <span className="font-semibold">{learner.grade}</span>
-                    <ArrowRight size={14} className="text-green-600" />
-                    <span className="font-semibold text-green-700">{nextGrade}</span>
+                    <ArrowRight size={14} className="text-brand-teal" />
+                    <span className="font-semibold text-brand-teal">{nextGrade}</span>
                   </div>
                 </div>
               );
@@ -193,7 +192,7 @@ const PromotionPage = ({ learners = [], onPromote, showNotification }) => {
         <div className="flex justify-end">
           <button
             onClick={handlePromote}
-            className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
+            className="flex items-center gap-2 px-6 py-3 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-lg font-bold"
           >
             <CheckCircle size={20} />
             Promote Selected ({selectedLearners.length})

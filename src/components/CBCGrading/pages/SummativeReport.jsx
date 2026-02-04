@@ -1110,7 +1110,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple bg-white"
             >
               <option value="">Select Type</option>
               {reportTypes.map(t => (
@@ -1126,7 +1126,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             <select
               value={selectedGrade}
               onChange={(e) => setSelectedGrade(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple bg-white"
             >
               <option value="">Select Grade</option>
               <option value="all">All Grades</option>
@@ -1148,7 +1148,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             <select
               value={selectedStream}
               onChange={(e) => setSelectedStream(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple bg-white"
             >
               <option value="all">All Streams</option>
               {availableStreams.map(s => (
@@ -1167,7 +1167,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             <select
               value={selectedTerm}
               onChange={(e) => setSelectedTerm(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple bg-white"
             >
               {terms.map(t => (
                 <option key={t.value} value={t.value}>
@@ -1181,7 +1181,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             <label className="block text-sm font-semibold text-gray-700 mb-2">Test Group</label>
             <button
               onClick={() => setShowTestGroupOptions(!showTestGroupOptions)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-left flex justify-between items-center"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple bg-white text-left flex justify-between items-center"
             >
               <span>
                 {selectedTestGroups.length === 0
@@ -1206,7 +1206,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                           setSelectedTestGroups([]);
                         }
                       }}
-                      className="w-4 h-4 rounded"
+                      className="w-4 h-4 rounded text-brand-teal focus:ring-brand-teal"
                     />
                     <span className="font-semibold text-gray-700">Select All</span>
                   </label>
@@ -1224,7 +1224,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                           setSelectedTestGroups(selectedTestGroups.filter(g => g !== group));
                         }
                       }}
-                      className="w-4 h-4 rounded"
+                      className="w-4 h-4 rounded text-brand-teal focus:ring-brand-teal"
                     />
                     <span className="text-gray-700">{group}</span>
                   </label>
@@ -1240,7 +1240,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             <label className="block text-sm font-semibold text-gray-700 mb-2">Specific Tests (Optional)</label>
             <button
               onClick={() => setShowTestOptions(!showTestOptions)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-left flex justify-between items-center"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple bg-white text-left flex justify-between items-center"
             >
               <span>
                 {selectedTestIds.length === 0
@@ -1266,7 +1266,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                         }
                       }}
                       disabled={testsInGroups.length === 0}
-                      className="w-4 h-4 rounded"
+                      className="w-4 h-4 rounded text-brand-teal focus:ring-brand-teal"
                     />
                     <span className="font-semibold text-gray-700">Select All</span>
                   </label>
@@ -1287,7 +1287,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                             setSelectedTestIds(selectedTestIds.filter(id => id !== test.id));
                           }
                         }}
-                        className="w-4 h-4 rounded"
+                        className="w-4 h-4 rounded text-brand-teal focus:ring-brand-teal"
                       />
                       <span className="text-gray-700">{test.title || test.learningArea} ({test.totalMarks} marks)</span>
                     </label>
@@ -1322,7 +1322,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                     <select
                       value={selectedLearnerId}
                       onChange={(e) => setSelectedLearnerId(e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple bg-white"
                     >
                       <option value="">Select Learner</option>
                       {displayLearners.length > 0 ? (
@@ -1337,13 +1337,11 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                         <option disabled>No learners available</option>
                       )}
                     </select>
-                    {loadingLearners && (
-                      <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
-                        <Loader className="animate-spin" size={12} /> Loading matching students...
-                      </p>
-                    )}
+                    <p className="text-xs text-brand-purple mt-1 flex items-center gap-1">
+                      <Loader className="animate-spin" size={12} /> Loading matching students...
+                    </p>
                     {showingFallback && (
-                      <p className="text-xs text-blue-600 mt-1">ℹ️ Showing all learners (no matches for selected grade/stream in current view)</p>
+                      <p className="text-xs text-brand-purple mt-1">ℹ️ Showing all learners (no matches for selected grade/stream in current view)</p>
                     )}
                     {learners?.length === 0 && !loadingLearners && (
                       <p className="text-xs text-orange-600 mt-1">⚠️ No learners loaded. Refreshing...</p>
@@ -1359,7 +1357,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
         <div className="flex justify-end pt-4 mb-6">
           <button
             onClick={() => setShowBulkImport(true)}
-            className="px-6 py-3 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition font-semibold flex items-center gap-2"
+            className="px-6 py-3 border border-brand-teal text-brand-teal rounded-lg hover:bg-brand-teal/5 transition font-bold flex items-center gap-2"
           >
             <UploadCloud size={18} />
             Bulk Import
@@ -1368,7 +1366,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           <button
             onClick={handleGenerate}
             disabled={loading}
-            className="px-8 py-3 bg-[#1e293b] text-white rounded-lg hover:bg-[#334155] transition font-semibold disabled:opacity-50 shadow-sm"
+            className="px-8 py-3 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition font-bold disabled:opacity-50 shadow-sm"
           >
             {loading ? (
               <span className="flex items-center gap-2">

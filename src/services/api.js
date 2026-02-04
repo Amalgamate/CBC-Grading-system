@@ -1746,6 +1746,15 @@ export const adminAPI = {
     const resp = await fetchWithAuth(`/admin/switch-school/${schoolId}`, { method: 'POST', headers: { 'X-School-Id': schoolId } });
     return resp;
   },
+  getSchoolCommunication: async (schoolId) => {
+    return fetchWithAuth(`/admin/schools/${schoolId}/communication`);
+  },
+  updateSchoolCommunication: async (schoolId, data) => {
+    return fetchWithAuth(`/admin/schools/${schoolId}/communication`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
 };
 // Export all APIs
 const api = {

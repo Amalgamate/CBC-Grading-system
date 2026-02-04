@@ -13,7 +13,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
 
   const getPasswordStrength = (password) => {
     if (!password) return { strength: 0, label: '', color: '' };
-    
+
     let strength = 0;
     if (password.length >= 8) strength++;
     if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
@@ -23,7 +23,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
     const levels = [
       { strength: 1, label: 'Weak', color: 'bg-red-500' },
       { strength: 2, label: 'Fair', color: 'bg-yellow-500' },
-      { strength: 3, label: 'Good', color: 'bg-blue-500' },
+      { strength: 3, label: 'Good', color: 'bg-brand-teal' },
       { strength: 4, label: 'Strong', color: 'bg-green-500' }
     ];
 
@@ -32,30 +32,30 @@ export default function ResetPasswordForm({ onResetSuccess }) {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
     }
-    
+
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
-    
+
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
@@ -66,7 +66,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -77,7 +77,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
   return (
     <div className="w-full max-w-md">
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl mb-4 shadow-lg">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-brand-purple to-brand-teal rounded-2xl mb-4 shadow-lg">
           <span className="text-2xl font-bold text-white">CBC</span>
         </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Reset Password</h1>
@@ -99,9 +99,8 @@ export default function ResetPasswordForm({ onResetSuccess }) {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                  errors.password ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${errors.password ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 placeholder="Enter new password"
               />
               <button
@@ -116,12 +115,11 @@ export default function ResetPasswordForm({ onResetSuccess }) {
               <div className="mt-2">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-gray-600">Password strength:</span>
-                  <span className={`text-xs font-semibold ${
-                    passwordStrength.strength === 4 ? 'text-green-600' :
-                    passwordStrength.strength === 3 ? 'text-blue-600' :
-                    passwordStrength.strength === 2 ? 'text-yellow-600' :
-                    'text-red-600'
-                  }`}>
+                  <span className={`text-xs font-semibold ${passwordStrength.strength === 4 ? 'text-green-600' :
+                      passwordStrength.strength === 3 ? 'text-brand-teal' :
+                        passwordStrength.strength === 2 ? 'text-yellow-600' :
+                          'text-red-600'
+                    }`}>
                     {passwordStrength.label}
                   </span>
                 </div>
@@ -171,9 +169,8 @@ export default function ResetPasswordForm({ onResetSuccess }) {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                  errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 placeholder="Re-enter new password"
               />
               <button
@@ -201,7 +198,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 focus:ring-4 focus:ring-blue-300 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-gradient-to-r from-brand-purple to-brand-teal text-white py-3 rounded-lg font-semibold hover:from-brand-purple/90 hover:to-brand-teal/90 focus:ring-4 focus:ring-brand-purple/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <div className="flex items-center justify-center gap-2">

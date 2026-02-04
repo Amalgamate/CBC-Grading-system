@@ -94,7 +94,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
     const levels = [
       { strength: 1, label: 'Weak', color: 'bg-red-500' },
       { strength: 2, label: 'Fair', color: 'bg-yellow-500' },
-      { strength: 3, label: 'Good', color: 'bg-blue-500' },
+      { strength: 3, label: 'Good', color: 'bg-brand-teal' },
       { strength: 4, label: 'Strong', color: 'bg-green-500' }
     ];
 
@@ -220,10 +220,10 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          
+
           // First, try to get county from Kenya coordinates
           const detectedCounty = getCountyFromCoordinates(latitude, longitude);
-          
+
           if (!detectedCounty) {
             setIsDetectingLocation(false);
             toast.error('Location detected outside Kenya. Please enter manually.');
@@ -236,11 +236,11 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
               `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
               { signal: AbortSignal.timeout(5000) }
             );
-            
+
             if (!response.ok) throw new Error('Nominatim request failed');
-            
+
             const data = await response.json();
-            
+
             if (data.address) {
               const addr = data.address;
               // Extract meaningful address components
@@ -712,7 +712,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.password ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${errors.password ? 'border-red-500' : 'border-gray-300'
                           }`}
                         placeholder="Enter a strong password"
                       />
@@ -729,7 +729,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs text-gray-600">Password strength:</span>
                           <span className={`text-xs font-semibold ${passwordStrength.strength === 4 ? 'text-green-600' :
-                            passwordStrength.strength === 3 ? 'text-blue-600' :
+                            passwordStrength.strength === 3 ? 'text-brand-teal' :
                               passwordStrength.strength === 2 ? 'text-yellow-600' :
                                 'text-red-600'
                             }`}>
@@ -765,7 +765,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                           }`}
                         placeholder="Re-enter your password"
                       />
@@ -803,7 +803,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="schoolName"
                         value={formData.schoolName}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.schoolName ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${errors.schoolName ? 'border-red-500' : 'border-gray-300'
                           }`}
                         placeholder="EDucore Academy"
                       />
@@ -824,7 +824,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                       name="schoolType"
                       value={formData.schoolType}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.schoolType ? 'border-red-500' : 'border-gray-300'}`}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${errors.schoolType ? 'border-red-500' : 'border-gray-300'}`}
                     >
                       <option value="">Select Type</option>
                       <option>Public Primary School</option>
@@ -844,9 +844,9 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                  <div className="flex items-center justify-between p-4 bg-brand-purple/5 border border-brand-purple/10 rounded-xl">
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${locationEnabled ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                      <div className={`p-2 rounded-lg ${locationEnabled ? 'bg-green-100 text-green-600' : 'bg-brand-teal/10 text-brand-teal'}`}>
                         {isDetectingLocation ? <Loader2 size={20} className="animate-spin" /> : <MapPin size={20} />}
                       </div>
                       <div>
@@ -858,7 +858,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                       type="button"
                       onClick={handleAutoLocation}
                       disabled={isDetectingLocation}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${locationEnabled ? 'bg-blue-600' : 'bg-gray-200'}`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${locationEnabled ? 'bg-brand-teal' : 'bg-gray-200'}`}
                     >
                       <span
                         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${locationEnabled ? 'translate-x-6' : 'translate-x-1'}`}
@@ -875,7 +875,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="county"
                         value={formData.county}
                         onChange={handleChange}
-                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.county ? 'border-red-500' : 'border-gray-300'}`}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${errors.county ? 'border-red-500' : 'border-gray-300'}`}
                       >
                         <option value="">Select County</option>
                         {['Baringo', 'Bomet', 'Bungoma', 'Busia', 'Elgeyo-Marakwet', 'Embu', 'Garissa', 'Homa Bay', 'Isiolo', 'Kajiado', 'Kakamega', 'Kericho', 'Kiambu', 'Kilifi', 'Kirinyaga', 'Kisii', 'Kisumu', 'Kitui', 'Kwale', 'Laikipia', 'Lamu', 'Machakos', 'Makueni', 'Mandera', 'Marsabit', 'Meru', 'Migori', 'Mombasa', 'Murang’a', 'Nairobi', 'Nakuru', 'Nandi', 'Narok', 'Nyamira', 'Nyandarua', 'Nyeri', 'Samburu', 'Siaya', 'Taita-Taveta', 'Tana River', 'Tharaka-Nithi', 'Trans Nzoia', 'Turkana', 'Uasin Gishu', 'Vihiga', 'Wajir', 'West Pokot'].map(c => <option key={c} value={c}>{c}</option>)}
@@ -896,7 +896,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="subCounty"
                         value={formData.subCounty}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition"
                         placeholder="e.g. Westlands"
                       />
                     </div>
@@ -911,7 +911,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                       name="address"
                       value={formData.address}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.address ? 'border-red-500' : 'border-gray-300'}`}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${errors.address ? 'border-red-500' : 'border-gray-300'}`}
                       placeholder="Street, Town"
                     />
                     {errors.address && (
@@ -922,22 +922,22 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                     )}
                   </div>
 
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="bg-brand-purple/5 border border-brand-purple/10 rounded-lg p-4">
                     <label className="flex items-start">
                       <input
                         type="checkbox"
                         name="termsAccepted"
                         checked={formData.termsAccepted}
                         onChange={handleChange}
-                        className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="mt-1 w-4 h-4 text-brand-purple border-gray-300 rounded focus:ring-brand-purple"
                       />
                       <span className="ml-3 text-sm text-gray-700">
                         I agree to the{' '}
-                        <button type="button" className="font-semibold text-blue-600 hover:text-blue-700">
+                        <button type="button" className="font-semibold text-brand-purple hover:text-brand-purple/80">
                           Terms and Conditions
                         </button>
                         {' '}and{' '}
-                        <button type="button" className="font-semibold text-blue-600 hover:text-blue-700">
+                        <button type="button" className="font-semibold text-brand-purple hover:text-brand-purple/80">
                           Privacy Policy
                         </button>
                       </span>
@@ -969,7 +969,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                   <button
                     type="button"
                     onClick={handleNext}
-                    className={`flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 focus:ring-4 focus:ring-blue-300 transition-all shadow-lg ${currentStep === 1 ? 'flex-1' : 'flex-1'
+                    className={`flex items-center justify-center gap-2 bg-gradient-to-r from-brand-purple to-brand-teal text-white py-3 rounded-lg font-semibold hover:from-brand-purple/90 hover:to-brand-teal/90 focus:ring-4 focus:ring-brand-purple/20 transition-all shadow-lg ${currentStep === 1 ? 'flex-1' : 'flex-1'
                       }`}
                   >
                     Next
@@ -979,7 +979,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 focus:ring-4 focus:ring-blue-300 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 bg-gradient-to-r from-brand-purple to-brand-teal text-white py-3 rounded-lg font-semibold hover:from-brand-purple/90 hover:to-brand-teal/90 focus:ring-4 focus:ring-brand-purple/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? (
                       <div className="flex items-center justify-center gap-2">
@@ -1001,7 +1001,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                 <button
                   type="button"
                   onClick={onSwitchToLogin}
-                  className="font-semibold text-blue-600 hover:text-blue-700 transition"
+                  className="font-semibold text-brand-teal hover:text-brand-teal/80 transition"
                 >
                   Sign in
                 </button>

@@ -105,7 +105,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search parents by name, phone, or email..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent"
               />
             </div>
 
@@ -134,7 +134,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
             {/* Bulk Operations removed as Parents are now managed via Student Upload */}
             <button
               onClick={onAddParent}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-sm font-bold"
             >
               <Plus size={18} />
               <span className="hidden sm:inline">Add Parent</span>
@@ -173,7 +173,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                 <tr key={parent.id} className="hover:bg-gray-50 transition">
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                      <div className="w-8 h-8 bg-gradient-to-br from-brand-purple to-brand-purple/80 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-sm">
                         {parent.name?.substring(0, 2).toUpperCase()}
                       </div>
                       <div>
@@ -183,19 +183,19 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                     </div>
                   </td>
                   <td className="px-3 py-2">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-purple/10 text-brand-purple">
                       {parent.relationship}
                     </span>
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <Mail size={14} className="text-purple-600" />
+                      <Mail size={14} className="text-brand-purple" />
                       <span className="truncate max-w-[150px] text-xs">{parent.email || 'N/A'}</span>
                     </div>
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <Phone size={14} className="text-purple-600" />
+                      <Phone size={14} className="text-brand-purple" />
                       <span className="text-xs">{parent.phone || 'N/A'}</span>
                     </div>
                   </td>
@@ -218,7 +218,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                       onClick={() => handleWhatsAppMessage(parent)}
                       disabled={!parent.phone}
                       className={`p-1.5 rounded-lg transition ${parent.phone
-                        ? 'text-green-600 hover:bg-green-50'
+                        ? 'text-brand-teal hover:bg-brand-teal/10'
                         : 'text-gray-300 cursor-not-allowed'
                         }`}
                       title={parent.phone ? 'Send WhatsApp message' : 'No phone number'}
@@ -230,7 +230,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => onViewParent(parent)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        className="p-1.5 text-brand-teal hover:bg-brand-teal/10 rounded-lg transition"
                         title="View Details"
                       >
                         <Eye size={16} />
@@ -239,7 +239,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                       {!currentUserIsTeacher && (
                         <button
                           onClick={() => onEditParent(parent)}
-                          className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition"
+                          className="p-1.5 text-brand-purple hover:bg-brand-purple/10 rounded-lg transition"
                           title="Edit"
                         >
                           <Edit size={16} />
