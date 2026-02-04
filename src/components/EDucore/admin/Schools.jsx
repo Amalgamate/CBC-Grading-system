@@ -13,7 +13,7 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
     try {
       const s = await adminAPI.listSchools();
       setSchools(s.data || []);
-    } catch {}
+    } catch { }
     setLoading(false);
   };
 
@@ -29,16 +29,16 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
       // Set the school ID temporarily for the API call
       const previousSchoolId = localStorage.getItem('currentSchoolId');
       localStorage.setItem('currentSchoolId', schoolId);
-      
+
       await adminAPI.reactivateSchool(schoolId);
-      
+
       // Restore previous school ID
       if (previousSchoolId) {
         localStorage.setItem('currentSchoolId', previousSchoolId);
       } else {
         localStorage.removeItem('currentSchoolId');
       }
-      
+
       await load();
     } catch (error) {
       console.error('Reactivate school error:', error);
@@ -58,16 +58,16 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
         // Set the school ID temporarily for the API call
         const previousSchoolId = localStorage.getItem('currentSchoolId');
         localStorage.setItem('currentSchoolId', schoolId);
-        
+
         await adminAPI.approvePayment(schoolId, { planId: 'starter', durationDays: 365 });
-        
+
         // Restore previous school ID
         if (previousSchoolId) {
           localStorage.setItem('currentSchoolId', previousSchoolId);
         } else {
           localStorage.removeItem('currentSchoolId');
         }
-        
+
         await load();
       } catch (error) {
         console.error('Approve payment error:', error);
@@ -84,16 +84,16 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
       // Set the school ID temporarily for the API call
       const previousSchoolId = localStorage.getItem('currentSchoolId');
       localStorage.setItem('currentSchoolId', schoolId);
-      
+
       await schoolAPI.deactivate(schoolId);
-      
+
       // Restore previous school ID
       if (previousSchoolId) {
         localStorage.setItem('currentSchoolId', previousSchoolId);
       } else {
         localStorage.removeItem('currentSchoolId');
       }
-      
+
       await load();
     } catch (error) {
       console.error('Deactivate school error:', error);
@@ -109,16 +109,16 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
       // Set the school ID in localStorage temporarily for Super Admin operations
       const previousSchoolId = localStorage.getItem('currentSchoolId');
       localStorage.setItem('currentSchoolId', schoolId);
-      
+
       await schoolAPI.update(schoolId, { status: 'ACTIVE', active: true, trialStart: null });
-      
+
       // Restore previous school ID
       if (previousSchoolId) {
         localStorage.setItem('currentSchoolId', previousSchoolId);
       } else {
         localStorage.removeItem('currentSchoolId');
       }
-      
+
       await load();
     } catch (error) {
       console.error('Approve school error:', error);
@@ -134,16 +134,16 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
       // Set the school ID in localStorage temporarily for Super Admin operations
       const previousSchoolId = localStorage.getItem('currentSchoolId');
       localStorage.setItem('currentSchoolId', schoolId);
-      
+
       await schoolAPI.update(schoolId, { status: 'DECLINED', active: false });
-      
+
       // Restore previous school ID
       if (previousSchoolId) {
         localStorage.setItem('currentSchoolId', previousSchoolId);
       } else {
         localStorage.removeItem('currentSchoolId');
       }
-      
+
       await load();
     } catch (error) {
       console.error('Decline school error:', error);
@@ -160,16 +160,16 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
       // Set the school ID temporarily for the API call
       const previousSchoolId = localStorage.getItem('currentSchoolId');
       localStorage.setItem('currentSchoolId', schoolId);
-      
+
       await schoolAPI.delete(schoolId);
-      
+
       // Restore previous school ID
       if (previousSchoolId) {
         localStorage.setItem('currentSchoolId', previousSchoolId);
       } else {
         localStorage.removeItem('currentSchoolId');
       }
-      
+
       await load();
       alert('✅ School deleted successfully!');
     } catch (error) {
@@ -190,32 +190,32 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
     adminLastName: '',
     adminPhone: '',
   });
-  
+
   const create = async () => {
     // Validate required fields
     if (!newSchool.schoolName) return alert('School name is required');
     if (!newSchool.adminEmail) return alert('Admin email is required');
     if (!newSchool.adminFirstName) return alert('Admin first name is required');
     if (!newSchool.adminLastName) return alert('Admin last name is required');
-    
+
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newSchool.adminEmail)) {
       return alert('Please enter a valid email address');
     }
-    
+
     setActionLoading('create');
     try {
-      const response = await schoolAPI.provision(newSchool);
-      
+      const response = await adminAPI.provision(newSchool);
+
       // Show success message with admin credentials
       const tempPassword = response.data?.temporaryPassword || 'Check response';
       alert(`✅ School created successfully!\n\n` +
-            `School: ${newSchool.schoolName}\n` +
-            `Admin: ${newSchool.adminEmail}\n` +
-            `Temporary Password: ${tempPassword}\n\n` +
-            `Please save this password and share it securely with the admin.`);
-      
+        `School: ${newSchool.schoolName}\n` +
+        `Admin: ${newSchool.adminEmail}\n` +
+        `Temporary Password: ${tempPassword}\n\n` +
+        `Please save this password and share it securely with the admin.`);
+
       setCreating(false);
       setNewSchool({
         schoolName: '',
@@ -262,18 +262,18 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs text-gray-600 font-semibold">School Name *</label>
-                <input 
-                  className="w-full border rounded-lg px-3 py-2 text-sm" 
-                  value={newSchool.schoolName} 
-                  onChange={(e) => setNewSchool({ ...newSchool, schoolName: e.target.value })} 
+                <input
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  value={newSchool.schoolName}
+                  onChange={(e) => setNewSchool({ ...newSchool, schoolName: e.target.value })}
                   placeholder="e.g. Zawadi Junior Academy"
                 />
               </div>
               <div>
                 <label className="text-xs text-gray-600 font-semibold">Admission Format</label>
-                <select 
-                  className="w-full border rounded-lg px-3 py-2 text-sm" 
-                  value={newSchool.admissionFormatType} 
+                <select
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  value={newSchool.admissionFormatType}
                   onChange={(e) => setNewSchool({ ...newSchool, admissionFormatType: e.target.value })}
                 >
                   <option value="NO_BRANCH">No Branch</option>
@@ -284,9 +284,9 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
               </div>
               <div>
                 <label className="text-xs text-gray-600 font-semibold">Separator</label>
-                <select 
-                  className="w-full border rounded-lg px-3 py-2 text-sm" 
-                  value={newSchool.branchSeparator} 
+                <select
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  value={newSchool.branchSeparator}
                   onChange={(e) => setNewSchool({ ...newSchool, branchSeparator: e.target.value })}
                 >
                   <option value="-">- (hyphen)</option>
@@ -295,61 +295,61 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
                 </select>
               </div>
             </div>
-            
+
             <div className="border-t pt-3">
               <h4 className="text-xs font-bold text-gray-700 mb-3">Admin User Details</h4>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
                   <label className="text-xs text-gray-600 font-semibold">First Name *</label>
-                  <input 
-                    className="w-full border rounded-lg px-3 py-2 text-sm" 
-                    value={newSchool.adminFirstName} 
+                  <input
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    value={newSchool.adminFirstName}
                     onChange={(e) => setNewSchool({ ...newSchool, adminFirstName: e.target.value })}
                     placeholder="John"
                   />
                 </div>
                 <div>
                   <label className="text-xs text-gray-600 font-semibold">Last Name *</label>
-                  <input 
-                    className="w-full border rounded-lg px-3 py-2 text-sm" 
-                    value={newSchool.adminLastName} 
+                  <input
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    value={newSchool.adminLastName}
                     onChange={(e) => setNewSchool({ ...newSchool, adminLastName: e.target.value })}
                     placeholder="Doe"
                   />
                 </div>
                 <div>
                   <label className="text-xs text-gray-600 font-semibold">Email *</label>
-                  <input 
+                  <input
                     type="email"
-                    className="w-full border rounded-lg px-3 py-2 text-sm" 
-                    value={newSchool.adminEmail} 
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    value={newSchool.adminEmail}
                     onChange={(e) => setNewSchool({ ...newSchool, adminEmail: e.target.value })}
                     placeholder="admin@school.com"
                   />
                 </div>
                 <div>
                   <label className="text-xs text-gray-600 font-semibold">Phone (Optional)</label>
-                  <input 
+                  <input
                     type="tel"
-                    className="w-full border rounded-lg px-3 py-2 text-sm" 
-                    value={newSchool.adminPhone} 
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    value={newSchool.adminPhone}
                     onChange={(e) => setNewSchool({ ...newSchool, adminPhone: e.target.value })}
                     placeholder="+254..."
                   />
                 </div>
               </div>
             </div>
-            
+
             <div className="flex gap-2 justify-end pt-2">
-              <button 
-                className="px-4 py-2 rounded bg-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-300" 
+              <button
+                className="px-4 py-2 rounded bg-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-300"
                 onClick={() => setCreating(false)}
               >
                 Cancel
               </button>
-              <button 
-                className="px-4 py-2 rounded bg-gradient-to-r from-indigo-600 to-cyan-600 text-white text-xs font-medium hover:brightness-110" 
-                disabled={actionLoading === 'create'} 
+              <button
+                className="px-4 py-2 rounded bg-gradient-to-r from-indigo-600 to-cyan-600 text-white text-xs font-medium hover:brightness-110"
+                disabled={actionLoading === 'create'}
                 onClick={create}
               >
                 {actionLoading === 'create' ? 'Creating School & Admin...' : 'Create School with Admin'}

@@ -1716,6 +1716,12 @@ export const adminAPI = {
   listSchools: async () => {
     return fetchWithAuth('/admin/schools');
   },
+  provision: async (data) => {
+    return fetchWithAuth('/admin/schools/provision', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
   listPlans: async () => {
     return fetchWithAuth('/admin/plans');
   },
