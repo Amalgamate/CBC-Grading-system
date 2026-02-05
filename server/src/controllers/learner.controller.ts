@@ -5,8 +5,8 @@
  * @module controllers/learner.controller
  */
 
-import { Response } from 'express';
 import prisma from '../config/database';
+import bcrypt from 'bcrypt';
 import { ApiError } from '../utils/error.util';
 import { AuthRequest } from '../middleware/permissions.middleware';
 import { Grade, LearnerStatus, Gender } from '@prisma/client';
@@ -354,8 +354,48 @@ export class LearnerController {
       throw new ApiError(400, `Learner with admission number ${admissionNumber} already exists`);
     }
 
-    // Validate parent if provided
-    if (parentId) {
+    // Parent handling logic: Automatically create a parent user if phone is provided and no parentId exists
+    if (!parentId && guardianPhone) {
+      // Try to find an existing parent by phone
+      let parent = await prisma.user.findFirst({
+        where: {
+          phone: guardianPhone,
+          role: 'PARENT',
+          schoolId: schoolId
+        }
+      });
+
+      if (!parent) {
+        // Create new parent user
+        const nameParts = guardianName ? guardianName.split(' ') : ['Parent'];
+        const pFirstName = nameParts[0];
+        const pLastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Guardian';
+
+        // Generate a unique email if not provided (required by schema)
+        const pEmail = guardianEmail || `${guardianPhone.replace(/\D/g, '')}@elimcrown.com`;
+
+        // Check if email already exists
+        const existingEmail = await prisma.user.findUnique({ where: { email: pEmail } });
+        const finalEmail = existingEmail ? `${guardianPhone.replace(/\D/g, '')}-${Date.now()}@elimcrown.com` : pEmail;
+
+        const hashedPassword = await bcrypt.hash('ChangeMe123!', 12);
+
+        parent = await prisma.user.create({
+          data: {
+            firstName: pFirstName,
+            lastName: pLastName,
+            email: finalEmail,
+            phone: guardianPhone,
+            password: hashedPassword,
+            role: 'PARENT',
+            schoolId,
+            branchId,
+            status: 'ACTIVE'
+          }
+        });
+      }
+      parentId = parent.id;
+    } else if (parentId) {
       const parent = await prisma.user.findUnique({ where: { id: parentId } });
       if (!parent) {
         throw new ApiError(400, 'Parent user not found');
@@ -467,9 +507,54 @@ export class LearnerController {
       specialNeeds,
     } = req.body;
 
-    // Validate parent if changing
-    if (parentId && parentId !== learner.parentId) {
-      const parent = await prisma.user.findUnique({ where: { id: parentId } });
+    // Parent handling logic: Automatically create a parent user if phone is provided and no parentId exists
+    if (!parentId && guardianPhone && guardianPhone !== learner.guardianPhone) {
+      // Try to find an existing parent by phone
+      let parent = await prisma.user.findFirst({
+        where: {
+          phone: guardianPhone,
+          role: 'PARENT',
+          schoolId: learner.schoolId
+        }
+      });
+
+      if (!parent) {
+        // Create new parent user
+        const nameParts = guardianName ? guardianName.split(' ') : ['Parent'];
+        const pFirstName = nameParts[0];
+        const pLastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Guardian';
+
+        // Generate a unique email if not provided (required by schema)
+        const pEmail = guardianEmail || `${guardianPhone.replace(/\D/g, '')}@elimcrown.com`;
+
+        // Check if email already exists
+        const existingEmail = await prisma.user.findUnique({ where: { email: pEmail } });
+        const finalEmail = existingEmail ? `${guardianPhone.replace(/\D/g, '')}-${Date.now()}@elimcrown.com` : pEmail;
+
+        const hashedPassword = await bcrypt.hash('ChangeMe123!', 12);
+
+        parent = await prisma.user.create({
+          data: {
+            firstName: pFirstName,
+            lastName: pLastName,
+            email: finalEmail,
+            phone: guardianPhone,
+            password: hashedPassword,
+            role: 'PARENT',
+            schoolId: learner.schoolId,
+            branchId: learner.branchId,
+            status: 'ACTIVE'
+          }
+        });
+      }
+      // Note: we don't update updateData.parentId yet, it will be handled below
+      req.body.parentId = parent.id;
+    }
+
+    // Now validate existing parentId if provided/changed
+    const finalParentId = req.body.parentId || parentId;
+    if (finalParentId && finalParentId !== learner.parentId) {
+      const parent = await prisma.user.findUnique({ where: { id: finalParentId } });
       if (!parent) {
         throw new ApiError(400, 'Parent user not found');
       }
@@ -488,7 +573,11 @@ export class LearnerController {
     if (gender) updateData.gender = gender as Gender;
     if (grade) updateData.grade = grade as Grade;
     if (stream !== undefined) updateData.stream = stream as any;
-    if (parentId !== undefined) updateData.parentId = parentId;
+
+    // Use the potentially updated parentId from parent handling logic
+    const resolvedParentId = req.body.parentId || parentId;
+    if (resolvedParentId !== undefined) updateData.parentId = resolvedParentId;
+
     if (guardianName !== undefined) updateData.guardianName = guardianName;
     if (guardianPhone !== undefined) updateData.guardianPhone = guardianPhone;
     if (guardianEmail !== undefined) updateData.guardianEmail = guardianEmail;

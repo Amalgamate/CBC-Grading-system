@@ -124,22 +124,12 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
           {/* Action Buttons & Metrics */}
           <div className="flex gap-3 w-full xl:w-auto justify-end items-center">
             {/* Metrics */}
-            <div className="hidden lg:flex items-center gap-4 mr-2 border-r pr-4 border-gray-200 h-10">
+            <div className="flex items-center gap-4 mr-2 border-r pr-4 border-gray-200 h-10">
               <div className="text-right">
                 <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total Parents</p>
                 <p className="text-xl font-bold text-gray-800 leading-none">{pagination?.total || parents.length || 0}</p>
               </div>
             </div>
-
-            {/* Bulk Operations removed as Parents are now managed via Student Upload */}
-            <button
-              onClick={onAddParent}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-sm font-bold"
-            >
-              <Plus size={18} />
-              <span className="hidden sm:inline">Add Parent</span>
-              <span className="inline sm:hidden">Add</span>
-            </button>
           </div>
         </div>
       </div>

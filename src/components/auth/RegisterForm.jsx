@@ -474,8 +474,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
         {/* Left Column - Branding Area */}
         <div
-          className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative overflow-hidden"
-          style={{ backgroundColor: brandingSettings?.brandColor || '#875A7B' }}
+          className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative overflow-hidden bg-[#875A7B]"
         >
           {/* Decorative Elements */}
           <div className="absolute inset-0 overflow-hidden opacity-10">
@@ -548,13 +547,13 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
           {/* Footer Copyright */}
           <div className="relative z-10 text-center">
             <p className="text-[#f4f0f2] text-sm">
-              © 2025 {brandingSettings?.schoolName || 'Elimcrown'}. All rights reserved.
+              © 2026 {brandingSettings?.schoolName || 'ElimCrown'}. All rights reserved.
             </p>
           </div>
         </div>
 
         {/* Right Column - Registration Form */}
-        <div className="w-full lg:w-1/2 p-6 lg:p-16 flex flex-col justify-center overflow-y-auto">
+        <div className="w-full lg:w-1/2 p-6 lg:p-16 flex flex-col justify-center overflow-y-auto bg-[#F9FAFB]">
           <div className="max-w-md mx-auto w-full">
             {/* Header */}
             <div className="mb-8">
@@ -655,7 +654,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         <select
                           value={countryCode}
                           onChange={handleCountryCodeChange}
-                          className="pl-3 pr-8 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition appearance-none bg-white cursor-pointer"
+                          className="pl-3 pr-8 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition appearance-none bg-white cursor-pointer"
                           style={{ minWidth: '120px' }}
                         >
                           {africanCountries.map((country) => (
@@ -678,7 +677,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                           type="tel"
                           value={phoneNumber}
                           onChange={handlePhoneChange}
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.phone ? 'border-red-500' : 'border-gray-300'
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${errors.phone ? 'border-red-500' : 'border-gray-300'
                             }`}
                           placeholder="712345678"
                           maxLength={africanCountries.find(c => c.code === countryCode)?.length || 10}

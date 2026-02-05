@@ -215,8 +215,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
 
         {/* Left Column - Branding Area */}
         <div
-          className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative overflow-hidden"
-          style={{ backgroundColor: brandingSettings?.brandColor || '#875A7B' }}
+          className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative overflow-hidden bg-[#875A7B]"
         >
           {/* Decorative Elements */}
           <div className="absolute inset-0 overflow-hidden opacity-10">
@@ -291,13 +290,13 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
           {/* Footer Copyright */}
           <div className="relative z-10 text-center">
             <p className="text-white/60 text-sm">
-              © 2025 {brandingSettings?.schoolName || 'Zawadi JRN Academy'}. All rights reserved.
+              © 2026 {brandingSettings?.schoolName || 'ElimCrown'}. All rights reserved.
             </p>
           </div>
         </div>
 
         {/* Right Column - Verification Form */}
-        <div className="w-full lg:w-1/2 p-6 lg:p-16 flex flex-col justify-center overflow-y-auto">
+        <div className="w-full lg:w-1/2 p-6 lg:p-16 flex flex-col justify-center overflow-y-auto bg-[#F9FAFB]">
           <div className="max-w-md mx-auto w-full">
             {/* Header */}
             <div className="mb-8 text-center">

@@ -1,6 +1,6 @@
 import React from 'react';
 import { WebsiteLayout } from '../WebsiteLayout';
-import { Mail, MapPin, Phone } from 'lucide-react';
+import { Mail, MapPin, Phone, MessageCircle } from 'lucide-react';
 
 const ContactPage = (props) => {
     return (
@@ -18,12 +18,12 @@ const ContactPage = (props) => {
                             <div className="space-y-8">
                                 <div className="flex gap-4">
                                     <div className="w-12 h-12 bg-[#f0f4f7] rounded flex items-center justify-center text-[#714B67] shrink-0">
-                                        <Mail />
+                                        <MessageCircle />
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-bold text-[#1a1a1a]">Chat with us</h3>
                                         <p className="text-slate-500 mb-1">Our friendly team is here to help.</p>
-                                        <a href="mailto:support@elimcrown.local" className="text-[#017E84] font-semibold hover:underline">support@elimcrown.local</a>
+                                        <a href="mailto:hello@elimcrown.com" className="text-[#017E84] font-semibold hover:underline">hello@elimcrown.com</a>
                                     </div>
                                 </div>
                                 <div className="flex gap-4">

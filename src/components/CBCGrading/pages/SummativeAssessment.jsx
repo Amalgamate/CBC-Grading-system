@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Save, Search, Loader, ArrowLeft, Lock, Printer, UploadCloud, Database
 } from 'lucide-react';
@@ -11,7 +11,6 @@ import BulkMarkImportModal from '../shared/BulkMarkImportModal';
 import PDFPreviewModal from '../shared/PDFPreviewModal';
 import { getGradeColor } from '../../../utils/grading/colors';
 import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
-import { useLearnerSelection } from '../hooks/useLearnerSelection';
 import { useLearningAreas } from '../hooks/useLearningAreas';
 
 const SummativeAssessment = ({ learners, initialTestId }) => {
@@ -24,7 +23,6 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
   // View State
   const [step, setStep] = useState(initialTestId ? 2 : 1); // 1: Setup, 2: Assess (Skip setup if test ID provided)
   const [loading, setLoading] = useState(true);
-  const [loadingScale, setLoadingScale] = useState(false);
   const [lockingTest, setLockingTest] = useState(false);
   const [isTestLocked, setIsTestLocked] = useState(false);
   const [generatingPDF, setGeneratingPDF] = useState(false);
@@ -49,100 +47,76 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
   const schoolId = user?.school?.id || user?.schoolId || localStorage.getItem('currentSchoolId') || 'default-school-e082e9a4';
 
   // Load Tests
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    const fetchTests = async () => {
-      setLoading(true);
-      try {
-        // Fetch all tests for this school context
-        const response = await assessmentAPI.getTests({});
-        let testsData = [];
-        if (response && response.data && Array.isArray(response.data)) {
-          testsData = response.data;
-        } else if (Array.isArray(response)) {
-          testsData = response;
-        }
-
-        // Filter for tests that are ready for assessment (Published or Approved)
-        const activeTests = testsData.filter(t => {
-          const status = (t.status || '').toUpperCase();
-          return ['PUBLISHED', 'APPROVED'].includes(status) || t.published === true;
-        });
-
-        setTests(activeTests);
-      } catch (error) {
-        console.error('Error loading tests:', error);
-        showError('Failed to load tests');
-      } finally {
-        setLoading(false);
+  const fetchTests = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Fetch all tests for this school context
+      const response = await assessmentAPI.getTests({});
+      let testsData = [];
+      if (response && response.data && Array.isArray(response.data)) {
+        testsData = response.data;
+      } else if (Array.isArray(response)) {
+        testsData = response;
       }
-    };
+
+      // Filter for tests that are ready for assessment (Published or Approved)
+      const activeTests = testsData.filter(t => {
+        const status = (t.status || '').toUpperCase();
+        return ['PUBLISHED', 'APPROVED'].includes(status) || t.published === true;
+      });
+
+      setTests(activeTests);
+    } catch (error) {
+      console.error('Error loading tests:', error);
+      showError('Failed to load tests');
+    } finally {
+      setLoading(false);
+    }
+  }, [showError]);
+
+  useEffect(() => {
     fetchTests();
-  }, [schoolId]);
+  }, [fetchTests]);
 
 
   // Load Grades, Terms, and Streams for selectors
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    const loadOptions = async () => {
-      try {
-        // Grades from classes if available; otherwise defaults
-        const classesResp = await classAPI.getAll();
-        const classesData = classesResp?.data?.data || classesResp?.data || classesResp || [];
-        const uniqueGrades = [...new Set(classesData.map(c => c.grade))].filter(Boolean).sort();
-        if (uniqueGrades.length > 0) {
-          setAvailableGrades(uniqueGrades);
-        } else {
-          setAvailableGrades([
-            'PLAYGROUP',
-            'PP1',
-            'PP2',
-            'GRADE_1',
-            'GRADE_2',
-            'GRADE_3',
-            'GRADE_4',
-            'GRADE_5',
-            'GRADE_6',
-            'GRADE_7',
-            'GRADE_8',
-            'GRADE_9'
-          ]);
-        }
-        // Terms
-        setAvailableTerms(['TERM_1', 'TERM_2', 'TERM_3']);
-        // Streams from config
-        if (schoolId) {
-          const streamsResp = await configAPI.getStreamConfigs(schoolId);
-          const streamsArr = (streamsResp && streamsResp.data) ? streamsResp.data : [];
-          const streamNames = streamsArr.filter(s => s.active).map(s => s.name);
-          setAvailableStreams(streamNames);
-        } else {
-          setAvailableStreams([]);
-        }
-      } catch (error) {
-        console.error('Error loading selector options:', error);
-        // Safe defaults
-        setAvailableTerms(['TERM_1', 'TERM_2', 'TERM_3']);
-        if (availableGrades.length === 0) {
-          setAvailableGrades([
-            'PLAYGROUP',
-            'PP1',
-            'PP2',
-            'GRADE_1',
-            'GRADE_2',
-            'GRADE_3',
-            'GRADE_4',
-            'GRADE_5',
-            'GRADE_6',
-            'GRADE_7',
-            'GRADE_8',
-            'GRADE_9'
-          ]);
-        }
+  const loadOptions = useCallback(async () => {
+    try {
+      // Grades from classes if available; otherwise defaults
+      const classesResp = await classAPI.getAll();
+      const classesData = classesResp?.data?.data || classesResp?.data || classesResp || [];
+      const uniqueGrades = [...new Set(classesData.map(c => c.grade))].filter(Boolean).sort();
+      if (uniqueGrades.length > 0) {
+        setAvailableGrades(uniqueGrades);
+      } else {
+        setAvailableGrades([
+          'PLAYGROUP', 'PP1', 'PP2', 'GRADE_1', 'GRADE_2', 'GRADE_3', 'GRADE_4', 'GRADE_5', 'GRADE_6', 'GRADE_7', 'GRADE_8', 'GRADE_9'
+        ]);
       }
-    };
-    loadOptions();
+
+      setAvailableTerms(['TERM_1', 'TERM_2', 'TERM_3']);
+      // Streams from config
+      if (schoolId) {
+        const streamsResp = await configAPI.getStreamConfigs(schoolId);
+        const streamsArr = (streamsResp && streamsResp.data) ? streamsResp.data : [];
+        const streamNames = streamsArr.filter(s => s.active).map(s => s.name);
+        setAvailableStreams(streamNames);
+      } else {
+        setAvailableStreams([]);
+      }
+    } catch (error) {
+      console.error('Error loading selector options:', error);
+      // Safe defaults
+      setAvailableTerms(['TERM_1', 'TERM_2', 'TERM_3']);
+      setAvailableGrades([
+        'PP1', 'PP2', 'GRADE_1', 'GRADE_2', 'GRADE_3', 'GRADE_4', 'GRADE_5', 'GRADE_6', 'GRADE_7', 'GRADE_8', 'GRADE_9'
+      ]);
+    }
   }, [schoolId]);
+
+  useEffect(() => {
+    loadOptions();
+  }, [loadOptions]);
 
   const selectedTest = useMemo(() =>
     tests.find(t => String(t.id) === String(selectedTestId)),
@@ -220,8 +194,6 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
         setMarks({});
         return;
       }
-
-      setLoadingScale(true);
       try {
         // 1. Fetch Grading Scale
         const test = tests.find(t => String(t.id) === String(selectedTestId));
@@ -281,12 +253,12 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
       } catch (error) {
         console.error('Error loading test details:', error);
       } finally {
-        setLoadingScale(false);
+        setLoading(false);
       }
     };
 
     loadTestDetails();
-  }, [selectedTestId, tests, schoolId]);
+  }, [selectedTestId, tests, schoolId, showSuccess]);
 
   // Auto-save marks to localStorage with debouncing
   useEffect(() => {
@@ -396,7 +368,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
 
       fetchLearners();
     }
-  }, [step, selectedTest, setup.selectedStream]);
+  }, [step, selectedTest, setup.selectedStream, showError]);
 
   const filteredLearners = useMemo(() => {
     let result = fetchedLearners;

@@ -5,9 +5,7 @@
 
 import React from 'react';
 import {
-  Users, GraduationCap, BookOpen, BarChart3,
-  Activity, Clock, ChevronRight, Target,
-  Calendar, ShieldCheck, Zap
+  Users, GraduationCap, BookOpen, Activity, Calendar, ShieldCheck, Zap, Target
 } from 'lucide-react';
 
 const MetricCard = ({ title, value, subtitle, icon: Icon, colorClass = "text-gray-400" }) => (
@@ -100,15 +98,15 @@ const Dashboard = ({ learners, teachers }) => {
             <div className="divide-y divide-gray-100">
               {[
                 { type: 'Update', text: 'CBC Assessment Engine version 4.2 deployed successfully.', time: '2h ago', color: 'text-brand-purple' },
-                { type: 'Ops', text: 'Grade 3A attendance metrics uploaded for review.', time: '4h ago', color: 'text-brand-teal' },
-                { type: 'Notice', text: 'Upcoming faculty seminar scheduled for March 12th.', time: '1d ago', color: 'text-amber-500' }
-              ].map((activity, idx) => (
-                <div key={idx} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                { type: 'Alert', text: 'Mid-term report generation is now available for all grades.', time: '5h ago', color: 'text-brand-teal' },
+                { type: 'System', text: 'Backup completed: 1,240 records synthesized.', time: '1d ago', color: 'text-gray-400' }
+              ].map((item, i) => (
+                <div key={i} className="px-6 py-4 hover:bg-gray-50/50 transition-all">
                   <div className="flex justify-between items-start mb-1">
-                    <span className={`text-[9px] font-black uppercase tracking-widest ${activity.color}`}>{activity.type}</span>
-                    <span className="text-[9px] text-gray-400 font-black">{activity.time}</span>
+                    <span className={`text-[9px] font-black uppercase tracking-widest ${item.color}`}>{item.type}</span>
+                    <span className="text-[9px] text-gray-400 font-medium">{item.time}</span>
                   </div>
-                  <p className="text-xs text-gray-700 font-medium leading-relaxed">{activity.text}</p>
+                  <p className="text-[11px] text-gray-600 font-medium leading-relaxed">{item.text}</p>
                 </div>
               ))}
             </div>

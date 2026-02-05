@@ -47,8 +47,7 @@ export default function ForgotPasswordForm({ onSwitchToLogin, brandingSettings }
 
           {/* Left Column - Branding Area */}
           <div
-            className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative overflow-hidden"
-            style={{ backgroundColor: brandingSettings?.brandColor || '#875A7B' }}
+            className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative overflow-hidden bg-[#875A7B]"
           >
             {/* Decorative Elements */}
             <div className="absolute inset-0 overflow-hidden opacity-10">
@@ -87,13 +86,13 @@ export default function ForgotPasswordForm({ onSwitchToLogin, brandingSettings }
             {/* Footer Copyright */}
             <div className="relative z-10 text-center">
               <p className="text-white/60 text-sm">
-                © 2025 {brandingSettings?.schoolName || 'Elimcrown'}. All rights reserved.
+                © 2026 {brandingSettings?.schoolName || 'ElimCrown'}. All rights reserved.
               </p>
             </div>
           </div>
 
           {/* Right Column - Success Message */}
-          <div className="w-full lg:w-1/2 p-6 lg:p-16 flex flex-col justify-center overflow-y-auto">
+          <div className="w-full lg:w-1/2 p-6 lg:p-16 flex flex-col justify-center overflow-y-auto bg-[#F9FAFB]">
             <div className="max-w-md mx-auto w-full text-center">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6 animate-bounce">
                 <CheckCircle className="text-green-600" size={48} />
@@ -221,8 +220,8 @@ export default function ForgotPasswordForm({ onSwitchToLogin, brandingSettings }
           </div>
         </div>
 
-        {/* Right Column - Reset Form */}
-        <div className="w-full lg:w-1/2 p-6 lg:p-16 flex flex-col justify-center overflow-y-auto">
+        {/* Right Column - Form */}
+        <div className="w-full lg:w-1/2 p-6 lg:p-16 flex flex-col justify-center overflow-y-auto bg-[#F9FAFB]">
           <div className="max-w-md mx-auto w-full">
             {/* Header */}
             <div className="mb-8">

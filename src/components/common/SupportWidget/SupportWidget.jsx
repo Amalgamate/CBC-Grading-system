@@ -138,12 +138,6 @@ const SupportWidget = () => {
         fetchTickets();
     };
 
-    // Style to hide scrollbars
-    const noScrollbarStyle = {
-        msOverflowStyle: 'none',
-        scrollbarWidth: 'none',
-        '&::WebkitScrollbar': { display: 'none' }
-    };
 
     if (!isOpen) {
         return (
@@ -152,7 +146,7 @@ const SupportWidget = () => {
                 className="fixed bottom-8 right-8 h-16 w-16 bg-[#14B8A6] hover:bg-[#0F9A8A] text-white rounded-2xl shadow-2xl flex items-center justify-center transition-all z-50 hover:scale-110 active:scale-95 group"
             >
                 <span className="absolute inline-flex h-full w-full rounded-2xl bg-teal-400 opacity-20 animate-ping group-hover:animate-none"></span>
-                <Phone size={28} className="relative z-10" />
+                <MessageCircle size={30} className="relative z-10" strokeWidth={2.5} />
             </button>
         );
     }

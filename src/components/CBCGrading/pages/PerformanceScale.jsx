@@ -83,7 +83,7 @@ const PerformanceScale = () => {
 
   useEffect(() => {
     loadData();
-  }, [schoolId]);
+  }, [schoolId, showError]);
 
   const loadData = async () => {
     if (!schoolId) return;
@@ -299,10 +299,10 @@ const PerformanceScale = () => {
                 type="button"
                 onClick={handleSelectAllGrades}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition font-semibold ${allSelected
-                    ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
-                    : someSelected
-                      ? 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100'
-                      : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
+                  ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
+                  : someSelected
+                    ? 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100'
+                    : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
                   }`}
               >
                 <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${allSelected ? 'bg-white border-white' : someSelected ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-400'
@@ -321,8 +321,8 @@ const PerformanceScale = () => {
                   <label
                     key={grade}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg border-2 cursor-pointer transition ${isSelected
-                        ? 'bg-blue-50 border-blue-500 hover:bg-blue-100'
-                        : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'bg-blue-50 border-blue-500 hover:bg-blue-100'
+                      : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                   >
                     <input

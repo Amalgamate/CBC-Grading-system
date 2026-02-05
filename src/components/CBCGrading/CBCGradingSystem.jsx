@@ -47,7 +47,6 @@ import ConfirmDialog from './shared/ConfirmDialog';
 import EmptyState from './shared/EmptyState';
 import AddEditParentModal from './shared/AddEditParentModal';
 import AddEditTeacherModal from './shared/AddEditTeacherModal';
-import AddEditLearnerModal from './shared/AddEditLearnerModal';
 import ViewLearnerModal from './shared/ViewLearnerModal';
 
 // Hooks
@@ -167,7 +166,6 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   const [editingTeacher, setEditingTeacher] = useState(null);
 
   // Learner Modal State
-  const [showLearnerModal, setShowLearnerModal] = useState(false);
   const [editingLearner, setEditingLearner] = useState(null);
   const [viewingLearner, setViewingLearner] = useState(null);
   const [showViewLearnerModal, setShowViewLearnerModal] = useState(false);
@@ -269,7 +267,6 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       const result = await updateLearner(editingLearner.id, learnerData);
       if (result.success) {
         showSuccess('Student updated successfully!');
-        setShowLearnerModal(false);
         setEditingLearner(null);
       } else {
         showSuccess('Error updating student: ' + result.error);
@@ -278,7 +275,6 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       const result = await createLearner(learnerData);
       if (result.success) {
         showSuccess('Student added successfully!');
-        setShowLearnerModal(false);
       } else {
         showSuccess('Error creating student: ' + result.error);
       }

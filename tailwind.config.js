@@ -8,11 +8,11 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#111827', // Text: Almost black
-          teal: '#0D9488', // Secondary: Cyan/Teal
-          purple: '#714B67', // Primary: Aubergine
-          yellow: '#F59E0B', // Accent: Deep Amber/Yellow for attention
-          light: '#F9FAFB', // Backgrounds
+          dark: '#111827',
+          teal: '#14B8A6', // Modern Teal
+          purple: '#875A7B', // Official Odoo Purple
+          yellow: '#F59E0B',
+          light: '#F9FAFB',
         }
       },
       animation: {

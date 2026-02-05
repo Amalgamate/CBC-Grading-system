@@ -71,7 +71,7 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
         }
       }
     }
-  }, [learner]);
+  }, [learner, initialFormData, showSuccess]);
 
   // Debounced auto-save to localStorage
   useEffect(() => {
@@ -87,7 +87,7 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
     }, 2000);
 
     return () => clearTimeout(timeoutId);
-  }, [formData]);
+  }, [formData, initialFormData]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

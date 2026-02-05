@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, X, Eye, Cake, Bell, Megaphone, RefreshCw, Send, Save, CheckCircle, Loader, User, Smartphone, Check, XCircle, MessageCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Eye, Cake, Bell, Megaphone, RefreshCw, Send, Save, CheckCircle, Loader, User, Smartphone, MessageCircle } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import api, { communicationAPI } from '../../../services/api';
 import { getAdminSchoolId, getStoredUser } from '../../../services/tenantContext';

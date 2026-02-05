@@ -39,9 +39,9 @@ function AppContent() {
 
   const [brandingSettings, setBrandingSettings] = useState(() => {
     return {
-      logoUrl: localStorage.getItem('schoolLogo') || '/logo-educore.png',
+      logoUrl: localStorage.getItem('schoolLogo') || '/logo-new.png',
       faviconUrl: localStorage.getItem('schoolFavicon') || '/favicon.png',
-      brandColor: localStorage.getItem('brandColor') || '#1e3a8a',
+      brandColor: localStorage.getItem('brandColor') || '#875A7B',
       welcomeTitle: localStorage.getItem('welcomeTitle') || 'Welcome to Elimcrown V1',
       welcomeMessage: localStorage.getItem('welcomeMessage') || 'Unified education management for schools and institutions.',
       onboardingTitle: localStorage.getItem('onboardingTitle') || 'Create Your Elimcrown Account',

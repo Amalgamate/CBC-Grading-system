@@ -3,7 +3,7 @@
  * Create and manage summative tests
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Plus, Edit, Trash2, Eye, Loader, CheckCircle, Database, ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useAuth } from '../../../hooks/useAuth';
@@ -21,15 +21,8 @@ const SummativeTests = ({ onNavigate }) => {
   // View State: 'list' | 'create' | 'edit'
   const [viewMode, setViewMode] = useState('list');
 
-  const [selectedTest, setSelectedTest] = useState(null);
-  const [, setTestData] = useState({
-    title: '', grade: '', learningArea: '', term: 'Term 1',
-    year: '2026', testType: 'End of Term', date: '', duration: 90, totalMarks: 100,
-    passMarks: 50, instructions: '', weight: 1.0
-  });
-
   const [tests, setTests] = useState([]);
-  const [, setAvailableGrades] = useState([]);
+  const [selectedTest, setSelectedTest] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
 
   const [showConfirm, setShowConfirm] = useState(false);
@@ -41,14 +34,7 @@ const SummativeTests = ({ onNavigate }) => {
   const [selectedGroupKeys, setSelectedGroupKeys] = useState(() => new Set());
   const [approvingAll, setApprovingAll] = useState(false);
 
-  // We only want to load once on mount – dependencies are stable services/hooks.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    fetchTests();
-    fetchClasses();
-  }, []);
-
-  const fetchClasses = async () => {
+  const fetchClasses = useCallback(async () => {
     try {
       const response = await classAPI.getAll();
       let classes = [];
@@ -63,21 +49,15 @@ const SummativeTests = ({ onNavigate }) => {
         // Extract unique grades from classes
         const uniqueGrades = [...new Set(classes.map(c => c.grade))].filter(Boolean).sort();
         if (uniqueGrades.length > 0) {
-          setAvailableGrades(uniqueGrades);
           return;
         }
       }
-
-      // Fallback if no grades found
-      setAvailableGrades(['PP1', 'PP2', 'GRADE_1', 'GRADE_2', 'GRADE_3', 'GRADE_4', 'GRADE_5', 'GRADE_6', 'GRADE_7', 'GRADE_8', 'GRADE_9']);
     } catch (error) {
       console.error('Error fetching classes:', error);
-      // Fallback to default grades if fetch fails
-      setAvailableGrades(['PP1', 'PP2', 'GRADE_1', 'GRADE_2', 'GRADE_3', 'GRADE_4', 'GRADE_5', 'GRADE_6', 'GRADE_7', 'GRADE_8', 'GRADE_9']);
     }
-  };
+  }, []);
 
-  const fetchTests = async () => {
+  const fetchTests = useCallback(async () => {
     try {
       setLoading(true);
       const response = await assessmentAPI.getTests();
@@ -99,15 +79,14 @@ const SummativeTests = ({ onNavigate }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showError]);
+
+  useEffect(() => {
+    fetchTests();
+    fetchClasses();
+  }, [fetchTests, fetchClasses]);
 
   const handleAdd = () => {
-    setTestData({
-      title: '', grade: '', learningArea: '',
-      term: 'Term 1', year: new Date().getFullYear().toString(),
-      testType: 'End of Term', date: new Date().toISOString().split('T')[0],
-      duration: 60, totalMarks: 100, passMarks: 40, instructions: '', weight: 1.0
-    });
     setViewMode('bulk_create');
   };
 

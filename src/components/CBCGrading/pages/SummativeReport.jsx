@@ -5,13 +5,9 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
-  Search, Download, Trash2, Edit2, Plus,
-  ChevronDown, FileText, Share2, Printer,
-  AlertCircle, CheckCircle, XCircle, Info,
-  MessageCircle, Loader, Mail, MessageSquare, Save, CreditCard,
-  UploadCloud
+  Search, Download, Plus, ChevronDown, Printer, Loader, Mail, MessageSquare, Save, CreditCard, UploadCloud, AlertCircle, CheckCircle, XCircle, MessageCircle
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useNotifications } from '../hooks/useNotifications';
 import { generateHighFidelityPDF } from '../../../utils/simplePdfGenerator';
 import api, { configAPI } from '../../../services/api';
@@ -72,213 +68,6 @@ const CHART_COLORS = [
  * Validates report data against CBC-compliant SMS requirements
  * Returns { isCompliant: boolean, gaps: Array<string>, warnings: Array<string> }
  */
-const validateCBCSMSCompliance = (reportData, streamConfigs, selectedType) => {
-  const gaps = [];
-  const warnings = [];
-
-  console.log('🔍 CBC SMS Compliance Validation Started');
-  console.log('   Report Type:', selectedType);
-  console.log('   Report Data:', reportData);
-
-  // ========== REQUIREMENT 1: Competency-Based Grading ==========
-  console.log('\n1️⃣ Checking competency-based grading (Developing/Achieved/Exceeding)...');
-  if (reportData?.results && reportData.results.length > 0) {
-    const hasAchievementLevels = reportData.results.every(r =>
-      r.achievementLevel || r.competencyLevel || r.cbcLevel
-    );
-
-    if (!hasAchievementLevels) {
-      // Check if we have raw marks instead
-      const hasRawMarks = reportData.results.some(r => r.score && r.totalMarks);
-      if (hasRawMarks) {
-        gaps.push(
-          '❌ GAP 1.1: Results contain raw marks/scores instead of CBC achievement levels (Developing/Achieved/Exceeding)'
-        );
-        console.log('   ❌ Results have scores but missing achievement levels');
-      }
-    } else {
-      console.log('   ✅ Achievement levels present:', new Set(reportData.results.map(r => r.achievementLevel || r.competencyLevel || r.cbcLevel)));
-    }
-
-    // Check for competency/strand mapping
-    const hasCompetencies = reportData.results.every(r => r.competency || r.competencyName || r.strand);
-    if (!hasCompetencies) {
-      gaps.push(
-        '❌ GAP 1.2: Results missing CBC competency/strand mapping (Communication, Critical Thinking, etc.)'
-      );
-      console.log('   ❌ Results lack competency mapping');
-    } else {
-      console.log('   ✅ Competencies mapped:', new Set(reportData.results.map(r => r.competency || r.competencyName || r.strand)));
-    }
-  }
-
-  // ========== REQUIREMENT 2: Assessment State & Publish Approval ==========
-  console.log('\n2️⃣ Checking assessment publish/approval states...');
-  if (reportData?.results && reportData.results.length > 0) {
-    const hasPublishState = reportData.results.every(r =>
-      r.publishedAt || r.publishStatus === 'PUBLISHED' || r.status === 'PUBLISHED'
-    );
-
-    if (!hasPublishState) {
-      warnings.push(
-        '⚠️ WARNING 2.1: Results missing explicit publish timestamp/status - SMS should only trigger on PUBLISHED state'
-      );
-      console.log('   ⚠️ Missing publishedAt or publishStatus');
-    } else {
-      console.log('   ✅ All results have publish status');
-    }
-
-    // Check assessment type separation (Formative vs Summative)
-    const assessmentTypes = new Set(reportData.results.map(r => r.assessmentType || r.type));
-    if (assessmentTypes.size === 0) {
-      gaps.push(
-        '❌ GAP 2.2: Assessment type not specified (FORMATIVE vs SUMMATIVE) - required to select correct SMS template'
-      );
-      console.log('   ❌ Missing assessment type classification');
-    } else {
-      console.log('   ✅ Assessment types found:', Array.from(assessmentTypes));
-    }
-  }
-
-  // ========== REQUIREMENT 3: Competency-to-SMS Mapping ==========
-  console.log('\n3️⃣ Checking competency-to-SMS message mapping...');
-  if (reportData?.results && reportData.results.length > 0) {
-    // Check if we can generate "can now..." language
-    const canGenerateCompetencyNarrative = reportData.results.every(r => {
-      const hasCompetency = r.competency || r.competencyName || r.strand;
-      const hasAchievementLevel = r.achievementLevel || r.competencyLevel || r.cbcLevel;
-      return hasCompetency && hasAchievementLevel;
-    });
-
-    if (!canGenerateCompetencyNarrative) {
-      gaps.push(
-        '❌ GAP 3.1: Cannot map competencies to SMS narrative (missing competency+achievementLevel pairs)'
-      );
-      console.log('   ❌ Incomplete competency-level pairs for narrative generation');
-    } else {
-      console.log('   ✅ Can generate competency narratives ("can now...", "area to support")');
-    }
-
-    // Check for subStrand/specific competency area
-    const hasSubStrands = reportData.results.some(r => r.subStrand || r.competencyArea || r.skillArea || r.learningArea);
-    if (!hasSubStrands) {
-      warnings.push(
-        '⚠️ WARNING 3.2: Specific skill areas missing - SMS will be generic'
-      );
-      console.log('   ⚠️ Missing sub-strand specificity');
-    } else {
-      console.log('   ✅ Sub-strand/specific areas available (using learningArea as fallback)');
-    }
-  }
-
-  // ========== REQUIREMENT 4: SMS Trigger Control & Cooldowns ==========
-  console.log('\n4️⃣ Checking SMS trigger controls and rate limiting...');
-
-  // Check for parent phone data
-  const hasParentPhone = reportData?.learner?.parentPhone || reportData?.learner?.parentPhoneNumber || reportData?.learner?.guardianPhone;
-  if (!hasParentPhone) {
-    gaps.push(
-      '❌ GAP 4.1: Parent phone number missing from learner record - cannot trigger SMS'
-    );
-    console.log('   ❌ No parent phone number available');
-  } else {
-    console.log('   ✅ Parent phone available');
-  }
-
-  // Check for SMS audit/tracking fields
-  const hasSMSAuditFields = reportData?.smsTracking || reportData?.smsSent || reportData?.smsStatus;
-  if (!hasSMSAuditFields) {
-    warnings.push(
-      '⚠️ WARNING 4.2: No SMS status/audit fields in report - cannot verify if SMS already sent (spam risk)'
-    );
-    console.log('   ⚠️ Missing SMS audit/tracking');
-  } else {
-    console.log('   ✅ SMS audit fields present');
-  }
-
-  // Check for cooldown mechanism
-  const hasCooldownControl = reportData?.smsLastSentAt || reportData?.smsCooldownExpiry;
-  if (!hasCooldownControl) {
-    warnings.push(
-      '⚠️ WARNING 4.3: No cooldown mechanism - multiple publishes could trigger duplicate SMS to same parent'
-    );
-    console.log('   ⚠️ No cooldown/rate-limit tracking');
-  } else {
-    console.log('   ✅ Cooldown mechanism in place');
-  }
-
-  // ========== REQUIREMENT 5: CBC-Safe SMS Templates ==========
-  console.log('\n5️⃣ Checking availability of CBC-safe SMS templates...');
-  const requiredTemplates = [
-    'FORMATIVE_UPDATE',
-    'SUMMATIVE_TERM_SUMMARY',
-    'COMPETENCY_ACHIEVEMENT',
-    'EARLY_INTERVENTION_ALERT',
-    'ASSESSMENT_COMPLETION',
-    'NATIONAL_KNEC_NOTICE'
-  ];
-
-  // Check if templates are configured (this would be in SMS service, not report data)
-  // For now, flag as warning since we can't verify from this component
-  warnings.push(
-    `⚠️ WARNING 5.1: Cannot verify CBC-safe SMS templates from report component (requires SMS service check)`
-  );
-  console.log('   ⚠️ Template verification requires SMS service inspection');
-  console.log('      Required templates:', requiredTemplates);
-
-  // ========== REQUIREMENT 6: Required Audit Data Fields ==========
-  console.log('\n6️⃣ Checking required audit data fields...');
-  const requiredAuditFields = [
-    { field: 'learnerName', check: () => reportData?.learner?.firstName && reportData?.learner?.lastName },
-    { field: 'learnerGrade', check: () => reportData?.learner?.grade },
-    { field: 'parentPhone', check: () => reportData?.learner?.parentPhone || reportData?.learner?.parentPhoneNumber || reportData?.learner?.guardianPhone },
-    { field: 'competency', check: () => reportData?.results?.some(r => r.competency || r.competencyName) },
-    { field: 'achievementLevel', check: () => reportData?.results?.some(r => r.achievementLevel || r.competencyLevel) },
-    { field: 'assessmentType', check: () => reportData?.results?.some(r => r.assessmentType || r.type) },
-    { field: 'smsStatus', check: () => reportData?.smsStatus || 'NOT_YET_TRACKED' },
-    { field: 'smsTimestamp', check: () => reportData?.smsSentAt || 'NOT_YET_SENT' }
-  ];
-
-  const missingFields = requiredAuditFields.filter(f => {
-    const present = f.check();
-    if (!present) {
-      console.log(`   ❌ Missing: ${f.field}`);
-    } else {
-      console.log(`   ✅ Present: ${f.field}`);
-    }
-    return !present;
-  });
-
-  if (missingFields.length > 0) {
-    gaps.push(
-      `❌ GAP 6.1: Missing required audit fields: ${missingFields.map(f => f.field).join(', ')}`
-    );
-  }
-
-  // ========== REQUIREMENT 7: Portal/Report Links ==========
-  console.log('\n7️⃣ Checking optional report links (portal/PDF/WhatsApp)...');
-  const hasReportLink = reportData?.portalLink || reportData?.reportUrl || reportData?.whatsappLink;
-  if (!hasReportLink) {
-    warnings.push(
-      '⚠️ WARNING 7.1: No portal/report links configured - SMS will be summary-only (acceptable but limits parent engagement)'
-    );
-    console.log('   ⚠️ No links to full reports');
-  } else {
-    console.log('   ✅ Report links available');
-  }
-
-  const isCompliant = gaps.length === 0;
-
-  console.log('\n' + '='.repeat(70));
-  console.log('📊 CBC SMS COMPLIANCE SUMMARY');
-  console.log('='.repeat(70));
-  console.log(`Status: ${isCompliant ? '✅ COMPLIANT' : '❌ NON-COMPLIANT'}`);
-  console.log(`Critical Gaps: ${gaps.length}`);
-  console.log(`Warnings: ${warnings.length}`);
-  console.log('='.repeat(70));
-
-  return { isCompliant, gaps, warnings };
-};
 
 // ============================================================================
 // GRADING UTILITIES
@@ -308,7 +97,6 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(null);
-  const testMessage = 'This is a test message from EDucore.';
 
   // Custom Tick component for wrapping long learning area names in charts
   const CustomXAxisTick = ({ x, y, payload }) => {
@@ -349,17 +137,16 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       </g>
     );
   };
-  const [statusMessage, setStatusMessage] = useState('');
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
   const [showTestGroupOptions, setShowTestGroupOptions] = useState(false);
   const [showTestOptions, setShowTestOptions] = useState(false);
+  const [complianceCheckResult, setComplianceCheckResult] = useState(null);
+  const [showComplianceDetails, setShowComplianceDetails] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [pdfProgress, setPdfProgress] = useState('');
   const reportRef = useRef(null);
 
-  // NEW: State for compliance check results
-  const [complianceCheckResult, setComplianceCheckResult] = useState(null);
-  const [showComplianceDetails, setShowComplianceDetails] = useState(false);
 
   // Local learner fetching state
   const [fetchedReportLearners, setFetchedReportLearners] = useState([]);
@@ -464,7 +251,6 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
 
   // Fetch learners on component mount
   useEffect(() => {
-    console.log('📚 Component mounted, calling onFetchLearners...');
     if (onFetchLearners && typeof onFetchLearners === 'function') {
       onFetchLearners();
     } else {
@@ -1054,37 +840,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             : 0
         });
 
-        // NEW: Run CBC SMS compliance check
-        console.log('\n🔍 RUNNING CBC SMS COMPLIANCE CHECK...');
-        const complianceResult = validateCBCSMSCompliance(
-          {
-            type: selectedType,
-            learner: {
-              ...learner,
-              parentPhone: learner.guardianPhone || learner.parentPhoneNumber || learner.parentPhone
-            },
-            results: processedResults,
-            term: selectedTerm,
-            grade: selectedGrade
-          },
-          streamConfigs,
-          selectedType
-        );
-
-        setComplianceCheckResult(complianceResult);
-
-        // Show warning if non-compliant
-        if (!complianceResult.isCompliant) {
-          showError(
-            `⚠️ CBC SMS Compliance Issues Found\n\nCritical Gaps: ${complianceResult.gaps.length}\n\nCheck the compliance report below for details.`
-          );
-        } else if (complianceResult.warnings.length > 0) {
-          showSuccess(
-            `✅ Report Generated (${filteredResults.length} tests)\n\n⚠️ ${complianceResult.warnings.length} warning(s) - See details below`
-          );
-        } else {
-          showSuccess(`Report generated for ${learner.firstName} ${learner.lastName} - ${filteredResults.length} test(s) found`);
-        }
+        showSuccess(`Report generated for ${learner.firstName} ${learner.lastName} - ${filteredResults.length} test(s) found`);
       }
 
       setLoading(false);
@@ -1390,119 +1146,6 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           </div>
         )}
 
-        {/* NEW: CBC SMS COMPLIANCE REPORT */}
-        {complianceCheckResult && (
-          <div className={`rounded-lg border-2 p-6 mb-6 ${complianceCheckResult.isCompliant
-            ? 'bg-green-50 border-green-300'
-            : 'bg-red-50 border-red-300'
-            }`}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                {complianceCheckResult.isCompliant ? (
-                  <CheckCircle size={24} className="text-green-600" />
-                ) : (
-                  <XCircle size={24} className="text-red-600" />
-                )}
-                <h3 className={`text-lg font-bold ${complianceCheckResult.isCompliant ? 'text-green-800' : 'text-red-800'
-                  }`}>
-                  CBC SMS Compliance Report
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowComplianceDetails(!showComplianceDetails)}
-                className="text-sm font-semibold px-3 py-1 bg-white rounded hover:bg-gray-100 transition"
-              >
-                {showComplianceDetails ? '▲ Hide' : '▼ Show'} Details
-              </button>
-            </div>
-
-            {/* Summary Stats */}
-            <div className="grid grid-cols-3 gap-4 mb-4">
-              <div className="bg-white rounded p-3 text-center">
-                <div className="text-xs font-semibold text-gray-600 mb-1">Status</div>
-                <div className={`text-lg font-bold ${complianceCheckResult.isCompliant ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                  {complianceCheckResult.isCompliant ? '✅ COMPLIANT' : '❌ NON-COMPLIANT'}
-                </div>
-              </div>
-              <div className="bg-white rounded p-3 text-center">
-                <div className="text-xs font-semibold text-gray-600 mb-1">Critical Gaps</div>
-                <div className={`text-lg font-bold ${complianceCheckResult.gaps.length === 0 ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                  {complianceCheckResult.gaps.length}
-                </div>
-              </div>
-              <div className="bg-white rounded p-3 text-center">
-                <div className="text-xs font-semibold text-gray-600 mb-1">Warnings</div>
-                <div className={`text-lg font-bold ${complianceCheckResult.warnings.length === 0 ? 'text-green-600' : 'text-yellow-600'
-                  }`}>
-                  {complianceCheckResult.warnings.length}
-                </div>
-              </div>
-            </div>
-
-            {/* Detailed Issues */}
-            {showComplianceDetails && (
-              <div className="space-y-3 mt-4">
-                {complianceCheckResult.gaps.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold text-red-800 mb-2">🔴 Critical Gaps (Must Fix)</h4>
-                    <ul className="space-y-1">
-                      {complianceCheckResult.gaps.map((gap, idx) => (
-                        <li key={idx} className="text-sm text-red-700 flex gap-2">
-                          <span className="flex-shrink-0">•</span>
-                          <span>{gap}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {complianceCheckResult.warnings.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold text-yellow-800 mb-2">🟡 Warnings (Recommended Fixes)</h4>
-                    <ul className="space-y-1">
-                      {complianceCheckResult.warnings.map((warning, idx) => (
-                        <li key={idx} className="text-sm text-yellow-700 flex gap-2">
-                          <span className="flex-shrink-0">•</span>
-                          <span>{warning}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {complianceCheckResult.isCompliant && (
-                  <div className="text-sm text-green-700 font-semibold">
-                    ✅ All requirements met - SMS can be safely triggered on assessment publish
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Action Items */}
-            <div className="mt-4 p-3 bg-white rounded text-sm">
-              <p className="font-semibold text-gray-800 mb-2">Next Steps:</p>
-              {!complianceCheckResult.isCompliant && (
-                <ol className="list-decimal list-inside space-y-1 text-gray-700">
-                  <li>Review critical gaps above</li>
-                  <li>Verify assessment data includes competencies and achievement levels</li>
-                  <li>Ensure parent phone numbers are populated and verified</li>
-                  <li>Check that assessments have proper publish/approval states</li>
-                  <li>Re-generate report after fixing issues</li>
-                </ol>
-              )}
-              {complianceCheckResult.isCompliant && (
-                <ol className="list-decimal list-inside space-y-1 text-gray-700">
-                  <li>✅ Report data is CBC-SMS compliant</li>
-                  <li>Verify parent contact information before sending SMS</li>
-                  <li>Use predefined CBC-safe templates for SMS content</li>
-                  <li>Monitor delivery status and log all communications</li>
-                </ol>
-              )}
-            </div>
-          </div>
-        )}
       </div>
       {/* End no-print filter section */}
 
