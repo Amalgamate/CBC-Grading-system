@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, CheckCircle, Building2, ChevronRight, ChevronLeft, MapPin, Loader2, CheckCircle2 } from 'lucide-react';
+import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, CheckCircle, Building2, ChevronRight, ChevronLeft, MapPin, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { authAPI, onboardingAPI, API_BASE_URL } from '../../services/api';
+import { onboardingAPI } from '../../services/api';
 
 export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brandingSettings }) {
   const [currentStep, setCurrentStep] = useState(1);
@@ -475,7 +475,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
         {/* Left Column - Branding Area */}
         <div
           className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative overflow-hidden"
-          style={{ backgroundColor: brandingSettings?.brandColor || '#1e3a8a' }}
+          style={{ backgroundColor: brandingSettings?.brandColor || '#875A7B' }}
         >
           {/* Decorative Elements */}
           <div className="absolute inset-0 overflow-hidden opacity-10">
@@ -490,12 +490,12 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
               {/* Logo */}
               <div className="mb-12">
                 <img
-                  src={brandingSettings?.logoUrl || '/logo-educore.png'}
-                  alt="EDucore Logo"
+                  src={brandingSettings?.logoUrl || '/logo-new.png'}
+                  alt="Elimcrown Logo"
                   className="w-48 h-48 object-contain mx-auto drop-shadow-2xl"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = '/logo-educore.png';
+                    e.target.src = '/logo-new.png';
                   }}
                 />
               </div>
@@ -505,7 +505,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                 <h2 className="text-4xl font-bold drop-shadow-md">
                   {brandingSettings?.onboardingTitle || 'Join Our Community'}
                 </h2>
-                <p className="text-blue-100 text-lg leading-relaxed">
+                <p className="text-[#f4f0f2] text-lg leading-relaxed">
                   {brandingSettings?.onboardingMessage || 'Start your journey with us today. Create an account to access powerful tools for managing learning and assessment with ease.'}
                 </p>
 
@@ -517,7 +517,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                     </div>
                     <div>
                       <h4 className="font-semibold text-white">Complete Assessment Tools</h4>
-                      <p className="text-blue-100 text-sm">Track formative and summative assessments effortlessly</p>
+                      <p className="text-[#f4f0f2] text-sm">Track formative and summative assessments effortlessly</p>
                     </div>
                   </div>
 
@@ -527,7 +527,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                     </div>
                     <div>
                       <h4 className="font-semibold text-white">Real-time Reporting</h4>
-                      <p className="text-blue-100 text-sm">Generate comprehensive reports with just a few clicks</p>
+                      <p className="text-[#f4f0f2] text-sm">Generate comprehensive reports with just a few clicks</p>
                     </div>
                   </div>
 
@@ -537,7 +537,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                     </div>
                     <div>
                       <h4 className="font-semibold text-white">Seamless Collaboration</h4>
-                      <p className="text-blue-100 text-sm">Connect teachers, parents, and students in one place</p>
+                      <p className="text-[#f4f0f2] text-sm">Connect teachers, parents, and students in one place</p>
                     </div>
                   </div>
                 </div>
@@ -547,8 +547,8 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
           {/* Footer Copyright */}
           <div className="relative z-10 text-center">
-            <p className="text-blue-100 text-sm">
-              © 2025 {brandingSettings?.schoolName || 'Zawadi JRN Academy'}. All rights reserved.
+            <p className="text-[#f4f0f2] text-sm">
+              © 2025 {brandingSettings?.schoolName || 'Elimcrown'}. All rights reserved.
             </p>
           </div>
         </div>
@@ -569,12 +569,12 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                   <React.Fragment key={step}>
                     <div className="flex flex-col items-center">
                       <div className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold transition ${step < currentStep ? 'bg-green-500 text-white' :
-                        step === currentStep ? 'bg-blue-600 text-white' :
+                        step === currentStep ? 'bg-[#875A7B] text-white' :
                           'bg-gray-200 text-gray-500'
                         }`}>
                         {step < currentStep ? <CheckCircle size={20} /> : step}
                       </div>
-                      <span className={`text-xs mt-2 ${step === currentStep ? 'font-semibold text-blue-600' : 'text-gray-600'
+                      <span className={`text-xs mt-2 ${step === currentStep ? 'font-semibold text-[#875A7B]' : 'text-gray-600'
                         }`}>
                         {step === 1 ? 'Personal' : step === 2 ? 'Security' : 'School'}
                       </span>
@@ -607,7 +607,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="fullName"
                         value={formData.fullName}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.fullName ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${errors.fullName ? 'border-red-500' : 'border-gray-300'
                           }`}
                         placeholder="John Doe"
                       />
@@ -633,7 +633,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.email ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${errors.email ? 'border-red-500' : 'border-gray-300'
                           }`}
                         placeholder="you@example.com"
                       />
@@ -969,7 +969,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                   <button
                     type="button"
                     onClick={handleNext}
-                    className={`flex items-center justify-center gap-2 bg-gradient-to-r from-brand-purple to-brand-teal text-white py-3 rounded-lg font-semibold hover:from-brand-purple/90 hover:to-brand-teal/90 focus:ring-4 focus:ring-brand-purple/20 transition-all shadow-lg ${currentStep === 1 ? 'flex-1' : 'flex-1'
+                    className={`flex items-center justify-center gap-2 bg-[#875A7B] text-white py-3 rounded-lg font-semibold hover:bg-[#714B67] focus:ring-4 focus:ring-[#875A7B]/20 transition-all shadow-lg ${currentStep === 1 ? 'flex-1' : 'flex-1'
                       }`}
                   >
                     Next
@@ -979,7 +979,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="flex-1 bg-gradient-to-r from-brand-purple to-brand-teal text-white py-3 rounded-lg font-semibold hover:from-brand-purple/90 hover:to-brand-teal/90 focus:ring-4 focus:ring-brand-purple/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 bg-[#875A7B] text-white py-3 rounded-lg font-semibold hover:bg-[#714B67] focus:ring-4 focus:ring-[#875A7B]/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? (
                       <div className="flex items-center justify-center gap-2">
@@ -1001,7 +1001,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                 <button
                   type="button"
                   onClick={onSwitchToLogin}
-                  className="font-semibold text-brand-teal hover:text-brand-teal/80 transition"
+                  className="font-semibold text-[#875A7B] hover:text-[#714B67] transition"
                 >
                   Sign in
                 </button>

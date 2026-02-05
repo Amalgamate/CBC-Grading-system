@@ -20,8 +20,8 @@ const FeaturesPage = (props) => {
                     {/* Feature Block 1: Grading */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-24">
                         <div>
-                            <div className="p-2 bg-[#f0f4f7] rounded w-fit mb-6">
-                                <Star className="text-[#714B67]" />
+                            <div className="p-2 bg-[#f4f0f2] rounded w-fit mb-6">
+                                <Star className="text-[#875A7B]" />
                             </div>
                             <h2 className="text-3xl font-bold text-[#1a1a1a] mb-4">CBC Assessment Engine</h2>
                             <p className="text-lg text-slate-500 mb-6 leading-relaxed">
@@ -90,7 +90,7 @@ const FeaturesPage = (props) => {
                                 { color: 'bg-teal-500', title: 'Communication Hub', desc: 'Native SMS integration for bulk announcements, balance reminders, and discipline alerts.' },
                                 { color: 'bg-orange-500', title: 'Co-Curricular', desc: 'Track student participation in sports, clubs, and societies for holistic assessment.' },
                                 { color: 'bg-red-500', title: 'Discipline Tracker', desc: 'Log incidents, manage sanctions, and keep parents informed of behavioral issues.' },
-                                { color: 'bg-purple-500', title: 'Learning Hub', desc: 'Repository for past papers, revision materials, and teacher resources.' }
+                                { color: 'bg-purple-900', title: 'Learning Hub', desc: 'Repository for past papers, revision materials, and teacher resources.' }
                             ].map((mod, i) => (
                                 <div key={i} className="p-4 rounded hover:bg-slate-50 transition-colors">
                                     <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-[#1a1a1a]">

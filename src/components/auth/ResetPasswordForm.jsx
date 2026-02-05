@@ -77,8 +77,8 @@ export default function ResetPasswordForm({ onResetSuccess }) {
   return (
     <div className="w-full max-w-md">
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-brand-purple to-brand-teal rounded-2xl mb-4 shadow-lg">
-          <span className="text-2xl font-bold text-white">CBC</span>
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-[#875A7B] rounded-2xl mb-4 shadow-lg">
+          <span className="text-2xl font-bold text-white">Elim</span>
         </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Reset Password</h1>
         <p className="text-gray-600">Create a new strong password for your account</p>
@@ -99,7 +99,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${errors.password ? 'border-red-500' : 'border-gray-300'
+                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${errors.password ? 'border-red-500' : 'border-gray-300'
                   }`}
                 placeholder="Enter new password"
               />
@@ -116,9 +116,9 @@ export default function ResetPasswordForm({ onResetSuccess }) {
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs text-gray-600">Password strength:</span>
                   <span className={`text-xs font-semibold ${passwordStrength.strength === 4 ? 'text-green-600' :
-                      passwordStrength.strength === 3 ? 'text-brand-teal' :
-                        passwordStrength.strength === 2 ? 'text-yellow-600' :
-                          'text-red-600'
+                    passwordStrength.strength === 3 ? 'text-[#14B8A6]' :
+                      passwordStrength.strength === 2 ? 'text-yellow-600' :
+                        'text-red-600'
                     }`}>
                     {passwordStrength.label}
                   </span>
@@ -169,7 +169,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                   }`}
                 placeholder="Re-enter new password"
               />
@@ -198,7 +198,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-brand-purple to-brand-teal text-white py-3 rounded-lg font-semibold hover:from-brand-purple/90 hover:to-brand-teal/90 focus:ring-4 focus:ring-brand-purple/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[#875A7B] text-white py-3 rounded-lg font-semibold hover:bg-[#714B67] focus:ring-4 focus:ring-[#875A7B]/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <div className="flex items-center justify-center gap-2">

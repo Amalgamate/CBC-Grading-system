@@ -15,53 +15,56 @@ const PricingPage = (props) => {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
                         {/* Starter */}
-                        <div className="bg-white p-8 rounded shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
                             <h3 className="text-xl font-bold text-[#1a1a1a] mb-2">Starter</h3>
-                            <p className="text-sm text-slate-500 mb-6">For small schools just getting started.</p>
+                            <p className="text-sm text-slate-500 mb-6">Essential tools for small schools.</p>
                             <div className="mb-6">
-                                <span className="text-4xl font-bold text-[#1a1a1a]">KES 4,999</span>
+                                <span className="text-4xl font-bold text-[#1a1a1a]">KES 5,000</span>
                                 <span className="text-slate-500">/mo</span>
                             </div>
-                            <button className="w-full py-3 bg-[#f0f4f7] text-[#1a1a1a] font-bold rounded hover:bg-slate-200 transition mb-6 border border-transparent">Start Trial</button>
-                            <ul className="space-y-3 text-sm">
-                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-[#017E84]" /> Up to 100 Learners</li>
-                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-[#017E84]" /> Basic CBC Grading</li>
-                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-[#017E84]" /> Standard Reports</li>
+                            <button className="w-full py-4 bg-[#f8fafc] text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition mb-6 border border-slate-200">Start Free Trial</button>
+                            <ul className="space-y-4 text-sm">
+                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-teal-600" /> Up to 150 Learners</li>
+                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-teal-600" /> Direct CBC Grading</li>
+                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-teal-600" /> Standard Parent App</li>
+                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-teal-600" /> Basic Email Reports</li>
                             </ul>
                         </div>
 
                         {/* Growth - Highlighted */}
-                        <div className="bg-white p-8 rounded shadow-lg border border-[#714B67] relative transform md:-translate-y-4">
-                            <div className="absolute top-0 inset-x-0 h-1 bg-[#714B67]"></div>
-                            <div className="absolute top-4 right-4 text-[#714B67] text-xs font-bold px-3 py-1 bg-purple-50 rounded uppercase">Most Popular</div>
+                        <div className="bg-white p-8 rounded-2xl shadow-2xl border border-[#875A7B] relative transform md:-translate-y-4">
+                            <div className="absolute top-0 inset-x-0 h-1.5 bg-[#875A7B] rounded-t-2xl"></div>
+                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-white text-[10px] font-black px-4 py-1.5 bg-[#875A7B] rounded-full uppercase tracking-tighter ring-4 ring-white">Most Popular</div>
                             <h3 className="text-xl font-bold text-[#1a1a1a] mb-2">Growth</h3>
-                            <p className="text-sm text-slate-500 mb-6">For rapidly expanding institutions.</p>
+                            <p className="text-sm text-slate-500 mb-6">Complete management for growing institutions.</p>
                             <div className="mb-6">
-                                <span className="text-4xl font-bold text-[#714B67]">KES 9,999</span>
+                                <span className="text-4xl font-bold text-[#875A7B]">KES 12,500</span>
                                 <span className="text-slate-500">/mo</span>
                             </div>
-                            <button className="w-full py-3 bg-[#714B67] text-white font-bold rounded hover:bg-[#5d3d54] transition mb-6 shadow-sm">Get Started</button>
-                            <ul className="space-y-3 text-sm">
-                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-[#017E84]" /> Up to 500 Learners</li>
-                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-[#017E84]" /> Advanced Analytics</li>
-                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-[#017E84]" /> Finance Module</li>
-                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-[#017E84]" /> SMS Integration</li>
+                            <button className="w-full py-4 bg-[#875A7B] text-white font-bold rounded-xl hover:bg-[#714B67] transition mb-6 shadow-lg shadow-[#875A7B]/20">Get Growth Plus</button>
+                            <ul className="space-y-4 text-sm">
+                                <li className="flex gap-3 text-slate-600 font-medium"><Check size={18} className="text-teal-600" /> Up to 500 Learners</li>
+                                <li className="flex gap-3 text-slate-600 font-medium"><Check size={18} className="text-teal-600" /> Biometric Integration Ready</li>
+                                <li className="flex gap-3 text-slate-600 font-medium"><Check size={18} className="text-teal-600" /> Full Finance & Fee Manager</li>
+                                <li className="flex gap-3 text-slate-600 font-medium"><Check size={18} className="text-teal-600" /> Automated Evidence Capture</li>
+                                <li className="flex gap-3 text-slate-600 font-medium"><Check size={18} className="text-teal-600" /> SMS & WhatsApp Alerts</li>
                             </ul>
                         </div>
 
                         {/* Enterprise */}
-                        <div className="bg-white p-8 rounded shadow-sm border border-gray-100 hover:shadow-md transition-all">
-                            <h3 className="text-xl font-bold text-[#1a1a1a] mb-2">Enterprise</h3>
-                            <p className="text-sm text-slate-500 mb-6">For large multi-campus schools.</p>
+                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                            <h3 className="text-xl font-bold text-[#1a1a1a] mb-2">Excellence</h3>
+                            <p className="text-sm text-slate-500 mb-6">Advanced tech for premier academies.</p>
                             <div className="mb-6">
                                 <span className="text-4xl font-bold text-[#1a1a1a]">Custom</span>
                             </div>
-                            <button className="w-full py-3 bg-white border border-gray-300 text-[#1a1a1a] font-bold rounded hover:bg-slate-50 transition mb-6">Contact Sales</button>
-                            <ul className="space-y-3 text-sm">
-                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-[#017E84]" /> Unlimited Learners</li>
-                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-[#017E84]" /> Custom Report Cards</li>
-                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-[#017E84]" /> Dedicated Account Manager</li>
-                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-[#017E84]" /> SLA & Priority Support</li>
+                            <button className="w-full py-4 bg-white border-2 border-[#1a1a1a] text-[#1a1a1a] font-bold rounded-xl hover:bg-slate-50 transition mb-6">Talk to Experts</button>
+                            <ul className="space-y-4 text-sm">
+                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-teal-600" /> Unlimited Learners</li>
+                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-teal-600" /> Full Biometric Hardware Suite</li>
+                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-teal-600" /> The Playroom (Robotics & AI)</li>
+                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-teal-600" /> Multi-Campus Central Control</li>
+                                <li className="flex gap-3 text-slate-600"><Check size={18} className="text-teal-600" /> White-label Parent Portal</li>
                             </ul>
                         </div>
                     </div>

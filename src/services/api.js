@@ -1,4 +1,3 @@
-import { getPortalSchoolId, isStoredUserSuperAdmin, ensureSchoolId } from './tenantContext';
 import axiosInstance, { API_BASE_URL } from './axiosConfig';
 
 export { API_BASE_URL };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { WebsiteLayout } from '../WebsiteLayout';
-import { Check, ArrowRight, BookOpen, Calculator, Bus, Calendar, Activity, MessageCircle, Database, Lock, PieChart, Users } from 'lucide-react';
+import { Check, ArrowRight, Bus, Calendar, Activity, MessageCircle, Database, Lock, PieChart, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const SolutionsPage = (props) => {

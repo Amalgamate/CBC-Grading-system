@@ -274,7 +274,8 @@ export const getGroupedLearningAreas = (grade) => {
   );
 };
 
-export default {
+
+const learningAreasExport = {
   GRADE_LEARNING_AREAS_MAP,
   EARLY_YEARS_LEARNING_AREAS,
   PRE_PRIMARY_LEARNING_AREAS,
@@ -287,3 +288,6 @@ export default {
   isValidLearningAreaForGrade,
   getGroupedLearningAreas
 };
+
+export default learningAreasExport;
+

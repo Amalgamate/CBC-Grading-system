@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
+import { AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 import { authAPI } from '../../services/api';
 
 export default function OTPVerificationForm({
@@ -33,6 +33,7 @@ export default function OTPVerificationForm({
     if (otp.every(digit => digit !== '') && !success && !isLoading) {
       verifyOtpCode(otp.join(''));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [otp]);
 
   const handleOtpChange = (index, value) => {

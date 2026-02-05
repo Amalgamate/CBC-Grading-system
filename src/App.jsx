@@ -9,6 +9,7 @@ import SolutionsPage from './components/ElimcrownWebsite/pages/SolutionsPage';
 import PricingPage from './components/ElimcrownWebsite/pages/PricingPage';
 import ContactPage from './components/ElimcrownWebsite/pages/ContactPage';
 import AboutPage from './components/ElimcrownWebsite/pages/AboutPage';
+import PlayroomPage from './components/ElimcrownWebsite/pages/PlayroomPage';
 // import Registration from './components/auth/RegisterForm'; // Use the consolidated register form if needed, but we already have routes
 import SuperAdminDashboard from './components/EDucore/SuperAdminDashboard';
 import api from './services/api';
@@ -188,6 +189,7 @@ function AppContent() {
         <Route path="/pricing" element={<PricingPage {...landingProps} />} />
         <Route path="/contact" element={<ContactPage {...landingProps} />} />
         <Route path="/about" element={<AboutPage {...landingProps} />} />
+        <Route path="/playroom" element={<PlayroomPage {...landingProps} />} />
         <Route path="/get-started" element={<Navigate to="/auth/register" replace />} />
         <Route path="/auth" element={<Navigate to="/auth/login" replace />} />
         <Route path="/auth/login" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath="/auth" />} />

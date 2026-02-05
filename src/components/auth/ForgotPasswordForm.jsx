@@ -48,7 +48,7 @@ export default function ForgotPasswordForm({ onSwitchToLogin, brandingSettings }
           {/* Left Column - Branding Area */}
           <div
             className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative overflow-hidden"
-            style={{ backgroundColor: brandingSettings?.brandColor || '#714B67' }}
+            style={{ backgroundColor: brandingSettings?.brandColor || '#875A7B' }}
           >
             {/* Decorative Elements */}
             <div className="absolute inset-0 overflow-hidden opacity-10">
@@ -63,12 +63,12 @@ export default function ForgotPasswordForm({ onSwitchToLogin, brandingSettings }
                 {/* Logo */}
                 <div className="mb-12">
                   <img
-                    src={brandingSettings?.logoUrl || '/logo-zawadi.png'}
-                    alt="School Logo"
+                    src={brandingSettings?.logoUrl || '/logo-new.png'}
+                    alt="Elimcrown Logo"
                     className="w-48 h-48 object-contain mx-auto drop-shadow-2xl"
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = '/logo-zawadi.png';
+                      e.target.src = '/logo-new.png';
                     }}
                   />
                 </div>
@@ -87,7 +87,7 @@ export default function ForgotPasswordForm({ onSwitchToLogin, brandingSettings }
             {/* Footer Copyright */}
             <div className="relative z-10 text-center">
               <p className="text-white/60 text-sm">
-                © 2025 {brandingSettings?.schoolName || 'Zawadi JRN Academy'}. All rights reserved.
+                © 2025 {brandingSettings?.schoolName || 'Elimcrown'}. All rights reserved.
               </p>
             </div>
           </div>
@@ -102,10 +102,10 @@ export default function ForgotPasswordForm({ onSwitchToLogin, brandingSettings }
               <h2 className="text-3xl font-bold text-gray-900 mb-3">Email Sent!</h2>
               <p className="text-gray-600 mb-8 text-lg">
                 We've sent a password reset link to<br />
-                <strong className="text-brand-purple">{email}</strong>
+                <strong className="text-[#875A7B]">{email}</strong>
               </p>
 
-              <div className="bg-brand-purple/5 border border-brand-purple/10 rounded-xl p-6 mb-8">
+              <div className="bg-[#875A7B]/5 border border-[#875A7B]/10 rounded-xl p-6 mb-8">
                 <p className="text-sm text-gray-700">
                   💡 <strong>Tip:</strong> The link will expire in 1 hour. Check your spam folder if you don't see the email.
                 </p>
@@ -122,7 +122,7 @@ export default function ForgotPasswordForm({ onSwitchToLogin, brandingSettings }
                 <button
                   type="button"
                   onClick={onSwitchToLogin}
-                  className="w-full flex items-center justify-center gap-2 text-brand-purple hover:text-brand-purple/80 transition font-semibold py-3"
+                  className="w-full flex items-center justify-center gap-2 text-[#875A7B] hover:text-[#875A7B]/80 transition font-semibold py-3"
                 >
                   <ArrowLeft size={18} />
                   Back to Sign In
@@ -143,7 +143,7 @@ export default function ForgotPasswordForm({ onSwitchToLogin, brandingSettings }
         {/* Left Column - Branding Area */}
         <div
           className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative overflow-hidden"
-          style={{ backgroundColor: brandingSettings?.brandColor || '#714B67' }}
+          style={{ backgroundColor: brandingSettings?.brandColor || '#875A7B' }}
         >
           {/* Decorative Elements */}
           <div className="absolute inset-0 overflow-hidden opacity-10">
@@ -185,7 +185,7 @@ export default function ForgotPasswordForm({ onSwitchToLogin, brandingSettings }
                     </div>
                     <div>
                       <h4 className="font-semibold text-white">Secure Process</h4>
-                      <p className="text-blue-100 text-sm">Your password reset is encrypted and secure</p>
+                      <p className="text-[#f4f0f2] text-sm">Your password reset is encrypted and secure</p>
                     </div>
                   </div>
 
@@ -195,7 +195,7 @@ export default function ForgotPasswordForm({ onSwitchToLogin, brandingSettings }
                     </div>
                     <div>
                       <h4 className="font-semibold text-white">Time-Limited Link</h4>
-                      <p className="text-blue-100 text-sm">Reset link expires in 1 hour for security</p>
+                      <p className="text-[#f4f0f2] text-sm">Reset link expires in 1 hour for security</p>
                     </div>
                   </div>
 
@@ -205,7 +205,7 @@ export default function ForgotPasswordForm({ onSwitchToLogin, brandingSettings }
                     </div>
                     <div>
                       <h4 className="font-semibold text-white">Quick Recovery</h4>
-                      <p className="text-blue-100 text-sm">Reset your password in just a few minutes</p>
+                      <p className="text-[#f4f0f2] text-sm">Reset your password in just a few minutes</p>
                     </div>
                   </div>
                 </div>
@@ -243,7 +243,7 @@ export default function ForgotPasswordForm({ onSwitchToLogin, brandingSettings }
                     type="email"
                     value={email}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${error ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${error ? 'border-red-500' : 'border-gray-300'
                       }`}
                     placeholder="you@example.com"
                     autoFocus
@@ -260,7 +260,7 @@ export default function ForgotPasswordForm({ onSwitchToLogin, brandingSettings }
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-brand-purple to-brand-teal text-white py-3 rounded-lg font-semibold hover:from-brand-purple/90 hover:to-brand-teal/90 focus:ring-4 focus:ring-brand-purple/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-[#875A7B] text-white py-3 rounded-lg font-semibold hover:bg-[#714B67] focus:ring-4 focus:ring-[#875A7B]/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <div className="flex items-center justify-center gap-2">
@@ -284,7 +284,7 @@ export default function ForgotPasswordForm({ onSwitchToLogin, brandingSettings }
               </button>
             </div>
 
-            <div className="mt-8 p-4 bg-brand-purple/5 border border-brand-purple/10 rounded-lg">
+            <div className="mt-8 p-4 bg-[#875A7B]/5 border border-[#875A7B]/10 rounded-lg">
               <p className="text-sm text-gray-700 text-center">
                 💡 <strong>Remember your password?</strong> Sign in instead to access your account.
               </p>

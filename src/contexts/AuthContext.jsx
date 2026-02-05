@@ -26,7 +26,6 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = () => {
       try {
         const token = localStorage.getItem('token');
-        const refreshToken = localStorage.getItem('refreshToken');
         const storedUser = localStorage.getItem('user');
 
         if (token && storedUser) {

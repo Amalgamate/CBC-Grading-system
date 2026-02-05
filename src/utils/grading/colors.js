@@ -12,27 +12,27 @@ export const GRADE_COLORS = {
   EE1: '#059669',  // Dark Green
   EE2: '#10b981',  // Light Green
   EE: '#22c55e',   // Default Green
-  
+
   // Meeting Expectations
   ME1: '#2563eb',  // Dark Blue
   ME2: '#60a5fa',  // Light Blue
   ME: '#3b82f6',   // Default Blue
-  
+
   // Approaching Expectations
   AE1: '#ca8a04',  // Dark Yellow
   AE2: '#eab308',  // Light Yellow
   AE: '#fbbf24',   // Default Yellow
-  
+
   // Below Expectations
   BE1: '#ea580c',  // Dark Orange
   BE2: '#f97316',  // Light Orange
   BE: '#fb923c',   // Default Orange
-  
+
   // Not Yet
   NY: '#dc2626',   // Red
   NY1: '#dc2626',  // Dark Red
   NY2: '#ef4444',  // Light Red
-  
+
   // Legacy mappings
   EX: '#22c55e',   // Excellent (Green)
   VG: '#3b82f6',   // Very Good (Blue)
@@ -55,43 +55,43 @@ export const GRADE_COLORS = {
  */
 export const getGradeColor = (grade) => {
   if (!grade) return '#6b7280'; // Default gray
-  
+
   const gradeUpper = String(grade).toUpperCase().trim();
-  
+
   // Try exact match first
   if (GRADE_COLORS[gradeUpper]) {
     return GRADE_COLORS[gradeUpper];
   }
-  
+
   // Pattern matching for full descriptive grades
   if (gradeUpper.includes('EXCEED')) {
     if (gradeUpper.includes('1')) return GRADE_COLORS.EE1;
     if (gradeUpper.includes('2')) return GRADE_COLORS.EE2;
     return GRADE_COLORS.EE;
   }
-  
+
   if (gradeUpper.includes('MEET')) {
     if (gradeUpper.includes('1')) return GRADE_COLORS.ME1;
     if (gradeUpper.includes('2')) return GRADE_COLORS.ME2;
     return GRADE_COLORS.ME;
   }
-  
+
   if (gradeUpper.includes('APPROACH')) {
     if (gradeUpper.includes('1')) return GRADE_COLORS.AE1;
     if (gradeUpper.includes('2')) return GRADE_COLORS.AE2;
     return GRADE_COLORS.AE;
   }
-  
+
   if (gradeUpper.includes('BELOW')) {
     if (gradeUpper.includes('1')) return GRADE_COLORS.BE1;
     if (gradeUpper.includes('2')) return GRADE_COLORS.BE2;
     return GRADE_COLORS.BE;
   }
-  
+
   if (gradeUpper.includes('NOT') || gradeUpper.includes('NY')) {
     return GRADE_COLORS.NY;
   }
-  
+
   // Fallback for unknown grades
   return '#6b7280'; // Default gray
 };
@@ -103,7 +103,7 @@ export const getGradeColor = (grade) => {
  */
 export const getGradeDescription = (grade) => {
   const gradeUpper = String(grade).toUpperCase().trim();
-  
+
   const descriptions = {
     'EE1': 'Exceeding Expectations 1 - Outstanding',
     'EE2': 'Exceeding Expectations 2 - Very High',
@@ -124,7 +124,7 @@ export const getGradeDescription = (grade) => {
     'F': 'Fair',
     'P': 'Poor'
   };
-  
+
   return descriptions[gradeUpper] || grade;
 };
 
@@ -135,7 +135,7 @@ export const getGradeDescription = (grade) => {
  */
 export const getGradeCSSClass = (grade) => {
   const gradeUpper = String(grade).toUpperCase().trim();
-  
+
   const classMap = {
     'EE1': 'bg-green-900 text-white',
     'EE2': 'bg-green-600 text-white',
@@ -151,13 +151,17 @@ export const getGradeCSSClass = (grade) => {
     'BE': 'bg-orange-500 text-white',
     'NY': 'bg-red-600 text-white'
   };
-  
+
   return classMap[gradeUpper] || 'bg-gray-400 text-white';
 };
 
-export default {
+
+const gradeUtils = {
   getGradeColor,
   getGradeDescription,
   getGradeCSSClass,
   GRADE_COLORS
 };
+
+export default gradeUtils;
+
