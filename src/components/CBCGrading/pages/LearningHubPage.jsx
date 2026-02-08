@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { 
+import {
   FileText, ClipboardList, BookOpen, FolderOpen,
   Sparkles, CheckCircle, Clock, ArrowRight
 } from 'lucide-react';
@@ -64,7 +64,7 @@ const LearningHubPage = () => {
       {/* Feature Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {features.map((feature, index) => (
-          <div 
+          <div
             key={index}
             className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition border-l-4 border-blue-500"
           >
@@ -105,6 +105,26 @@ const LearningHubPage = () => {
         </div>
       </div>
 
+      {/* Active Learning Section */}
+      <div className="bg-gradient-to-r from-indigo-900 to-purple-900 rounded-xl shadow-lg p-8 text-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">🚀 Coding & Robotics Playground</h2>
+            <p className="text-indigo-200 max-w-xl">
+              Access the virtual lab to practice Python, Web Development, and Robotics.
+              Complete your practical assessments and submit them directly to your teachers.
+            </p>
+          </div>
+          <a
+            href="/coding-playground"
+            className="px-6 py-3 bg-white text-indigo-900 font-bold rounded-lg hover:bg-indigo-50 transition shadow-lg flex items-center gap-2"
+          >
+            Launch Playground <ArrowRight size={18} />
+          </a>
+        </div>
+      </div>
+
       {/* CBC Section */}
       <div className="bg-green-50 rounded-lg p-6 border-l-4 border-green-500">
         <div className="flex items-start gap-3">
@@ -114,7 +134,7 @@ const LearningHubPage = () => {
           <div>
             <h3 className="font-bold text-gray-800 mb-2">🇰🇪 CBC-Aligned Design</h3>
             <p className="text-sm text-gray-700">
-              Designed specifically for Kenya's Competency-Based Curriculum with strand mapping, 
+              Designed specifically for Kenya's Competency-Based Curriculum with strand mapping,
               competency tracking, and curriculum coverage reports.
             </p>
           </div>

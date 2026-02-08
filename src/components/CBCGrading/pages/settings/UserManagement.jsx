@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  UserPlus, Edit, Trash2, X, Save, Shield, Users, Search, 
+import {
+  UserPlus, Edit, Trash2, X, Save, Shield, Users, Search,
   RotateCcw, Eye, EyeOff, Mail, Phone, Archive, ArchiveRestore,
   Settings, Lock, Check, AlertCircle, Clock, Activity, BookOpen, MessageCircle, Send
 } from 'lucide-react';
@@ -11,9 +11,9 @@ import { getAdminSchoolId, getStoredUser } from '../../../../services/tenantCont
 
 // Role definitions with permissions
 const ROLES_CONFIG = [
-  { 
-    value: 'SUPER_ADMIN', 
-    label: 'Super Admin', 
+  {
+    value: 'SUPER_ADMIN',
+    label: 'Super Admin',
     color: 'red',
     permissions: {
       users: { view: true, create: true, edit: true, delete: true },
@@ -25,8 +25,8 @@ const ROLES_CONFIG = [
       settings: { view: true, create: true, edit: true, delete: true }
     }
   },
-  { 
-    value: 'ADMIN', 
+  {
+    value: 'ADMIN',
     label: 'Admin',
     color: 'purple',
     permissions: {
@@ -39,8 +39,8 @@ const ROLES_CONFIG = [
       settings: { view: true, create: false, edit: true, delete: false }
     }
   },
-  { 
-    value: 'HEAD_TEACHER', 
+  {
+    value: 'HEAD_TEACHER',
     label: 'Head Teacher',
     color: 'indigo',
     permissions: {
@@ -53,8 +53,8 @@ const ROLES_CONFIG = [
       settings: { view: true, create: false, edit: false, delete: false }
     }
   },
-  { 
-    value: 'TEACHER', 
+  {
+    value: 'TEACHER',
     label: 'Teacher',
     color: 'blue',
     permissions: {
@@ -67,8 +67,8 @@ const ROLES_CONFIG = [
       settings: { view: false, create: false, edit: false, delete: false }
     }
   },
-  { 
-    value: 'PARENT', 
+  {
+    value: 'PARENT',
     label: 'Parent',
     color: 'green',
     permissions: {
@@ -81,8 +81,8 @@ const ROLES_CONFIG = [
       settings: { view: false, create: false, edit: false, delete: false }
     }
   },
-  { 
-    value: 'ACCOUNTANT', 
+  {
+    value: 'ACCOUNTANT',
     label: 'Accountant',
     color: 'yellow',
     permissions: {
@@ -95,8 +95,8 @@ const ROLES_CONFIG = [
       settings: { view: false, create: false, edit: false, delete: false }
     }
   },
-  { 
-    value: 'RECEPTIONIST', 
+  {
+    value: 'RECEPTIONIST',
     label: 'Receptionist',
     color: 'pink',
     permissions: {
@@ -149,7 +149,7 @@ const formatDate = (dateString) => {
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
-  
+
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
@@ -173,7 +173,7 @@ const UserManagement = () => {
   const [userGroupTab, setUserGroupTab] = useState('all'); // 'all', 'parents', 'tutors', 'admins'
   const [activityLogs, setActivityLogs] = useState([]);
   const [activityFilterUser, setActivityFilterUser] = useState('all'); // Filter activity logs by user
-  
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -194,24 +194,24 @@ const UserManagement = () => {
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Get school ID from context
       let sid = getAdminSchoolId();
       if (!sid) {
         const user = getStoredUser();
         sid = user?.schoolId || user?.school?.id;
       }
-      
+
       if (!sid) {
         console.warn('No school ID found. Using API without schoolId filter.');
       }
-      
+
       setSchoolId(sid);
-      
+
       // Fetch users for this school
       const response = await userAPI.getAll(sid);
       console.log('API Response:', response);
-      
+
       // Handle different response formats
       let usersData = [];
       if (Array.isArray(response)) {
@@ -223,7 +223,7 @@ const UserManagement = () => {
       } else if (response.success && response.data) {
         usersData = Array.isArray(response.data) ? response.data : [];
       }
-      
+
       // Map database fields to component format
       const mappedUsers = usersData.map(user => ({
         id: user.id,
@@ -238,7 +238,7 @@ const UserManagement = () => {
         archived: user.archived || false,
         lastLogin: user.lastLogin
       }));
-      
+
       setUsers(mappedUsers);
     } catch (error) {
       console.error('Failed to load users:', error);
@@ -373,8 +373,8 @@ const UserManagement = () => {
   };
 
   const toggleUserSelection = (userId) => {
-    setSelectedUsers(prev => 
-      prev.includes(userId) 
+    setSelectedUsers(prev =>
+      prev.includes(userId)
         ? prev.filter(id => id !== userId)
         : [...prev, userId]
     );
@@ -423,18 +423,18 @@ const UserManagement = () => {
     }
     // 'all' tab shows all users
 
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch = searchTerm === '' ||
       user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (user.staffId && user.staffId.toLowerCase().includes(searchTerm.toLowerCase()));
-    
+
     const matchesRole = roleFilter === 'ALL' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'ALL' || 
+    const matchesStatus = statusFilter === 'ALL' ||
       (statusFilter === 'ACTIVE' && user.status === 'ACTIVE' && !user.archived) ||
       (statusFilter === 'ARCHIVED' && user.archived) ||
       (statusFilter === 'INACTIVE' && user.status === 'INACTIVE');
-    
+
     return groupFilter && matchesSearch && matchesRole && matchesStatus;
   });
 
@@ -447,26 +447,24 @@ const UserManagement = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Notification Toast */}
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 ${
-          notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-        } text-white animate-fade-in`}>
+        <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 ${notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+          } text-white animate-fade-in`}>
           {notification.type === 'success' ? <Check size={20} /> : <AlertCircle size={20} />}
           <span className="font-semibold">{notification.message}</span>
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto space-y-4">
+      <div className="space-y-4">
 
         {/* Tab Navigation */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="flex border-b">
             <button
               onClick={() => setActiveTab('users')}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm ${
-                activeTab === 'users'
+              className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm ${activeTab === 'users'
                   ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
                   : 'text-gray-600 hover:bg-gray-50'
-              }`}
+                }`}
             >
               <Users size={18} />
               <span>Users</span>
@@ -474,14 +472,13 @@ const UserManagement = () => {
                 {users.filter(u => !u.archived).length}
               </span>
             </button>
-            
+
             <button
               onClick={() => setActiveTab('roles')}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm ${
-                activeTab === 'roles'
+              className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm ${activeTab === 'roles'
                   ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-600'
                   : 'text-gray-600 hover:bg-gray-50'
-              }`}
+                }`}
             >
               <Shield size={18} />
               <span>Roles & Permissions</span>
@@ -489,11 +486,10 @@ const UserManagement = () => {
 
             <button
               onClick={() => setActiveTab('activity')}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm ${
-                activeTab === 'activity'
+              className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm ${activeTab === 'activity'
                   ? 'bg-green-50 text-green-700 border-b-2 border-green-600'
                   : 'text-gray-600 hover:bg-gray-50'
-              }`}
+                }`}
             >
               <Activity size={18} />
               <span>Activity Log</span>
@@ -509,11 +505,10 @@ const UserManagement = () => {
               <div className="flex border-b overflow-x-auto">
                 <button
                   onClick={() => setUserGroupTab('all')}
-                  className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm whitespace-nowrap ${
-                    userGroupTab === 'all'
+                  className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm whitespace-nowrap ${userGroupTab === 'all'
                       ? 'bg-gray-50 text-gray-900 border-b-2 border-gray-800'
                       : 'text-gray-600 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <Users size={16} />
                   <span>All Users</span>
@@ -524,11 +519,10 @@ const UserManagement = () => {
 
                 <button
                   onClick={() => setUserGroupTab('admins')}
-                  className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm whitespace-nowrap ${
-                    userGroupTab === 'admins'
+                  className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm whitespace-nowrap ${userGroupTab === 'admins'
                       ? 'bg-red-50 text-red-700 border-b-2 border-red-600'
                       : 'text-gray-600 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <Shield size={16} />
                   <span>Admins</span>
@@ -539,11 +533,10 @@ const UserManagement = () => {
 
                 <button
                   onClick={() => setUserGroupTab('tutors')}
-                  className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm whitespace-nowrap ${
-                    userGroupTab === 'tutors'
+                  className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm whitespace-nowrap ${userGroupTab === 'tutors'
                       ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
                       : 'text-gray-600 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <BookOpen size={16} />
                   <span>Tutors/Teachers</span>
@@ -554,11 +547,10 @@ const UserManagement = () => {
 
                 <button
                   onClick={() => setUserGroupTab('parents')}
-                  className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm whitespace-nowrap ${
-                    userGroupTab === 'parents'
+                  className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm whitespace-nowrap ${userGroupTab === 'parents'
                       ? 'bg-green-50 text-green-700 border-b-2 border-green-600'
                       : 'text-gray-600 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <Users size={16} />
                   <span>Parents</span>
@@ -646,15 +638,15 @@ const UserManagement = () => {
                     </button>
                   )}
 
-                  <button 
+                  <button
                     onClick={() => {
                       setEditingUser(null);
                       resetForm();
                       setShowModal(true);
-                    }} 
+                    }}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 text-sm font-semibold"
                   >
-                    <UserPlus size={18} /> 
+                    <UserPlus size={18} />
                     <span className="hidden sm:inline">Add User</span>
                   </button>
                 </div>
@@ -757,13 +749,12 @@ const UserManagement = () => {
                             </span>
                           </td>
                           <td className="px-3 py-2">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                              user.status === 'ACTIVE' && !user.archived
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${user.status === 'ACTIVE' && !user.archived
                                 ? 'bg-green-100 text-green-800'
                                 : user.archived
-                                ? 'bg-gray-100 text-gray-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}>
+                                  ? 'bg-gray-100 text-gray-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
                               {user.archived ? 'Archived' : user.status}
                             </span>
                           </td>
@@ -775,7 +766,7 @@ const UserManagement = () => {
                           </td>
                           <td className="px-3 py-2">
                             <div className="flex gap-1">
-                              <button 
+                              <button
                                 onClick={() => handleEdit(user)}
                                 className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
                                 title="Edit"
@@ -784,7 +775,7 @@ const UserManagement = () => {
                               </button>
                               {user.phone && (
                                 <>
-                                  <button 
+                                  <button
                                     onClick={() => {
                                       const whatsappUrl = `https://wa.me/${user.phone.replace(/\D/g, '')}`;
                                       window.open(whatsappUrl, '_blank');
@@ -794,7 +785,7 @@ const UserManagement = () => {
                                   >
                                     <MessageCircle size={16} />
                                   </button>
-                                  <button 
+                                  <button
                                     onClick={() => {
                                       const smsUrl = `sms:${user.phone}`;
                                       window.location.href = smsUrl;
@@ -807,7 +798,7 @@ const UserManagement = () => {
                                 </>
                               )}
                               {user.archived ? (
-                                <button 
+                                <button
                                   onClick={() => handleUnarchive(user.id)}
                                   className="p-1.5 text-green-600 hover:bg-green-50 rounded"
                                   title="Restore"
@@ -815,7 +806,7 @@ const UserManagement = () => {
                                   <ArchiveRestore size={16} />
                                 </button>
                               ) : (
-                                <button 
+                                <button
                                   onClick={() => handleArchive(user.id)}
                                   className="p-1.5 text-orange-600 hover:bg-orange-50 rounded"
                                   title="Archive"
@@ -823,7 +814,7 @@ const UserManagement = () => {
                                   <Archive size={16} />
                                 </button>
                               )}
-                              <button 
+                              <button
                                 onClick={() => handleDelete(user.id)}
                                 className="p-1.5 text-red-600 hover:bg-red-50 rounded"
                                 title="Delete"
@@ -1013,65 +1004,65 @@ const UserManagement = () => {
                 {activityLogs
                   .filter(log => activityFilterUser === 'all' || log.user === activityFilterUser)
                   .map(log => {
-                  const getActionColor = (action) => {
-                    if (action.includes('CREATED')) return 'bg-green-50 border-l-4 border-green-500';
-                    if (action.includes('UPDATED')) return 'bg-blue-50 border-l-4 border-blue-500';
-                    if (action.includes('DELETED')) return 'bg-red-50 border-l-4 border-red-500';
-                    if (action.includes('ARCHIVED')) return 'bg-orange-50 border-l-4 border-orange-500';
-                    if (action.includes('RESTORED')) return 'bg-purple-50 border-l-4 border-purple-500';
-                    return 'bg-gray-50 border-l-4 border-gray-500';
-                  };
+                    const getActionColor = (action) => {
+                      if (action.includes('CREATED')) return 'bg-green-50 border-l-4 border-green-500';
+                      if (action.includes('UPDATED')) return 'bg-blue-50 border-l-4 border-blue-500';
+                      if (action.includes('DELETED')) return 'bg-red-50 border-l-4 border-red-500';
+                      if (action.includes('ARCHIVED')) return 'bg-orange-50 border-l-4 border-orange-500';
+                      if (action.includes('RESTORED')) return 'bg-purple-50 border-l-4 border-purple-500';
+                      return 'bg-gray-50 border-l-4 border-gray-500';
+                    };
 
-                  const getActionIcon = (action) => {
-                    if (action.includes('CREATED')) return <UserPlus size={16} className="text-green-600" />;
-                    if (action.includes('UPDATED')) return <Edit size={16} className="text-blue-600" />;
-                    if (action.includes('DELETED')) return <Trash2 size={16} className="text-red-600" />;
-                    if (action.includes('ARCHIVED')) return <Archive size={16} className="text-orange-600" />;
-                    if (action.includes('RESTORED')) return <ArchiveRestore size={16} className="text-purple-600" />;
-                    return <Activity size={16} className="text-gray-600" />;
-                  };
+                    const getActionIcon = (action) => {
+                      if (action.includes('CREATED')) return <UserPlus size={16} className="text-green-600" />;
+                      if (action.includes('UPDATED')) return <Edit size={16} className="text-blue-600" />;
+                      if (action.includes('DELETED')) return <Trash2 size={16} className="text-red-600" />;
+                      if (action.includes('ARCHIVED')) return <Archive size={16} className="text-orange-600" />;
+                      if (action.includes('RESTORED')) return <ArchiveRestore size={16} className="text-purple-600" />;
+                      return <Activity size={16} className="text-gray-600" />;
+                    };
 
-                  const getActionLabel = (action) => {
-                    return action.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
-                  };
+                    const getActionLabel = (action) => {
+                      return action.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
+                    };
 
-                  return (
-                    <div key={log.id} className={`p-4 ${getActionColor(log.action)} hover:bg-opacity-75 transition`}>
-                      <div className="flex items-start gap-4">
-                        <div className="flex-shrink-0 mt-1">
-                          {getActionIcon(log.action)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1">
-                              <p className="font-semibold text-gray-900">
-                                {getActionLabel(log.action)}
-                              </p>
-                              <p className="text-sm text-gray-600 mt-1">{log.details}</p>
-                              <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
-                                <div className="flex items-center gap-1">
-                                  <Clock size={14} />
-                                  <span className="font-medium">{log.time}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <span>{log.date}</span>
+                    return (
+                      <div key={log.id} className={`p-4 ${getActionColor(log.action)} hover:bg-opacity-75 transition`}>
+                        <div className="flex items-start gap-4">
+                          <div className="flex-shrink-0 mt-1">
+                            {getActionIcon(log.action)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <p className="font-semibold text-gray-900">
+                                  {getActionLabel(log.action)}
+                                </p>
+                                <p className="text-sm text-gray-600 mt-1">{log.details}</p>
+                                <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                                  <div className="flex items-center gap-1">
+                                    <Clock size={14} />
+                                    <span className="font-medium">{log.time}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span>{log.date}</span>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                            <div className="text-right flex-shrink-0 min-w-fit">
-                              <p className="text-xs font-bold text-gray-700 bg-gray-200 px-2 py-1 rounded">
-                                {log.userRole}
-                              </p>
-                              <p className="text-xs text-gray-600 mt-2">
-                                By: <span className="font-semibold">{log.user}</span>
-                              </p>
+                              <div className="text-right flex-shrink-0 min-w-fit">
+                                <p className="text-xs font-bold text-gray-700 bg-gray-200 px-2 py-1 rounded">
+                                  {log.userRole}
+                                </p>
+                                <p className="text-xs text-gray-600 mt-2">
+                                  By: <span className="font-semibold">{log.user}</span>
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             )}
           </div>
@@ -1089,7 +1080,7 @@ const UserManagement = () => {
                   <X size={24} />
                 </button>
               </div>
-              
+
               <div className="p-6 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -1099,7 +1090,7 @@ const UserManagement = () => {
                     <input
                       type="text"
                       value={formData.firstName}
-                      onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="John"
                     />
@@ -1112,7 +1103,7 @@ const UserManagement = () => {
                     <input
                       type="text"
                       value={formData.lastName}
-                      onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Doe"
                     />
@@ -1123,7 +1114,7 @@ const UserManagement = () => {
                     <input
                       type="text"
                       value={formData.middleName}
-                      onChange={(e) => setFormData({...formData, middleName: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Optional"
                     />
@@ -1134,7 +1125,7 @@ const UserManagement = () => {
                     <input
                       type="text"
                       value={formData.staffId}
-                      onChange={(e) => setFormData({...formData, staffId: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="EMP001"
                     />
@@ -1147,7 +1138,7 @@ const UserManagement = () => {
                     <input
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="john.doe@school.com"
                     />
@@ -1158,7 +1149,7 @@ const UserManagement = () => {
                     <input
                       type="tel"
                       value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="+254712345678"
                     />
@@ -1169,7 +1160,7 @@ const UserManagement = () => {
                     <input
                       type="text"
                       value={formData.username}
-                      onChange={(e) => setFormData({...formData, username: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Optional"
                     />
@@ -1181,7 +1172,7 @@ const UserManagement = () => {
                     </label>
                     <select
                       value={formData.role}
-                      onChange={(e) => setFormData({...formData, role: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       {ROLES_CONFIG.map(role => (
@@ -1201,7 +1192,7 @@ const UserManagement = () => {
                       <input
                         type={showPassword ? 'text' : 'password'}
                         value={formData.password}
-                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                         className="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder={editingUser ? 'Enter new password to change' : 'Enter password'}
                       />

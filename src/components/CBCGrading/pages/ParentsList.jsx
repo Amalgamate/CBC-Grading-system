@@ -160,7 +160,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredParents.map((parent) => (
-                <tr key={parent.id} className="hover:bg-gray-50 transition">
+                <tr key={parent.id} onClick={() => onViewParent(parent)} className="hover:bg-gray-50 cursor-pointer transition">
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 bg-gradient-to-br from-brand-purple to-brand-purple/80 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-sm">
@@ -205,7 +205,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                   </td>
                   <td className="px-3 py-2">
                     <button
-                      onClick={() => handleWhatsAppMessage(parent)}
+                      onClick={(e) => { e.stopPropagation(); handleWhatsAppMessage(parent); }}
                       disabled={!parent.phone}
                       className={`p-1.5 rounded-lg transition ${parent.phone
                         ? 'text-brand-teal hover:bg-brand-teal/10'
@@ -219,7 +219,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => onViewParent(parent)}
+                        onClick={(e) => { e.stopPropagation(); onViewParent(parent); }}
                         className="p-1.5 text-brand-teal hover:bg-brand-teal/10 rounded-lg transition"
                         title="View Details"
                       >
@@ -228,7 +228,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
 
                       {!currentUserIsTeacher && (
                         <button
-                          onClick={() => onEditParent(parent)}
+                          onClick={(e) => { e.stopPropagation(); onEditParent(parent); }}
                           className="p-1.5 text-brand-purple hover:bg-brand-purple/10 rounded-lg transition"
                           title="Edit"
                         >
@@ -239,7 +239,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                       {/* Archive button for teachers, Delete for admins */}
                       {currentUserIsTeacher ? (
                         <button
-                          onClick={() => onArchiveParent && onArchiveParent(parent.id)}
+                          onClick={(e) => { e.stopPropagation(); onArchiveParent && onArchiveParent(parent.id); }}
                           className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition"
                           title="Archive Parent"
                         >
@@ -247,7 +247,7 @@ const ParentsList = ({ parents = [], pagination, onFetchParents, onAddParent, on
                         </button>
                       ) : canDelete ? (
                         <button
-                          onClick={() => onDeleteParent(parent.id)}
+                          onClick={(e) => { e.stopPropagation(); onDeleteParent(parent.id); }}
                           className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
                           title="Delete"
                         >

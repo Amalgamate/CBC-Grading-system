@@ -5,6 +5,7 @@
  * @module controllers/learner.controller
  */
 
+import { Response } from 'express';
 import prisma from '../config/database';
 import bcrypt from 'bcrypt';
 import { ApiError } from '../utils/error.util';

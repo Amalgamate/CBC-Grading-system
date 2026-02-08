@@ -11,6 +11,7 @@ const AssignClassModal = ({ isOpen, onClose, teacher, onAssign }) => {
   const [error, setError] = useState(null);
   const [warning, setWarning] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [successInfo, setSuccessInfo] = useState(null);
   const [workload, setWorkload] = useState(null);
 
   // We intentionally only re-run when modal opens or teacher changes.
@@ -23,6 +24,7 @@ const AssignClassModal = ({ isOpen, onClose, teacher, onAssign }) => {
       setError(null);
       setWarning(null);
       setSuccess(false);
+      setSuccessInfo(null);
     }
   }, [isOpen, teacher]);
 
@@ -43,14 +45,14 @@ const AssignClassModal = ({ isOpen, onClose, teacher, onAssign }) => {
 
   const fetchTeacherWorkload = async () => {
     if (!teacher?.id) return;
-    
+
     try {
       setFetchingWorkload(true);
       const response = await api.classes.getTeacherWorkload(teacher.id, {
         academicYear: 2025,
         term: 'TERM_1'
       });
-      
+
       if (response.success) {
         setWorkload(response.data);
       }
@@ -66,13 +68,36 @@ const AssignClassModal = ({ isOpen, onClose, teacher, onAssign }) => {
     setSelectedClassId(classId);
     setWarning(null);
 
-    // Check if this class already has a teacher
+    const warnings = [];
+
+    // Check 1: If class already has a teacher
     const selectedClass = classes.find(c => c.id === classId);
     if (selectedClass?.teacher) {
-      setWarning(
-        `This will replace ${selectedClass.teacher.firstName} ${selectedClass.teacher.lastName} ` +
-        `as the class teacher for ${selectedClass.name}.`
-      );
+      // logic to check if it's the SAME teacher
+      if (selectedClass.teacher.id === teacher.id) {
+        warnings.push(`You are already the class teacher for ${selectedClass.name}.`);
+      } else {
+        warnings.push(
+          `This will replace ${selectedClass.teacher.firstName} ${selectedClass.teacher.lastName} ` +
+          `as the class teacher for ${selectedClass.name}.`
+        );
+      }
+    }
+
+    // Check 2: If teacher is already assigned to other classes (Workload check)
+    if (workload?.classes?.length > 0) {
+      // Filter out the currently selected class if they are already assigned to it (to avoid double counting in logic, though UI handles it)
+      const otherClasses = workload.classes.filter(c => c.id !== classId);
+      if (otherClasses.length > 0) {
+        const classNames = otherClasses.map(c => c.name).join(', ');
+        warnings.push(
+          `${teacher.firstName} is already assigned to ${otherClasses.length} other class(es): ${classNames}.`
+        );
+      }
+    }
+
+    if (warnings.length > 0) {
+      setWarning(warnings);
     }
   };
 
@@ -83,20 +108,18 @@ const AssignClassModal = ({ isOpen, onClose, teacher, onAssign }) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Use the dedicated assign teacher endpoint
       const response = await api.classes.assignTeacher(selectedClassId, teacher.id);
 
       if (response.success) {
         setSuccess(true);
-        
-        // Show additional info if available
-        if (response.info?.otherAssignments && response.info.otherAssignments.length > 0) {
-          const otherClasses = response.info.otherAssignments
-            .map(c => c.name)
-            .join(', ');
-          console.log(`Note: Teacher is also assigned to: ${otherClasses}`);
+
+        let infoMsg = `Successfully assigned to ${classes.find(c => c.id === selectedClassId)?.name}.`;
+        if (response.info?.previousTeacher) {
+          infoMsg += ` Replaced ${response.info.previousTeacher}.`;
         }
+        setSuccessInfo(infoMsg);
 
         setTimeout(() => {
           if (onAssign) onAssign();
@@ -168,11 +191,10 @@ const AssignClassModal = ({ isOpen, onClose, teacher, onAssign }) => {
                   <p className="text-xs text-gray-600 mt-1">Students</p>
                 </div>
                 <div className="bg-white p-3 rounded-lg text-center border border-gray-200">
-                  <p className={`text-2xl font-bold ${
-                    workload.workloadLevel === 'HIGH' ? 'text-red-600' :
+                  <p className={`text-2xl font-bold ${workload.workloadLevel === 'HIGH' ? 'text-red-600' :
                     workload.workloadLevel === 'MEDIUM' ? 'text-amber-600' :
-                    'text-green-600'
-                  }`}>
+                      'text-green-600'
+                    }`}>
                     {workload.workloadLevel}
                   </p>
                   <p className="text-xs text-gray-600 mt-1">Workload</p>
@@ -183,7 +205,7 @@ const AssignClassModal = ({ isOpen, onClose, teacher, onAssign }) => {
                   <p className="text-xs text-gray-600 mb-2">Currently teaching:</p>
                   <div className="flex flex-wrap gap-2">
                     {workload.classes.map(cls => (
-                      <span 
+                      <span
                         key={cls.id}
                         className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full"
                       >
@@ -208,7 +230,11 @@ const AssignClassModal = ({ isOpen, onClose, teacher, onAssign }) => {
           {warning && (
             <div className="mb-4 p-3 bg-amber-50 text-amber-800 rounded-lg text-sm flex items-start gap-2 border border-amber-200">
               <AlertTriangle size={18} className="flex-shrink-0 mt-0.5" />
-              <div>{warning}</div>
+              <div className="flex flex-col gap-1">
+                {Array.isArray(warning) ? warning.map((w, i) => (
+                  <p key={i}>{w}</p>
+                )) : <p>{warning}</p>}
+              </div>
             </div>
           )}
 
@@ -216,7 +242,7 @@ const AssignClassModal = ({ isOpen, onClose, teacher, onAssign }) => {
           {success && (
             <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg text-sm flex items-center gap-2 border border-green-200">
               <Check size={18} />
-              <div>Successfully assigned to class!</div>
+              <div>{successInfo || 'Successfully assigned to class!'}</div>
             </div>
           )}
 
@@ -243,11 +269,11 @@ const AssignClassModal = ({ isOpen, onClose, teacher, onAssign }) => {
                     {classes.map((cls) => {
                       const studentCount = cls._count?.enrollments || 0;
                       const utilization = cls.capacity ? Math.round((studentCount / cls.capacity) * 100) : 0;
-                      
+
                       return (
                         <option key={cls.id} value={cls.id}>
-                          {cls.name} 
-                          {cls.teacher ? ` (Current: ${cls.teacher.firstName} ${cls.teacher.lastName})` : ' (No Teacher)'} 
+                          {cls.name}
+                          {cls.teacher ? ` (Current: ${cls.teacher.firstName} ${cls.teacher.lastName})` : ' (No Teacher)'}
                           {` - ${studentCount}/${cls.capacity} students (${utilization}%)`}
                         </option>
                       );

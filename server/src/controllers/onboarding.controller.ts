@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import { gradingService } from '../services/grading.service';
 import { EmailService } from '../services/email-resend.service';
 import { SmsService } from '../services/sms.service';
+import fs from 'fs';
 
 export class OnboardingController {
   async registerSchool(req: Request, res: Response) {
@@ -100,6 +101,9 @@ export class OnboardingController {
   }
 
   async registerFull(req: Request, res: Response) {
+    const logFile = 'onboarding-debug.log';
+    const log = (msg: string) => fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${msg}\n`);
+
     try {
       const {
         fullName,
@@ -115,23 +119,35 @@ export class OnboardingController {
         passwordConfirm
       } = req.body;
 
+      log(`Incoming Registration: ${JSON.stringify({ fullName, email, phone, schoolName, address, county })}`);
+
       if (!fullName || fullName.length < 2 || fullName.length > 100) {
+        log(`Validation Failed: Invalid Full Name: ${fullName}`);
+        console.warn('Onboarding 400: Invalid full name', { fullName });
         return res.status(400).json({ success: false, error: 'Invalid full name' });
       }
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!email || !emailRegex.test(email)) {
+        log(`Validation Failed: Invalid Email: ${email}`);
+        console.warn('Onboarding 400: Invalid email', { email });
         return res.status(400).json({ success: false, error: 'Invalid email' });
       }
       // Relaxed phone regex: supports + prefixed international or local 07/01/02
       // Supports: +254..., 07..., 01..., 02...
       const phoneRegex = /^(\+?[1-9]\d{1,14}|0[1-9]\d{8})$/;
       if (!phone || !phoneRegex.test(phone.replace(/\s+/g, ''))) {
+        log(`Validation Failed: Invalid Phone: ${phone}`);
+        console.warn('Onboarding 400: Invalid phone format', { phone });
         return res.status(400).json({ success: false, error: 'Invalid phone format (e.g., 0712345678 or +254712345678)' });
       }
       if (!address || !county || !schoolName || !password || !passwordConfirm) {
+        log(`Validation Failed: Missing Fields: ${JSON.stringify({ address, county, schoolName, hasPass: !!password, hasConfirm: !!passwordConfirm })}`);
+        console.warn('Onboarding 400: Missing required fields', { address, county, schoolName, password: !!password, passwordConfirm: !!passwordConfirm });
         return res.status(400).json({ success: false, error: 'Missing required fields' });
       }
       if (password !== passwordConfirm) {
+        log('Validation Failed: Passwords do not match');
+        console.warn('Onboarding 400: Passwords do not match');
         return res.status(400).json({ success: false, error: 'Passwords do not match' });
       }
       // Password strength: Match frontend (8+ chars) but keeping some complexity
@@ -142,6 +158,8 @@ export class OnboardingController {
         /\d/.test(password);
 
       if (!strong) {
+        log('Validation Failed: Weak Password');
+        console.warn('Onboarding 400: Password too weak');
         return res.status(400).json({
           success: false,
           error: 'Password must be at least 8 characters and include uppercase, lowercase, and numbers'
@@ -152,6 +170,8 @@ export class OnboardingController {
         where: { OR: [{ email }, { phone }] }
       });
       if (existingUser) {
+        log(`Validation Failed: User Exists: ${existingUser.email === email ? 'Email' : 'Phone'} match`);
+        console.warn('Onboarding 400: Email or phone already exists', { email, phone });
         return res.status(400).json({ success: false, error: 'Email or phone already exists' });
       }
 

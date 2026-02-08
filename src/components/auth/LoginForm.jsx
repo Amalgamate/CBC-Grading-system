@@ -261,26 +261,18 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
           {/* Main Content */}
           <div className="flex-1 flex items-center justify-center relative z-10">
             <div className="max-w-md text-center">
-              {/* Logo */}
-              <div className="mb-8 sm:mb-10">
-                <img
-                  src={brandingSettings?.logoUrl || '/logo-new.png'}
-                  alt="Elimcrown Logo"
-                  className="w-32 h-32 sm:w-40 sm:h-40 object-contain mx-auto drop-shadow-xl"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = '/logo-new.png';
-                  }}
-                />
+              {/* Premium Wordmark Logo */}
+              <div className="mb-12 text-center">
+                <div className="inline-flex items-center justify-center p-4 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl mb-8 transform hover:scale-105 transition-transform duration-500">
+                  <span className="text-5xl sm:text-6xl font-black tracking-tighter flex items-center gap-1">
+                    <span className="text-white">Elim</span>
+                    <span className="text-teal-300 font-light">crown</span>
+                  </span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white/90 tracking-tight">
+                  Amazing software for amazing schools.
+                </h2>
               </div>
-
-              {/* Welcome Message */}
-              <h2 className="text-3xl sm:text-5xl font-extrabold mb-4 drop-shadow-md text-center tracking-tight">
-                ElimCrown
-              </h2>
-              <p className="text-[#f4f0f2] text-lg sm:text-xl leading-relaxed text-center font-light">
-                Amazing software for amazing schools.
-              </p>
             </div>
           </div>
 

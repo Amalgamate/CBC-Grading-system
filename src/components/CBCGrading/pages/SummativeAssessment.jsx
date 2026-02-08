@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Save, Search, Loader, ArrowLeft, Lock, Printer, UploadCloud, Database
 } from 'lucide-react';
+import VirtualizedTable from '../shared/VirtualizedTable';
 import { assessmentAPI, gradingAPI, classAPI, configAPI, learnerAPI } from '../../../services/api';
 import { useNotifications } from '../hooks/useNotifications';
 import EmptyState from '../shared/EmptyState';
@@ -664,7 +665,7 @@ Are you sure you want to unlock this test?`;
   // Render Step 1: Setup
   if (step === 1) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-8 max-w-7xl mx-auto">
+      <div className="bg-white rounded-lg shadow-sm p-8">
         <h2 className="text-xl font-bold text-gray-800 mb-8 pb-4 border-b">Summative Assessment</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
@@ -795,7 +796,7 @@ Are you sure you want to unlock this test?`;
 
   // Render Step 2: Assess
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="space-y-6">
       {/* Warning Banner for Locked Tests */}
       {isTestLocked && (
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
@@ -1175,64 +1176,61 @@ Are you sure you want to unlock this test?`;
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-brand-purple text-white">
-              <tr>
+          <VirtualizedTable
+            data={filteredLearners}
+            rowHeight={40} // Compact row height for assessment
+            visibleHeight={500}
+            emptyComponent={
+              <div className="px-6 py-12 text-center text-gray-500 text-sm">
+                No learners found for this grade/stream.
+              </div>
+            }
+            header={
+              <tr className="bg-brand-purple text-white">
                 <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-10 border-r border-brand-purple/20">No</th>
                 <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-20 border-r border-brand-purple/20">Adm No</th>
                 <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide border-r border-brand-purple/20">Student Name</th>
                 <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-20 border-r border-brand-purple/20">Score</th>
                 <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide w-72">Performance Descriptor</th>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredLearners.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="px-6 py-6 text-center text-gray-500 text-sm">
-                    No learners found for this grade/stream.
+            }
+            renderRow={(learner, index) => {
+              const score = marks[learner.id];
+              return (
+                <tr key={learner.id} className={`${index % 2 === 1 ? 'bg-[#f8fafc]' : 'bg-white'} hover:bg-[#f1f5f9] transition`}>
+                  <td className="px-3 py-1.5 text-xs text-center font-semibold text-gray-700 border-r border-gray-200">{index + 1}</td>
+                  <td className="px-3 py-1.5 text-xs text-center font-semibold text-gray-900 border-r border-gray-200">{learner.admissionNumber}</td>
+                  <td className="px-3 py-1.5 text-xs font-bold text-[#1e293b] border-r border-gray-200">
+                    {learner.firstName?.toUpperCase()} {learner.lastName?.toUpperCase()}
+                  </td>
+                  <td className="px-3 py-1.5 text-center border-r border-gray-200">
+                    {isTestLocked && score ? (
+                      <span className="inline-block font-bold text-sm text-gray-900">
+                        {score}
+                      </span>
+                    ) : (
+                      <input
+                        type="number"
+                        min="0"
+                        max={selectedTest?.totalMarks}
+                        value={marks[learner.id] ?? ''}
+                        onChange={(e) => handleMarkChange(learner.id, e.target.value)}
+                        disabled={isTestLocked}
+                        className={`w-full px-2 py-1 border rounded focus:ring-2 focus:ring-brand-purple outline-none transition text-center font-semibold text-xs ${isTestLocked
+                          ? 'bg-gray-100 border-gray-200 cursor-not-allowed text-gray-500'
+                          : 'border-gray-300 bg-white'
+                          }`}
+                        placeholder="-"
+                      />
+                    )}
+                  </td>
+                  <td className="px-3 py-1.5 text-[10px] text-[#475569] italic leading-snug">
+                    {getDescriptionForGrade(marks[learner.id], selectedTest?.totalMarks, learner.firstName)}
                   </td>
                 </tr>
-              ) : (
-                filteredLearners.map((learner, index) => {
-                  const score = marks[learner.id];
-
-                  return (
-                    <tr key={learner.id} className={`${index % 2 === 1 ? 'bg-[#f8fafc]' : 'bg-white'} hover:bg-[#f1f5f9] transition`}>
-                      <td className="px-3 py-1.5 text-xs text-center font-semibold text-gray-700 border-r border-gray-200">{index + 1}</td>
-                      <td className="px-3 py-1.5 text-xs text-center font-semibold text-gray-900 border-r border-gray-200">{learner.admissionNumber}</td>
-                      <td className="px-3 py-1.5 text-xs font-bold text-[#1e293b] border-r border-gray-200">
-                        {learner.firstName?.toUpperCase()} {learner.lastName?.toUpperCase()}
-                      </td>
-                      <td className="px-3 py-1.5 text-center border-r border-gray-200">
-                        {isTestLocked && score ? (
-                          <span className="inline-block font-bold text-sm text-gray-900">
-                            {score}
-                          </span>
-                        ) : (
-                          <input
-                            type="number"
-                            min="0"
-                            max={selectedTest?.totalMarks}
-                            value={marks[learner.id] ?? ''}
-                            onChange={(e) => handleMarkChange(learner.id, e.target.value)}
-                            disabled={isTestLocked}
-                            className={`w-full px-2 py-1 border rounded focus:ring-2 focus:ring-brand-purple outline-none transition text-center font-semibold text-xs ${isTestLocked
-                              ? 'bg-gray-100 border-gray-200 cursor-not-allowed text-gray-500'
-                              : 'border-gray-300 bg-white'
-                              }`}
-                            placeholder="-"
-                          />
-                        )}
-                      </td>
-                      <td className="px-3 py-1.5 text-[10px] text-[#475569] italic leading-snug">
-                        {getDescriptionForGrade(marks[learner.id], selectedTest?.totalMarks, learner.firstName)}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+              );
+            }}
+          />
         </div>
       </div>
 

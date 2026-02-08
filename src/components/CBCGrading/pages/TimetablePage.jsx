@@ -66,45 +66,24 @@ const TimetablePage = () => {
         </div>
       </div>
 
-      {/* Coming Soon Banner */}
-      <div className="bg-gradient-to-r from-brand-purple to-brand-teal rounded-xl p-6 text-white shadow-lg overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-brand-teal/20 rounded-full -ml-16 -mb-16 blur-2xl"></div>
-        <div className="flex items-start gap-4">
-          <div className="p-3 bg-white/20 rounded-lg">
-            <Calendar className="w-8 h-8" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-xl font-bold mb-2">Full Timetable Management Coming Soon!</h3>
-            <p className="text-white/80 mb-4 font-medium">
-              We're working on a comprehensive timetable management system with features like:
-            </p>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-white/90 font-medium">
-              <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                Automatic timetable generation
-              </li>
-              <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                Conflict detection & resolution
-              </li>
-              <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                Teacher availability management
-              </li>
-              <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                Room allocation & optimization
-              </li>
-              <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                Mobile app for teachers & students
-              </li>
-              <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                Real-time updates & notifications
-              </li>
-            </ul>
+      {/* Actions Toolbar */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-bold text-gray-800">Class Timetable</h2>
+          <p className="text-sm text-gray-500">Manage daily schedules and room allocations</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex bg-gray-100 p-1 rounded-lg">
+            <button
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${true ? 'bg-white text-brand-purple shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Weekly View
+            </button>
+            <button
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${false ? 'bg-white text-brand-purple shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Daily View
+            </button>
           </div>
         </div>
       </div>

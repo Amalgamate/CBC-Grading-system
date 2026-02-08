@@ -3,7 +3,7 @@ import { Bell, LogOut, Zap, ChevronDown, ClipboardList, BarChart3, MessageSquare
 import { usePermissions } from '../../../hooks/usePermissions';
 import api, { schoolAPI } from '../../../services/api';
 
-const Header = ({ user, onLogout, brandingSettings, title }) => {
+const Header = React.memo(({ user, onLogout, brandingSettings, title }) => {
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [showSchoolPicker, setShowSchoolPicker] = useState(false);
   const [schools, setSchools] = useState([]);
@@ -374,6 +374,8 @@ const Header = ({ user, onLogout, brandingSettings, title }) => {
       </div>
     </div>
   );
-};
+});
+
+Header.displayName = 'Header';
 
 export default Header;

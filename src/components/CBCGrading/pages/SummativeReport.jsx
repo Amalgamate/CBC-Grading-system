@@ -4,16 +4,15 @@
  */
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import {
-  Search, Download, Plus, ChevronDown, Printer, Loader, Mail, MessageSquare, Save, CreditCard, UploadCloud, AlertCircle, CheckCircle, XCircle, MessageCircle
-} from 'lucide-react';
+import { Download, Loader, MessageCircle, MoreVertical, Printer, MessageSquare, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import VirtualizedTable from '../shared/VirtualizedTable';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useNotifications } from '../hooks/useNotifications';
 import { generateHighFidelityPDF } from '../../../utils/simplePdfGenerator';
 import api, { configAPI } from '../../../services/api';
 import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { getLearningAreasByGrade, getAllLearningAreas } from '../../../constants/learningAreas';
-import BulkAssessmentImport from '../shared/BulkAssessmentImport';
+
 
 const LEARNING_AREA_ABBREVIATIONS = {
   'MATHEMATICS': 'MAT',
@@ -83,6 +82,316 @@ const getCBCGrade = (percentage) => {
   return { grade: 'BE2', remark: 'Below Expectations 2 - Very Low', color: '#dc2626' };
 };
 
+// ============================================================================
+// LEARNER REPORT TEMPLATE COMPONENT (Reusable for Bulk Print)
+// ============================================================================
+const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingSettings, user, streamConfigs }) => {
+  // --- DATA PREPARATION LOGIC ---
+  const standardAreas = getLearningAreasByGrade(learner.grade);
+  const resultAreas = new Set(results?.map(r => r.learningArea || 'General') || []);
+  const configAreas = [];
+  if (streamConfigs && streamConfigs.length > 0) {
+    const gradeConfig = streamConfigs.find(sc => sc.grade === learner.grade);
+    if (gradeConfig?.streams) {
+      const streamConfig = gradeConfig.streams.find(s => !s.name || s.name === learner.stream);
+      if (streamConfig?.learningAreas) configAreas.push(...streamConfig.learningAreas);
+    }
+  }
+  const allAreasSet = new Set([...standardAreas, ...resultAreas, ...configAreas]);
+  const areasToDisplay = Array.from(allAreasSet).sort();
+  if (areasToDisplay.length === 0) areasToDisplay.push('General');
+
+  // Organize results by Area
+  const resultsByArea = {};
+  results?.forEach(result => {
+    const area = result.learningArea || 'General';
+    if (!resultsByArea[area]) resultsByArea[area] = [];
+    resultsByArea[area].push(result);
+  });
+
+  // Identify unique Test Types for Columns
+  const testTypesFound = new Set();
+  results?.forEach(r => {
+    const type = r.test?.testType || r.testType || 'Assessment';
+    testTypesFound.add(type);
+  });
+
+  const testColumns = Array.from(testTypesFound).sort();
+  const formatTestName = (str) => {
+    if (!str) return '';
+    return str.replace(/_/g, ' ')
+      .toLowerCase()
+      .replace(/\b\w/g, c => c.toUpperCase());
+  };
+
+  // Prepare row data
+  const tableRows = areasToDisplay.map(area => {
+    const areaResults = resultsByArea[area] || [];
+
+    // Map scores by test column
+    const scoresByCol = {};
+    testColumns.forEach(col => {
+      const match = areaResults.find(r => (r.test?.testType || r.testType || 'Assessment') === col);
+      scoresByCol[col] = match ? (match.score || 0) : null;
+    });
+
+    const testCount = areaResults.length;
+    const totalScore = areaResults.reduce((sum, r) => sum + (r.score || 0), 0);
+    const totalMarks = areaResults.reduce((sum, r) => sum + (r.totalMarks || 0), 0);
+    const percentage = totalMarks > 0 ? (totalScore / totalMarks) * 100 : 0;
+
+    let grade = '—';
+    let remark = '—';
+    let color = '#d1d5db';
+
+    if (testCount > 0 && totalMarks > 0) {
+      const res = getCBCGrade(percentage);
+      grade = res.grade;
+      remark = res.remark;
+      color = res.color;
+    }
+
+    return {
+      area,
+      scoresByCol,
+      testCount,
+      totalScore,
+      totalMarks,
+      percentage: parseFloat(percentage.toFixed(0)),
+      grade,
+      remark,
+      color
+    };
+  }).filter(row => row.testCount > 0);
+
+  return (
+    <div className="relative bg-white mx-auto overflow-hidden"
+      style={{
+        fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+        lineHeight: '1.2',
+        width: '210mm',
+        minHeight: '297mm',
+        padding: '12mm',
+        boxSizing: 'border-box'
+      }}
+    >
+      {/* Header Section */}
+      <div className="mb-0">
+        <table style={{ width: '100%', borderBottom: '3px solid #1e3a8a', paddingBottom: '10px' }}>
+          <tbody>
+            <tr>
+              {/* Logo */}
+              <td style={{ width: 'auto', verticalAlign: 'top' }}>
+                {brandingSettings?.logoUrl ? (
+                  <img
+                    src={brandingSettings.logoUrl}
+                    alt="Logo"
+                    style={{ height: '60px', width: 'auto', objectFit: 'contain' }}
+                  />
+                ) : (
+                  <div style={{ height: '60px', width: '60px', background: '#ccc', borderRadius: '50%' }}></div>
+                )}
+              </td>
+
+              {/* School Info - CENTERED & BOLD */}
+              <td style={{ textAlign: 'center', flex: 1, padding: '0 20px', verticalAlign: 'top' }}>
+                <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#1e3a8a', margin: '0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {user?.school?.name || brandingSettings?.schoolName || 'ACADEMIC SCHOOL'}
+                </h1>
+                <div style={{ fontSize: '11px', fontWeight: '600', color: '#555', marginTop: '4px' }}>
+                  MOTTO: {user?.school?.motto || 'Excellence in Education'}
+                </div>
+                <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>
+                  {user?.school?.location} | {user?.school?.phone} | {user?.school?.email}
+                </div>
+              </td>
+
+              {/* Report Meta */}
+              <td style={{ textAlign: 'right', verticalAlign: 'top' }}>
+                <div style={{ fontSize: '28px', fontWeight: '900', color: '#e5e7eb', lineHeight: '0.8' }}>REPORT</div>
+                <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#1e3a8a' }}>ACADEMIC YEAR {academicYear || 2026}</div>
+                <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#666' }}>{new Date().toLocaleDateString()}</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h1 className="text-xl font-extrabold text-center uppercase tracking-wide text-blue-900 my-4" style={{ fontFamily: 'Inter, sans-serif' }}>
+        Summative Assessment Report
+      </h1>
+
+      {/* Student Info Table (Compact) */}
+      <div className="mb-4 text-xs">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '11px', border: '1px solid #e2e8f0', padding: '8px', borderRadius: '4px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 8px' }}>
+            <div style={{ fontWeight: 'bold', color: '#444' }}>NAME:</div>
+            <div style={{ fontWeight: 'bold', color: '#000', textTransform: 'uppercase' }}>{learner.firstName} {learner.lastName}</div>
+
+            <div style={{ fontWeight: 'bold', color: '#444' }}>ADM NO:</div>
+            <div style={{ fontWeight: 'bold' }}>{learner.admissionNumber || '—'}</div>
+
+            <div style={{ fontWeight: 'bold', color: '#444' }}>GENDER:</div>
+            <div style={{ textTransform: 'capitalize' }}>{learner.gender?.toLowerCase() || '—'}</div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 8px' }}>
+            <div style={{ fontWeight: 'bold', color: '#444' }}>GRADE:</div>
+            <div style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{learner.grade?.replace(/_/g, ' ')}</div>
+
+            <div style={{ fontWeight: 'bold', color: '#444' }}>STREAM:</div>
+            <div style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{learner.stream || 'A'}</div>
+
+            <div style={{ fontWeight: 'bold', color: '#444' }}>AGE:</div>
+            <div>
+              {learner.dateOfBirth
+                ? `${new Date().getFullYear() - new Date(learner.dateOfBirth).getFullYear()} Yrs`
+                : '—'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Results Table */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', marginBottom: '15px' }}>
+        <thead>
+          <tr style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
+            <th style={{ padding: '8px 4px', textAlign: 'left', fontWeight: 'bold' }}>SUBJECT</th>
+            {testColumns.map(col => (
+              <th key={col} style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 'bold', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>
+                {formatTestName(col)}
+              </th>
+            ))}
+            <th style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 'bold', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>AVG %</th>
+            <th style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 'bold', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>GRADE</th>
+            <th style={{ padding: '8px 4px', textAlign: 'left', fontWeight: 'bold', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>REMARKS</th>
+          </tr>
+        </thead>
+        <tbody>
+          {tableRows.map((row, idx) => (
+            <tr key={row.area} style={{ backgroundColor: idx % 2 === 0 ? '#f8fafc' : 'white', borderBottom: '1px solid #e2e8f0' }}>
+              <td style={{ padding: '6px 4px', fontWeight: '600', color: '#334155' }}>{row.area}</td>
+              {testColumns.map(col => (
+                <td key={col} style={{ padding: '6px 4px', textAlign: 'center', color: '#475569' }}>
+                  {row.scoresByCol[col] !== null ? row.scoresByCol[col] : '—'}
+                </td>
+              ))}
+              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 'bold', color: '#1e293b' }}>{row.percentage}%</td>
+              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 'bold', color: row.color }}>{row.grade}</td>
+              <td style={{ padding: '6px 4px', fontSize: '9px', fontStyle: 'italic', color: '#64748b' }}>{row.remark}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Summary Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '20px' }}>
+        {(() => {
+          const totalTests = tableRows.reduce((acc, r) => acc + r.testCount, 0);
+          const totalMax = tableRows.reduce((acc, r) => acc + r.totalMarks, 0);
+          const avgPct = totalMax > 0 ? (tableRows.reduce((acc, r) => acc + r.totalScore, 0) / totalMax * 100).toFixed(0) : 0;
+
+          let overallGrade = 'E';
+          if (avgPct >= 90) overallGrade = 'EE1';
+          else if (avgPct >= 75) overallGrade = 'EE2';
+          else if (avgPct >= 58) overallGrade = 'ME1';
+          else if (avgPct >= 41) overallGrade = 'ME2';
+          else if (avgPct >= 31) overallGrade = 'AE1';
+          else if (avgPct >= 21) overallGrade = 'AE2';
+          else if (avgPct >= 11) overallGrade = 'BE1';
+          else overallGrade = 'BE2';
+
+          const cardStyle = { padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'center', backgroundColor: '#f8fafc' };
+          const labelStyle = { fontSize: '9px', fontWeight: 'bold', color: '#64748b', marginBottom: '2px', textTransform: 'uppercase' };
+          const valueStyle = { fontSize: '14px', fontWeight: '900', color: '#0f172a' };
+
+          return (
+            <>
+              <div style={cardStyle}>
+                <div style={labelStyle}>Subjects Assessed</div>
+                <div style={valueStyle}>{tableRows.length}</div>
+              </div>
+              <div style={cardStyle}>
+                <div style={labelStyle}>Total Assessments</div>
+                <div style={valueStyle}>{totalTests}</div>
+              </div>
+              <div style={cardStyle}>
+                <div style={labelStyle}>Average Score</div>
+                <div style={valueStyle}>{avgPct}%</div>
+              </div>
+              <div style={{ ...cardStyle, backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }}>
+                <div style={{ ...labelStyle, color: '#1e40af' }}>Overall Grade</div>
+                <div style={{ ...valueStyle, color: '#1e3a8a' }}>{overallGrade}</div>
+              </div>
+            </>
+          );
+        })()}
+      </div>
+
+      {/* Performance Chart */}
+      <div className="mb-6 page-break-inside-avoid">
+        <h3 className="text-xs font-bold text-gray-800 uppercase border-b-2 border-gray-200 mb-2 pb-1">Subject Performance</h3>
+        <div style={{ height: '180px', width: '100%' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={tableRows} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <XAxis dataKey="area" interval={0} height={60} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} tick={{ fontSize: 8 }} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+              <Bar dataKey="percentage" radius={[6, 6, 0, 0]} barSize={40}>
+                {tableRows.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} fillOpacity={0.85} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Grading Key */}
+      <div className="mb-6 page-break-inside-avoid">
+        <h3 className="text-xs font-bold text-gray-800 uppercase border-b-2 border-gray-200 mb-2 pb-1">Grading Key</h3>
+        <div className="grid grid-cols-4 gap-2 text-[9px]">
+          <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#15803d] text-white flex items-center justify-center font-bold rounded-sm">EE1</span> <span>90-100% (Outstanding)</span></div>
+          <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#166534] text-white flex items-center justify-center font-bold rounded-sm">EE2</span> <span>75-89% (Very High)</span></div>
+          <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#22c55e] text-white flex items-center justify-center font-bold rounded-sm">ME1</span> <span>58-74% (High Avg)</span></div>
+          <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#4ade80] text-gray-900 flex items-center justify-center font-bold rounded-sm">ME2</span> <span>41-57% (Average)</span></div>
+          <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#eab308] text-white flex items-center justify-center font-bold rounded-sm">AE1</span> <span>31-40% (Low Avg)</span></div>
+          <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#facc15] text-gray-900 flex items-center justify-center font-bold rounded-sm">AE2</span> <span>21-30% (Below Avg)</span></div>
+          <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#f97316] text-white flex items-center justify-center font-bold rounded-sm">BE1</span> <span>11-20% (Low)</span></div>
+          <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#dc2626] text-white flex items-center justify-center font-bold rounded-sm">BE2</span> <span>0-10% (Very Low)</span></div>
+        </div>
+      </div>
+
+      {/* Signatures Section */}
+      <div className="mt-8 pt-4 border-t-2 border-gray-100 flex justify-between items-end page-break-inside-avoid">
+        <div className="flex flex-col gap-8 w-1/2 pr-8">
+          <div className="border-b border-black border-dotted pb-1 text-sm font-medium">Class Teacher's Remarks:</div>
+        </div>
+        <div className="relative flex flex-col items-center gap-2">
+          {/* Principal's Stamp */}
+          <div className="absolute -top-12 opacity-80 pointer-events-none">
+            <img
+              src="/Zawadi-School--Stamp.png"
+              alt="School Stamp"
+              className="w-32 h-auto"
+              style={{ mixBlendMode: 'multiply' }}
+            />
+          </div>
+          <div className="w-48 border-b border-black border-dotted mt-16"></div>
+          <div className="text-[10px] uppercase font-bold tracking-wider">Principal's Signature & Stamp</div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid #ddd', fontSize: '9px', textAlign: 'center', color: '#777', pageBreakBefore: 'avoid', minHeight: '40px' }}>
+        <div>This is an official report generated by the Assessment System.</div>
+        <div style={{ marginTop: '2px' }}>For inquiries, contact the administration office.</div>
+      </div>
+    </div>
+  );
+};
+
+
 const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) => {
   const { showSuccess, showError } = useNotifications();
 
@@ -137,7 +446,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       </g>
     );
   };
-  const [showBulkImport, setShowBulkImport] = useState(false);
+
   const [statusMessage, setStatusMessage] = useState('');
   const [showTestGroupOptions, setShowTestGroupOptions] = useState(false);
   const [showTestOptions, setShowTestOptions] = useState(false);
@@ -145,7 +454,30 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
   const [showComplianceDetails, setShowComplianceDetails] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [pdfProgress, setPdfProgress] = useState('');
+  // Bulk Actions State
+  const [isBulkPrinting, setIsBulkPrinting] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, active: false, success: 0, failed: 0 });
+
   const reportRef = useRef(null);
+  const testGroupRef = useRef(null);
+  const testOptionsRef = useRef(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (testGroupRef.current && !testGroupRef.current.contains(event.target)) {
+        setShowTestGroupOptions(false);
+      }
+      if (testOptionsRef.current && !testOptionsRef.current.contains(event.target)) {
+        setShowTestOptions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
 
   // Local learner fetching state
@@ -449,7 +781,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
   }, [streamConfigs, learners, selectedGrade]);
 
   const handleExportPDF = async () => {
-    if (!reportData?.learner) {
+    if (!reportData) {
       showError(
         'No report data to export. Please generate a report first by clicking the "Generate Report" button.'
       );
@@ -460,18 +792,15 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     setIsExporting(true);
     try {
       const timestamp = new Date().toISOString().split('T')[0];
-      const filename = `${reportData.learner.firstName}_${reportData.learner.lastName}_Summative_Report_${timestamp}.pdf`;
+      let filename = `Summative_Report_${timestamp}.pdf`;
 
-      const schoolInfo = {
-        schoolName: user?.school?.name || brandingSettings?.schoolName || 'School',
-        address: user?.school?.location || 'School Address',
-        phone: user?.school?.phone || 'Phone Number',
-        email: user?.school?.email || 'email@school.com',
-        website: user?.school?.website || 'www.school.com',
-        logoUrl: brandingSettings?.logoUrl || user?.school?.logo || '/logo-zawadi.png',
-        brandColor: brandingSettings?.brandColor || '#1e3a8a',
-        skipLetterhead: true, // Report already has its own letterhead in the content
-      };
+      if (reportData.learner) {
+        filename = `${reportData.learner.firstName}_${reportData.learner.lastName}_Summative_Report_${timestamp}.pdf`;
+      } else if (reportData.title) {
+        filename = `${reportData.title.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.pdf`;
+      }
+
+
 
       const result = await generateHighFidelityPDF(
         'summative-report-content',
@@ -612,6 +941,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     }).join('\n');
 
     // 3. Construct the Final Message (Clean & Professional)
+    // 3. Construct the Final Message (Clean & Professional)
     const waMessage =
       `*${schoolName.toUpperCase()}*\n` +
       `_Official Assessment Report_\n\n` +
@@ -638,9 +968,119 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     window.open(whatsappUrl, '_blank');
   };
 
+
+
   /**
-   * Final Execution of SMS sending
+   * Bulk SMS Handler
    */
+  const handleBulkSMS = async () => {
+    if (!reportData?.rows || reportData.rows.length === 0) {
+      showError('No learners to send SMS to');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to send SMS results to ${reportData.rows.length} parents? This action cannot be undone.`)) {
+      return;
+    }
+
+    setBulkProgress({ current: 0, total: reportData.rows.length, active: true, success: 0, failed: 0 });
+    const total = reportData.rows.length;
+
+    for (let i = 0; i < total; i++) {
+      const row = reportData.rows[i];
+      const learner = row.learner;
+
+      try {
+        // Prepare Data
+        const parentPhone = learner.guardianPhone || learner.parentPhoneNumber || learner.parentPhone;
+        if (!parentPhone) {
+          setBulkProgress(prev => ({ ...prev, current: i + 1, failed: prev.failed + 1 }));
+          continue;
+        }
+
+        const parentName = learner.guardianName || 'Parent';
+        const termLabel = terms.find(t => t.value === selectedTerm)?.label || selectedTerm;
+        const schoolName = brandingSettings?.schoolName || 'YOUR SCHOOL';
+
+        // Generate Message Content
+        const results = row.results || [];
+        const totalMarks = row.totalScore;
+        const maxPossibleMarks = row.totalMax;
+        const averageScore = row.averagePct;
+        const overallGrade = row.grade;
+
+        const subjects = results.reduce((acc, r) => {
+          const area = r.learningArea || 'General';
+          const pct = r.totalMarks > 0 ? (r.score / r.totalMarks) * 100 : 0;
+          const { grade } = getCBCGrade(pct);
+          const simpleGrade = grade.replace(/\d+/g, '');
+          acc[area] = { score: Math.round(r.score), grade: simpleGrade };
+          return acc;
+        }, {});
+
+        // Send via API
+        await api.notifications.sendAssessmentReportSms({
+          learnerId: learner.id,
+          learnerName: `${learner.firstName} ${learner.lastName}`,
+          learnerGrade: learner.grade,
+          parentPhone: parentPhone,
+          parentName: parentName,
+          term: termLabel,
+          totalTests: results.length,
+          averageScore: averageScore,
+          overallGrade: overallGrade.replace(/\d+/g, ''),
+          totalMarks: totalMarks,
+          maxPossibleMarks: maxPossibleMarks,
+          subjects: subjects
+        });
+
+        setBulkProgress(prev => ({ ...prev, current: i + 1, success: prev.success + 1 }));
+
+      } catch (err) {
+        console.error(`Failed to send SMS to ${learner.firstName}:`, err);
+        setBulkProgress(prev => ({ ...prev, current: i + 1, failed: prev.failed + 1 }));
+      }
+
+      // Small delay to prevent rate limiting
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    setTimeout(() => {
+      setBulkProgress(prev => ({ ...prev, active: false }));
+      showSuccess('Bulk SMS processing completed');
+    }, 1000);
+  };
+
+  /**
+   * Bulk Print Handler
+   */
+  const handleBulkPrint = async () => {
+    if (!reportData?.rows || reportData.rows.length === 0) return;
+    if (isBulkPrinting) return;
+
+    setIsBulkPrinting(true);
+    setPdfProgress('Preparing bulk reports...');
+
+    try {
+      // Wait for render
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `${reportData.title.replace(/[^a-zA-Z0-9]/g, '_')}_Detailed_Reports_${timestamp}.pdf`;
+
+      await generateHighFidelityPDF('bulk-print-content', filename, {
+        onProgress: setPdfProgress
+      });
+      showSuccess('Bulk reports downloaded successfully');
+    } catch (err) {
+      console.error('Bulk print error:', err);
+      showError('Failed to generate bulk PDF');
+    } finally {
+      setIsBulkPrinting(false);
+      setPdfProgress('');
+    }
+  };
+
   const executeSendSMS = async () => {
     if (!smsPreviewData) return;
 
@@ -719,7 +1159,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       }
     }
 
-    if (selectedType === 'STREAM_REPORT' && selectedStream === 'all') {
+    if (selectedType === 'STREAM_REPORT' && (!selectedStream || selectedStream === 'all')) {
       setStatusMessage('❌ Error: Please select a stream');
       showError('Please select a stream');
       return;
@@ -728,13 +1168,18 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     setLoading(true);
     setStatusMessage('⏳ Generating report...');
 
+    const queryParams = {
+      term: selectedTerm,
+      academicYear: setup.academicYear
+    };
+    if (selectedGrade && selectedGrade !== 'all') queryParams.grade = selectedGrade;
+    if (selectedStream && selectedStream !== 'all') queryParams.stream = selectedStream;
+
     try {
       if (selectedType === 'LEARNER_REPORT' || selectedType === 'LEARNER_TERMLY_REPORT') {
-        // Fetch learner's ALL test results (optionally filtered by test type)
+        // Fetch learner's ALL test results
         const learner = filteredLearners?.find(l => l.id === selectedLearnerId);
-
         if (!learner) {
-          setStatusMessage('❌ Error: Learner not found');
           showError('Learner not found');
           setLoading(false);
           return;
@@ -742,67 +1187,63 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
 
         setStatusMessage(`📚 Loading results for ${learner.firstName} ${learner.lastName}...`);
 
-        // Build query parameters
-        const queryParams = {
-          term: selectedTerm && selectedTerm !== 'all' ? selectedTerm : undefined,
-          academicYear: academicYear
-        };
+        // Fetch results for this learner
+        let processedResults = [];
 
-        // Remove undefined values
-        Object.keys(queryParams).forEach(key =>
-          queryParams[key] === undefined && delete queryParams[key]
-        );
-
-        console.log('📋 Fetching results with params:', queryParams);
-
-        // Fetch learner's summative results using the correct API method
-        const response = await api.assessments.getSummativeByLearner(selectedLearnerId, queryParams);
-
-        console.log('📦 API Response:', response);
-
-        const results = Array.isArray(response?.data) ? response.data : (response?.data ? [response.data] : []);
-
-        console.log('✅ Parsed results:', results);
-
-        // Filter by test group(s) (testType) if selected
-        let filteredResults = results;
-
-        if (selectedTestGroups && selectedTestGroups.length > 0) {
-          // Find all test IDs that belong to the selected test group(s)
-          const testIdsInGroups = availableTests
-            .filter(t => selectedTestGroups.includes(t.testType))
-            .map(t => t.id);
-
-          filteredResults = results.filter(r => testIdsInGroups.includes(r.testId));
-          console.log(`📌 Filtered by test groups [${selectedTestGroups.join(', ')}]: ${filteredResults.length} results`);
+        if (selectedTestIds.length > 0) {
+          // Specific tests selected
+          for (const testId of selectedTestIds) {
+            try {
+              const res = await api.assessments.getTestResults(testId);
+              if (res.success && res.data) {
+                const myResult = res.data.find(r => r.learnerId === selectedLearnerId);
+                if (myResult) {
+                  // Attach test details
+                  const test = availableTests.find(t => t.id === testId);
+                  processedResults.push({ ...myResult, test });
+                }
+              }
+            } catch (e) {
+              console.error(`Failed to fetch results for test ${testId}`, e);
+            }
+          }
+        } else {
+          // Fetch by learner ID directly (more efficient)
+          const res = await api.assessments.getSummativeByLearner(selectedLearnerId, queryParams);
+          if (res.success) {
+            processedResults = res.data || [];
+          }
         }
 
-        // Further filter by specific test IDs if selected
-        if (selectedTestIds && selectedTestIds.length > 0) {
-          filteredResults = filteredResults.filter(r => selectedTestIds.includes(r.testId));
-          console.log(`📌 Further filtered by specific tests [${selectedTestIds.join(', ')}]: ${filteredResults.length} results`);
+        // Filter results by selected test groups if any
+        if (selectedTestGroups.length > 0) {
+          processedResults = processedResults.filter(r => {
+            const type = r.test?.testType || r.testType;
+            return selectedTestGroups.includes(type);
+          });
         }
 
-        // Process results to include metadata from test relation for compliance checks
-        const processedResults = filteredResults.map(r => {
-          const score = r.marksObtained !== undefined ? r.marksObtained : r.score;
-          const totalMarks = r.test?.totalMarks || r.totalMarks || 100;
+        // Process results
+        processedResults = processedResults.map(r => {
+          const test = r.test || availableTests.find(t => t.id === r.testId) || {};
+          const score = r.score !== undefined ? r.score : r.marksObtained;
+          const totalMarks = r.totalMarks || test.totalMarks || 100;
           const percentage = totalMarks > 0 ? (score / totalMarks) * 100 : 0;
           const { grade, remark } = getCBCGrade(percentage);
 
           return {
             ...r,
-            score,
-            totalMarks,
-            learningArea: r.test?.learningArea || r.learningArea || 'General',
-            testType: r.test?.testType || r.testType || 'Assessment',
-
+            test: { ...test, ...r.test }, // Merge
+            learningArea: r.learningArea || test.learningArea || 'General',
+            score: Number(score || 0),
+            totalMarks: Number(totalMarks),
+            percentage: parseFloat(percentage.toFixed(1)),
+            grade,
+            remark,
             // Map CBC compliance fields
             competency: r.test?.learningArea || r.learningArea || 'General',
             achievementLevel: grade,
             competencyLevel: grade,
-            remark: remark,
-            strand: r.test?.learningArea || r.learningArea || 'General',
             assessmentType: r.test?.testType || 'SUMMATIVE',
             status: r.test?.published ? 'PUBLISHED' : (r.status || 'DRAFT'),
             publishedAt: r.test?.testDate || new Date(),
@@ -810,7 +1251,6 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           };
         });
 
-        // Sort results by date (newest first)
         processedResults.sort((a, b) => {
           const dateA = new Date(a.testDate || (a.test && a.test.testDate) || 0);
           const dateB = new Date(b.testDate || (b.test && b.test.testDate) || 0);
@@ -840,7 +1280,217 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             : 0
         });
 
-        showSuccess(`Report generated for ${learner.firstName} ${learner.lastName} - ${filteredResults.length} test(s) found`);
+        showSuccess(`Report generated for ${learner.firstName} ${learner.lastName}`);
+      }
+      else if (selectedType === 'GRADE_REPORT' || selectedType === 'STREAM_REPORT' || selectedType === 'STREAM_RANKING_REPORT') {
+        // --- BROADSHEET GENERATION LOGIC ---
+
+        // 1. Identify Target Learners
+        let targetLearners = filteredLearners;
+        if (selectedType === 'STREAM_REPORT') {
+          if (!selectedStream || selectedStream === 'all') {
+            showError('Please select a specific stream for Stream Report');
+            setLoading(false);
+            return;
+          }
+        }
+
+        if (targetLearners.length === 0) {
+          showError('No learners found for the selected Grade/Stream');
+          setLoading(false);
+          return;
+        }
+
+        setStatusMessage(`⏳ Fetching results for ${targetLearners.length} learners...`);
+
+        // 2. Identify Target Tests
+        let targetTests = availableTests;
+        if (selectedTestIds.length > 0) {
+          targetTests = availableTests.filter(t => selectedTestIds.includes(t.id));
+        } else if (selectedTestGroups.length > 0) {
+          targetTests = availableTests.filter(t => selectedTestGroups.includes(t.testType));
+        }
+
+        if (targetTests.length === 0) {
+          showError('No tests found for this selection');
+          setLoading(false);
+          return;
+        }
+
+        // 3. Fetch Results (Bulk or Iterative)
+        const allResultsMap = {}; // learnerId -> [results]
+        let processedCount = 0;
+
+        // Initialize map
+        targetLearners.forEach(l => allResultsMap[l.id] = []);
+
+        for (const test of targetTests) {
+          try {
+            // Fetch results for this test
+            const res = await api.assessments.getTestResults(test.id);
+            if (res.success && res.data) {
+              res.data.forEach(result => {
+                if (allResultsMap[result.learnerId]) {
+                  allResultsMap[result.learnerId].push({
+                    ...result,
+                    test: test,
+                    learningArea: test.learningArea,
+                    maxScore: test.totalMarks || 100
+                  });
+                }
+              });
+            }
+            processedCount++;
+            if (processedCount % 5 === 0) {
+              setStatusMessage(`⏳ Processed ${processedCount}/${targetTests.length} tests...`);
+            }
+          } catch (err) {
+            console.error(`Failed to fetch results for test ${test.id}`, err);
+          }
+        }
+
+        // 4. Aggregate Data for Broadsheet
+        const broadsheetData = targetLearners.map(learner => {
+          const learnerResults = allResultsMap[learner.id] || [];
+
+          // Aggregates
+          const totalScore = learnerResults.reduce((sum, r) => sum + (r.score || 0), 0);
+          const totalMax = learnerResults.reduce((sum, r) => sum + (r.maxScore || 100), 0);
+          const averagePct = totalMax > 0 ? (totalScore / totalMax) * 100 : 0;
+          const { grade, remark } = getCBCGrade(averagePct);
+
+          // Subject Breakdown
+          const subjectScores = {};
+          learnerResults.forEach(r => {
+            const area = r.learningArea || 'General';
+            if (!subjectScores[area]) subjectScores[area] = 0;
+            subjectScores[area] += (r.score || 0);
+          });
+
+          return {
+            learner,
+            results: learnerResults,
+            totalScore,
+            totalMax,
+            averagePct: parseFloat(averagePct.toFixed(1)),
+            grade,
+            remark,
+            subjectScores
+          };
+        });
+
+        // 5. Ranking
+        broadsheetData.sort((a, b) => b.averagePct - a.averagePct);
+        const rankedData = broadsheetData.map((d, index) => ({ ...d, position: index + 1 }));
+
+        setReportData({
+          type: selectedType,
+          title: selectedType === 'GRADE_REPORT' ? `Grade Report - ${selectedGrade}` : `Stream Report - ${selectedGrade} ${selectedStream}`,
+          rows: rankedData,
+          subjects: Array.from(new Set(targetTests.map(t => t.learningArea))).sort(),
+          generatedAt: new Date(),
+          meta: {
+            grade: selectedGrade,
+            stream: selectedStream,
+            term: selectedTerm,
+            totalLearners: targetLearners.length
+          }
+        });
+        showSuccess(`Generated ${selectedType.replace(/_/g, ' ')} for ${targetLearners.length} students`);
+      }
+      else if (selectedType.includes('ANALYSIS')) {
+        // --- ANALYSIS REPORT LOGIC ---
+
+        if (!selectedGrade || selectedGrade === 'all') {
+          showError('Please select a Grade for analysis');
+          setLoading(false);
+          return;
+        }
+
+        let targetTests = availableTests;
+        if (selectedTestIds.length > 0) {
+          targetTests = availableTests.filter(t => selectedTestIds.includes(t.id));
+        } else if (selectedTestGroups.length > 0) {
+          targetTests = availableTests.filter(t => selectedTestGroups.includes(t.testType));
+        }
+
+        if (targetTests.length === 0) {
+          showError('No tests available for analysis');
+          setLoading(false);
+          return;
+        }
+
+        setStatusMessage('⏳ Analyzing subject performance...');
+
+        // Fetch all results
+        const allResults = [];
+        for (const test of targetTests) {
+          const res = await api.assessments.getTestResults(test.id);
+          if (res.success && res.data) {
+            res.data.forEach(r => {
+              allResults.push({ ...r, test, learningArea: test.learningArea });
+            });
+          }
+        }
+
+        // Aggregate by Subject
+        const subjects = {};
+
+        allResults.forEach(r => {
+          const area = r.learningArea || 'General';
+          if (!subjects[area]) subjects[area] = { totalScore: 0, totalMax: 0, count: 0, scores: [] };
+
+          subjects[area].totalScore += (r.score || 0);
+          subjects[area].totalMax += (r.test?.totalMarks || 100);
+          subjects[area].count++;
+
+          const pct = (r.test?.totalMarks > 0) ? ((r.score || 0) / r.test.totalMarks * 100) : 0;
+          subjects[area].scores.push(pct);
+        });
+
+        // Calculate subject stats
+        const subjectStats = Object.keys(subjects).map(area => {
+          const data = subjects[area];
+          const mean = data.totalMax > 0 ? (data.totalScore / data.totalMax * 100) : 0;
+          return {
+            subject: area,
+            mean: parseFloat(mean.toFixed(1)),
+            count: data.count,
+            highest: Math.max(...data.scores).toFixed(1),
+            lowest: Math.min(...data.scores).toFixed(1)
+          };
+        }).sort((a, b) => b.mean - a.mean);
+
+        // Grade Distribution
+        const gradeDist = { 'EE': 0, 'ME': 0, 'AE': 0, 'BE': 0 };
+
+        const learnerMap = {};
+        allResults.forEach(r => {
+          if (!learnerMap[r.learnerId]) learnerMap[r.learnerId] = { score: 0, max: 0 };
+          learnerMap[r.learnerId].score += (r.score || 0);
+          learnerMap[r.learnerId].max += (r.test?.totalMarks || 100);
+        });
+
+        Object.values(learnerMap).forEach(l => {
+          const avg = l.max > 0 ? (l.score / l.max * 100) : 0;
+          const { grade } = getCBCGrade(avg);
+          const simpleGrade = grade.substring(0, 2);
+          if (gradeDist[simpleGrade] !== undefined) gradeDist[simpleGrade]++;
+        });
+
+        setReportData({
+          type: selectedType,
+          title: `Performance Analysis - ${selectedGrade}`,
+          subjectStats,
+          gradeDist,
+          generatedAt: new Date(),
+          meta: {
+            grade: selectedGrade,
+            stream: selectedStream,
+            term: selectedTerm
+          }
+        });
+        showSuccess('Analysis report generated');
       }
 
       setLoading(false);
@@ -854,7 +1504,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-8 max-w-7xl mx-auto">
+    <div className="bg-white rounded-lg shadow-sm p-8">
       <h2 className="text-xl font-bold text-gray-800 mb-8 pb-4 border-b">Summary Report</h2>
 
       {/* FILTER CONTROLS - Hidden from PDF */}
@@ -862,11 +1512,11 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
         {/* First Row: Type, Grade, Stream */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Type</label>
+            <label className="premium-label">Type</label>
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple bg-white"
+              className="premium-select"
             >
               <option value="">Select Type</option>
               {reportTypes.map(t => (
@@ -878,11 +1528,11 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Grade</label>
+            <label className="premium-label">Grade</label>
             <select
               value={selectedGrade}
               onChange={(e) => setSelectedGrade(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple bg-white"
+              className="premium-select"
             >
               <option value="">Select Grade</option>
               <option value="all">All Grades</option>
@@ -900,11 +1550,11 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Stream</label>
+            <label className="premium-label">Stream</label>
             <select
               value={selectedStream}
               onChange={(e) => setSelectedStream(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple bg-white"
+              className="premium-select"
             >
               <option value="all">All Streams</option>
               {availableStreams.map(s => (
@@ -919,11 +1569,11 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
         {/* Second Row: Term and Test Group */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Academic Term</label>
+            <label className="premium-label">Academic Term</label>
             <select
               value={selectedTerm}
               onChange={(e) => setSelectedTerm(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple bg-white"
+              className="premium-select"
             >
               {terms.map(t => (
                 <option key={t.value} value={t.value}>
@@ -933,11 +1583,11 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Test Group</label>
+          <div ref={testGroupRef}>
+            <label className="premium-label">Test Group</label>
             <button
               onClick={() => setShowTestGroupOptions(!showTestGroupOptions)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple bg-white text-left flex justify-between items-center"
+              className="premium-input text-left flex justify-between items-center cursor-pointer"
             >
               <span>
                 {selectedTestGroups.length === 0
@@ -992,11 +1642,11 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
 
         {/* Third Row: Specific Test (optional deeper filtering) and Learner (if applicable) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Specific Tests (Optional)</label>
+          <div ref={testOptionsRef}>
+            <label className="premium-label">Specific Tests (Optional)</label>
             <button
               onClick={() => setShowTestOptions(!showTestOptions)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple bg-white text-left flex justify-between items-center"
+              className="premium-input text-left flex justify-between items-center cursor-pointer"
             >
               <span>
                 {selectedTestIds.length === 0
@@ -1056,7 +1706,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           {/* Learner Selector - Shows for both Learner Report types */}
           {(selectedType === 'LEARNER_REPORT' || selectedType === 'LEARNER_TERMLY_REPORT') && (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Learner<span className="text-red-500">*</span></label>
+              <label className="premium-label">Learner<span className="text-red-500">*</span></label>
               {console.log('🧑 Learners available:', learners?.length, 'Grade:', selectedGrade, 'Stream:', selectedStream)}
               {learners && learners.length > 0 && console.log('   Sample learner:', {
                 id: learners[0].id,
@@ -1078,7 +1728,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                     <select
                       value={selectedLearnerId}
                       onChange={(e) => setSelectedLearnerId(e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-brand-purple bg-white"
+                      className="premium-select"
                     >
                       <option value="">Select Learner</option>
                       {displayLearners.length > 0 ? (
@@ -1111,13 +1761,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
 
         {/* Generate Button */}
         <div className="flex justify-end pt-4 mb-6">
-          <button
-            onClick={() => setShowBulkImport(true)}
-            className="px-6 py-3 border border-brand-teal text-brand-teal rounded-lg hover:bg-brand-teal/5 transition font-bold flex items-center gap-2"
-          >
-            <UploadCloud size={18} />
-            Bulk Import
-          </button>
+
 
           <button
             onClick={handleGenerate}
@@ -1156,336 +1800,17 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           <div
             id="summative-report-content"
             ref={reportRef}
-            className="bg-white mx-auto shadow-2xl overflow-hidden"
-            style={{
-              fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-              lineHeight: '1.2',
-              width: '210mm',
-              minHeight: '297mm',
-              padding: '12mm',
-              boxSizing: 'border-box'
-            }}
+            className="rounded-xl overflow-hidden"
           >
-            {(() => {
-              // --- DATA PREPARATION LOGIC ---
-              const standardAreas = getLearningAreasByGrade(reportData.learner.grade);
-              const resultAreas = new Set(reportData.results?.map(r => r.learningArea || 'General') || []);
-              const configAreas = [];
-              if (streamConfigs && streamConfigs.length > 0) {
-                const gradeConfig = streamConfigs.find(sc => sc.grade === reportData.learner.grade);
-                if (gradeConfig?.streams) {
-                  const streamConfig = gradeConfig.streams.find(s => !s.name || s.name === reportData.learner.stream);
-                  if (streamConfig?.learningAreas) configAreas.push(...streamConfig.learningAreas);
-                }
-              }
-              const allAreasSet = new Set([...standardAreas, ...resultAreas, ...configAreas]);
-              const areasToDisplay = Array.from(allAreasSet).sort();
-              if (areasToDisplay.length === 0) areasToDisplay.push('General');
-
-              // Organize results by Area
-              const resultsByArea = {};
-              reportData.results?.forEach(result => {
-                const area = result.learningArea || 'General';
-                if (!resultsByArea[area]) resultsByArea[area] = [];
-                resultsByArea[area].push(result);
-              });
-
-              // Identify unique Test Types for Columns
-              const testTypesFound = new Set();
-              reportData.results?.forEach(r => {
-                const type = r.test?.testType || r.testType || 'Assessment';
-                testTypesFound.add(type);
-              });
-
-              const testColumns = Array.from(testTypesFound).sort();
-              const formatTestName = (str) => {
-                if (!str) return '';
-                return str.replace(/_/g, ' ')
-                  .toLowerCase()
-                  .replace(/\b\w/g, c => c.toUpperCase());
-              };
-
-              // Prepare row data
-              const tableRows = areasToDisplay.map(area => {
-                const areaResults = resultsByArea[area] || [];
-
-                // Map scores by test column
-                const scoresByCol = {};
-                testColumns.forEach(col => {
-                  const match = areaResults.find(r => (r.test?.testType || r.testType || 'Assessment') === col);
-                  scoresByCol[col] = match ? (match.score || 0) : null;
-                });
-
-                const testCount = areaResults.length;
-                const totalScore = areaResults.reduce((sum, r) => sum + (r.score || 0), 0);
-                const totalMarks = areaResults.reduce((sum, r) => sum + (r.totalMarks || 0), 0);
-                const percentage = totalMarks > 0 ? (totalScore / totalMarks) * 100 : 0;
-
-                let grade = '—';
-                let remark = '—';
-                let color = '#d1d5db';
-
-                if (testCount > 0 && totalMarks > 0) {
-                  const res = getCBCGrade(percentage);
-                  grade = res.grade;
-                  remark = res.remark;
-                  color = res.color;
-                }
-
-                return {
-                  area,
-                  scoresByCol,
-                  testCount,
-                  totalScore,
-                  totalMarks,
-                  percentage: parseFloat(percentage.toFixed(0)),
-                  grade,
-                  remark,
-                  color
-                };
-              }).filter(row => row.testCount > 0);
-
-              return (
-                <div className="relative">
-
-                  {/* Header Section */}
-                  <div className="mb-0">
-                    <table style={{ width: '100%', borderBottom: '3px solid #1e3a8a', paddingBottom: '10px' }}>
-                      <tbody>
-                        <tr>
-                          {/* Logo */}
-                          <td style={{ width: 'auto', verticalAlign: 'top' }}>
-                            {brandingSettings?.logoUrl ? (
-                              <img
-                                src={brandingSettings.logoUrl}
-                                alt="Logo"
-                                style={{ height: '60px', width: 'auto', objectFit: 'contain' }}
-                              />
-                            ) : (
-                              <div style={{ height: '60px', width: '60px', background: '#ccc', borderRadius: '50%' }}></div>
-                            )}
-                          </td>
-
-                          {/* School Info - CENTERED & BOLD */}
-                          <td style={{ textAlign: 'center', flex: 1, padding: '0 20px', verticalAlign: 'top' }}>
-                            <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#1e3a8a', margin: '0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              {user?.school?.name || brandingSettings?.schoolName || 'ACADEMIC SCHOOL'}
-                            </h1>
-                            <div style={{ fontSize: '11px', fontWeight: '600', color: '#555', marginTop: '4px' }}>
-                              MOTTO: {user?.school?.motto || 'Excellence in Education'}
-                            </div>
-                            <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>
-                              {user?.school?.location} | {user?.school?.phone} | {user?.school?.email}
-                            </div>
-                          </td>
-
-                          {/* Report Meta */}
-                          <td style={{ textAlign: 'right', verticalAlign: 'top' }}>
-                            <div style={{ fontSize: '28px', fontWeight: '900', color: '#e5e7eb', lineHeight: '0.8' }}>REPORT</div>
-                            <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#1e3a8a' }}>ACADEMIC YEAR {reportData.term?.academicYear || 2026}</div>
-                            <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#666' }}>{new Date().toLocaleDateString()}</div>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <h1 className="text-xl font-extrabold text-center uppercase tracking-wide text-blue-900 my-4" style={{ fontFamily: 'Inter, sans-serif' }}>
-                    Summative Assessment Report
-                  </h1>
-
-                  {/* Student Info Table (Compact) */}
-                  <div className="mb-4 text-xs">
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '11px', border: '1px solid #e2e8f0', padding: '8px', borderRadius: '4px' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 8px' }}>
-                        <div style={{ fontWeight: 'bold', color: '#444' }}>NAME:</div>
-                        <div style={{ fontWeight: 'bold', color: '#000', textTransform: 'uppercase' }}>{reportData.learner.firstName} {reportData.learner.lastName}</div>
-
-                        <div style={{ fontWeight: 'bold', color: '#444' }}>ADM NO:</div>
-                        <div style={{ fontWeight: 'bold' }}>{reportData.learner.admissionNumber || '—'}</div>
-
-                        <div style={{ fontWeight: 'bold', color: '#444' }}>GENDER:</div>
-                        <div style={{ textTransform: 'capitalize' }}>{reportData.learner.gender?.toLowerCase() || '—'}</div>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 8px' }}>
-                        <div style={{ fontWeight: 'bold', color: '#444' }}>GRADE:</div>
-                        <div style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{reportData.learner.grade?.replace(/_/g, ' ')}</div>
-
-                        <div style={{ fontWeight: 'bold', color: '#444' }}>STREAM:</div>
-                        <div style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{reportData.learner.stream || 'A'}</div>
-
-                        <div style={{ fontWeight: 'bold', color: '#444' }}>AGE:</div>
-                        <div>
-                          {reportData.learner.dateOfBirth
-                            ? `${new Date().getFullYear() - new Date(reportData.learner.dateOfBirth).getFullYear()} Yrs`
-                            : '—'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Results Table */}
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', marginBottom: '15px' }}>
-                    <thead>
-                      <tr style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
-                        <th style={{ padding: '8px 4px', textAlign: 'left', fontWeight: 'bold' }}>SUBJECT</th>
-                        {testColumns.map(col => (
-                          <th key={col} style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 'bold', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>
-                            {formatTestName(col)}
-                          </th>
-                        ))}
-                        <th style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 'bold', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>AVG %</th>
-                        <th style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 'bold', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>GRADE</th>
-                        <th style={{ padding: '8px 4px', textAlign: 'left', fontWeight: 'bold', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>REMARKS</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tableRows.map((row, idx) => (
-                        <tr key={row.area} style={{ backgroundColor: idx % 2 === 0 ? '#f8fafc' : 'white', borderBottom: '1px solid #e2e8f0' }}>
-                          <td style={{ padding: '6px 4px', fontWeight: '600', color: '#334155' }}>{row.area}</td>
-                          {testColumns.map(col => (
-                            <td key={col} style={{ padding: '6px 4px', textAlign: 'center', color: '#475569' }}>
-                              {row.scoresByCol[col] !== null ? row.scoresByCol[col] : '—'}
-                            </td>
-                          ))}
-                          <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 'bold', color: '#1e293b' }}>{row.percentage}%</td>
-                          <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 'bold', color: row.color }}>{row.grade}</td>
-                          <td style={{ padding: '6px 4px', fontSize: '9px', fontStyle: 'italic', color: '#64748b' }}>{row.remark}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-
-                  {/* Summary Cards */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '20px' }}>
-                    {(() => {
-                      const totalTests = tableRows.reduce((acc, r) => acc + r.testCount, 0);
-                      const totalScore = tableRows.reduce((acc, r) => acc + r.totalScore, 0);
-                      const totalMax = tableRows.reduce((acc, r) => acc + r.totalMarks, 0);
-                      const avgPct = totalMax > 0 ? (totalScore / totalMax * 100).toFixed(0) : 0;
-
-                      let overallGrade = 'E';
-                      if (avgPct >= 90) overallGrade = 'EE1';
-                      else if (avgPct >= 75) overallGrade = 'EE2';
-                      else if (avgPct >= 58) overallGrade = 'ME1';
-                      else if (avgPct >= 41) overallGrade = 'ME2';
-                      else if (avgPct >= 31) overallGrade = 'AE1';
-                      else if (avgPct >= 21) overallGrade = 'AE2';
-                      else if (avgPct >= 11) overallGrade = 'BE1';
-                      else overallGrade = 'BE2';
-
-                      const cardStyle = { padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'center', backgroundColor: '#f8fafc' };
-                      const labelStyle = { fontSize: '9px', fontWeight: 'bold', color: '#64748b', marginBottom: '2px', textTransform: 'uppercase' };
-                      const valueStyle = { fontSize: '14px', fontWeight: '900', color: '#0f172a' };
-
-                      return (
-                        <>
-                          <div style={cardStyle}>
-                            <div style={labelStyle}>Subjects Assessed</div>
-                            <div style={valueStyle}>{tableRows.length}</div>
-                          </div>
-                          <div style={cardStyle}>
-                            <div style={labelStyle}>Total Assessments</div>
-                            <div style={valueStyle}>{totalTests}</div>
-                          </div>
-                          <div style={cardStyle}>
-                            <div style={labelStyle}>Average Score</div>
-                            <div style={valueStyle}>{avgPct}%</div>
-                          </div>
-                          <div style={{ ...cardStyle, backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }}>
-                            <div style={{ ...labelStyle, color: '#1e40af' }}>Overall Grade</div>
-                            <div style={{ ...valueStyle, color: '#1e3a8a' }}>{overallGrade}</div>
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Performance Chart */}
-                  <div className="mb-6 page-break-inside-avoid">
-                    <h3 className="text-xs font-bold text-gray-800 uppercase border-b-2 border-gray-200 mb-2 pb-1">Subject Performance</h3>
-                    <div style={{ height: '180px', width: '100%' }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={tableRows} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                          <XAxis
-                            dataKey="area"
-                            interval={0}
-                            tick={<CustomXAxisTick />}
-                            height={60}
-                            axisLine={{ stroke: '#e2e8f0' }}
-                            tickLine={false}
-                          />
-                          <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                          <Tooltip
-                            cursor={{ fill: '#f8fafc', opacity: 0.4 }}
-                            contentStyle={{
-                              borderRadius: '8px',
-                              border: 'none',
-                              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-                              fontSize: '12px',
-                              fontWeight: 'bold',
-                              padding: '8px 12px'
-                            }}
-                          />
-                          <Bar dataKey="percentage" radius={[6, 6, 0, 0]} barSize={40}>
-                            {tableRows.map((entry, index) => (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={CHART_COLORS[index % CHART_COLORS.length]}
-                                fillOpacity={0.85}
-                              />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  {/* Grading Key */}
-                  <div className="mb-6 page-break-inside-avoid">
-                    <h3 className="text-xs font-bold text-gray-800 uppercase border-b-2 border-gray-200 mb-2 pb-1">Grading Key</h3>
-                    <div className="grid grid-cols-4 gap-2 text-[9px]">
-                      <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#15803d] text-white flex items-center justify-center font-bold rounded-sm">EE1</span> <span>90-100% (Outstanding)</span></div>
-                      <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#166534] text-white flex items-center justify-center font-bold rounded-sm">EE2</span> <span>75-89% (Very High)</span></div>
-                      <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#22c55e] text-white flex items-center justify-center font-bold rounded-sm">ME1</span> <span>58-74% (High Avg)</span></div>
-                      <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#4ade80] text-gray-900 flex items-center justify-center font-bold rounded-sm">ME2</span> <span>41-57% (Average)</span></div>
-                      <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#eab308] text-white flex items-center justify-center font-bold rounded-sm">AE1</span> <span>31-40% (Low Avg)</span></div>
-                      <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#facc15] text-gray-900 flex items-center justify-center font-bold rounded-sm">AE2</span> <span>21-30% (Below Avg)</span></div>
-                      <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#f97316] text-white flex items-center justify-center font-bold rounded-sm">BE1</span> <span>11-20% (Low)</span></div>
-                      <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#dc2626] text-white flex items-center justify-center font-bold rounded-sm">BE2</span> <span>0-10% (Very Low)</span></div>
-                    </div>
-                  </div>
-
-                  {/* Signatures Section */}
-                  <div className="mt-8 pt-4 border-t-2 border-gray-100 flex justify-between items-end page-break-inside-avoid">
-                    <div className="flex flex-col gap-8 w-1/2 pr-8">
-                      <div className="border-b border-black border-dotted pb-1 text-sm font-medium">Class Teacher's Remarks:</div>
-                    </div>
-                    <div className="relative flex flex-col items-center gap-2">
-                      {/* Principal's Stamp */}
-                      <div className="absolute -top-12 opacity-80 pointer-events-none">
-                        <img
-                          src="/Zawadi-School--Stamp.png"
-                          alt="School Stamp"
-                          className="w-32 h-auto"
-                          style={{ mixBlendMode: 'multiply' }}
-                        />
-                      </div>
-                      <div className="w-48 border-b border-black border-dotted mt-16"></div>
-                      <div className="text-[10px] uppercase font-bold tracking-wider">Principal's Signature & Stamp</div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* FOOTER - MOVED DOWN COMPLETELY */}
-            <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid #ddd', fontSize: '9px', textAlign: 'center', color: '#777', pageBreakBefore: 'avoid', minHeight: '40px' }}>
-              <div>This is an official report generated by the Assessment System.</div>
-              <div style={{ marginTop: '2px' }}>For inquiries, contact the administration office.</div>
-            </div>
+            <LearnerReportTemplate
+              learner={reportData.learner}
+              results={reportData.results}
+              term={reportData.term}
+              academicYear={reportData.term?.academicYear}
+              brandingSettings={brandingSettings}
+              user={user}
+              streamConfigs={streamConfigs}
+            />
           </div>
 
           {/* PRINT CONTROLS - OUTSIDE PDF CONTENT */}
@@ -1525,6 +1850,239 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             >
               {isExporting ? <Loader size={18} className="animate-spin" /> : <Download size={18} />}
               {isExporting ? '⏳ Exporting...' : '📥 Export PDF'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* GRADE / STREAM REPORT DISPLAY - BROADSHEET */}
+      {(reportData?.type === 'GRADE_REPORT' || reportData?.type === 'STREAM_REPORT' || reportData?.type === 'STREAM_RANKING_REPORT') && reportData?.rows && (
+        <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
+          <div
+            id="summative-report-content"
+            className="bg-white mx-auto shadow-2xl overflow-hidden"
+            style={{
+              fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+              lineHeight: '1.2',
+              width: '297mm', // Landscape for broadsheet
+              minHeight: '210mm',
+              padding: '10mm',
+              boxSizing: 'border-box'
+            }}
+          >
+            {/* Header */}
+            <div className="text-center mb-6 border-b-2 border-blue-900 pb-4">
+              <h1 className="text-2xl font-bold text-blue-900 uppercase">{reportData.title}</h1>
+              <p className="text-sm text-gray-600 font-bold mt-1">
+                {setup.academicYear} | {reportData.meta?.term?.replace(/_/g, ' ')}
+              </p>
+              <div className="flex justify-between items-end mt-4 text-xs font-bold text-gray-500">
+                <div>CLASS: {reportData.meta?.grade} {reportData.meta?.stream !== 'all' ? reportData.meta?.stream : ''}</div>
+                <div>GENERATED: {new Date().toLocaleDateString()}</div>
+              </div>
+            </div>
+
+            {/* BULK ACTIONS BAR */}
+            <div className="no-print flex justify-between items-center mb-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
+              <div className="flex gap-4">
+                <button
+                  onClick={handleBulkPrint}
+                  disabled={isBulkPrinting}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition disabled:opacity-50"
+                >
+                  {isBulkPrinting ? <Loader className="animate-spin" size={16} /> : <Printer size={16} />}
+                  {isBulkPrinting ? 'Generating PDF...' : 'Print All Learners'}
+                </button>
+                <button
+                  onClick={handleBulkSMS}
+                  disabled={bulkProgress.active}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition disabled:opacity-50"
+                >
+                  {bulkProgress.active ? <Loader className="animate-spin" size={16} /> : <MessageSquare size={16} />}
+                  {bulkProgress.active ? `Sending (${bulkProgress.current}/${bulkProgress.total})` : 'Send SMS to All'}
+                </button>
+              </div>
+
+              {bulkProgress.active && (
+                <div className="text-sm font-medium text-gray-700">
+                  Success: <span className="text-green-600">{bulkProgress.success}</span> |
+                  Failed: <span className="text-red-600">{bulkProgress.failed}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Broadsheet Table */}
+            <div className="overflow-x-auto">
+              <VirtualizedTable
+                data={reportData.rows}
+                rowHeight={28} // Compact broadsheet row height
+                visibleHeight={500}
+                className="no-print border border-gray-200"
+                header={
+                  <tr style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
+                    <th style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center', width: '30px' }}>#</th>
+                    <th style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'left', minWidth: '150px' }}>LEARNER NAME</th>
+                    {reportData.subjects.map(subj => (
+                      <th key={subj} style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center', writingMode: 'vertical-rl', transform: 'rotate(180deg)', minHeight: '80px' }}>
+                        {getAbbreviatedName(subj)}
+                      </th>
+                    ))}
+                    <th style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center' }}>TOTAL</th>
+                    <th style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center' }}>AVG %</th>
+                    <th style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center' }}>GRD</th>
+                    <th className="no-print" style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center', width: '40px' }}>ACT</th>
+                  </tr>
+                }
+                renderRow={(row, idx) => (
+                  <tr key={row.learner.id} style={{ backgroundColor: idx % 2 === 0 ? 'white' : '#f8fafc' }}>
+                    <td style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{row.position}</td>
+                    <td style={{ padding: '4px', border: '1px solid #e2e8f0', fontWeight: 'bold' }}>
+                      {row.learner.firstName} {row.learner.lastName}
+                    </td>
+                    {reportData.subjects.map(subj => (
+                      <td key={subj} style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                        {row.subjectScores[subj] || '-'}
+                      </td>
+                    ))}
+                    <td style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 'bold' }}>{Math.round(row.totalScore)}</td>
+                    <td style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 'bold' }}>{row.averagePct}%</td>
+                    <td style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 'bold', color: row.grade?.includes('EE') ? 'green' : row.grade?.includes('ME') ? 'blue' : 'orange' }}>
+                      {row.grade}
+                    </td>
+                    <td className="no-print" style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                      <button
+                        title="Share via WhatsApp"
+                        onClick={() => {
+                          const learner = row.learner;
+                          const parentPhone = learner.guardianPhone || learner.parentPhoneNumber;
+                          if (!parentPhone) {
+                            alert('No parent phone number');
+                            return;
+                          }
+                          const msg = `*${brandingSettings?.schoolName || 'SCHOOL'} REPORT*\nName: ${learner.firstName}\nMean: ${row.averagePct}%\nGrade: ${row.grade}`;
+                          let cleanPhone = parentPhone.replace(/\D/g, '');
+                          if (cleanPhone.startsWith('0')) cleanPhone = '254' + cleanPhone.substring(1);
+                          window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+                        }}
+                        className="p-1 bg-green-100 text-green-600 rounded hover:bg-green-200"
+                      >
+                        <MessageCircle size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="no-print mt-8 flex gap-4 justify-center">
+            <button
+              onClick={() => setReportData(null)}
+              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded text-sm font-semibold transition"
+            >
+              ← Back
+            </button>
+            <button
+              onClick={handleExportPDF}
+              disabled={isExporting}
+              className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold transition flex items-center gap-2"
+            >
+              {isExporting ? <Loader size={18} className="animate-spin" /> : <Download size={18} />}
+              {isExporting ? 'Exporting...' : 'Export Broadsheet PDF'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ANALYSIS REPORT DISPLAY */}
+      {reportData?.type?.includes('ANALYSIS') && (
+        <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
+          <div
+            id="summative-report-content"
+            className="bg-white mx-auto shadow-2xl overflow-hidden"
+            style={{
+              fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+              lineHeight: '1.2',
+              width: '210mm',
+              minHeight: '297mm',
+              padding: '12mm',
+              boxSizing: 'border-box'
+            }}
+          >
+            <div className="text-center mb-8 border-b-2 border-blue-900 pb-4">
+              <h1 className="text-2xl font-bold text-blue-900 uppercase">{reportData.title}</h1>
+              <p className="text-sm text-gray-600 font-bold mt-1">
+                {setup.academicYear} | {reportData.meta?.term?.replace(/_/g, ' ')}
+              </p>
+            </div>
+
+            {/* Subject Performance Table */}
+            <div className="mb-8">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-blue-600 pl-2">Subject Performance Analysis</h2>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f1f5f9', color: '#1e293b' }}>
+                    <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #cbd5e1' }}>SUBJECT</th>
+                    <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>LEARNERS</th>
+                    <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>MEAN SCORE</th>
+                    <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>HIGHEST</th>
+                    <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>LOWEST</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.subjectStats.map((stat, idx) => (
+                    <tr key={stat.subject} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ padding: '8px', fontWeight: '600' }}>{stat.subject}</td>
+                      <td style={{ padding: '8px', textAlign: 'center' }}>{stat.count}</td>
+                      <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: '#2563eb' }}>{stat.mean}%</td>
+                      <td style={{ padding: '8px', textAlign: 'center', color: '#16a34a' }}>{stat.highest}%</td>
+                      <td style={{ padding: '8px', textAlign: 'center', color: '#dc2626' }}>{stat.lowest}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Grade Distribution */}
+            <div className="mb-8">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-blue-600 pl-2">Grade Distribution</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                <div className="p-4 bg-green-50 rounded border border-green-200 text-center">
+                  <div className="text-2xl font-bold text-green-700">{reportData.gradeDist['EE'] || 0}</div>
+                  <div className="text-xs font-bold text-green-800 uppercase mt-1">Exceeding Exp.</div>
+                </div>
+                <div className="p-4 bg-blue-50 rounded border border-blue-200 text-center">
+                  <div className="text-2xl font-bold text-blue-700">{reportData.gradeDist['ME'] || 0}</div>
+                  <div className="text-xs font-bold text-blue-800 uppercase mt-1">Meeting Exp.</div>
+                </div>
+                <div className="p-4 bg-yellow-50 rounded border border-yellow-200 text-center">
+                  <div className="text-2xl font-bold text-yellow-700">{reportData.gradeDist['AE'] || 0}</div>
+                  <div className="text-xs font-bold text-yellow-800 uppercase mt-1">Approaching Exp.</div>
+                </div>
+                <div className="p-4 bg-red-50 rounded border border-red-200 text-center">
+                  <div className="text-2xl font-bold text-red-700">{reportData.gradeDist['BE'] || 0}</div>
+                  <div className="text-xs font-bold text-red-800 uppercase mt-1">Below Exp.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="no-print mt-8 flex gap-4 justify-center">
+            <button
+              onClick={() => setReportData(null)}
+              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded text-sm font-semibold transition"
+            >
+              ← Back
+            </button>
+            <button
+              onClick={handleExportPDF}
+              disabled={isExporting}
+              className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold transition flex items-center gap-2"
+            >
+              {isExporting ? <Loader size={18} className="animate-spin" /> : <Download size={18} />}
+              {isExporting ? 'Exporting...' : 'Export Analysis PDF'}
             </button>
           </div>
         </div>
@@ -1646,22 +2204,24 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           </div>
         </div>
       )}
-      {/* Bulk Assessment Import Modal */}
-      <BulkAssessmentImport
-        show={showBulkImport}
-        onClose={() => setShowBulkImport(false)}
-        onSuccess={() => {
-          setShowBulkImport(false);
-          // Optionally refresh tests/data
-          if (setup.selectedGrade && setup.selectedTerm) {
-            // Trigger a refresh if needed
-          }
-        }}
-        academicYear={academicYear}
-        term={selectedTerm}
-        grade={selectedGrade}
-        learningAreas={getAllLearningAreas()}
-      />
+
+      {/* HIDDEN CONTAINER FOR BULK PRINTING */}
+      <div id="bulk-print-content" style={{ position: 'absolute', top: -10000, left: -10000 }}>
+        {(isBulkPrinting) && reportData?.rows?.map((row, idx) => (
+          <div key={idx} style={{ pageBreakAfter: 'always' }}>
+            <LearnerReportTemplate
+              learner={row.learner}
+              results={row.results}
+              term={selectedTerm}
+              academicYear={setup.academicYear}
+              brandingSettings={brandingSettings}
+              user={user}
+              streamConfigs={streamConfigs}
+            />
+          </div>
+        ))}
+      </div>
+
     </div>
   );
 };

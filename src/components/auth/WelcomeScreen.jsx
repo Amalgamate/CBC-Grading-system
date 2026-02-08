@@ -13,16 +13,14 @@ export default function WelcomeScreen({ user, onGetStarted, brandingSettings }) 
 
       {/* Simple centered content */}
       <div className="text-center px-6 max-w-2xl">
-        {/* Logo */}
-        <img
-          src={brandingSettings?.logoUrl || '/logo-zawadi.png'}
-          alt="School Logo"
-          className="w-24 h-24 object-contain mx-auto mb-6"
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = '/logo-zawadi.png';
-          }}
-        />
+        <div className="mb-12 text-center">
+          <div className="inline-flex items-center justify-center p-4 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl mb-8 transform hover:scale-105 transition-transform duration-500">
+            <span className="text-5xl sm:text-6xl font-black tracking-tighter flex items-center gap-1">
+              <span className="text-white">Elim</span>
+              <span className="text-teal-300 font-light">crown</span>
+            </span>
+          </div>
+        </div>
 
         {/* Success Icon */}
         <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full mb-6 shadow-lg">

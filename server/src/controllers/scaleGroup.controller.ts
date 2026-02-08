@@ -502,66 +502,112 @@ export const generateGradesForScaleGroup = async (req: AuthRequest, res: Respons
       });
     }
 
-    const created = [];
+    // FIX: Optimized Bulk Creation logic
+    // 1. Identify existing systems to avoid duplicates
+    const existingSystems = await prisma.gradingSystem.findMany({
+      where: {
+        scaleGroupId: id,
+        grade: { in: grades },
+        schoolId: schoolId,
+        archived: false
+      },
+      select: {
+        grade: true,
+        learningArea: true
+      }
+    });
 
-    // FIX: Loop through EACH GRADE and EACH LEARNING AREA
+    const existingSet = new Set(existingSystems.map(s => `${s.grade}|${s.learningArea}`));
+    const systemsToCreate: any[] = [];
+
+    // 2. Prepare systems for bulk creation
     for (const grade of grades) {
       for (const learningArea of LEARNING_AREAS) {
-        // Check if already exists
-        const existing = await prisma.gradingSystem.findFirst({
-          where: {
-            scaleGroupId: id,
-            grade,
-            learningArea,
-            schoolId: schoolId, // TypeScript now knows it's not null
-            archived: false
-          }
-        });
-
-        if (existing) {
-          console.log(`⏭️  Skipping ${grade} - ${learningArea} (already exists)`);
-          continue;
-        }
-
-        // Create grading system for this specific learning area
-        const system = await prisma.gradingSystem.create({
-          data: {
+        if (!existingSet.has(`${grade}|${learningArea}`)) {
+          systemsToCreate.push({
             name: `${grade.replace('_', ' ')} - ${learningArea}`,
             type: 'SUMMATIVE',
             scaleGroupId: id,
             grade,
             learningArea,
-            schoolId: schoolId, // TypeScript now knows it's not null
-            active: true,
-            ranges: {
-              create: ranges.map((r: any) => ({
-                label: r.label || r.rating,
-                minPercentage: parseFloat(r.minPercentage || r.mark || 0),
-                maxPercentage: parseFloat(r.maxPercentage || 100),
-                points: parseInt(r.points || r.score || 0),
-                description: r.description || r.desc || '',
-                rubricRating: r.rubricRating || r.rating || null
-              }))
-            }
-          },
-          include: {
-            ranges: {
-              orderBy: { minPercentage: 'desc' }
-            }
-          }
-        });
-
-        created.push(system);
-        console.log(`✅ Created ${grade} - ${learningArea}`);
+            schoolId: schoolId,
+            active: true
+          });
+        } else {
+          console.log(`⏭️  Skipping ${grade} - ${learningArea} (already exists)`);
+        }
       }
     }
 
-    console.log(`\n🎉 Successfully created ${created.length} grading systems total!`);
+    if (systemsToCreate.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        message: 'All grading systems already exist. No new systems created.'
+      });
+    }
+
+    // 3. Execute Bulk Creation Transaction
+    const createdCount = await prisma.$transaction(async (tx) => {
+      // A. Bulk Create Systems
+      const createSystemsResult = await tx.gradingSystem.createMany({
+        data: systemsToCreate
+      });
+
+      // B. Fetch the newly created systems (or all systems in scope needed for ranges)
+      // We look for systems in this group/grades that don't have ranges yet?
+      // Or simply all systems we just "intended" to create.
+      // Since createMany doesn't return IDs, we fetch all relevant ones and check if they need ranges.
+      const systemsNeedingRanges = await tx.gradingSystem.findMany({
+        where: {
+          scaleGroupId: id,
+          grade: { in: grades },
+          schoolId: schoolId,
+          archived: false,
+          ranges: {
+            none: {} // Only find those with NO ranges
+          }
+        },
+        select: { id: true }
+      });
+
+      if (systemsNeedingRanges.length === 0) return createSystemsResult.count;
+
+      // C. Prepare Ranges for Bulk Creation
+      const rangesToCreate: any[] = [];
+      const templateRanges = ranges.map((r: any) => ({
+        label: r.label || r.rating,
+        minPercentage: parseFloat(r.minPercentage || r.mark || 0),
+        maxPercentage: parseFloat(r.maxPercentage || 100),
+        points: parseInt(r.points || r.score || 0),
+        description: r.description || r.desc || '',
+        rubricRating: r.rubricRating || r.rating || null
+      }));
+
+      for (const system of systemsNeedingRanges) {
+        for (const template of templateRanges) {
+          rangesToCreate.push({
+            ...template,
+            systemId: system.id
+          });
+        }
+      }
+
+      // D. Bulk Create Ranges
+      if (rangesToCreate.length > 0) {
+        await tx.gradingRange.createMany({
+          data: rangesToCreate
+        });
+      }
+
+      return createSystemsResult.count;
+    });
+
+    console.log(`\n🎉 Successfully created ${createdCount} grading systems via bulk op!`);
 
     res.json({
       success: true,
-      data: created,
-      message: `Successfully created ${created.length} grading systems (${LEARNING_AREAS.length} learning areas × ${grades.length} grade(s))`
+      message: `Successfully created ${createdCount} grading systems (${LEARNING_AREAS.length} learning areas × ${grades.length} grade(s))`
     });
 
   } catch (error: any) {

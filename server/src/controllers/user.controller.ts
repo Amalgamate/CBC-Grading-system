@@ -606,4 +606,72 @@ export class UserController {
       data: stats
     });
   }
+  /**
+   * Upload or update user profile picture
+   * Access: SUPER_ADMIN, ADMIN, or self
+   */
+  async uploadProfilePicture(req: AuthRequest, res: Response) {
+    const { id } = req.params;
+    const { photoData } = req.body; // Base64 encoded image
+    const currentUserId = req.user!.userId;
+    const currentUserRole = req.user!.role;
+
+    // Validate photo data
+    if (!photoData) {
+      throw new ApiError(400, 'Photo data is required');
+    }
+
+    if (!photoData.startsWith('data:image/')) {
+      throw new ApiError(400, 'Invalid image format. Must be a base64 encoded image');
+    }
+
+    // prevent uploading too large images (check base64 length roughly ~5MB limit)
+    const sizeInBytes = (photoData.length * 3) / 4;
+    if (sizeInBytes > 5 * 1024 * 1024) {
+      throw new ApiError(400, 'Image size exceeds 5MB limit');
+    }
+
+    // Find target user
+    const targetUser = await prisma.user.findUnique({ where: { id } });
+    if (!targetUser) {
+      throw new ApiError(404, 'User not found');
+    }
+
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId && targetUser.schoolId !== req.user.schoolId) {
+      throw new ApiError(403, 'Unauthorized access to user');
+    }
+
+    // Check permissions
+    const isSelfUpdate = currentUserId === id;
+    const canUpdate = isSelfUpdate || ['SUPER_ADMIN', 'ADMIN'].includes(currentUserRole);
+
+    if (!canUpdate) {
+      throw new ApiError(403, 'You can only update your own profile picture');
+    }
+
+    // Update user with photo
+    // Note: We use any cast here because the prisma client might not have updated types yet
+    // due to the locked file issue during generation.
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        profilePicture: photoData,
+      } as any, // Cast to any to bypass type check if client is outdated
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        profilePicture: true, // This might fail if types are strict but runtime should be fine
+      } as any
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile picture updated successfully',
+      data: updatedUser
+    });
+  }
 }

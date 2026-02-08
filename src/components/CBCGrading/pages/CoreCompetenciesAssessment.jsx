@@ -152,14 +152,14 @@ const CoreCompetenciesAssessment = ({ learners }) => {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      
+    <div className="space-y-6">
+
       {/* SETUP MODE */}
       {viewMode === 'setup' && (
         <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100 max-w-3xl mx-auto mt-8">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 text-purple-600">
-               <BookOpen size={32} />
+              <BookOpen size={32} />
             </div>
             <h2 className="text-2xl font-bold text-gray-800">Core Competencies Assessment</h2>
             <p className="text-gray-500">Select a learner to begin assessing competencies</p>
@@ -220,7 +220,7 @@ const CoreCompetenciesAssessment = ({ learners }) => {
         <>
           {/* Compact Context Header */}
           <div className="bg-white rounded-xl shadow-sm p-4 border border-purple-100 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-4 z-20">
-             <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm">
                 {selection.selectedLearner.firstName[0]}{selection.selectedLearner.lastName[0]}
               </div>
@@ -238,7 +238,7 @@ const CoreCompetenciesAssessment = ({ learners }) => {
             </div>
 
             <div className="flex items-center gap-3">
-              <button 
+              <button
                 onClick={() => setViewMode('setup')}
                 className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium"
               >

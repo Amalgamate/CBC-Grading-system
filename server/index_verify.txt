@@ -1,0 +1,52 @@
+≡ƒöì Verifying tactical indexes...
+
+Table: learners
+ - learners_pkey
+ - learners_schoolId_idx
+ - learners_branchId_idx
+ - learners_admissionNumber_idx
+ - learners_parentId_idx
+ - learners_grade_stream_idx
+ - learners_status_idx
+ - learners_lastName_firstName_idx
+ - learners_schoolId_admissionNumber_key
+ - learners_schoolId_grade_stream_status_idx
+
+Table: summative_results
+ - summative_results_pkey
+ - summative_results_schoolId_idx
+ - summative_results_branchId_idx
+ - summative_results_moderationStatus_idx
+ - summative_results_testId_idx
+ - summative_results_learnerId_idx
+ - summative_results_grade_idx
+ - summative_results_status_idx
+ - summative_results_testId_learnerId_key
+ - summative_results_testId_grade_marksObtained_idx
+
+Table: formative_assessments
+ - formative_assessments_pkey
+ - formative_assessments_schoolId_idx
+ - formative_assessments_branchId_idx
+ - formative_assessments_learnerId_idx
+ - formative_assessments_teacherId_idx
+ - formative_assessments_term_academicYear_idx
+ - formative_assessments_learningArea_idx
+ - formative_assessments_learnerId_term_academicYear_learningA_key
+ - formative_assessments_learnerId_learningArea_term_academicY_idx
+
+Table: summative_tests
+ - summative_tests_pkey
+ - summative_tests_schoolId_idx
+ - summative_tests_branchId_idx
+ - summative_tests_grade_term_academicYear_idx
+ - summative_tests_schoolId_grade_learningArea_term_idx
+ - summative_tests_testType_idx
+
+Table: class_enrollments
+ - class_enrollments_pkey
+ - class_enrollments_classId_idx
+ - class_enrollments_learnerId_idx
+ - class_enrollments_classId_learnerId_key
+ - class_enrollments_learnerId_active_idx
+ - class_enrollments_classId_active_idx

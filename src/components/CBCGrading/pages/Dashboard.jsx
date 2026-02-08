@@ -26,7 +26,7 @@ const Dashboard = ({ learners, teachers }) => {
   const activeTeachers = teachers?.filter(t => t.status === 'Active' || t.status === 'ACTIVE').length || 0;
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-6">
+    <div className="space-y-6">
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard title="Enrollment" value={activeLearners} subtitle="Active Students" icon={Users} colorClass="text-blue-500" />

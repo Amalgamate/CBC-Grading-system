@@ -1,259 +1,16 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { WebsiteLayout } from '../WebsiteLayout';
-import { ArrowRight, Code, Bot, Globe, CheckCircle2, BookOpen, Users, BarChart3, Sparkles, Target, Zap, Lightbulb, Cpu } from 'lucide-react';
+import { ArrowRight, Code, Bot, Globe, CheckCircle2, BookOpen, Users, BarChart3, Sparkles, Target, Zap } from 'lucide-react';
 
 const HomePage = (props) => {
     const [isVisible, setIsVisible] = useState(false);
-    const [ballPosition, setBallPosition] = useState({ x: 50, y: 10 });
-    const [ballVelocity, setBallVelocity] = useState({ vx: 0, vy: 0 });
-    const [ballRotation, setBallRotation] = useState(0);
-    const [ballColor, setBallColor] = useState('#875A7B');
-    const [isOutline, setIsOutline] = useState(false);
-    const [isMouseActive, setIsMouseActive] = useState(true);
-    const [breathingScale, setBreathingScale] = useState(1);
-    const [celebratingId, setCelebratingId] = useState(null);
-    const [confettiParticles, setConfettiParticles] = useState([]);
-
-    const animationFrameRef = useRef(null);
-    const lastScrollY = useRef(0);
-    const lastInteractionTime = useRef(Date.now());
-    const interactionTimeout = useRef(null);
-    const mouseRef = useRef({ x: 50, y: 50 });
-    const isScrollingRef = useRef(false);
-    const scrollTimeoutRef = useRef(null);
 
     useEffect(() => {
         setIsVisible(true);
-
-        const handleInteraction = (e) => {
-            lastInteractionTime.current = Date.now();
-            setIsMouseActive(true);
-
-            if (e.type === 'mousemove') {
-                mouseRef.current = {
-                    x: (e.clientX / window.innerWidth) * 100,
-                    y: (e.clientY / window.innerHeight) * 100
-                };
-            }
-
-            if (e.type === 'scroll') {
-                isScrollingRef.current = true;
-                if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-                scrollTimeoutRef.current = setTimeout(() => {
-                    isScrollingRef.current = false;
-                }, 150);
-            }
-
-            if (interactionTimeout.current) clearTimeout(interactionTimeout.current);
-            interactionTimeout.current = setTimeout(() => {
-                setIsMouseActive(false);
-            }, 3000);
-        };
-
-        window.addEventListener('mousemove', handleInteraction);
-        window.addEventListener('scroll', handleInteraction);
-
-        const animateConfetti = () => {
-            setConfettiParticles(prev =>
-                prev.map(p => ({
-                    ...p,
-                    y: p.y + p.vy,
-                    x: p.x + p.vx,
-                    vy: p.vy + 0.15,
-                    rotation: p.rotation + p.vr,
-                    opacity: p.y > 100 ? 0 : p.opacity
-                })).filter(p => p.y < 110 && p.opacity > 0)
-            );
-        };
-
-        const animateBall = () => {
-            const scrollY = window.scrollY;
-            const windowHeight = window.innerHeight;
-            const documentHeight = document.documentElement.scrollHeight;
-            const scrollPercent = scrollY / (documentHeight - windowHeight);
-
-            animateConfetti();
-
-            const timeSinceInteraction = Date.now() - lastInteractionTime.current;
-            const isIdle = timeSinceInteraction > 2000;
-
-            const sections = [
-                { threshold: 0, color: '#875A7B', outline: false },
-                { threshold: 0.15, color: '#14B8A6', outline: false },
-                { threshold: 0.22, color: '#FFFFFF', outline: true },
-                { threshold: 0.35, color: '#875A7B', outline: false },
-                { threshold: 0.50, color: '#14B8A6', outline: false },
-                { threshold: 0.75, color: '#FFFFFF', outline: true },
-                { threshold: 0.85, color: '#875A7B', outline: false },
-            ];
-
-            const currentSection = [...sections].reverse().find(s => scrollPercent >= s.threshold);
-            if (currentSection) {
-                setBallColor(currentSection.color);
-                setIsOutline(currentSection.outline);
-            }
-
-            const scrollVelocity = scrollY - lastScrollY.current;
-            lastScrollY.current = scrollY;
-
-            setBallVelocity(prevVel => {
-                let { vx, vy } = prevVel;
-                setBallPosition(prevPos => {
-                    let { x, y } = prevPos;
-                    const gravity = 0.5;
-
-                    if (isIdle) {
-                        vy += gravity * 0.5;
-                        vx *= 0.95;
-                        const targetX = 50;
-                        const targetY = 95;
-                        x += (targetX - x) * 0.01;
-                        y += (targetY - y) * 0.05;
-                    } else if (!isScrollingRef.current) {
-                        const targetX = mouseRef.current.x;
-                        const targetY = mouseRef.current.y;
-                        const ease = 0.15;
-                        x += (targetX - x) * ease;
-                        y += (targetY - y) * ease;
-                        vx = (targetX - x) * 0.2;
-                        vy = (targetY - y) * 0.2;
-                    } else {
-                        vy += gravity;
-                        if (Math.abs(scrollVelocity) > 1) {
-                            vy += scrollVelocity * 0.2;
-                            vx += (Math.random() - 0.5) * 1.5;
-                        }
-                        x += vx;
-                        y += vy;
-                    }
-
-                    const maxX = 98;
-                    const minX = 2;
-                    if (x > maxX) { x = maxX; vx = -vx * 0.4; }
-                    else if (x < minX) { x = minX; vx = -vx * 0.4; }
-
-                    if (isScrollingRef.current) {
-                        const targetY_scroll = scrollPercent * 95;
-                        const yDiff = Math.abs(y - targetY_scroll);
-                        if (yDiff < 25) {
-                            vy += (targetY_scroll - y) * 0.08;
-                        }
-                    }
-
-                    if (y > 98) {
-                        y = 98;
-                        vy = -Math.abs(vy) * 0.5;
-                    }
-                    if (y < 2) { y = 2; vy = Math.abs(vy) * 0.4; }
-
-                    vx *= 0.98;
-                    vy *= 0.98;
-
-                    return { x, y };
-                });
-                return { vx, vy };
-            });
-
-            setBallRotation(prev => prev + ballVelocity.vx * 1.5);
-            setBreathingScale(1 + Math.sin(Date.now() / 1500) * 0.04);
-            animationFrameRef.current = requestAnimationFrame(animateBall);
-        };
-
-        animationFrameRef.current = requestAnimationFrame(animateBall);
-
-        return () => {
-            if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-            window.removeEventListener('mousemove', handleInteraction);
-            window.removeEventListener('scroll', handleInteraction);
-            if (interactionTimeout.current) clearTimeout(interactionTimeout.current);
-            if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-        };
-    }, [ballVelocity.vx]);
-
-    const triggerCelebration = (id, event) => {
-        setCelebratingId(id);
-        setTimeout(() => setCelebratingId(null), 1000);
-
-        const rect = event.currentTarget.getBoundingClientRect();
-        const startX = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
-        const startY = ((rect.top + rect.height / 2) / window.innerHeight) * 100;
-
-        const colors = ['#FFD700', '#C0C0C0', '#875A7B', '#14B8A6', '#FFF'];
-        const newParticles = Array.from({ length: 40 }).map((_, i) => ({
-            id: Math.random(),
-            x: startX + (Math.random() - 0.5) * 5,
-            y: startY + (Math.random() - 0.5) * 5,
-            vx: (Math.random() - 0.5) * 4,
-            vy: -Math.random() * 6 - 3,
-            vr: (Math.random() - 0.5) * 30,
-            rotation: Math.random() * 360,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            size: Math.random() * 8 + 4,
-            shape: Math.random() > 0.5 ? 'square' : 'circle',
-            opacity: 1
-        }));
-
-        setConfettiParticles(prev => [...prev, ...newParticles]);
-    };
+    }, []);
 
     return (
         <WebsiteLayout {...props}>
-            <style>{`
-                body {
-                    cursor: ${isMouseActive && !isScrollingRef.current ? 'none' : 'default'};
-                }
-                a, button, [role="button"] {
-                    cursor: ${isMouseActive && !isScrollingRef.current ? 'none' : 'pointer'} !important;
-                }
-            `}</style>
-
-            <div className="fixed inset-0 pointer-events-none z-[80]">
-                {confettiParticles.map(p => (
-                    <div
-                        key={p.id}
-                        className="fixed"
-                        style={{
-                            left: `${p.x}%`,
-                            top: `${p.y}%`,
-                            width: `${p.size}px`,
-                            height: `${p.size}px`,
-                            backgroundColor: p.color,
-                            borderRadius: p.shape === 'circle' ? '50%' : '2px',
-                            transform: `rotate(${p.rotation}deg)`,
-                            opacity: p.opacity,
-                            boxShadow: p.color === '#FFD700' ? '0 0 10px rgba(255, 215, 0, 0.4)' : 'none',
-                            transition: 'opacity 0.5s ease'
-                        }}
-                    />
-                ))}
-            </div>
-
-            <div
-                className="fixed z-[100] pointer-events-none transition-opacity duration-1000"
-                style={{
-                    left: `${ballPosition.x}%`,
-                    top: `${ballPosition.y}%`,
-                    transform: 'translate(-50%, -50%)',
-                    opacity: isMouseActive ? 1 : 0.4,
-                }}
-            >
-                <div
-                    className="w-12 h-12 rounded-full transition-all duration-700"
-                    style={{
-                        backgroundColor: isOutline ? 'transparent' : ballColor,
-                        border: isOutline ? `2px solid #FFFFFF` : 'none',
-                        boxShadow: isOutline ? 'none' : `0 0 40px ${ballColor}80`,
-                        transform: `rotate(${ballRotation}deg) scale(${breathingScale * (isMouseActive ? 1 : 0.65)})`,
-                        transition: 'background-color 0.8s ease, transform 0.1s ease-out, opacity 1s ease',
-                    }}
-                >
-                    {isMouseActive && !isScrollingRef.current && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                        </div>
-                    )}
-                </div>
-            </div>
 
             {/* Hero Section */}
             <section className="relative pt-24 pb-32 overflow-hidden bg-white">
@@ -354,7 +111,7 @@ const HomePage = (props) => {
                         <div className="flex-1 space-y-8">
                             <h2 className="text-4xl md:text-5xl font-bold text-brand-dark tracking-tight">The <span className="text-[#875A7B]">Digital Playroom</span> Experience</h2>
                             <p className="text-xl text-slate-600 leading-relaxed font-light">
-                                ElimCrown introduces a digital Playroom where learners code, experiment, and explore real-world challenges. Every interaction becomes observable CBC assessment evidence captured automatically.
+                                ElimCrown introduces a digital Playroom where learners code, experiment, and explore real-world challenges. Every interaction becomes observable CBC assessment evidence captured automatically and organized in the <span className="font-semibold text-teal-600">Learning Hub</span>.
                             </p>
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="bg-[#f4f0f2] rounded-3xl p-8 aspect-square flex flex-col justify-between hover:shadow-lg transition-all">
@@ -413,7 +170,7 @@ const HomePage = (props) => {
                         </h2>
                         <p className="text-xl text-gray-600 mb-4 font-light italic">A Space to Explore, Build, and Think</p>
                         <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-6">
-                            The ElimCrown Playroom is a guided digital environment where learners develop skills through experimentation and problem-solving.
+                            The ElimCrown Playroom is a guided digital environment where learners develop skills through experimentation and problem-solving. Students can now <strong>submit their projects directly to teachers</strong> for assessment.
                         </p>
                         <div className="inline-block bg-[#f4f0f2] border border-[#d9ccd5] px-5 py-2 rounded-xl">
                             <p className="text-[#714B67] font-semibold">
@@ -454,7 +211,7 @@ const HomePage = (props) => {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
                         {[
                             { num: "1", title: "Learners Engage", desc: "Learners engage with challenges in the Playroom", icon: Target },
-                            { num: "2", title: "System Tracks", desc: "The system tracks progress, attempts, and outcomes", icon: BarChart3 },
+                            { num: "2", title: "Evidence Captured", desc: "Assessments are automatically submitted to the Learning Hub", icon: BarChart3 },
                             { num: "3", title: "Auto-Observation", desc: "Competencies are observed and mapped automatically", icon: Zap },
                             { num: "4", title: "Teacher Validation", desc: "Teachers validate learning and generate CBC reports", icon: CheckCircle2 }
                         ].map((step, i) => (

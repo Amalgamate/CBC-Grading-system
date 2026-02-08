@@ -54,8 +54,8 @@ const TabButton = ({ active, label, icon: Icon, onClick }) => (
   <button
     onClick={onClick}
     className={`flex items-center gap-2 px-6 py-3 text-sm font-bold transition-all border-b-2 ${active
-        ? 'border-brand-purple text-brand-purple bg-brand-purple/5'
-        : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+      ? 'border-brand-purple text-brand-purple bg-brand-purple/5'
+      : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
       }`}
   >
     <Icon size={16} />
@@ -403,7 +403,7 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [], user, onNavi
   );
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500">
       {/* Upper Status Bar */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
         <div className="flex items-center gap-3">

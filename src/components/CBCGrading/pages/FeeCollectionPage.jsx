@@ -14,12 +14,12 @@ import { useNotifications } from '../hooks/useNotifications';
 import api from '../../../services/api';
 import SmartLearnerSearch from '../shared/SmartLearnerSearch';
 
-const FeeCollectionPage = () => {
+const FeeCollectionPage = ({ learnerId }) => {
   const [invoices, setInvoices] = useState([]);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [searchLearnerId, setSearchLearnerId] = useState(null);
+  const [searchLearnerId, setSearchLearnerId] = useState(learnerId || null);
   const [statusFilter, setStatusFilter] = useState('all');
   const { showSuccess, showError } = useNotifications();
 
@@ -30,6 +30,13 @@ const FeeCollectionPage = () => {
     referenceNumber: '',
     notes: ''
   });
+
+  // Update learner search if prop changes
+  useEffect(() => {
+    if (learnerId) {
+      setSearchLearnerId(learnerId);
+    }
+  }, [learnerId]);
 
   const fetchInvoices = React.useCallback(async () => {
     try {
@@ -272,7 +279,7 @@ const FeeCollectionPage = () => {
             <div className="bg-green-600 px-6 py-4 rounded-t-xl">
               <h3 className="text-xl font-bold text-white">Record Payment</h3>
             </div>
-            
+
             <div className="p-6 space-y-4">
               {/* Invoice Details */}
               <div className="bg-gray-50 rounded-lg p-4">

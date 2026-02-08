@@ -66,6 +66,7 @@ model User {
   
   // ID Badge Information
   staffId       String?     @unique // Staff number/employee ID
+  profilePicture String?    // Profile picture URL (base64)
   idCardPhoto   String?     // Photo for ID card
   idCardIssued  DateTime?   // When ID was issued
   idCardExpiry  DateTime?   // ID expiry date
@@ -487,6 +488,8 @@ model ClassEnrollment {
   @@map("class_enrollments")
   @@index([classId])
   @@index([learnerId])
+  @@index([learnerId, active])
+  @@index([classId, active])
 }
 
 // ============================================
@@ -586,6 +589,7 @@ model Learner {
   @@index([grade, stream])
   @@index([status])
   @@index([lastName, firstName])
+  @@index([schoolId, grade, stream, status])
 }
 
 // ============================================
@@ -742,6 +746,7 @@ model FormativeAssessment {
   @@index([teacherId])
   @@index([term, academicYear])
   @@index([learningArea])
+  @@index([learnerId, learningArea, term, academicYear])
 }
 
 // ============================================
@@ -813,6 +818,7 @@ model SummativeTest {
   @@index([schoolId])
   @@index([branchId])
   @@index([testType])             // NEW: Index for fast test grouping queries
+  @@index([schoolId, grade, learningArea, term])
 
   // Metadata
   createdAt       DateTime        @default(now())
@@ -969,6 +975,7 @@ model SummativeResult {
   @@index([learnerId])
   @@index([grade])
   @@index([status])
+  @@index([testId, grade, marksObtained])
 }
 
 model SummativeResultHistory {

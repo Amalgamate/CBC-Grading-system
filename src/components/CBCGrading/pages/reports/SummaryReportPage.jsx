@@ -82,12 +82,12 @@ const SummaryReportPage = () => {
       setLoading(false);
       alert(`Generating ${reportTypes.find(t => t.value === selectedType)?.label}...`);
     }, 1000);
-    
+
     // TODO: Implement actual report generation logic
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-8 max-w-7xl mx-auto">
+    <div className="bg-white rounded-lg shadow-sm p-8">
       <h2 className="text-xl font-bold text-gray-800 mb-8 pb-4 border-b">Summary Report</h2>
 
       {/* First Row: Type, Grade, Stream, Term */}

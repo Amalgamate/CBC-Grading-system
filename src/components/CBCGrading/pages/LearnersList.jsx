@@ -10,6 +10,7 @@ import { usePermissions } from '../../../hooks/usePermissions';
 import { useAuth } from '../../../hooks/useAuth';
 import { configAPI } from '../../../services/api';
 import BulkOperationsModal from '../shared/bulk/BulkOperationsModal';
+import VirtualizedTable from '../shared/VirtualizedTable';
 
 const LearnersList = ({
   learners,
@@ -382,8 +383,11 @@ const LearnersList = ({
         />
       ) : (
         <div className={`bg-white rounded-xl shadow-md overflow-hidden ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
-          <table className="w-full">
-            <thead className="bg-gray-50">
+          <VirtualizedTable
+            data={displayLearners}
+            rowHeight={58} // Height of a single row matching design
+            visibleHeight={600}
+            header={
               <tr>
                 <th className="px-3 py-2 w-4">
                   <input
@@ -400,78 +404,77 @@ const LearnersList = ({
                 <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
                 <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {displayLearners.map((learner) => (
-                <tr key={learner.id} className={`hover:bg-gray-50 ${selectedLearners.includes(learner.id) ? 'bg-brand-purple/5' : ''}`}>
-                  <td className="px-3 py-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedLearners.includes(learner.id)}
-                      onChange={() => handleSelectLearner(learner.id)}
-                      className="w-4 h-4 text-brand-teal border-gray-300 rounded focus:ring-brand-teal"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">{learner.avatar}</span>
-                      <div>
-                        <p className="font-semibold text-sm">{learner.firstName} {learner.lastName}</p>
-                        <p className="text-xs text-gray-500">{learner.gender}</p>
-                      </div>
+            }
+            renderRow={(learner) => (
+              <tr key={learner.id} onClick={() => onViewLearner(learner)} className={`hover:bg-gray-50 cursor-pointer transition ${selectedLearners.includes(learner.id) ? 'bg-brand-purple/5' : ''}`}>
+                <td className="px-3 py-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedLearners.includes(learner.id)}
+                    onChange={(e) => { e.stopPropagation(); handleSelectLearner(learner.id); }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-4 h-4 text-brand-teal border-gray-300 rounded focus:ring-brand-teal"
+                  />
+                </td>
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{learner.avatar}</span>
+                    <div>
+                      <p className="font-semibold text-sm">{learner.firstName} {learner.lastName}</p>
+                      <p className="text-xs text-gray-500">{learner.gender}</p>
                     </div>
-                  </td>
-                  <td className="px-3 py-2 text-sm text-gray-600">{learner.admNo}</td>
-                  <td className="px-3 py-2 text-sm font-semibold">{learner.grade} {learner.stream}</td>
-                  <td className="px-3 py-2">
-                    <p className="text-sm font-semibold">{learner.guardianName || (learner.parent ? `${learner.parent.firstName} ${learner.parent.lastName}` : '')}</p>
-                    <p className="text-xs text-gray-500">{learner.guardianPhone || (learner.parent ? learner.parent.phone : '')}</p>
-                  </td>
-                  <td className="px-3 py-2">
-                    <StatusBadge status={learner.status} size="sm" />
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => onViewLearner(learner)}
-                        className="p-1.5 text-brand-teal hover:bg-brand-teal/10 rounded-lg transition"
-                        title="View Details"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      {!isTeacher && (
-                        <>
+                  </div>
+                </td>
+                <td className="px-3 py-2 text-sm text-gray-600">{learner.admNo}</td>
+                <td className="px-3 py-2 text-sm font-semibold">{learner.grade} {learner.stream}</td>
+                <td className="px-3 py-2">
+                  <p className="text-sm font-semibold">{learner.guardianName || (learner.parent ? `${learner.parent.firstName} ${learner.parent.lastName}` : '')}</p>
+                  <p className="text-xs text-gray-500">{learner.guardianPhone || (learner.parent ? learner.parent.phone : '')}</p>
+                </td>
+                <td className="px-3 py-2">
+                  <StatusBadge status={learner.status} size="sm" />
+                </td>
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onViewLearner(learner); }}
+                      className="p-1.5 text-brand-teal hover:bg-brand-teal/10 rounded-lg transition"
+                      title="View Details"
+                    >
+                      <Eye size={16} />
+                    </button>
+                    {!isTeacher && (
+                      <>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onEditLearner(learner); }}
+                          className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition"
+                          title="Edit"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        {learner.status === 'Active' && (
                           <button
-                            onClick={() => onEditLearner(learner)}
-                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition"
-                            title="Edit"
+                            onClick={(e) => { e.stopPropagation(); onMarkAsExited(learner.id); }}
+                            className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition"
+                            title="Mark as Exited"
                           >
-                            <Edit size={16} />
+                            <LogOut size={16} />
                           </button>
-                          {learner.status === 'Active' && (
-                            <button
-                              onClick={() => onMarkAsExited(learner.id)}
-                              className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition"
-                              title="Mark as Exited"
-                            >
-                              <LogOut size={16} />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleIndividualDelete(learner.id)}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
-                            title="Delete"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleIndividualDelete(learner.id); }}
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
+                          title="Delete"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            )}
+          />
 
           {/* Pagination Controls */}
           {pagination && pagination.pages > 1 && (

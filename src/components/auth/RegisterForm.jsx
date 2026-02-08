@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, CheckCircle, Building2, ChevronRight, ChevronLeft, MapPin, Loader2 } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, CheckCircle, Building2, ChevronRight, ChevronLeft, MapPin, Loader2, XCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { onboardingAPI } from '../../services/api';
+import { onboardingAPI, authAPI } from '../../services/api';
+import debounce from 'lodash/debounce';
 
 export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brandingSettings }) {
   const [currentStep, setCurrentStep] = useState(1);
@@ -27,6 +28,68 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
+
+  // validationStatus: { [field]: 'valid' | 'invalid' | 'loading' | null }
+  const [fieldStatus, setFieldStatus] = useState({});
+  const [checkingField, setCheckingField] = useState(null);
+
+  // Debounced check function
+  const checkAvailability = useCallback(
+    debounce(async (field, value) => {
+      if (!value) return;
+
+      // Regex pre-check
+      if (field === 'email' && !/\S+@\S+\.\S+/.test(value)) return;
+      if (field === 'phone' && !/^\+?[0-9]{10,15}$/.test(value)) return;
+
+      setCheckingField(field);
+      setFieldStatus(prev => ({ ...prev, [field]: 'loading' }));
+
+      try {
+        await authAPI.checkAvailability({ [field]: value });
+        setFieldStatus(prev => ({ ...prev, [field]: 'valid' }));
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      } catch (error) {
+        const msg = error.response?.data?.message || `${field === 'email' ? 'Email' : 'Phone'} already exists`;
+        setFieldStatus(prev => ({ ...prev, [field]: 'invalid' }));
+        setErrors(prev => ({ ...prev, [field]: msg }));
+      } finally {
+        setCheckingField(null);
+      }
+    }, 500),
+    []
+  );
+
+  // Update field status immediately for synchronous validations
+  const updateFieldStatus = (name, value) => {
+    if (name === 'fullName') {
+      setFieldStatus(prev => ({ ...prev, [name]: value.length > 3 ? 'valid' : null }));
+    }
+    if (name === 'schoolName') {
+      setFieldStatus(prev => ({ ...prev, [name]: value.length > 3 ? 'valid' : null }));
+    }
+    if (name === 'password') {
+      const isStrong = value.length >= 8 && /[A-Z]/.test(value) && /[a-z]/.test(value) && /\d/.test(value);
+      setFieldStatus(prev => ({ ...prev, [name]: isStrong ? 'valid' : null }));
+    }
+    if (name === 'confirmPassword') {
+      setFieldStatus(prev => ({ ...prev, [name]: value === formData.password && value ? 'valid' : null }));
+    }
+
+    // Trigger async check for email/phone
+    if (name === 'email' || name === 'phone') {
+      if (name === 'email' && !/\S+@\S+\.\S+/.test(value)) {
+        setFieldStatus(prev => ({ ...prev, [name]: 'invalid' }));
+        return;
+      }
+      if (name === 'phone' && !/^\d{9,12}$/.test(value) && value.length > 0) {
+        // wait for full length
+      } else {
+        checkAvailability(name, value);
+      }
+    }
+  };
 
   const totalSteps = 3;
 
@@ -57,7 +120,6 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
     { code: '+230', country: 'Mauritius', flag: '🇲🇺', length: 8 },
     { code: '+231', country: 'Liberia', flag: '🇱🇷', length: 9 },
     { code: '+232', country: 'Sierra Leone', flag: '🇸🇱', length: 8 },
-    { code: '+233', country: 'Ghana', flag: '🇬🇭', length: 9 },
     { code: '+235', country: 'Chad', flag: '🇹🇩', length: 8 },
     { code: '+236', country: 'CAR', flag: '🇨🇫', length: 8 },
     { code: '+237', country: 'Cameroon', flag: '🇨🇲', length: 9 },
@@ -128,6 +190,12 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
         newErrors.password = 'Password is required';
       } else if (formData.password.length < 8) {
         newErrors.password = 'Password must be at least 8 characters';
+      } else if (!/[A-Z]/.test(formData.password)) {
+        newErrors.password = 'Password must include an uppercase letter';
+      } else if (!/[a-z]/.test(formData.password)) {
+        newErrors.password = 'Password must include a lowercase letter';
+      } else if (!/\d/.test(formData.password)) {
+        newErrors.password = 'Password must include a number';
       }
       if (!formData.confirmPassword) {
         newErrors.confirmPassword = 'Please confirm your password';
@@ -220,17 +288,9 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
+          let detectedCounty = getCountyFromCoordinates(latitude, longitude);
 
-          // First, try to get county from Kenya coordinates
-          const detectedCounty = getCountyFromCoordinates(latitude, longitude);
-
-          if (!detectedCounty) {
-            setIsDetectingLocation(false);
-            toast.error('Location detected outside Kenya. Please enter manually.');
-            return;
-          }
-
-          // Use Nominatim for street-level details
+          // Use Nominatim for street-level details AND accurate county
           try {
             const response = await fetch(
               `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
@@ -251,11 +311,29 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                 subCounty
               ].filter(Boolean).join(', ').trim() || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
 
+              // Try to get accurate county from API (Nominatim often returns it as 'state' or 'county')
+              // Map valid Kenya counties to ensure we match our dropdown values
+              const apiCounty = addr.county || addr.state;
+              const normalizedApiCounty = apiCounty ? apiCounty.replace(' County', '') : '';
+
+              // Check if normalizedApiCounty exists in our keys
+              if (normalizedApiCounty && kenyaCounties[normalizedApiCounty]) {
+                detectedCounty = normalizedApiCounty;
+              }
+
               setFormData(prev => ({
                 ...prev,
-                county: detectedCounty,
+                county: detectedCounty || prev.county, // Fallback to existing if nothing found
                 subCounty: subCounty,
                 address: address
+              }));
+
+              // Clear validation errors since we just filled the fields
+              setErrors(prev => ({
+                ...prev,
+                county: '',
+                subCounty: '',
+                address: ''
               }));
 
               toast.success('Location detected successfully!');
@@ -267,17 +345,26 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                 county: detectedCounty,
                 address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
               }));
-              toast.success('County detected! Please enter more details.');
+              toast.success('Coordinates detected! Please enter details.');
               setLocationEnabled(true);
             }
           } catch (nominatimError) {
             console.warn('Nominatim error, using coordinates fallback:', nominatimError);
+
+            if (!detectedCounty) {
+              throw new Error('Could not determine location within Kenya.');
+            }
+
             setFormData(prev => ({
               ...prev,
               county: detectedCounty,
               address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
             }));
-            toast.success('County detected! Please enter more details.');
+
+            // Clear errors for what we found
+            setErrors(prev => ({ ...prev, county: '', address: '' }));
+
+            toast.success('County detected! Please enter address details.');
             setLocationEnabled(true);
           }
         } catch (error) {
@@ -304,22 +391,27 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
   };
 
   const handleNext = () => {
+    setShowErrors(true);
     if (validateStep(currentStep)) {
       // Combine country code and phone number before moving to next step
       if (currentStep === 1) {
         setFormData(prev => ({ ...prev, phone: countryCode + phoneNumber }));
       }
       setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+      setErrors({});
+      setShowErrors(false);
     }
   };
 
   const handleBack = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
     setErrors({});
+    setShowErrors(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setShowErrors(true);
 
     // If not on final step, just validate and go to next
     if (currentStep < totalSteps) {
@@ -374,19 +466,27 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
           });
         }, 1000);
       } else {
-        console.error('❌ Registration failed:', data.message);
+        const errorMessage = data.error || data.message || 'Registration failed';
+        console.error('❌ Registration failed:', errorMessage);
 
         // Show error toast
         const toast = document.createElement('div');
         toast.className = 'fixed top-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in';
-        toast.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg><span>${data.message || 'Registration failed'}</span>`;
+        toast.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg><span>${errorMessage}</span>`;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 5000);
 
-        setErrors({
-          email: data.message || 'Registration failed. Please try again.'
-        });
-        setCurrentStep(1); // Go back to first step to show error
+        // Set field-specific errors if possible
+        if (errorMessage.toLowerCase().includes('phone')) {
+          setErrors({ phone: errorMessage });
+          setCurrentStep(1);
+        } else if (errorMessage.toLowerCase().includes('email')) {
+          setErrors({ email: errorMessage });
+          setCurrentStep(1);
+        } else {
+          setErrors({ email: errorMessage }); // Fallback to email/general error
+          setCurrentStep(1);
+        }
       }
     } catch (error) {
       console.error('💥 Registration error:', error);
@@ -394,7 +494,9 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
       let errorMsg = 'Unable to connect to server. Please check your connection.';
 
       // If we have a specific error message from the throw
-      if (error instanceof Error) {
+      if (error.response && error.response.data && error.response.data.error) {
+        errorMsg = error.response.data.error;
+      } else if (error instanceof Error) {
         if (error.message.includes('Failed to fetch')) {
           errorMsg = 'Could not reach server. Is the backend running?';
         } else {
@@ -425,12 +527,21 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
     if (errors.phone) {
       setErrors(prev => ({ ...prev, phone: '' }));
     }
+    // Pass full number including country code for availability check
+    if (value.length >= 9) {
+      updateFieldStatus('phone', countryCode + value);
+    }
   };
 
   const handleCountryCodeChange = (e) => {
-    setCountryCode(e.target.value);
+    const code = e.target.value;
+    setCountryCode(code);
     if (errors.phone) {
       setErrors(prev => ({ ...prev, phone: '' }));
+    }
+    // Re-validate logic if number is entered
+    if (phoneNumber.length >= 9) {
+      updateFieldStatus('phone', code + phoneNumber);
     }
   };
 
@@ -444,6 +555,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+    updateFieldStatus(name, value);
   };
 
   const passwordStrength = getPasswordStrength(formData.password);
@@ -487,16 +599,14 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
           <div className="flex-1 flex items-center justify-center relative z-10">
             <div className="max-w-md text-center space-y-8">
               {/* Logo */}
-              <div className="mb-12">
-                <img
-                  src={brandingSettings?.logoUrl || '/logo-new.png'}
-                  alt="Elimcrown Logo"
-                  className="w-48 h-48 object-contain mx-auto drop-shadow-2xl"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = '/logo-new.png';
-                  }}
-                />
+              {/* Premium Wordmark Logo */}
+              <div className="mb-12 text-center">
+                <div className="inline-flex items-center justify-center p-4 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl mb-8 transform hover:scale-105 transition-transform duration-500">
+                  <span className="text-5xl sm:text-6xl font-black tracking-tighter flex items-center gap-1">
+                    <span className="text-white">Elim</span>
+                    <span className="text-teal-300 font-light">crown</span>
+                  </span>
+                </div>
               </div>
 
               {/* Onboarding Message */}
@@ -606,12 +716,18 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="fullName"
                         value={formData.fullName}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${errors.fullName ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${fieldStatus.fullName === 'invalid' || (showErrors && errors.fullName) ? 'border-red-500 shadow-sm' :
+                          fieldStatus.fullName === 'valid' ? 'border-green-500' : 'border-gray-300'
                           }`}
                         placeholder="John Doe"
                       />
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        {fieldStatus.fullName === 'loading' && <Loader2 className="animate-spin text-gray-400 h-5 w-5" />}
+                        {fieldStatus.fullName === 'valid' && <CheckCircle className="text-green-500 h-5 w-5" />}
+                        {fieldStatus.fullName === 'invalid' && <XCircle className="text-red-500 h-5 w-5" />}
+                      </div>
                     </div>
-                    {errors.fullName && (
+                    {showErrors && errors.fullName && (
                       <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
                         <AlertCircle size={14} />
                         <span>{errors.fullName}</span>
@@ -632,12 +748,18 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${errors.email ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${fieldStatus.email === 'invalid' || (showErrors && errors.email) ? 'border-red-500 shadow-sm' :
+                          fieldStatus.email === 'valid' ? 'border-green-500' : 'border-gray-300'
                           }`}
                         placeholder="you@example.com"
                       />
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        {fieldStatus.email === 'loading' && <Loader2 className="animate-spin text-gray-400 h-5 w-5" />}
+                        {fieldStatus.email === 'valid' && <CheckCircle className="text-green-500 h-5 w-5" />}
+                        {fieldStatus.email === 'invalid' && <XCircle className="text-red-500 h-5 w-5" />}
+                      </div>
                     </div>
-                    {errors.email && (
+                    {showErrors && errors.email && (
                       <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
                         <AlertCircle size={14} />
                         <span>{errors.email}</span>
@@ -677,14 +799,19 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                           type="tel"
                           value={phoneNumber}
                           onChange={handlePhoneChange}
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${errors.phone ? 'border-red-500' : 'border-gray-300'
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${showErrors && errors.phone ? 'border-red-500 shadow-sm' : 'border-gray-300'
                             }`}
                           placeholder="712345678"
                           maxLength={africanCountries.find(c => c.code === countryCode)?.length || 10}
                         />
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                          {fieldStatus.phone === 'loading' && <Loader2 className="animate-spin text-gray-400 h-5 w-5" />}
+                          {fieldStatus.phone === 'valid' && <CheckCircle className="text-green-500 h-5 w-5" />}
+                          {fieldStatus.phone === 'invalid' && <XCircle className="text-red-500 h-5 w-5" />}
+                        </div>
                       </div>
                     </div>
-                    {errors.phone && (
+                    {showErrors && errors.phone && (
                       <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
                         <AlertCircle size={14} />
                         <span>{errors.phone}</span>
@@ -711,7 +838,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${errors.password ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${showErrors && errors.password ? 'border-red-500 shadow-sm' : 'border-gray-300'
                           }`}
                         placeholder="Enter a strong password"
                       />
@@ -743,7 +870,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         </div>
                       </div>
                     )}
-                    {errors.password && (
+                    {showErrors && errors.password && (
                       <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
                         <AlertCircle size={14} />
                         <span>{errors.password}</span>
@@ -764,19 +891,23 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full pl-10 pr-20 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${fieldStatus.confirmPassword === 'valid' ? 'border-green-500' :
+                          showErrors && errors.confirmPassword ? 'border-red-500 shadow-sm' : 'border-gray-300'
                           }`}
                         placeholder="Re-enter your password"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-                      >
-                        {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center gap-2">
+                        {fieldStatus.confirmPassword === 'valid' && <CheckCircle className="text-green-500 h-5 w-5 pointer-events-none" />}
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                        >
+                          {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                      </div>
                     </div>
-                    {errors.confirmPassword && (
+                    {showErrors && errors.confirmPassword && (
                       <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
                         <AlertCircle size={14} />
                         <span>{errors.confirmPassword}</span>
@@ -802,12 +933,18 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="schoolName"
                         value={formData.schoolName}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${errors.schoolName ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${fieldStatus.schoolName === 'invalid' || (showErrors && errors.schoolName) ? 'border-red-500 shadow-sm' :
+                          fieldStatus.schoolName === 'valid' ? 'border-green-500' : 'border-gray-300'
                           }`}
                         placeholder="EDucore Academy"
                       />
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        {fieldStatus.schoolName === 'loading' && <Loader2 className="animate-spin text-gray-400 h-5 w-5" />}
+                        {fieldStatus.schoolName === 'valid' && <CheckCircle className="text-green-500 h-5 w-5" />}
+                        {fieldStatus.schoolName === 'invalid' && <XCircle className="text-red-500 h-5 w-5" />}
+                      </div>
                     </div>
-                    {errors.schoolName && (
+                    {showErrors && errors.schoolName && (
                       <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
                         <AlertCircle size={14} />
                         <span>{errors.schoolName}</span>
@@ -823,19 +960,15 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                       name="schoolType"
                       value={formData.schoolType}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${errors.schoolType ? 'border-red-500' : 'border-gray-300'}`}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${showErrors && errors.schoolType ? 'border-red-500 shadow-sm' : 'border-gray-300'}`}
                     >
                       <option value="">Select Type</option>
                       <option>Public Primary School</option>
                       <option>Public Secondary School</option>
                       <option>Private Primary School</option>
                       <option>Private Secondary School</option>
-                      <option>International School</option>
-                      <option>Special Needs School</option>
-                      <option>Technical Training Institute</option>
-                      <option>University/College</option>
                     </select>
-                    {errors.schoolType && (
+                    {showErrors && errors.schoolType && (
                       <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
                         <AlertCircle size={14} />
                         <span>{errors.schoolType}</span>
@@ -874,12 +1007,12 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="county"
                         value={formData.county}
                         onChange={handleChange}
-                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${errors.county ? 'border-red-500' : 'border-gray-300'}`}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${showErrors && errors.county ? 'border-red-500 shadow-sm' : 'border-gray-300'}`}
                       >
                         <option value="">Select County</option>
                         {['Baringo', 'Bomet', 'Bungoma', 'Busia', 'Elgeyo-Marakwet', 'Embu', 'Garissa', 'Homa Bay', 'Isiolo', 'Kajiado', 'Kakamega', 'Kericho', 'Kiambu', 'Kilifi', 'Kirinyaga', 'Kisii', 'Kisumu', 'Kitui', 'Kwale', 'Laikipia', 'Lamu', 'Machakos', 'Makueni', 'Mandera', 'Marsabit', 'Meru', 'Migori', 'Mombasa', 'Murang’a', 'Nairobi', 'Nakuru', 'Nandi', 'Narok', 'Nyamira', 'Nyandarua', 'Nyeri', 'Samburu', 'Siaya', 'Taita-Taveta', 'Tana River', 'Tharaka-Nithi', 'Trans Nzoia', 'Turkana', 'Uasin Gishu', 'Vihiga', 'Wajir', 'West Pokot'].map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
-                      {errors.county && (
+                      {showErrors && errors.county && (
                         <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
                           <AlertCircle size={14} />
                           <span>{errors.county}</span>
@@ -910,10 +1043,10 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                       name="address"
                       value={formData.address}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${errors.address ? 'border-red-500' : 'border-gray-300'}`}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${showErrors && errors.address ? 'border-red-500 shadow-sm' : 'border-gray-300'}`}
                       placeholder="Street, Town"
                     />
-                    {errors.address && (
+                    {showErrors && errors.address && (
                       <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
                         <AlertCircle size={14} />
                         <span>{errors.address}</span>
@@ -941,7 +1074,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         </button>
                       </span>
                     </label>
-                    {errors.termsAccepted && (
+                    {showErrors && errors.termsAccepted && (
                       <div className="flex items-center gap-1 mt-2 text-red-600 text-sm">
                         <AlertCircle size={14} />
                         <span>{errors.termsAccepted}</span>

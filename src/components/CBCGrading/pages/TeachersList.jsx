@@ -161,7 +161,7 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredTeachers.map((teacher) => (
-                <tr key={teacher.id} className="hover:bg-gray-50">
+                <tr key={teacher.id} onClick={() => onViewTeacher(teacher)} className="hover:bg-gray-50 cursor-pointer transition">
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-2">
                       <span className="text-xl">{teacher.avatar}</span>
@@ -189,28 +189,28 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => setSelectedTeacherForAssignment(teacher)}
+                        onClick={(e) => { e.stopPropagation(); setSelectedTeacherForAssignment(teacher); }}
                         className="p-1.5 text-brand-purple hover:bg-brand-purple/10 rounded-lg transition"
                         title="Assign to Grade"
                       >
                         <GraduationCap size={16} />
                       </button>
                       <button
-                        onClick={() => onViewTeacher(teacher)}
+                        onClick={(e) => { e.stopPropagation(); onViewTeacher(teacher); }}
                         className="p-1.5 text-brand-teal hover:bg-brand-teal/10 rounded-lg transition"
                         title="View Details"
                       >
                         <Eye size={16} />
                       </button>
                       <button
-                        onClick={() => onEditTeacher(teacher)}
+                        onClick={(e) => { e.stopPropagation(); onEditTeacher(teacher); }}
                         className="p-1.5 text-brand-purple hover:bg-brand-purple/10 rounded-lg transition"
                         title="Edit"
                       >
                         <Edit size={16} />
                       </button>
                       <button
-                        onClick={() => onDeleteTeacher(teacher.id)}
+                        onClick={(e) => { e.stopPropagation(); onDeleteTeacher(teacher.id); }}
                         className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
                         title="Delete"
                       >

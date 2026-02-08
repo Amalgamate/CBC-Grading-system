@@ -8,7 +8,7 @@ import { Calendar, Save, BookOpen, Plus, Edit, Trash2, Calculator, Users, Loader
 import { toast } from 'react-hot-toast';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useAuth } from '../../../../hooks/useAuth';
-import { configAPI, authAPI, schoolAPI, userAPI } from '../../../../services/api';
+import { configAPI, authAPI, schoolAPI, userAPI, default as api } from '../../../../services/api';
 import academicYearConfig from '../../utils/academicYear';
 import {
   getAllLearningAreas,
@@ -131,7 +131,7 @@ const AcademicSettings = () => {
     try {
       setSeedingLearningAreas(true);
       const result = await configAPI.seedLearningAreas();
-      
+
       // Show success with toast AND notification
       toast.success(`📚 Learning areas seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`, {
         duration: 4000,
@@ -145,12 +145,12 @@ const AcademicSettings = () => {
           borderRadius: '8px'
         }
       });
-      
+
       await loadLearningAreas();
     } catch (error) {
       console.error('Error seeding learning areas:', error);
       const errorMsg = error?.response?.data?.error || error?.message || 'Failed to seed learning areas';
-      
+
       toast.error(`❌ ${errorMsg}`, {
         duration: 5000,
         position: 'top-right',
@@ -483,6 +483,35 @@ const AcademicSettings = () => {
       });
     }
     setShowClassModal(true);
+    // Reset check state
+    setTeacherConflictWarning(null);
+  };
+
+  const [teacherConflictWarning, setTeacherConflictWarning] = useState(null);
+
+  // Check for teacher conflicts when teacher is selected in Class Modal
+  const checkTeacherConflict = async (teacherId) => {
+    setTeacherConflictWarning(null);
+    if (!teacherId) return;
+
+    try {
+      const response = await api.classes.getTeacherWorkload(teacherId, {
+        academicYear: classFormData.academicYear,
+        term: classFormData.term
+      });
+
+      if (response.success && response.data?.classes?.length > 0) {
+        const otherClasses = response.data.classes.filter(c => c.id !== editingClass?.id);
+        if (otherClasses.length > 0) {
+          const classNames = otherClasses.map(c => c.name).join(', ');
+          setTeacherConflictWarning(
+            `${teachers.find(t => t.id === teacherId)?.firstName} is already assigned to ${otherClasses.length} other class(es): ${classNames}.`
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Failed to check teacher workload", err);
+    }
   };
 
   const handleSaveClass = async () => {
@@ -862,11 +891,10 @@ const AcademicSettings = () => {
               <button
                 onClick={handleSeedLearningAreas}
                 disabled={seedingLearningAreas}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-semibold ${
-                  seedingLearningAreas
-                    ? 'bg-gray-400 text-white cursor-not-allowed opacity-75'
-                    : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-semibold ${seedingLearningAreas
+                  ? 'bg-gray-400 text-white cursor-not-allowed opacity-75'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+                  }`}
                 title="Seed default learning areas for all grades"
               >
                 {seedingLearningAreas ? (
@@ -1156,18 +1184,30 @@ const AcademicSettings = () => {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Stream (Optional)
+                    Class Teacher (Optional)
                   </label>
                   <select
-                    value={classFormData.stream}
-                    onChange={(e) => setClassFormData({ ...classFormData, stream: e.target.value })}
+                    value={classFormData.teacherId}
+                    onChange={(e) => {
+                      const newId = e.target.value;
+                      setClassFormData({ ...classFormData, teacherId: newId });
+                      checkTeacherConflict(newId);
+                    }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="">No Stream</option>
-                    {streamConfigs.filter(s => s.active).map(stream => (
-                      <option key={stream.id} value={stream.name}>{stream.name}</option>
+                    <option value="">No Teacher Assigned</option>
+                    {teachers.map(teacher => (
+                      <option key={teacher.id} value={teacher.id}>
+                        {teacher.firstName} {teacher.lastName}
+                      </option>
                     ))}
                   </select>
+                  {teacherConflictWarning && (
+                    <div className="mt-2 p-2 bg-amber-50 text-amber-800 rounded text-xs border border-amber-200 flex items-start gap-1">
+                      <span>⚠️</span>
+                      <span>{teacherConflictWarning}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1176,7 +1216,11 @@ const AcademicSettings = () => {
                   </label>
                   <select
                     value={classFormData.teacherId}
-                    onChange={(e) => setClassFormData({ ...classFormData, teacherId: e.target.value })}
+                    onChange={(e) => {
+                      const newId = e.target.value;
+                      setClassFormData({ ...classFormData, teacherId: newId });
+                      checkTeacherConflict(newId);
+                    }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">No Teacher Assigned</option>
@@ -1269,243 +1313,247 @@ const AcademicSettings = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div >
       )}
 
       {/* Add/Edit Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-            <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-4 rounded-t-2xl">
-              <h3 className="text-xl font-bold text-white">
-                {editingArea ? 'Edit Learning Area' : 'Add Learning Area'}
-              </h3>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., Mathematics Activities"
-                />
+      {
+        showAddModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+              <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-4 rounded-t-2xl">
+                <h3 className="text-xl font-bold text-white">
+                  {editingArea ? 'Edit Learning Area' : 'Add Learning Area'}
+                </h3>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Short Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.shortName}
-                  onChange={(e) => setFormData({ ...formData, shortName: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., Math"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Grade Level
-                </label>
-                <select
-                  value={formData.gradeLevel}
-                  onChange={(e) => setFormData({ ...formData, gradeLevel: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="Early Years">Early Years</option>
-                  <option value="Pre-Primary">Pre-Primary</option>
-                  <option value="Lower Primary">Lower Primary</option>
-                  <option value="Upper Primary">Upper Primary</option>
-                  <option value="Junior School">Junior School</option>
-                  <option value="Senior School">Senior School</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Color
-                  </label>
-                  <input
-                    type="color"
-                    value={formData.color}
-                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    className="w-full h-10 border border-gray-300 rounded-lg cursor-pointer"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Icon (Emoji)
+                    Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    value={formData.icon}
-                    onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-2xl text-center"
-                    maxLength={2}
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., Mathematics Activities"
                   />
                 </div>
-              </div>
 
-              {/* Preview */}
-              <div className="border-t pt-4">
-                <p className="text-sm font-semibold text-gray-700 mb-2">Preview:</p>
-                <div
-                  className="border-2 rounded-lg p-4"
-                  style={{ borderColor: formData.color }}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{formData.icon}</span>
-                    <div>
-                      <h4 className="font-bold text-gray-800">{formData.shortName || 'Short Name'}</h4>
-                      <p className="text-xs text-gray-500">{formData.gradeLevel}</p>
-                    </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Short Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.shortName}
+                    onChange={(e) => setFormData({ ...formData, shortName: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., Math"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Grade Level
+                  </label>
+                  <select
+                    value={formData.gradeLevel}
+                    onChange={(e) => setFormData({ ...formData, gradeLevel: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Early Years">Early Years</option>
+                    <option value="Pre-Primary">Pre-Primary</option>
+                    <option value="Lower Primary">Lower Primary</option>
+                    <option value="Upper Primary">Upper Primary</option>
+                    <option value="Junior School">Junior School</option>
+                    <option value="Senior School">Senior School</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Color
+                    </label>
+                    <input
+                      type="color"
+                      value={formData.color}
+                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                      className="w-full h-10 border border-gray-300 rounded-lg cursor-pointer"
+                    />
                   </div>
-                  <p className="text-sm text-gray-600 mt-2">{formData.name || 'Full Name'}</p>
-                  <div className="h-2 rounded-full mt-2" style={{ backgroundColor: formData.color }}></div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Icon (Emoji)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.icon}
+                      onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-2xl text-center"
+                      maxLength={2}
+                    />
+                  </div>
+                </div>
+
+                {/* Preview */}
+                <div className="border-t pt-4">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Preview:</p>
+                  <div
+                    className="border-2 rounded-lg p-4"
+                    style={{ borderColor: formData.color }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl">{formData.icon}</span>
+                      <div>
+                        <h4 className="font-bold text-gray-800">{formData.shortName || 'Short Name'}</h4>
+                        <p className="text-xs text-gray-500">{formData.gradeLevel}</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-2">{formData.name || 'Full Name'}</p>
+                    <div className="h-2 rounded-full mt-2" style={{ backgroundColor: formData.color }}></div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="border-t px-6 py-4 flex items-center justify-end gap-3 bg-gray-50 rounded-b-2xl">
-              <button
-                onClick={() => {
-                  setShowAddModal(false);
-                  setEditingArea(null);
-                  setFormData({ name: '', shortName: '', gradeLevel: 'Lower Primary', color: '#3b82f6', icon: '📚' });
-                }}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddEdit}
-                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition font-semibold"
-              >
-                <Save size={18} />
-                {editingArea ? 'Update' : 'Add'} Learning Area
-              </button>
+              <div className="border-t px-6 py-4 flex items-center justify-end gap-3 bg-gray-50 rounded-b-2xl">
+                <button
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setEditingArea(null);
+                    setFormData({ name: '', shortName: '', gradeLevel: 'Lower Primary', color: '#3b82f6', icon: '📚' });
+                  }}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddEdit}
+                  className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition font-semibold"
+                >
+                  <Save size={18} />
+                  {editingArea ? 'Update' : 'Add'} Learning Area
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Aggregation Rule Modal */}
-      {showAggModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-            <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-4 rounded-t-2xl">
-              <h3 className="text-xl font-bold text-white">
-                {editingAgg ? 'Edit Aggregation Rule' : 'Add Aggregation Rule'}
-              </h3>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Assessment Type</label>
-                <select
-                  value={aggFormData.type}
-                  onChange={(e) => setAggFormData({ ...aggFormData, type: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="QUIZ">Quiz</option>
-                  <option value="ASSIGNMENT">Assignment</option>
-                  <option value="PROJECT">Project</option>
-                  <option value="EXAM">Exam</option>
-                  <option value="OBSERVATION">Observation</option>
-                </select>
+      {
+        showAggModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+              <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-4 rounded-t-2xl">
+                <h3 className="text-xl font-bold text-white">
+                  {editingAgg ? 'Edit Aggregation Rule' : 'Add Aggregation Rule'}
+                </h3>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Strategy</label>
-                <select
-                  value={aggFormData.strategy}
-                  onChange={(e) => setAggFormData({ ...aggFormData, strategy: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                >
-                  <option value="SIMPLE_AVERAGE">Simple Average</option>
-                  <option value="BEST_N">Best N</option>
-                  <option value="DROP_LOWEST_N">Drop Lowest N</option>
-                  <option value="WEIGHTED_AVERAGE">Weighted Average</option>
-                  <option value="MEDIAN">Median</option>
-                </select>
-              </div>
-
-              {(aggFormData.strategy === 'BEST_N' || aggFormData.strategy === 'DROP_LOWEST_N') && (
+              <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">N Value</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Assessment Type</label>
+                  <select
+                    value={aggFormData.type}
+                    onChange={(e) => setAggFormData({ ...aggFormData, type: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="QUIZ">Quiz</option>
+                    <option value="ASSIGNMENT">Assignment</option>
+                    <option value="PROJECT">Project</option>
+                    <option value="EXAM">Exam</option>
+                    <option value="OBSERVATION">Observation</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Strategy</label>
+                  <select
+                    value={aggFormData.strategy}
+                    onChange={(e) => setAggFormData({ ...aggFormData, strategy: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="SIMPLE_AVERAGE">Simple Average</option>
+                    <option value="BEST_N">Best N</option>
+                    <option value="DROP_LOWEST_N">Drop Lowest N</option>
+                    <option value="WEIGHTED_AVERAGE">Weighted Average</option>
+                    <option value="MEDIAN">Median</option>
+                  </select>
+                </div>
+
+                {(aggFormData.strategy === 'BEST_N' || aggFormData.strategy === 'DROP_LOWEST_N') && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">N Value</label>
+                    <input
+                      type="number"
+                      value={aggFormData.nValue}
+                      onChange={(e) => setAggFormData({ ...aggFormData, nValue: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="e.g. 3"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Weight (Multiplier)</label>
                   <input
                     type="number"
-                    value={aggFormData.nValue}
-                    onChange={(e) => setAggFormData({ ...aggFormData, nValue: e.target.value })}
+                    step="0.1"
+                    value={aggFormData.weight}
+                    onChange={(e) => setAggFormData({ ...aggFormData, weight: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    placeholder="e.g. 3"
                   />
                 </div>
-              )}
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Weight (Multiplier)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={aggFormData.weight}
-                  onChange={(e) => setAggFormData({ ...aggFormData, weight: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Grade (Optional)</label>
+                    <input
+                      type="text"
+                      value={aggFormData.grade}
+                      onChange={(e) => setAggFormData({ ...aggFormData, grade: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="e.g. Grade 1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Subject (Optional)</label>
+                    <input
+                      type="text"
+                      value={aggFormData.learningArea}
+                      onChange={(e) => setAggFormData({ ...aggFormData, learningArea: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      placeholder="e.g. Math"
+                    />
+                  </div>
+                </div>
+
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Grade (Optional)</label>
-                  <input
-                    type="text"
-                    value={aggFormData.grade}
-                    onChange={(e) => setAggFormData({ ...aggFormData, grade: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    placeholder="e.g. Grade 1"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Subject (Optional)</label>
-                  <input
-                    type="text"
-                    value={aggFormData.learningArea}
-                    onChange={(e) => setAggFormData({ ...aggFormData, learningArea: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    placeholder="e.g. Math"
-                  />
-                </div>
+              <div className="border-t px-6 py-4 flex items-center justify-end gap-3 bg-gray-50 rounded-b-2xl">
+                <button
+                  onClick={() => setShowAggModal(false)}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddEditAgg}
+                  className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition font-semibold"
+                >
+                  <Save size={18} />
+                  {editingAgg ? 'Update Rule' : 'Create Rule'}
+                </button>
               </div>
-
-            </div>
-
-            <div className="border-t px-6 py-4 flex items-center justify-end gap-3 bg-gray-50 rounded-b-2xl">
-              <button
-                onClick={() => setShowAggModal(false)}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddEditAgg}
-                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition font-semibold"
-              >
-                <Save size={18} />
-                {editingAgg ? 'Update Rule' : 'Create Rule'}
-              </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 

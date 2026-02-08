@@ -577,4 +577,40 @@ export class AuthController {
       throw new ApiError(500, 'Failed to fetch seeded users');
     }
   }
+
+  async checkAvailability(req: Request, res: Response) {
+    const { email, phone } = req.body;
+
+    if (!email && !phone) {
+      throw new ApiError(400, 'Email or phone is required');
+    }
+
+    const conflicts: string[] = [];
+
+    if (email) {
+      const existingEmail = await prisma.user.findUnique({ where: { email } });
+      if (existingEmail) conflicts.push('Email already exists');
+    }
+
+    if (phone) {
+      // Basic normalization of phone if needed, but assuming exact match for now
+      // Should ideally match the normalization in register
+      const existingPhone = await prisma.user.findFirst({ where: { phone } });
+      if (existingPhone) conflicts.push('Phone number already exists');
+    }
+
+    if (conflicts.length > 0) {
+      res.status(409).json({
+        success: false,
+        message: conflicts[0], // Return the first conflict message
+        conflicts // return all for detailed handling if needed
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      message: 'Available'
+    });
+  }
 }

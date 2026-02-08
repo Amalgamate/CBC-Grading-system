@@ -34,6 +34,38 @@ const fetchWithAuth = async (url, options = {}) => {
   }
 };
 
+// Simple In-Memory Cache for GET requests
+const dataCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Fetch data with basic caching for non-volatile read operations
+ */
+const fetchCached = async (url, options = {}) => {
+  const cacheKey = `${url}-${JSON.stringify(options.params || {})}`;
+  const now = Date.now();
+
+  if (dataCache.has(cacheKey)) {
+    const { data, timestamp } = dataCache.get(cacheKey);
+    if (now - timestamp < CACHE_TTL) {
+      return data;
+    }
+    dataCache.delete(cacheKey);
+  }
+
+  const result = await fetchWithAuth(url, options);
+  dataCache.set(cacheKey, { data: result, timestamp: now });
+  return result;
+};
+
+/**
+ * Clear specific or all cache
+ */
+export const clearApiCache = (key) => {
+  if (key) dataCache.delete(key);
+  else dataCache.clear();
+};
+
 // ============================================
 // AUTHENTICATION ENDPOINTS
 // ============================================
@@ -64,6 +96,16 @@ export const authAPI = {
    */
   register: async (userData) => {
     const response = await axiosInstance.post('/auth/register', userData);
+    return response.data;
+  },
+
+  /**
+   * Check availability of email/phone
+   * @param {Object} data - { email, phone }
+   * @returns {Promise} Availability status
+   */
+  checkAvailability: async (data) => {
+    const response = await axiosInstance.post('/auth/check-availability', data);
     return response.data;
   },
 
@@ -265,6 +307,13 @@ export const configAPI = {
    */
   getGrades: async () => {
     return fetchWithAuth('/config/grades');
+  },
+
+  /**
+   * Get Branding and School Settings
+   */
+  getBranding: async () => {
+    return fetchCached('/settings/branding');
   },
 
   /**
@@ -522,6 +571,19 @@ export const userAPI = {
   delete: async (id) => {
     return fetchWithAuth(`/users/${id}`, {
       method: 'DELETE',
+    });
+  },
+
+  /**
+   * Upload user profile photo
+   * @param {string} id - User ID
+   * @param {string} photoData - Base64 encoded image
+   * @returns {Promise} Updated user data
+   */
+  uploadPhoto: async (id, photoData) => {
+    return fetchWithAuth(`/users/${id}/photo`, {
+      method: 'POST',
+      body: JSON.stringify({ photoData }),
     });
   },
 };
@@ -811,6 +873,19 @@ export const learnerAPI = {
   delete: async (id) => {
     return fetchWithAuth(`/learners/${id}`, {
       method: 'DELETE',
+    });
+  },
+
+  /**
+   * Upload learner photo
+   * @param {string} id - Learner ID
+   * @param {string} photoData - Base64 encoded image
+   * @returns {Promise} Updated learner data
+   */
+  uploadPhoto: async (id, photoData) => {
+    return fetchWithAuth(`/learners/${id}/photo`, {
+      method: 'POST',
+      body: JSON.stringify({ photoData }),
     });
   },
 };
@@ -1712,6 +1787,9 @@ export const gradingAPI = {
 // ADMIN API
 // ============================================
 export const adminAPI = {
+  getSchoolInfo: async () => {
+    return fetchCached('/settings/school-info');
+  },
   listSchools: async () => {
     return fetchWithAuth('/admin/schools');
   },

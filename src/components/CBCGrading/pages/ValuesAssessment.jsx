@@ -33,6 +33,9 @@ const ValuesAssessment = ({ learners }) => {
     integrity: 'ME1'
   });
 
+  const [viewMode, setViewMode] = useState('setup'); // 'setup' | 'assess'
+  const [saving, setSaving] = useState(false);
+
   // National values definitions (component-specific)
   const valueDefinitions = {
     love: { name: 'Love', description: 'Showing care, compassion and kindness to others', icon: '❤️' },
@@ -143,7 +146,7 @@ const ValuesAssessment = ({ learners }) => {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6">
 
       {/* SETUP MODE */}
       {viewMode === 'setup' && (

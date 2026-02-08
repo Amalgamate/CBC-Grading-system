@@ -125,4 +125,16 @@ router.delete(
   asyncHandler(userController.deleteUser)
 );
 
+/**
+ * @route   POST /api/users/:id/photo
+ * @desc    Upload or update user profile picture
+ * @access  SUPER_ADMIN, ADMIN, or self
+ */
+router.post(
+  '/:id/photo',
+  authenticate,
+  auditLog('UPLOAD_USER_PHOTO'),
+  asyncHandler(userController.uploadProfilePicture)
+);
+
 export default router;

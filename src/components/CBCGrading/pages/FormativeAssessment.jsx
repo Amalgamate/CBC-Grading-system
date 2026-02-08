@@ -57,6 +57,62 @@ const FormativeAssessment = ({ learners }) => {
   // Fetch Grades from DB
   // Grades are now managed by setup hook
 
+  // NEW: Fetch existing assessments when entering 'assess' mode
+  React.useEffect(() => {
+    if (viewMode === 'assess' && selectedGrade && selectedTerm && selectedArea && strand) {
+      const fetchData = async () => {
+        try {
+          // console.log('Fetching/Syncing assessments for:', { selectedGrade, selectedTerm, selectedArea, strand });
+          const response = await api.assessments.getFormativeAssessments({
+            grade: selectedGrade,
+            term: selectedTerm,
+            academicYear: academicYear,
+            learningArea: selectedArea,
+            strand: strand
+          });
+
+          if (response.success && Array.isArray(response.data)) {
+            const loadedAssessments = {};
+            const loadedSaved = {};
+
+            response.data.forEach(item => {
+              if (item.learnerId) {
+                // Populate UI state
+                loadedAssessments[item.learnerId] = {
+                  detailedRating: item.detailedRating,
+                  points: item.points,
+                  percentage: item.percentage,
+                  strengths: item.strengths,
+                  areasImprovement: item.areasImprovement,
+                  recommendations: item.recommendations
+                };
+                // Populate Saved state (for status checks)
+                loadedSaved[item.learnerId] = {
+                  ...item,
+                  status: item.status || 'SAVED'
+                };
+              }
+            });
+
+            setAssessments(prev => ({ ...prev, ...loadedAssessments }));
+            setSavedAssessments(prev => ({ ...prev, ...loadedSaved }));
+
+            // If we found data, show a subtle toast? Maybe not to avoid spam.
+            if (Object.keys(loadedAssessments).length > 0) {
+              // Optional: console.log(`Loaded ${Object.keys(loadedAssessments).length} existing records`);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load existing assessments:', err);
+        }
+      };
+
+      fetchData();
+    }
+  }, [viewMode, selectedGrade, selectedTerm, selectedArea, strand, academicYear]);
+
+  // Filter learners by selected grade
+
   // Filter learners by selected grade
   const classLearners = learners?.filter(l =>
     l.grade === selectedGrade && (l.status === 'ACTIVE' || l.status === 'Active')
@@ -321,7 +377,7 @@ const FormativeAssessment = ({ learners }) => {
   );
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6">
 
       {/* Wizard Progress */}
       <StepIndicator />

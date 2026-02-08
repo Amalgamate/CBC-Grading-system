@@ -3,61 +3,83 @@
  * Main component using extracted modules
  */
 
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import Sidebar from './layout/Sidebar';
 import Header from './layout/Header';
-import RoleDashboard from './pages/dashboard/RoleDashboard';
-import LearnersList from './pages/LearnersList';
-import TeachersList from './pages/TeachersList';
-import ParentsList from './pages/ParentsList';
-import LearningHubPage from './pages/LearningHubPage';
-import PromotionPage from './pages/PromotionPage';
-import TransferOutPage from './pages/TransferOutPage';
-import DailyAttendance from './pages/DailyAttendanceAPI';
-import AttendanceReports from './pages/AttendanceReports';
-import AdmissionsPage from './pages/AdmissionsPage';
-import TransfersInPage from './pages/TransfersInPage';
-import ExitedLearnersPage from './pages/ExitedLearnersPage';
-import FormativeAssessment from './pages/FormativeAssessment';
-import FormativeReport from './pages/FormativeReport';
-import SummativeTests from './pages/SummativeTests';
-import SummativeAssessment from './pages/SummativeAssessment';
-import SummativeReport from './pages/SummativeReport';
-import TermlyReport from './pages/TermlyReport';
-import SummaryReportPage from './pages/reports/SummaryReportPage';
-import PerformanceScale from './pages/PerformanceScale';
-import { API_BASE_URL } from '../../services/api';
-import NoticesPage from './pages/NoticesPage';
-import MessagesPage from './pages/MessagesPage';
-import SupportHub from './pages/SupportHub';
-import TimetablePage from './pages/TimetablePage';
-import SchoolSettings from './pages/settings/SchoolSettings';
-import AcademicSettings from './pages/settings/AcademicSettings';
-import UserManagement from './pages/settings/UserManagement';
-import BrandingSettings from './pages/settings/BrandingSettings';
-import BackupSettings from './pages/settings/BackupSettings';
-import CommunicationSettings from './pages/settings/CommunicationSettings';
-import PaymentSettings from './pages/settings/PaymentSettings';
-import FeeCollectionPage from './pages/FeeCollectionPage';
-import FeeStructurePage from './pages/FeeStructurePage';
-import FeeReportsPage from './pages/FeeReportsPage';
-import StudentStatementsPage from './pages/StudentStatementsPage';
 import Toast from './shared/Toast';
 import ConfirmDialog from './shared/ConfirmDialog';
 import EmptyState from './shared/EmptyState';
 import AddEditParentModal from './shared/AddEditParentModal';
 import AddEditTeacherModal from './shared/AddEditTeacherModal';
-import ViewLearnerModal from './shared/ViewLearnerModal';
 
 // Hooks
 import { useLearners } from './hooks/useLearners';
 import { useTeachers } from './hooks/useTeachers';
 import { useParents } from './hooks/useParents';
 import { useNotifications } from './hooks/useNotifications';
+import { API_BASE_URL } from '../../services/api';
 
 // Utils
 import { PAGE_TITLES } from './utils/constants';
 import { clearAllSchoolData } from '../../utils/schoolDataCleanup';
+
+// Lazy load page components for better performance
+const RoleDashboard = lazy(() => import('./pages/dashboard/RoleDashboard'));
+const LearnersList = lazy(() => import('./pages/LearnersList'));
+const TeachersList = lazy(() => import('./pages/TeachersList'));
+const ParentsList = lazy(() => import('./pages/ParentsList'));
+const LearningHubPage = lazy(() => import('./pages/LearningHubPage'));
+const PromotionPage = lazy(() => import('./pages/PromotionPage'));
+const TransferOutPage = lazy(() => import('./pages/TransferOutPage'));
+const DailyAttendance = lazy(() => import('./pages/DailyAttendanceAPI'));
+const AttendanceReports = lazy(() => import('./pages/AttendanceReports'));
+const AdmissionsPage = lazy(() => import('./pages/AdmissionsPage'));
+const TransfersInPage = lazy(() => import('./pages/TransfersInPage'));
+const ExitedLearnersPage = lazy(() => import('./pages/ExitedLearnersPage'));
+const FormativeAssessment = lazy(() => import('./pages/FormativeAssessment'));
+const FormativeReport = lazy(() => import('./pages/FormativeReport'));
+const SummativeTests = lazy(() => import('./pages/SummativeTests'));
+const SummativeAssessment = lazy(() => import('./pages/SummativeAssessment'));
+const SummativeReport = lazy(() => import('./pages/SummativeReport'));
+const TermlyReport = lazy(() => import('./pages/TermlyReport'));
+const SummaryReportPage = lazy(() => import('./pages/reports/SummaryReportPage'));
+const PerformanceScale = lazy(() => import('./pages/PerformanceScale'));
+const NoticesPage = lazy(() => import('./pages/NoticesPage'));
+const MessagesPage = lazy(() => import('./pages/MessagesPage'));
+const SupportHub = lazy(() => import('./pages/SupportHub'));
+const TimetablePage = lazy(() => import('./pages/TimetablePage'));
+const CodingPlayground = lazy(() => import('./pages/CodingPlayground'));
+const SchoolSettings = lazy(() => import('./pages/settings/SchoolSettings'));
+const AcademicSettings = lazy(() => import('./pages/settings/AcademicSettings'));
+const UserManagement = lazy(() => import('./pages/settings/UserManagement'));
+const BrandingSettings = lazy(() => import('./pages/settings/BrandingSettings'));
+const BackupSettings = lazy(() => import('./pages/settings/BackupSettings'));
+const CommunicationSettings = lazy(() => import('./pages/settings/CommunicationSettings'));
+const PaymentSettings = lazy(() => import('./pages/settings/PaymentSettings'));
+const FeeCollectionPage = lazy(() => import('./pages/FeeCollectionPage'));
+const FeeStructurePage = lazy(() => import('./pages/FeeStructurePage'));
+const FeeReportsPage = lazy(() => import('./pages/FeeReportsPage'));
+const StudentStatementsPage = lazy(() => import('./pages/StudentStatementsPage'));
+const DocumentCenter = lazy(() => import('./pages/DocumentCenter'));
+const LearnerProfile = lazy(() => import('./pages/profiles/LearnerProfile'));
+const TeacherProfile = lazy(() => import('./pages/profiles/TeacherProfile'));
+const ParentProfile = lazy(() => import('./pages/profiles/ParentProfile'));
+
+
+// Premium Loading Component for Lazy Transitions
+const LoadingOverlay = () => (
+  <div className="flex-1 flex flex-col items-center justify-center bg-gray-50/50 backdrop-blur-sm animate-in fade-in duration-500">
+    <div className="relative">
+      <div className="w-16 h-16 border-4 border-[#0D9488]/20 border-t-[#0D9488] rounded-full animate-spin"></div>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-8 h-8 bg-[#0D9488]/10 rounded-full animate-pulse"></div>
+      </div>
+    </div>
+    <p className="mt-4 text-sm font-medium text-gray-500 animate-pulse tracking-wide uppercase">
+      Optimizing Experience...
+    </p>
+  </div>
+);
 
 export default function CBCGradingSystem({ user, onLogout, brandingSettings, setBrandingSettings }) {
   // UI State
@@ -165,10 +187,8 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   const [showTeacherModal, setShowTeacherModal] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null);
 
-  // Learner Modal State
+  // Learner Modal State - VIEW MODAL REMOVED
   const [editingLearner, setEditingLearner] = useState(null);
-  const [viewingLearner, setViewingLearner] = useState(null);
-  const [showViewLearnerModal, setShowViewLearnerModal] = useState(false);
 
   // Custom Hooks
   const {
@@ -258,8 +278,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   };
 
   const handleViewLearner = (learner) => {
-    setViewingLearner(learner);
-    setShowViewLearnerModal(true);
+    handleNavigate('learner-profile', { learner });
   };
 
   const handleSaveLearner = async (learnerData) => {
@@ -349,8 +368,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   };
 
   const handleViewTeacher = (teacher) => {
-    setSelectedTeacher(teacher);
-    showSuccess('View teacher details feature coming soon!');
+    handleNavigate('teacher-profile', { teacher });
   };
 
   const handleDeleteTeacher = async (teacherId) => {
@@ -382,8 +400,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   };
 
   const handleViewParent = (parent) => {
-    setSelectedParent(parent);
-    showSuccess('View parent details feature coming soon!');
+    handleNavigate('parent-profile', { parent });
   };
 
   const handleSaveParent = async (parentData) => {
@@ -475,6 +492,15 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
         return <PromotionPage learners={learners} />;
       case 'learners-transfer-out':
         return <TransferOutPage learners={learners} />;
+      case 'learner-profile':
+        return (
+          <LearnerProfile
+            learner={pageParams.learner}
+            onBack={() => handleNavigate('learners-list')}
+            brandingSettings={brandingSettings}
+            onNavigate={handleNavigate}
+          />
+        );
 
       // Teachers Module
       case 'teachers-list':
@@ -485,6 +511,13 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
             onEditTeacher={handleEditTeacher}
             onViewTeacher={handleViewTeacher}
             onDeleteTeacher={handleDeleteTeacher}
+          />
+        );
+      case 'teacher-profile':
+        return (
+          <TeacherProfile
+            teacher={pageParams.teacher}
+            onBack={() => handleNavigate('teachers-list')}
           />
         );
 
@@ -502,10 +535,19 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
             onArchiveParent={handleArchiveParent}
           />
         );
+      case 'parent-profile':
+        return (
+          <ParentProfile
+            parent={pageParams.parent}
+            onBack={() => handleNavigate('parents-list')}
+          />
+        );
 
       // Timetable Module
       case 'timetable':
         return <TimetablePage />;
+      case 'coding-playground':
+        return <CodingPlayground />;
 
       // Attendance Module
       case 'attendance-daily':
@@ -527,7 +569,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       case 'assess-summary-report':
         return <SummaryReportPage />;
       case 'assess-termly-report':
-        return <TermlyReport learners={learners} />;
+        return <TermlyReport learners={learners} brandingSettings={brandingSettings} />;
       case 'assess-performance-scale':
         return <PerformanceScale />;
 
@@ -544,11 +586,15 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       case 'comm-messages':
         return <MessagesPage />;
 
+      // Documents Module
+      case 'documents-center':
+        return <DocumentCenter />;
+
       // Fee Management Module
       case 'fees-structure':
         return <FeeStructurePage />;
       case 'fees-collection':
-        return <FeeCollectionPage />;
+        return <FeeCollectionPage learnerId={pageParams.learnerId} />;
       case 'fees-reports':
         return <FeeReportsPage />;
       case 'fees-statements':
@@ -611,7 +657,11 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
 
         {/* Page Content */}
         <main className="flex-1 overflow-auto p-6">
-          {renderPage()}
+          <div className="max-w-screen-2xl mx-auto">
+            <Suspense fallback={<LoadingOverlay />}>
+              {renderPage()}
+            </Suspense>
+          </div>
         </main>
       </div>
 
@@ -647,15 +697,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       />
 
 
-      {/* View Learner Modal */}
-      <ViewLearnerModal
-        show={showViewLearnerModal}
-        onClose={() => {
-          setShowViewLearnerModal(false);
-          setViewingLearner(null);
-        }}
-        learner={viewingLearner}
-      />
+
 
       {/* Confirmation Dialog */}
       <ConfirmDialog

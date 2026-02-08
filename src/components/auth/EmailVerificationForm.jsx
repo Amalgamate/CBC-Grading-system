@@ -227,17 +227,13 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
           {/* Main Content */}
           <div className="flex-1 flex items-center justify-center relative z-10">
             <div className="max-w-md text-center space-y-8">
-              {/* Logo */}
-              <div className="mb-12">
-                <img
-                  src={brandingSettings?.logoUrl || '/logo-new.png'}
-                  alt="Elimcrown Logo"
-                  className="w-48 h-48 object-contain mx-auto drop-shadow-2xl"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = '/logo-new.png';
-                  }}
-                />
+              <div className="mb-12 text-center">
+                <div className="inline-flex items-center justify-center p-4 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl mb-8 transform hover:scale-105 transition-transform duration-500">
+                  <span className="text-5xl sm:text-6xl font-black tracking-tighter flex items-center gap-1">
+                    <span className="text-white">Elim</span>
+                    <span className="text-teal-300 font-light">crown</span>
+                  </span>
+                </div>
               </div>
 
               {/* Verification Message */}

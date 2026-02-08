@@ -12,6 +12,7 @@ import DownloadReportButton from '../shared/DownloadReportButton';
 import SmartLearnerSearch from '../shared/SmartLearnerSearch';
 import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { useLearnerSelection } from '../hooks/useLearnerSelection';
+import TermlyReportTemplate from '../templates/TermlyReportTemplate';
 
 const TermlyReport = ({ learners, brandingSettings }) => {
   const { showSuccess, showError } = useNotifications();
@@ -99,7 +100,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
       const result = await generatePDFWithLetterhead(
         'termly-report-content',
         filename,
-        schoolInfo,
+        { ...schoolInfo, skipLetterhead: true },
         {
           scale: 2, // Higher quality
           multiPage: true, // Support multiple pages if needed
@@ -124,7 +125,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6">
 
       {/* SETUP VIEW */}
       {viewMode === 'setup' && (
@@ -256,133 +257,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
               <p className="opacity-80 text-sm">Excellence in Competency Based Curriculum</p>
             </div>
 
-            <div id="termly-report-content" className="p-4">
-              {/* Report Title */}
-              <div className="text-center border-b border-gray-200 pb-2 mb-3">
-                <h2 className="text-lg font-bold text-gray-800 mb-0.5">End of {reportData.term.replace('_', ' ')} Report</h2>
-                <p className="text-sm text-gray-600 font-semibold">Academic Year {reportData.academicYear}</p>
-              </div>
-
-              {/* Student Information */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                <div>
-                  <p className="font-semibold text-gray-700 text-[10px] mb-0.5 uppercase tracking-wider">Student Name</p>
-                  <p className="text-gray-900 text-xs font-bold">{reportData.learner.firstName} {reportData.learner.lastName}</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-700 text-[10px] mb-0.5 uppercase tracking-wider">Admission No</p>
-                  <p className="text-gray-900 text-xs font-bold">{reportData.learner.admissionNumber}</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-700 text-[10px] mb-0.5 uppercase tracking-wider">Class</p>
-                  <p className="text-gray-900 text-xs font-bold">{reportData.learner.grade} {reportData.learner.stream ? `- ${reportData.learner.stream}` : ''}</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-700 text-[10px] mb-0.5 uppercase tracking-wider">Attendance</p>
-                  <p className="text-gray-900 text-xs font-bold">
-                    {reportData.attendance?.attendancePercentage || 0}%
-                    {reportData.attendance?.attendancePercentage >= 95 ? ' (Excellent)' :
-                      reportData.attendance?.attendancePercentage >= 80 ? ' (Good)' : ''}
-                  </p>
-                </div>
-              </div>
-
-              {/* Academic Performance */}
-              <div className="border-t border-gray-200 pt-3">
-                <h3 className="text-sm font-bold text-gray-800 mb-2">Academic Performance</h3>
-
-                {(reportData.summative?.summary?.bySubject || []).length > 0 ? (
-                  <table className="w-full mb-4 border-collapse text-xs">
-                    <thead className="bg-brand-purple text-white">
-                      <tr>
-                        <th className="px-2 py-1.5 text-left font-semibold">Subject</th>
-                        <th className="px-2 py-1.5 text-center font-semibold">Marks</th>
-                        <th className="px-2 py-1.5 text-center font-semibold">Grade</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {reportData.summative.summary.bySubject.map((subject, i) => (
-                        <tr key={subject.subject} className="border-t border-gray-200 hover:bg-gray-50">
-                          <td className="px-2 py-1.5 font-medium text-gray-800">{subject.subject}</td>
-                          <td className="px-2 py-1.5 text-center text-gray-700">{subject.averagePercentage}%</td>
-                          <td className="px-2 py-1.5 text-center">
-                            <span className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] font-bold ${['A', 'B'].includes(subject.grade) ? 'bg-green-100 text-green-800' :
-                              ['C'].includes(subject.grade) ? 'bg-brand-purple/10 text-brand-purple' :
-                                'bg-yellow-100 text-yellow-800'
-                              }`}>
-                              {subject.grade}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div className="text-center py-4 text-gray-500 text-xs italic mb-4 bg-gray-50 rounded-lg">
-                    No academic results available for this term.
-                  </div>
-                )}
-
-                {/* Comments Section */}
-                <div className="space-y-2">
-                  <div className="bg-brand-purple/5 p-2 rounded-lg border-l-4 border-brand-purple text-xs">
-                    <p className="font-bold text-gray-800 mb-0.5 flex items-center gap-1.5 text-[10px] uppercase tracking-wider">
-                      <span className="text-brand-purple">📝</span>
-                      Class Teacher's Comment
-                    </p>
-                    <p className="text-gray-700 leading-snug">
-                      {reportData.comments?.classTeacher || 'No comment provided.'}
-                    </p>
-                  </div>
-
-                  <div className="bg-green-50 p-2 rounded-lg border-l-4 border-green-500 text-xs">
-                    <p className="font-bold text-gray-800 mb-0.5 flex items-center gap-1.5 text-[10px] uppercase tracking-wider">
-                      <span className="text-green-600">✓</span>
-                      Head Teacher's Comment
-                    </p>
-                    <p className="text-gray-700 leading-snug">
-                      {reportData.comments?.headTeacher || 'No comment provided.'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Footer Information */}
-                <div className="mt-4 pt-3 border-t border-gray-200 grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <p className="font-bold text-gray-800 mb-0.5">Next Term Begins:</p>
-                    <p className="text-gray-700">
-                      {reportData.comments?.nextTermOpens ? new Date(reportData.comments.nextTermOpens).toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                      }) : 'TBA'}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-gray-800 mb-0.5">Date Issued:</p>
-                    <p className="text-gray-700">{new Date(reportData.generatedDate || Date.now()).toLocaleDateString('en-GB', {
-                      day: '2-digit',
-                      month: 'long',
-                      year: 'numeric'
-                    })}</p>
-                  </div>
-                </div>
-
-                {/* Signature Lines */}
-                <div className="mt-6 grid grid-cols-2 gap-6">
-                  <div>
-                    <div className="border-t border-gray-400 pt-1 mt-6">
-                      <p className="text-center text-[10px] font-semibold text-gray-700 uppercase tracking-wider">Class Teacher's Signature</p>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="border-t border-gray-400 pt-1 mt-6">
-                      <p className="text-center text-[10px] font-semibold text-gray-700 uppercase tracking-wider">Parent's Signature</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <TermlyReportTemplate reportData={reportData} />
           </div>
         </>
       )}

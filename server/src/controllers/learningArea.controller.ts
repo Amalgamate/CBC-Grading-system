@@ -3,7 +3,8 @@
  * Handles CRUD operations for learning areas
  */
 
-import { Router } from 'express';
+import { Request, Response, Router } from 'express';
+import { AuthRequest } from '../middleware/permissions.middleware';
 import prisma from '../config/database';
 
 const router = Router();
@@ -12,10 +13,10 @@ const router = Router();
  * GET /api/learning-areas
  * Get all learning areas for a school
  */
-export const getLearningAreas = async (req: any, res: any) => {
+export const getLearningAreas = async (req: AuthRequest, res: Response) => {
   try {
     const schoolId = req.query.schoolId || req.user?.schoolId;
-    
+
     if (!schoolId) {
       return res.status(400).json({ error: 'School ID is required' });
     }
@@ -44,7 +45,7 @@ export const getLearningAreas = async (req: any, res: any) => {
  * GET /api/learning-areas/:id
  * Get a specific learning area
  */
-export const getLearningArea = async (req: any, res: any) => {
+export const getLearningArea = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -67,7 +68,7 @@ export const getLearningArea = async (req: any, res: any) => {
  * POST /api/learning-areas
  * Create a new learning area
  */
-export const createLearningArea = async (req: any, res: any) => {
+export const createLearningArea = async (req: AuthRequest, res: Response) => {
   try {
     const { name, shortName, gradeLevel, icon, color, description } = req.body;
     const schoolId = req.user?.schoolId;
@@ -111,7 +112,7 @@ export const createLearningArea = async (req: any, res: any) => {
  * PUT /api/learning-areas/:id
  * Update a learning area
  */
-export const updateLearningArea = async (req: any, res: any) => {
+export const updateLearningArea = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, shortName, gradeLevel, icon, color, description } = req.body;
@@ -162,7 +163,7 @@ export const updateLearningArea = async (req: any, res: any) => {
  * DELETE /api/learning-areas/:id
  * Delete a learning area
  */
-export const deleteLearningArea = async (req: any, res: any) => {
+export const deleteLearningArea = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -189,7 +190,7 @@ export const deleteLearningArea = async (req: any, res: any) => {
  * POST /api/learning-areas/seed
  * Seed learning areas from constants (for initial setup)
  */
-export const seedLearningAreas = async (req: any, res: any) => {
+export const seedLearningAreas = async (req: AuthRequest, res: Response) => {
   try {
     const schoolId = req.user?.schoolId;
 

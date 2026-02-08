@@ -16,22 +16,22 @@ import { useLearnerSelection } from '../hooks/useLearnerSelection';
 
 const FormativeReport = ({ learners, brandingSettings }) => {
   const { showSuccess, showError } = useNotifications();
-  
+
   // Use centralized hooks for assessment state management
   const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
   const selection = useLearnerSelection(learners || [], { status: ['ACTIVE', 'Active'] });
-  
+
   // UI State
   const [viewMode, setViewMode] = useState('setup'); // 'setup' or 'report'
   const [selectedArea, setSelectedArea] = useState('all');
-  
+
   // Data State
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const fetchReportData = useCallback(async () => {
     if (!selection.selectedLearnerId) return;
-    
+
     setLoading(true);
     try {
       const response = await api.reports.getFormativeReport(selection.selectedLearnerId, {
@@ -69,7 +69,7 @@ const FormativeReport = ({ learners, brandingSettings }) => {
 
     try {
       const filename = `${reportData.learner.firstName}_${reportData.learner.lastName}_Formative_${setup.selectedTerm}_Report.pdf`;
-      
+
       const schoolInfo = {
         schoolName: brandingSettings?.schoolName || 'Zawadi JRN Academy',
         address: 'P.O. Box 1234, Nairobi, Kenya',
@@ -84,8 +84,8 @@ const FormativeReport = ({ learners, brandingSettings }) => {
         'formative-report-content',
         filename,
         schoolInfo,
-        { 
-          scale: 2, 
+        {
+          scale: 2,
           multiPage: true,
           onProgress
         }
@@ -136,7 +136,7 @@ const FormativeReport = ({ learners, brandingSettings }) => {
   };
 
   // Filter assessments by learning area
-  const filteredAssessments = selectedArea === 'all' 
+  const filteredAssessments = selectedArea === 'all'
     ? reportData?.assessments || []
     : reportData?.assessments.filter(a => a.learningArea === selectedArea) || [];
 
@@ -147,14 +147,14 @@ const FormativeReport = ({ learners, brandingSettings }) => {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      
+    <div className="space-y-6">
+
       {/* SETUP VIEW: SELECTION PANEL */}
       {viewMode === 'setup' && (
         <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100 max-w-3xl mx-auto mt-8">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
-               <FileText size={32} />
+              <FileText size={32} />
             </div>
             <h2 className="text-2xl font-bold text-gray-800">Generate Formative Report</h2>
             <p className="text-gray-500">Select a learner and term to view their assessment report</p>
@@ -171,12 +171,12 @@ const FormativeReport = ({ learners, brandingSettings }) => {
                 placeholder="Search by name, adm no..."
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Academic Term</label>
-              <select 
-                value={setup.selectedTerm} 
-                onChange={(e) => setup.updateTerm(e.target.value)} 
+              <select
+                value={setup.selectedTerm}
+                onChange={(e) => setup.updateTerm(e.target.value)}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
               >
                 {setup.terms.map(t => (
@@ -200,7 +200,7 @@ const FormativeReport = ({ learners, brandingSettings }) => {
         <>
           {/* Compact Context Header */}
           <div className="bg-white rounded-xl shadow-sm p-4 border border-blue-100 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-4 z-20 print:hidden">
-             <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4">
               <div className="bg-blue-50 p-3 rounded-lg text-blue-600">
                 <User size={24} />
               </div>
@@ -219,9 +219,9 @@ const FormativeReport = ({ learners, brandingSettings }) => {
 
             <div className="flex items-center gap-3">
               <div className="hidden md:block">
-                <select 
-                  value={selectedArea} 
-                  onChange={(e) => setSelectedArea(e.target.value)} 
+                <select
+                  value={selectedArea}
+                  onChange={(e) => setSelectedArea(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="all">All Learning Areas</option>
@@ -233,22 +233,22 @@ const FormativeReport = ({ learners, brandingSettings }) => {
 
               <div className="h-8 w-px bg-gray-200 mx-2 hidden md:block"></div>
 
-              <button 
+              <button
                 onClick={handleReset}
                 className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium"
               >
                 <Edit3 size={16} />
                 Change
               </button>
-              
-              <DownloadReportButton 
+
+              <DownloadReportButton
                 onDownload={handleDownloadPDF}
                 label="PDF"
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm font-semibold text-sm flex items-center gap-2"
               />
-              
-              <button 
-                onClick={handlePrint} 
+
+              <button
+                onClick={handlePrint}
                 className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
                 title="Print Report"
               >
@@ -324,10 +324,10 @@ const FormativeReport = ({ learners, brandingSettings }) => {
             {/* Printable Report Content */}
             <div className="bg-white rounded-xl shadow-md p-6 print:shadow-none print:p-0">
               <div className="flex items-center justify-between mb-6 print:hidden">
-                 <h3 className="text-lg font-bold text-gray-800">Detailed Assessment Report</h3>
-                 <span className="text-sm text-gray-500">{filteredAssessments.length} records found</span>
+                <h3 className="text-lg font-bold text-gray-800">Detailed Assessment Report</h3>
+                <span className="text-sm text-gray-500">{filteredAssessments.length} records found</span>
               </div>
-              
+
               {/* Assessments by Learning Area */}
               <div className="space-y-4">
                 {filteredAssessments.length === 0 ? (
@@ -400,7 +400,7 @@ const FormativeReport = ({ learners, brandingSettings }) => {
                     <div className="flex-1">
                       <p className="font-bold text-blue-900 text-sm mb-1">Class Teacher's Comment</p>
                       <p className="text-gray-700 text-sm leading-relaxed">{reportData.teacherComment.classTeacherComment}</p>
-                      
+
                       <div className="mt-3 flex justify-between items-center border-t border-blue-200 pt-2">
                         <p className="text-xs font-semibold text-blue-800">
                           {reportData.teacherComment.classTeacherName}

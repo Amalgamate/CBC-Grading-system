@@ -130,7 +130,7 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto px-2">
+    <div className="space-y-6 px-2">
       <div className="border-b border-gray-100 pb-4 mb-6 flex justify-between items-end">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">{isEdit ? 'Edit Student Details' : 'Student Admission'}</h2>

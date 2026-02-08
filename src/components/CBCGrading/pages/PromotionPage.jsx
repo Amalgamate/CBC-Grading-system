@@ -83,53 +83,65 @@ const PromotionPage = ({ learners = [], onPromote, showNotification }) => {
       {/* Step 1: Select Source Class */}
       <div className="bg-white rounded-xl shadow-md p-6">
         <h3 className="text-lg font-black mb-4 text-brand-purple uppercase tracking-widest">Step 1: Select Source Class</h3>
-        <div className="flex items-center gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Grade</label>
-            <select
-              value={sourceGrade}
-              onChange={(e) => {
-                setSourceGrade(e.target.value);
-                setSelectedLearners([]);
-              }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple"
-            >
-              <option value="Grade 1">Grade 1</option>
-              <option value="Grade 2">Grade 2</option>
-              <option value="Grade 3">Grade 3</option>
-              <option value="Grade 4">Grade 4</option>
-              <option value="Grade 5">Grade 5</option>
-              <option value="Grade 6">Grade 6</option>
-            </select>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+          <div className="md:col-span-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Grade Level</label>
+            <div className="relative">
+              <select
+                value={sourceGrade}
+                onChange={(e) => {
+                  setSourceGrade(e.target.value);
+                  setSelectedLearners([]);
+                }}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition bg-white appearance-none"
+              >
+                <option value="Grade 1">Grade 1</option>
+                <option value="Grade 2">Grade 2</option>
+                <option value="Grade 3">Grade 3</option>
+                <option value="Grade 4">Grade 4</option>
+                <option value="Grade 5">Grade 5</option>
+                <option value="Grade 6">Grade 6</option>
+              </select>
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+              </div>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Stream</label>
-            <select
-              value={sourceStream}
-              onChange={(e) => {
-                setSourceStream(e.target.value);
-                setSelectedLearners([]);
-              }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple"
-            >
-              <option value="all">All Streams</option>
-              {availableStreams.map(stream => (
-                <option key={stream.id} value={stream.name}>
-                  {stream.name}
-                </option>
-              ))}
-            </select>
+
+          <div className="md:col-span-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Stream / Class</label>
+            <div className="relative">
+              <select
+                value={sourceStream}
+                onChange={(e) => {
+                  setSourceStream(e.target.value);
+                  setSelectedLearners([]);
+                }}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition bg-white appearance-none"
+              >
+                <option value="all">All Streams</option>
+                {availableStreams.map(stream => (
+                  <option key={stream.id} value={stream.name}>
+                    {stream.name}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-500">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+              </div>
+            </div>
           </div>
-          <div className="flex items-end gap-2">
+
+          <div className="md:col-span-4 flex gap-3">
             <button
               onClick={selectAll}
-              className="px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-sm font-bold"
+              className="flex-1 px-4 py-3 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-md font-bold text-sm uppercase tracking-wide"
             >
               Select All
             </button>
             <button
               onClick={clearSelection}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+              className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium shadow-sm"
             >
               Clear
             </button>
@@ -159,26 +171,31 @@ const PromotionPage = ({ learners = [], onPromote, showNotification }) => {
                 <div
                   key={learner.id}
                   onClick={() => toggleLearner(learner.id)}
-                  className={`p-4 border-2 rounded-lg cursor-pointer transition ${isSelected ? 'border-brand-teal bg-brand-teal/5' : 'border-gray-200 hover:border-brand-teal/30'
+                  className={`relative p-4 rounded-xl cursor-pointer transition-all duration-200 group ${isSelected
+                    ? 'bg-brand-teal/5 ring-2 ring-brand-teal shadow-md'
+                    : 'bg-white border border-gray-100 hover:border-brand-teal/50 hover:shadow-md'
                     }`}
                 >
-                  <div className="flex items-center gap-3 mb-2">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => { }}
-                      className="w-5 h-5 text-brand-teal rounded focus:ring-brand-teal"
-                    />
-                    <span className="text-2xl">{learner.avatar}</span>
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm">{learner.firstName} {learner.lastName}</p>
-                      <p className="text-xs text-gray-500">{learner.admNo}</p>
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold transition-colors ${isSelected ? 'bg-brand-teal text-white' : 'bg-gray-100 text-gray-500 group-hover:bg-brand-teal/10 group-hover:text-brand-teal'
+                      }`}>
+                      {learner.avatar || learner.firstName.charAt(0)}
                     </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-800 truncate">{learner.firstName} {learner.lastName}</p>
+                      <p className="text-xs text-gray-500 font-medium tracking-wide">{learner.admNo}</p>
+                    </div>
+                    {isSelected && (
+                      <div className="absolute top-4 right-4 text-brand-teal">
+                        <CheckCircle size={20} fill="currentColor" className="text-white" />
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 rounded px-2 py-1">
-                    <span className="font-semibold">{learner.grade}</span>
-                    <ArrowRight size={14} className="text-brand-teal" />
-                    <span className="font-semibold text-brand-teal">{nextGrade}</span>
+
+                  <div className="flex items-center justify-between text-xs bg-gray-50 rounded-lg px-3 py-2 mt-2">
+                    <span className="font-semibold text-gray-500">{learner.grade}</span>
+                    <ArrowRight size={14} className="text-gray-400" />
+                    <span className="font-bold text-brand-teal">{nextGrade}</span>
                   </div>
                 </div>
               );
@@ -189,13 +206,13 @@ const PromotionPage = ({ learners = [], onPromote, showNotification }) => {
 
       {/* Promote Button */}
       {selectedLearners.length > 0 && (
-        <div className="flex justify-end">
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10 md:static md:bg-transparent md:border-t-0 md:shadow-none md:p-0 flex justify-end">
           <button
             onClick={handlePromote}
-            className="flex items-center gap-2 px-6 py-3 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-lg font-bold"
+            className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-brand-teal text-white rounded-xl hover:bg-brand-teal/90 transition shadow-lg hover:shadow-xl font-bold text-lg transform active:scale-95 duration-150"
           >
-            <CheckCircle size={20} />
-            Promote Selected ({selectedLearners.length})
+            <CheckCircle size={24} />
+            <span>Promote {selectedLearners.length} Learner{selectedLearners.length !== 1 ? 's' : ''}</span>
           </button>
         </div>
       )}
