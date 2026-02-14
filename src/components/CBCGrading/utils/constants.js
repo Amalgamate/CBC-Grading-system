@@ -157,6 +157,7 @@ export const PAGE_TITLES = {
 
   // Teachers/Parents
   'teachers-list': 'Tutors List',
+  'add-teacher': 'Add/Edit Tutor',
   'parents-list': 'Parents List',
 
   // Timetable
@@ -185,6 +186,7 @@ export const PAGE_TITLES = {
   'learning-hub-assignments': 'Assignments',
   'learning-hub-lesson-plans': 'Lesson Plans',
   'learning-hub-library': 'Resource Library',
+  'inventory-books': 'Inventory Management',
 
   // Fees
   'fees-structure': 'Fee Structure',

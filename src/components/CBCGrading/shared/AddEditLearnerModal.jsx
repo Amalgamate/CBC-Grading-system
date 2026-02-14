@@ -20,9 +20,10 @@ const AddEditLearnerModal = ({ show, onClose, onSave, learner = null }) => {
     const fetchStreams = async () => {
       if (user?.schoolId) {
         try {
-          const streams = await configAPI.getStreamConfigs(user.schoolId);
-          if (streams && Array.isArray(streams)) {
-            setAvailableStreams(streams.filter(s => s.active));
+          const resp = await configAPI.getStreamConfigs(user.schoolId);
+          const streams = resp?.data || [];
+          if (Array.isArray(streams)) {
+            setAvailableStreams(streams.filter(s => s.active !== false));
           }
         } catch (error) {
           console.error('Failed to fetch streams:', error);

@@ -33,7 +33,7 @@ export class PdfService {
             // networkidle2 is often safer than networkidle0 as it allows up to 2 active connections
             await page.setContent(html, {
                 waitUntil: ['domcontentloaded'], // Faster start
-                timeout: 10000 // 10s is plenty for local content
+                timeout: 60000 // Increased for large bulk reports (60s)
             });
 
             // If we have network resources, wait a bit longer for them specifically

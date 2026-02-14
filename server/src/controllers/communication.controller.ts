@@ -4,6 +4,9 @@ import { encrypt } from '../utils/encryption.util';
 import { SmsService } from '../services/sms.service';
 import { EmailService } from '../services/email-resend.service';
 import { AuthRequest } from '../middleware/permissions.middleware';
+import { whatsappService } from '../services/whatsapp.service';
+import { ApiError } from '../utils/error.util';
+import { COMMUNICATION_CONFIG, ERROR_MESSAGES, SMS_MESSAGES } from '../config/communication.messages';
 
 /**
  * Get Communication Configuration for a School
@@ -11,11 +14,10 @@ import { AuthRequest } from '../middleware/permissions.middleware';
  */
 export const getCommunicationConfig = async (req: AuthRequest, res: Response) => {
     try {
-        const { schoolId } = req.params;
+        const schoolId = (req as any).tenant?.schoolId;
 
-        // Tenant check
-        if (req.user?.schoolId && req.user.schoolId !== schoolId) {
-            return res.status(403).json({ error: 'Unauthorized access to school configuration' });
+        if (!schoolId) {
+            throw new ApiError(403, 'School context required');
         }
 
         const config = await prisma.communicationConfig.findUnique({
@@ -29,13 +31,13 @@ export const getCommunicationConfig = async (req: AuthRequest, res: Response) =>
                     schoolId,
                     sms: {
                         enabled: false,
-                        provider: 'mobilesasa',
+                        provider: COMMUNICATION_CONFIG.sms.provider,
                         hasApiKey: false,
                         senderId: ''
                     },
                     email: {
                         enabled: false,
-                        provider: 'resend',
+                        provider: COMMUNICATION_CONFIG.email.provider,
                         hasApiKey: false
                     },
                     mpesa: {
@@ -45,7 +47,7 @@ export const getCommunicationConfig = async (req: AuthRequest, res: Response) =>
                     },
                     birthdays: {
                         enabled: false,
-                        template: "Happy Birthday {learnerName}! Best wishes from {schoolName}."
+                        template: SMS_MESSAGES.birthdayStandard('{learnerName}', '{schoolName}', '{gradeName}')
                     }
                 }
             });
@@ -66,7 +68,8 @@ export const getCommunicationConfig = async (req: AuthRequest, res: Response) =>
                     customName: config.smsCustomName,
                     customUrl: config.smsCustomBaseUrl,
                     customAuthHeader: config.smsCustomAuthHeader,
-                    hasCustomToken: !!config.smsCustomToken
+                    hasCustomToken: !!config.smsCustomToken,
+                    username: (config as any).smsUsername
                 },
                 email: {
                     enabled: config.emailEnabled,
@@ -85,7 +88,7 @@ export const getCommunicationConfig = async (req: AuthRequest, res: Response) =>
                 },
                 birthdays: {
                     enabled: config.birthdayEnabled,
-                    template: config.birthdayMessageTemplate || "Happy Birthday {learnerName}! Best wishes from {schoolName}."
+                    template: config.birthdayMessageTemplate || SMS_MESSAGES.birthdayStandard('{learnerName}', '{schoolName}', '{gradeName}')
                 },
                 createdAt: config.createdAt,
                 updatedAt: config.updatedAt
@@ -104,15 +107,11 @@ export const getCommunicationConfig = async (req: AuthRequest, res: Response) =>
  */
 export const saveCommunicationConfig = async (req: AuthRequest, res: Response) => {
     try {
-        const { schoolId, sms, email, mpesa, birthdays } = req.body;
+        const { sms, email, mpesa, birthdays } = req.body;
+        const schoolId = (req as any).tenant?.schoolId;
 
         if (!schoolId) {
-            return res.status(400).json({ error: 'schoolId is required' });
-        }
-
-        // Tenant check
-        if (req.user?.schoolId && req.user.schoolId !== schoolId) {
-            return res.status(403).json({ error: 'Unauthorized access to school configuration' });
+            throw new ApiError(403, 'School context required');
         }
 
         // Prepare data for upsert
@@ -122,17 +121,38 @@ export const saveCommunicationConfig = async (req: AuthRequest, res: Response) =
 
         // SMS Configuration
         if (sms) {
+            console.log(`[CommunicationController] SMS Config Update:`, {
+                provider: sms.provider,
+                hasApiKey: !!sms.apiKey,
+                hasUsername: !!sms.username,
+                hasSenderId: !!sms.senderId
+            });
+
             data.smsProvider = sms.provider || 'mobilesasa';
             data.smsBaseUrl = sms.baseUrl || 'https://api.mobilesasa.com';
-            data.smsSenderId = sms.senderId || null;
-            data.smsEnabled = sms.enabled !== undefined ? sms.enabled : false;
+            data.smsEnabled = sms.enabled !== undefined ? sms.enabled : true; // Default to enabled
 
-            // Encrypt API key if provided
-            if (sms.apiKey) {
-                data.smsApiKey = encrypt(sms.apiKey);
+            // Only update Sender ID if provided
+            if (sms.senderId) {
+                data.smsSenderId = sms.senderId;
             }
 
-            // Custom provider fields
+            // Encrypt API key if provided (should never be empty/undefined)
+            if (sms.apiKey && sms.apiKey.trim()) {
+                console.log(`[CommunicationController] Encrypting SMS API Key for provider: ${sms.provider}`);
+                data.smsApiKey = encrypt(sms.apiKey);
+            } else if (!sms.apiKey) {
+                // If no API key provided, don't overwrite existing one
+                console.log(`[CommunicationController] No API key provided - keeping existing key`);
+            }
+
+            // Africa's Talking specific field
+            if (sms.username && sms.username.trim()) {
+                console.log(`[CommunicationController] Setting Africa's Talking username`);
+                data.smsUsername = sms.username;
+            }
+
+            // Custom provider fields (if applicable)
             if (sms.provider === 'custom') {
                 data.smsCustomName = sms.customName || null;
                 data.smsCustomBaseUrl = sms.customBaseUrl || null;
@@ -206,37 +226,52 @@ export const saveCommunicationConfig = async (req: AuthRequest, res: Response) =
  */
 export const sendTestSms = async (req: AuthRequest, res: Response) => {
     try {
-        const { schoolId, phoneNumber, message } = req.body;
+        const { phoneNumber, message, schoolId: bodySchoolId } = req.body;
+        
+        // Get schoolId from tenant middleware (preferred) or request body (fallback)
+        let schoolId = (req as any).tenant?.schoolId || bodySchoolId;
 
-        if (!schoolId || !phoneNumber || !message) {
+        if (!schoolId) {
+            console.error('❌ School ID not found in tenant or request body');
             return res.status(400).json({
-                error: 'schoolId, phoneNumber, and message are required'
+                error: 'School context required. Please ensure you are authenticated.'
             });
         }
 
-        // Tenant check
-        if (req.user?.schoolId && req.user.schoolId !== schoolId) {
-            return res.status(403).json({ error: 'Unauthorized access to school configuration' });
+        if (!phoneNumber || !message) {
+            return res.status(400).json({
+                error: 'phoneNumber and message are required'
+            });
         }
+
+        console.log('📞 Test SMS Request:', {
+            schoolId,
+            phoneNumber,
+            messageLength: message.length
+        });
 
         // Send SMS
         const result = await SmsService.sendSms(schoolId, phoneNumber, message);
 
         if (!result.success) {
+            console.error('❌ SMS send failed:', result.error);
             return res.status(400).json({
                 error: result.error || 'Failed to send SMS'
             });
         }
 
+        console.log('✅ SMS sent successfully:', result);
         res.status(200).json({
+            success: true,
             message: 'SMS sent successfully',
             messageId: result.messageId,
             provider: result.provider
         });
-
     } catch (error: any) {
-        console.error('Send Test SMS Error:', error);
-        res.status(500).json({ error: error.message || 'Failed to send test SMS' });
+        console.error('❌ Send Test SMS Error:', error);
+        res.status(500).json({
+            error: error.message || 'Failed to send test SMS'
+        });
     }
 };
 
@@ -246,18 +281,27 @@ export const sendTestSms = async (req: AuthRequest, res: Response) => {
  */
 export const sendTestEmail = async (req: AuthRequest, res: Response) => {
     try {
-        const { schoolId, email, template = 'welcome' } = req.body;
+        const { email, template = 'welcome', schoolId: bodySchoolId } = req.body;
+        let schoolId = (req as any).tenant?.schoolId || bodySchoolId;
 
-        if (!schoolId || !email) {
+        if (!schoolId) {
+            console.error('❌ School ID not found in tenant or request body');
             return res.status(400).json({
-                error: 'schoolId and email are required'
+                error: 'School context required. Please ensure you are authenticated.'
             });
         }
 
-        // Tenant check
-        if (req.user?.schoolId && req.user.schoolId !== schoolId) {
-            return res.status(403).json({ error: 'Unauthorized access to school configuration' });
+        if (!email) {
+            return res.status(400).json({
+                error: 'Email is required'
+            });
         }
+
+        console.log('📧 Test Email Request:', {
+            schoolId,
+            email,
+            template
+        });
 
         // Fetch School Name for context
         const school = await prisma.school.findUnique({
@@ -267,7 +311,7 @@ export const sendTestEmail = async (req: AuthRequest, res: Response) => {
         const schoolName = school?.name || 'Your School';
         const adminName = req.user?.userId ? (await prisma.user.findUnique({ where: { id: req.user.userId } }))?.firstName || 'Admin' : 'Admin';
 
-        const frontendUrl = process.env.FRONTEND_URL || 'https://educorev1.up.railway.app';
+        const frontendUrl = process.env.FRONTEND_URL || 'https://elimcrown-v1.up.railway.app';
         const loginUrl = `${frontendUrl}/t/${schoolId}/login`;
 
         // Send Email based on template selection
@@ -290,13 +334,15 @@ export const sendTestEmail = async (req: AuthRequest, res: Response) => {
             });
         }
 
+        console.log('✅ Test email sent successfully to:', email);
         res.status(200).json({
+            success: true,
             message: `Test email (${template}) sent successfully to ${email}`,
             provider: 'resend' // We know it's resend
         });
 
     } catch (error: any) {
-        console.error('Send Test Email Error:', error);
+        console.error('❌ Send Test Email Error:', error);
         res.status(500).json({ error: error.message || 'Failed to send test email' });
     }
 };
@@ -307,10 +353,10 @@ export const sendTestEmail = async (req: AuthRequest, res: Response) => {
  */
 export const getBirthdaysToday = async (req: AuthRequest, res: Response) => {
     try {
-        const { schoolId } = req.params;
+        const schoolId = (req as any).tenant?.schoolId;
 
-        if (req.user?.schoolId && req.user.schoolId !== schoolId) {
-            return res.status(403).json({ error: 'Unauthorized' });
+        if (!schoolId) {
+            throw new ApiError(403, 'School context required');
         }
 
         // Get current date MM-DD
@@ -360,14 +406,11 @@ export const getBirthdaysToday = async (req: AuthRequest, res: Response) => {
  */
 export const sendBirthdayWishes = async (req: AuthRequest, res: Response) => {
     try {
-        const { schoolId, learnerIds, template, channel = 'sms' } = req.body;
+        const { learnerIds, template, channel = 'sms' } = req.body;
+        const schoolId = (req as any).tenant?.schoolId;
 
         if (!schoolId || !learnerIds || !Array.isArray(learnerIds)) {
-            return res.status(400).json({ error: 'schoolId and learnerIds array are required' });
-        }
-
-        if (req.user?.schoolId && req.user.schoolId !== schoolId) {
-            return res.status(403).json({ error: 'Unauthorized' });
+            throw new ApiError(400, 'learnerIds array is required in a valid school context');
         }
 
         // Fetch school name for template
@@ -387,8 +430,7 @@ export const sendBirthdayWishes = async (req: AuthRequest, res: Response) => {
         });
 
         const results = [];
-        const msgTemplate = template || "*Happy Birthday {firstName}!* 🎂🎈\n\n{schoolName} is thrilled to celebrate you on your *{ageOrdinal} birthday* today, {birthdayDate}! 🎊 \n\nWe are so proud of your progress in *${gradeName}*. May your day be filled with joy, laughter, and wonderful memories. Keep shining bright! ✨\n\nBest wishes,\n*The {schoolName} Family*";
-
+        
         const calculateAge = (dob: Date) => {
             const today = new Date();
             let age = today.getFullYear() - dob.getFullYear();
@@ -431,36 +473,48 @@ export const sendBirthdayWishes = async (req: AuthRequest, res: Response) => {
             const lastName = formatTitleCase(learner.lastName);
             const fullName = `${firstName} ${lastName}`;
 
-            const message = msgTemplate
-                .replace(/{learnerName}/g, fullName)
-                .replace(/{firstName}/g, firstName)
-                .replace(/{lastName}/g, lastName)
-                .replace(/{schoolName}/g, schoolName)
-                .replace(/{grade}/g, gradeName)
-                .replace(/{age}/g, age.toString())
-                .replace(/{ageOrdinal}/g, ageOrdinal)
-                .replace(/{birthdayDate}/g, bdayDate);
-
             try {
                 let result;
                 if (channel === 'whatsapp') {
-                    const cake = String.fromCodePoint(0x1F382);
-                    const balloon = String.fromCodePoint(0x1F388);
-                    const confetti = String.fromCodePoint(0x1F38A);
-                    const sparkle = String.fromCodePoint(0x2728);
-                    const premiumTemplate = `*Happy Birthday ${firstName}!* ${cake}${balloon}\n\n${schoolName} is thrilled to celebrate you on your *${ageOrdinal} birthday* today, ${bdayDate}! ${confetti} \n\nWe are so proud of your progress in *${gradeName}*. May your day be filled with joy, laughter, and wonderful memories. Keep shining bright! ${sparkle}\n\nBest wishes,\n*The ${schoolName} Family*`;
+                    // Use premium WhatsApp birthday message if no custom template is provided
+                    const finalMessage = !template
+                        ? SMS_MESSAGES.birthdayPremium({
+                            learnerName: firstName,
+                            schoolName,
+                            gradeName,
+                            ageOrdinal,
+                            bdayDate
+                          })
+                        : template
+                            .replace(/{learnerName}/g, fullName)
+                            .replace(/{firstName}/g, firstName)
+                            .replace(/{lastName}/g, lastName)
+                            .replace(/{schoolName}/g, schoolName)
+                            .replace(/{grade}/g, gradeName)
+                            .replace(/{age}/g, age.toString())
+                            .replace(/{ageOrdinal}/g, ageOrdinal)
+                            .replace(/{birthdayDate}/g, bdayDate);
 
-                    const finalMessage = channel === 'whatsapp' && !template
-                        ? premiumTemplate
-                        : message;
-
-                    const { whatsappService } = await import('../services/whatsapp.service');
                     result = await whatsappService.sendMessage({
                         to: phoneNumber,
-                        message: finalMessage
-                    });
+                        message: finalMessage,
+                        schoolId
+                    } as any);
                 } else {
-                    result = await SmsService.sendSms(schoolId, phoneNumber, message);
+                    // Use standard SMS birthday message
+                    const smsMessage = template
+                        ? template
+                            .replace(/{learnerName}/g, fullName)
+                            .replace(/{firstName}/g, firstName)
+                            .replace(/{lastName}/g, lastName)
+                            .replace(/{schoolName}/g, schoolName)
+                            .replace(/{grade}/g, gradeName)
+                            .replace(/{age}/g, age.toString())
+                            .replace(/{ageOrdinal}/g, ageOrdinal)
+                            .replace(/{birthdayDate}/g, bdayDate)
+                        : SMS_MESSAGES.birthdayStandard(firstName, schoolName, gradeName);
+                        
+                    result = await SmsService.sendSms(schoolId, phoneNumber, smsMessage);
                 }
 
                 results.push({
@@ -485,5 +539,155 @@ export const sendBirthdayWishes = async (req: AuthRequest, res: Response) => {
     } catch (error: any) {
         console.error('Send Birthday Wishes Error:', error);
         res.status(500).json({ error: error.message || 'Failed to send messages' });
+    }
+};
+
+/**
+ * Get Broadcast Recipients
+ * GET /api/communication/recipients
+ */
+export const getBroadcastRecipients = async (req: AuthRequest, res: Response) => {
+    try {
+        const { grade } = req.query;
+        // Check req.user.schoolId first (standard), fallback to tenant if available
+        const schoolId = req.user?.schoolId || (req as any).tenant?.schoolId;
+
+        if (!schoolId) {
+            console.error('getBroadcastRecipients: No schoolId found in request context', { user: req.user, tenant: (req as any).tenant });
+            throw new ApiError(403, 'School context required');
+        }
+
+        let whereClause: any = {
+            schoolId,
+            status: 'ACTIVE'
+        };
+
+        // Handle Grade Filtering
+        if (grade && grade !== 'All Grades') {
+            // Normalize grade input (e.g. "Grade 5" -> "GRADE_5")
+            // This handles both enum values and display names if possible
+            // But for safety, we'll try to match strictly or use a contains if it was a string field.
+            // Since it's an enum, we need to be careful. Ideally frontend sends correct ENUM.
+            // If frontend sends "Grade 5", we need to map or rely on frontend sending "GRADE_5".
+            // However, the previous issue showed a mismatch.
+            // Let's rely on the frontend sending the "correct" value, OR we fetch all and filter if we are unsure.
+            // BUT, for "Grade 5" specifically, let's try to map it if it matches the pattern "Grade X" -> "GRADE_X"
+
+            let targetGrade = String(grade);
+            if (targetGrade.match(/^Grade \d+$/i)) {
+                targetGrade = targetGrade.toUpperCase().replace(' ', '_');
+            } else if (targetGrade.match(/^PP\d+$/i)) {
+                targetGrade = targetGrade.toUpperCase();
+            }
+
+            // We can try to use it directly. If it fails validation, Prisma might throw.
+            // To be safe against "Grade 5" vs "GRADE_5" issues, we could just fetch all active and filter in memory 
+            // if the dataset isn't huge (which it isn't, ~300 students).
+            // But let's try the direct query first with the normalized value.
+            whereClause.grade = targetGrade;
+        }
+
+        // Fetch learners
+        let learners = await prisma.learner.findMany({
+            where: whereClause,
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                grade: true,
+                guardianName: true,
+                guardianPhone: true,
+                parent: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        phone: true
+                    }
+                }
+            }
+        });
+
+        // Fallback: If 0 results and we had a specific grade, maybe the normalization failed or wasn't needed.
+        // Let's try fetching ALL active students and filtering in JS if the specific query returned nothing but a grade was requested.
+        // This makes it robust against Enum mismatches.
+        if (learners.length === 0 && grade && grade !== 'All Grades') {
+            const allLearners = await prisma.learner.findMany({
+                where: { schoolId, status: 'ACTIVE' },
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    grade: true,
+                    guardianName: true,
+                    guardianPhone: true,
+                    parent: {
+                        select: {
+                            id: true,
+                            firstName: true,
+                            lastName: true,
+                            phone: true
+                        }
+                    }
+                }
+            });
+
+            const normalize = (g: string) => String(g).toUpperCase().replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+            const target = normalize(String(grade));
+
+            learners = allLearners.filter(l => normalize(l.grade) === target);
+        }
+
+        // Process Recipients
+        const uniqueContacts = new Map();
+
+        learners.forEach(learner => {
+            // Prioritize Guardian -> Parent
+            let phone = learner.guardianPhone;
+            let name = learner.guardianName;
+
+            if (!phone && learner.parent?.phone) {
+                phone = learner.parent.phone;
+                name = `${learner.parent.firstName} ${learner.parent.lastName}`;
+            }
+
+            if (phone) {
+                // Normalize phone
+                let cleanPhone = phone.replace(/\D/g, '');
+                // Basic Kenya validation
+                if (cleanPhone.startsWith('0')) cleanPhone = '254' + cleanPhone.substring(1);
+                if (cleanPhone.length === 9) cleanPhone = '254' + cleanPhone;
+
+                if (!uniqueContacts.has(cleanPhone)) {
+                    uniqueContacts.set(cleanPhone, {
+                        id: learner.id, // linked learner ID (just one of them if siblings)
+                        name: name || 'Parent',
+                        phone: cleanPhone,
+                        studentName: `${learner.firstName} ${learner.lastName}`,
+                        grade: learner.grade,
+                        // If multiple kids, we could list them, but simpler to just show one for now
+                        // or maybe "John & Jane"
+                    });
+                } else {
+                    // Update student name to indicate multiple?
+                    const existing = uniqueContacts.get(cleanPhone);
+                    if (!existing.studentName.includes(learner.firstName)) {
+                        existing.studentName += `, ${learner.firstName}`;
+                    }
+                }
+            }
+        });
+
+        const recipients = Array.from(uniqueContacts.values());
+
+        res.status(200).json({
+            success: true,
+            count: recipients.length,
+            data: recipients
+        });
+
+    } catch (error: any) {
+        console.error('Get Broadcast Recipients Error:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch recipients' });
     }
 };

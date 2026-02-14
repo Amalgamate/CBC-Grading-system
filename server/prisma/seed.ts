@@ -1,5 +1,6 @@
-import { PrismaClient, UserRole, UserStatus } from '@prisma/client';
+import { PrismaClient, UserRole, UserStatus, AdmissionFormatType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { seedFeeTypes } from './seed-fee-types';
 
 const prisma = new PrismaClient();
 
@@ -7,57 +8,42 @@ async function main() {
   console.log('🌱 Starting database seed...');
 
   console.log('\n🏫 Ensuring EDucore Template school exists...');
+  console.log('\n🏫 Ensuring EDucore Template school exists...');
+  const templateSchoolData = {
+    name: 'EDucore Template',
+    registrationNo: 'EDUCORE-TEMPLATE-001',
+    address: 'Nairobi, Kenya',
+    county: 'Nairobi',
+    subCounty: 'Westlands',
+    phone: '+254712345000',
+    email: 'template@educore.local',
+    principalName: 'Template Principal',
+    principalPhone: '+254712345010',
+    active: true,
+    status: 'TEMPLATE',
+    admissionFormatType: AdmissionFormatType.BRANCH_PREFIX_START,
+    branchSeparator: '-'
+  };
+
+  // Try find by name first
   let templateSchool = await prisma.school.findFirst({
     where: { name: 'EDucore Template' }
   });
 
+  // If not found by name, try find by registration number
   if (!templateSchool) {
-    const schoolCount = await prisma.school.count();
+    templateSchool = await prisma.school.findFirst({
+      where: { registrationNo: 'EDUCORE-TEMPLATE-001' }
+    });
+  }
 
-    if (schoolCount === 0) {
-      templateSchool = await prisma.school.create({
-        data: {
-          name: 'EDucore Template',
-          registrationNo: 'EDUCORE-TEMPLATE-001',
-          address: 'Nairobi, Kenya',
-          county: 'Nairobi',
-          subCounty: 'Westlands',
-          phone: '+254712345000',
-          email: 'template@educore.local',
-          principalName: 'Template Principal',
-          principalPhone: '+254712345010',
-          active: true,
-          status: 'TEMPLATE',
-          admissionFormatType: 'BRANCH_PREFIX_START',
-          branchSeparator: '-'
-        }
-      });
-
-      console.log(`   ✅ Created template school: ${templateSchool.name} (ID: ${templateSchool.id})`);
-    } else {
-      templateSchool = await prisma.school.create({
-        data: {
-          name: 'EDucore Template',
-          registrationNo: 'EDUCORE-TEMPLATE-001',
-          address: 'Nairobi, Kenya',
-          county: 'Nairobi',
-          subCounty: 'Westlands',
-          phone: '+254712345000',
-          email: 'template@educore.local',
-          principalName: 'Template Principal',
-          principalPhone: '+254712345010',
-          active: true,
-          status: 'TEMPLATE',
-          admissionFormatType: 'BRANCH_PREFIX_START',
-          branchSeparator: '-'
-        }
-      });
-
-      console.log(
-        `   ✅ Created template school alongside existing schools: ${templateSchool.name} (ID: ${templateSchool.id})`
-      );
-    }
+  if (!templateSchool) {
+    templateSchool = await prisma.school.create({
+      data: templateSchoolData
+    });
+    console.log(`   ✅ Created template school: ${templateSchool.name} (ID: ${templateSchool.id})`);
   } else {
+    // Optional: Update details if needed, or just log existence
     console.log(`   ℹ️  Template school already exists: ${templateSchool.name} (ID: ${templateSchool.id})`);
   }
 
@@ -341,6 +327,9 @@ async function main() {
   } else {
     console.log('   ⚠️  No active schools found, skipping stream seeding');
   }
+
+  // Seed fee types
+  await seedFeeTypes(prisma);
 
   console.log('\n✨ Database seed completed!');
   console.log('\n📋 Development User Credentials:');

@@ -88,12 +88,12 @@ const TermlyReport = ({ learners, brandingSettings }) => {
       // Generate filename
       const filename = `${selectedLearner.firstName}_${selectedLearner.lastName}_${selectedTerm.replace(' ', '_')}_Report.pdf`;
       const schoolInfo = {
-        schoolName: brandingSettings?.schoolName || 'Zawadi Junior School',
+        schoolName: brandingSettings?.schoolName || 'Elimcrown Academy',
         address: 'P.O. Box 1234, Nairobi, Kenya',
         phone: '+254 700 000000',
-        email: 'info@zawadijrn.ac.ke',
-        website: 'www.zawadijrn.ac.ke',
-        logoUrl: brandingSettings?.logoUrl || '/logo-zawadi.png',
+        email: 'info@elimcrown.ac.ke',
+        website: 'www.elimcrown.ac.ke',
+        logoUrl: brandingSettings?.logoUrl || '/logo-elimcrown.png',
         brandColor: brandingSettings?.brandColor || '#1e3a8a'
       };
       // Generate PDF from the report content
@@ -123,6 +123,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
   const handlePrint = () => {
     window.print();
   };
+
 
   return (
     <div className="space-y-6">
@@ -253,7 +254,7 @@ const TermlyReport = ({ learners, brandingSettings }) => {
 
             {/* On-Screen Header (Hidden in Print/PDF as Letterhead is added) */}
             <div className="bg-brand-purple text-white p-4 text-center print:hidden">
-              <h2 className="text-xl font-bold">Zawadi Junior School</h2>
+              <h2 className="text-xl font-bold">Elimcrown Academy</h2>
               <p className="opacity-80 text-sm">Excellence in Competency Based Curriculum</p>
             </div>
 

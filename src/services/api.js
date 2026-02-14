@@ -27,7 +27,18 @@ const fetchWithAuth = async (url, options = {}) => {
     // Axios interceptors handle 401 and refresh
     if (error.response?.data) {
       const data = error.response.data;
-      let msg = data.message || data.error || `HTTP ${error.response.status}`;
+      let msg = data.message;
+
+      // Handle nested error objects from middleware
+      if (!msg && data.error) {
+        if (typeof data.error === 'object') {
+          msg = data.error.message || JSON.stringify(data.error);
+        } else {
+          msg = data.error;
+        }
+      }
+
+      msg = msg || `HTTP ${error.response.status}`;
       throw new Error(msg);
     }
     throw error;
@@ -471,6 +482,15 @@ export const communicationAPI = {
       body: JSON.stringify(data),
     });
   },
+
+  /**
+   * Get Broadcast Recipients
+   * @param {string} grade - Optional grade filter
+   */
+  getRecipients: async (grade) => {
+    const params = grade ? `?grade=${encodeURIComponent(grade)}` : '';
+    return fetchWithAuth(`/communication/recipients${params}`);
+  },
 };
 
 // ============================================
@@ -575,15 +595,15 @@ export const userAPI = {
   },
 
   /**
-   * Upload user profile photo
+   * Reset user password (admin action)
    * @param {string} id - User ID
-   * @param {string} photoData - Base64 encoded image
-   * @returns {Promise} Updated user data
+   * @param {Object} data - { newPassword, sendWhatsApp, sendSms }
+   * @returns {Promise} Success message
    */
-  uploadPhoto: async (id, photoData) => {
-    return fetchWithAuth(`/users/${id}/photo`, {
+  resetPassword: async (id, data) => {
+    return fetchWithAuth(`/users/${id}/reset-password`, {
       method: 'POST',
-      body: JSON.stringify({ photoData }),
+      body: JSON.stringify(data),
     });
   },
 };
@@ -667,6 +687,15 @@ export const schoolAPI = {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  },
+
+  /**
+   * Get preview of next admission number(s) for a school
+   * @param {string} schoolId
+   * @param {number} academicYear
+   */
+  getAdmissionNumberPreview: async (schoolId, academicYear) => {
+    return fetchWithAuth(`/schools/${schoolId}/admission-number-preview/${academicYear}`);
   },
 };
 
@@ -888,6 +917,30 @@ export const learnerAPI = {
       body: JSON.stringify({ photoData }),
     });
   },
+
+  /**
+   * Process student transfer out
+   * @param {Object} transferData - { learnerId, transferDate, destinationSchool, reason, certificateNumber }
+   * @returns {Promise} Updated learner data
+   */
+  transferOut: async (transferData) => {
+    return fetchWithAuth('/learners/transfer-out', {
+      method: 'POST',
+      body: JSON.stringify(transferData),
+    });
+  },
+
+  /**
+   * Promote multiple learners (bulk)
+   * @param {Object} promotionData - { learnerIds, nextGrade }
+   * @returns {Promise} Success message
+   */
+  bulkPromote: async (promotionData) => {
+    return fetchWithAuth('/learners/bulk-promote', {
+      method: 'POST',
+      body: JSON.stringify(promotionData),
+    });
+  },
 };
 
 // ============================================
@@ -1104,6 +1157,18 @@ export const assessmentAPI = {
   },
 
   /**
+   * Record bulk formative assessments
+   * @param {Object} bulkData - Formative assessment bulk data
+   * @returns {Promise} Processing summary
+   */
+  recordFormativeBulk: async (bulkData) => {
+    return fetchWithAuth('/assessments/formative/bulk', {
+      method: 'POST',
+      body: JSON.stringify(bulkData),
+    });
+  },
+
+  /**
    * Get all formative assessments with filters
    * @param {Object} params - Query parameters (term, academicYear, learningArea, grade)
    * @returns {Promise} List of formative assessments
@@ -1244,6 +1309,16 @@ export const assessmentAPI = {
       method: 'POST',
       body: JSON.stringify(bulkData),
     });
+  },
+
+  /**
+   * Get bulk summative results for classes/reports
+   * @param {Object} params - { grade, stream, academicYear, term }
+   * @returns {Promise} List of results
+   */
+  getBulkResults: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/assessments/summative/results/bulk${queryString ? `?${queryString}` : ''}`);
   },
 
   /**
@@ -1388,6 +1463,16 @@ export const feeAPI = {
   },
 
   /**
+   * Get all fee types
+   * @param {Object} params - Query parameters (category, active)
+   * @returns {Promise} Fee types
+   */
+  getAllFeeTypes: async (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/fees/types${query ? `?${query}` : ''}`);
+  },
+
+  /**
    * Get payment statistics
    * @param {Object} params - Query parameters
    * @returns {Promise} Payment stats
@@ -1458,6 +1543,18 @@ export const notificationAPI = {
    */
   sendAssessmentReportSms: async (data) => {
     return fetchWithAuth('/notifications/sms/assessment-report', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Send assessment report via WhatsApp to parent
+   * @param {Object} data - Assessment report details
+   * @returns {Promise} Send result
+   */
+  sendAssessmentReportWhatsApp: async (data) => {
+    return fetchWithAuth('/notifications/whatsapp/assessment-report', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -1663,6 +1760,12 @@ export const workflowAPI = {
       body: JSON.stringify(data),
     });
   },
+  bulkSubmit: async (data) => {
+    return fetchWithAuth('/workflow/bulk-submit', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
   approve: async (type, id, data = {}) => {
     return fetchWithAuth(`/workflow/approve/${type}/${id}`, {
       method: 'POST',
@@ -1839,6 +1942,122 @@ export const adminAPI = {
     });
   },
 };
+
+// ============================================
+// DOCUMENTS API
+// ============================================
+
+export const documentsAPI = {
+  /**
+   * Get all documents
+   * @param {Object} params - { category, search, page, limit }
+   */
+  getAll: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/documents${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Get document categories
+   */
+  getCategories: async () => {
+    return fetchWithAuth('/documents/categories');
+  },
+
+  /**
+   * Upload a single document
+   * @param {FormData} formData - Contains 'file', 'category', 'name'
+   */
+  upload: async (formData) => {
+    return fetchWithAuth('/documents/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  /**
+   * Upload multiple documents
+   * @param {FormData} formData - Contains 'files', 'category'
+   */
+  uploadMultiple: async (formData) => {
+    return fetchWithAuth('/documents/upload-multiple', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  /**
+   * Update document metadata
+   */
+  update: async (id, data) => {
+    return fetchWithAuth(`/documents/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete a document
+   */
+  delete: async (id) => {
+    return fetchWithAuth(`/documents/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============================================
+// BOOKS & RESOURCES API
+// ============================================
+export const bookAPI = {
+  getAll: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAuth(`/books${queryString ? `?${queryString}` : ''}`);
+  },
+  create: async (data) => {
+    return fetchWithAuth('/books', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  update: async (id, data) => {
+    return fetchWithAuth(`/books/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+  assign: async (id, userId) => {
+    return fetchWithAuth(`/books/${id}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    });
+  },
+  return: async (id) => {
+    return fetchWithAuth(`/books/${id}/return`, {
+      method: 'POST',
+    });
+  },
+  delete: async (id) => {
+    return fetchWithAuth(`/books/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============================================
+// SHARING & COMMUNICATION API
+// ============================================
+export const sharingAPI = {
+  shareDocumentWhatsApp: async (documentId, phoneNumber) => {
+    return fetchWithAuth('/notifications/whatsapp/share-document', {
+      method: 'POST',
+      body: JSON.stringify({ documentId, phoneNumber }),
+    });
+  },
+};
+
+
+
 // Export all APIs
 const api = {
   auth: authAPI,
@@ -1857,6 +2076,33 @@ const api = {
   workflow: workflowAPI,
   grading: gradingAPI,
   admin: adminAPI,
+  documents: documentsAPI,
+  communication: communicationAPI,
+  books: bookAPI,
+  sharing: sharingAPI,
+  planner: {
+    getEvents: async (params) => {
+      const queryString = new URLSearchParams(params).toString();
+      return fetchWithAuth(`/planner/events?${queryString}`);
+    },
+    createEvent: async (data) => {
+      return fetchWithAuth('/planner/events', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    updateEvent: async (id, data) => {
+      return fetchWithAuth(`/planner/events/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+    deleteEvent: async (id) => {
+      return fetchWithAuth(`/planner/events/${id}`, {
+        method: 'DELETE',
+      });
+    },
+  },
 };
 
 export default api;

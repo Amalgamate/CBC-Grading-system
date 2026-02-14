@@ -1,5 +1,6 @@
 import { SmsService } from './sms.service';
 import prisma from '../config/database';
+import { SMS_MESSAGES, OTP_CONFIG } from '../config/communication.messages';
 import crypto from 'crypto';
 import fs from 'fs';
 
@@ -125,7 +126,7 @@ export class OtpService {
             });
 
             // 4. Send SMS via MobileSasa
-            const message = `Your EDucore login OTP is: ${otpCode}. Valid for ${this.OTP_EXPIRY_MINUTES} minutes. Do not share this code.`;
+            const message = SMS_MESSAGES.otp(otpCode, OTP_CONFIG.expiryMinutes);
 
             const smsResult = await SmsService.sendSms(
                 effectiveSchoolId,

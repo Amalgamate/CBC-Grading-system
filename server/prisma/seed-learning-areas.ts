@@ -35,9 +35,8 @@ async function seedLearningAreas() {
         'Islamic Religious Education', 'Computer Studies (Interactive)', 'Kiswahili Lugha'
       ],
       'Lower Primary': [
-        'English Language Activities', 'Kiswahili Language Activities', 'Indigenous Language Activities',
-        'Mathematics', 'Environmental Activities', 'Creative Arts Activities',
-        'Christian Religious Education', 'Islamic Religious Education', 'Computer Studies', 'French (Optional)'
+        'Mathematics', 'English', 'Kiswahili', 'Environmental Studies',
+        'Creative Activities', 'Religious Education', 'Information Communications Technology'
       ],
       'Upper Primary': [
         'English Language', 'Kiswahili Lugha', 'Mathematics', 'Science and Technology',
@@ -99,10 +98,25 @@ async function seedLearningAreas() {
               continue;
             }
 
+            // Specific short names for Lower Primary
+            let shortName = area.split(' ')[0];
+            if (gradeLevel === 'Lower Primary') {
+              const mapping: { [key: string]: string } = {
+                'Mathematics': 'Maths',
+                'English': 'ENG',
+                'Kiswahili': 'Kiswa',
+                'Environmental Studies': 'ENV',
+                'Creative Activities': 'CA',
+                'Religious Education': 'RE',
+                'Information Communications Technology': 'ICT'
+              };
+              shortName = mapping[area] || shortName;
+            }
+
             await prisma.learningArea.create({
               data: {
                 name: area,
-                shortName: area.split(' ')[0],
+                shortName,
                 gradeLevel,
                 icon: icons[gradeLevel] || '📚',
                 color: colors[gradeLevel] || '#3b82f6',

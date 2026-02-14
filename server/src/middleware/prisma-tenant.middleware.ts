@@ -66,14 +66,19 @@ export function applyTenantMiddleware(prisma: PrismaClient): void {
             return next(params);
         }
 
-        // AUTO-INJECT schoolId filter for READ operations
+        // AUTO-INJECT schoolId and archived: false filter for READ operations
         if (['findMany', 'findFirst', 'findUnique', 'count', 'aggregate'].includes(params.action)) {
             // Ensure where clause exists
             params.args.where = params.args.where || {};
 
-            // Only inject if schoolId not already specified
-            if (!params.args.where.schoolId) {
+            // Inject schoolId if missing
+            if (!context.isSuperAdmin && !params.args.where.schoolId) {
                 params.args.where.schoolId = context.schoolId;
+            }
+
+            // Inject archived: false if missing
+            if (!params.args.where.hasOwnProperty('archived')) {
+                params.args.where.archived = false;
             }
         }
 
@@ -95,13 +100,18 @@ export function applyTenantMiddleware(prisma: PrismaClient): void {
             }
         }
 
-        // VALIDATE schoolId for UPDATE/DELETE operations
+        // VALIDATE schoolId and archived for UPDATE/DELETE operations
         if (['update', 'updateMany', 'delete', 'deleteMany'].includes(params.action)) {
             params.args.where = params.args.where || {};
 
-            // Ensure operation is scoped to tenant's school
-            if (!params.args.where.schoolId) {
+            // Scope to tenant's school
+            if (!context.isSuperAdmin && !params.args.where.schoolId) {
                 params.args.where.schoolId = context.schoolId;
+            }
+
+            // Prevent operation on archived records (unless explicitly requested)
+            if (!params.args.where.hasOwnProperty('archived')) {
+                params.args.where.archived = false;
             }
         }
 

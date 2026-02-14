@@ -17,7 +17,7 @@ export const PERMISSIONS = {
   EDIT_USER: ['SUPER_ADMIN', 'ADMIN'],
   DELETE_USER: ['SUPER_ADMIN', 'ADMIN'],
   VIEW_ALL_USERS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER'],
-  
+
   // ============================================
   // LEARNER MANAGEMENT
   // ============================================
@@ -29,7 +29,7 @@ export const PERMISSIONS = {
   VIEW_OWN_CHILDREN: ['PARENT'],  // Parents see only their children
   PROMOTE_LEARNER: ['SUPER_ADMIN', 'ADMIN'],
   TRANSFER_LEARNER: ['SUPER_ADMIN', 'ADMIN'],
-  
+
   // ============================================
   // ASSESSMENTS
   // ============================================
@@ -42,7 +42,7 @@ export const PERMISSIONS = {
   VIEW_CHILDREN_REPORTS: ['PARENT'],  // Parents see only their children
   GRADE_ASSESSMENT: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER'],
   DOWNLOAD_REPORTS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'PARENT'],
-  
+
   // ============================================
   // ATTENDANCE
   // ============================================
@@ -52,7 +52,7 @@ export const PERMISSIONS = {
   VIEW_OWN_ATTENDANCE: ['TEACHER'],      // Teachers see only their classes
   VIEW_CHILDREN_ATTENDANCE: ['PARENT'],  // Parents see only their children
   GENERATE_ATTENDANCE_REPORTS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER'],
-  
+
   // ============================================
   // SETTINGS
   // ============================================
@@ -65,7 +65,7 @@ export const PERMISSIONS = {
   BACKUP_SETTINGS: ['SUPER_ADMIN'],
   USER_ROLES_SETTINGS: ['SUPER_ADMIN'],
   VIEW_ACADEMIC_SETTINGS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'],
-  
+
   // ============================================
   // COMMUNICATIONS
   // ============================================
@@ -74,7 +74,7 @@ export const PERMISSIONS = {
   VIEW_INBOX: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'PARENT', 'ACCOUNTANT', 'RECEPTIONIST'],
   DELETE_OWN_MESSAGES: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'PARENT', 'ACCOUNTANT', 'RECEPTIONIST'],
   DELETE_ANY_MESSAGE: ['SUPER_ADMIN'],
-  
+
   // ============================================
   // FINANCE
   // ============================================
@@ -85,14 +85,14 @@ export const PERMISSIONS = {
   GENERATE_RECEIPTS: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'],
   FINANCIAL_REPORTS: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'],
   SEND_FEE_REMINDERS: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'],
-  
+
   // ============================================
   // AUDIT & LOGS
   // ============================================
   VIEW_AUDIT_LOGS: ['SUPER_ADMIN'],
   VIEW_SYSTEM_LOGS: ['SUPER_ADMIN'],
   VIEW_USER_ACTIVITY: ['SUPER_ADMIN', 'ADMIN'],
-  
+
   // ============================================
   // BIOMETRIC SYSTEM (Coming Soon)
   // ============================================
@@ -100,6 +100,12 @@ export const PERMISSIONS = {
   ENROLL_FINGERPRINTS: ['SUPER_ADMIN', 'ADMIN'],
   VIEW_BIOMETRIC_LOGS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'],
   CONFIGURE_BIOMETRIC_API: ['SUPER_ADMIN'],
+
+  // ============================================
+  // BOOKS & RESOURCES
+  // ============================================
+  MANAGE_BOOKS: ['SUPER_ADMIN', 'ADMIN', 'LIBRARIAN'],
+  VIEW_BOOKS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'LIBRARIAN'],
 } as const;
 
 /**
@@ -110,7 +116,7 @@ export type Permission = keyof typeof PERMISSIONS;
 /**
  * Type for all available roles (includes all UserRole enum values from Prisma)
  */
-export type Role = 
+export type Role =
   | 'SUPER_ADMIN'
   | 'ADMIN'
   | 'HEAD_TEACHER'

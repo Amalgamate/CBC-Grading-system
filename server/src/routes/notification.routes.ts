@@ -7,6 +7,7 @@
 
 import { Router } from 'express';
 import { NotificationController } from '../controllers/notification.controller';
+import { whatsappStatusController } from '../controllers/whatsapp-status.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { requirePermission, requireRole } from '../middleware/permissions.middleware';
 import { asyncHandler } from '../utils/async.util';
@@ -75,6 +76,25 @@ router.post(
 );
 
 /**
+ * @route   POST /api/notifications/whatsapp/assessment-report
+ * @desc    Send assessment report via WhatsApp to parent
+ * @access  SUPER_ADMIN, ADMIN, HEAD_TEACHER, TEACHER
+ */
+router.post(
+  '/whatsapp/assessment-report',
+  authenticate,
+  requirePermission('SEND_MESSAGES'),
+  asyncHandler(notificationController.sendAssessmentReportWhatsApp.bind(notificationController))
+);
+
+router.post(
+  '/log-communication',
+  authenticate,
+  requirePermission('SEND_MESSAGES'),
+  asyncHandler(notificationController.logCommunication.bind(notificationController))
+);
+
+/**
  * @route   POST /api/notifications/test
  * @desc    Test WhatsApp connection
  * @access  SUPER_ADMIN, ADMIN
@@ -84,6 +104,28 @@ router.post(
   authenticate,
   requireRole(['SUPER_ADMIN', 'ADMIN']),
   asyncHandler(notificationController.testWhatsApp.bind(notificationController))
+);
+
+/**
+ * @route   GET /api/notifications/whatsapp/status
+ * @desc    Get WhatsApp connection status
+ * @access  Authenticated
+ */
+router.get(
+  '/whatsapp/status',
+  authenticate,
+  asyncHandler(whatsappStatusController.getStatus.bind(whatsappStatusController))
+);
+
+/**
+ * @route   GET /api/notifications/whatsapp/qr
+ * @desc    Get WhatsApp QR code for authentication
+ * @access  Authenticated
+ */
+router.get(
+  '/whatsapp/qr',
+  authenticate,
+  asyncHandler(whatsappStatusController.getQRCode.bind(whatsappStatusController))
 );
 
 export default router;

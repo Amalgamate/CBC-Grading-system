@@ -1,7 +1,19 @@
 import axios from 'axios';
 import { getPortalSchoolId, isStoredUserSuperAdmin, ensureSchoolId } from './tenantContext';
 
-export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Use environment variable for API URL or fall back to automatic discovery for production stability
+const getApiBaseUrl = () => {
+    if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
+
+    // Automatic discovery if we are on the same domain as the backend
+    if (window.location.hostname !== 'localhost') {
+        return `${window.location.origin}/api`;
+    }
+
+    return 'http://localhost:5000/api';
+};
+
+export const API_BASE_URL = getApiBaseUrl();
 
 const axiosInstance = axios.create({
     baseURL: API_BASE_URL,

@@ -458,6 +458,46 @@ export class WorkflowService {
   }
 
   /**
+   * Bulk submit assessments for approval
+   * Transition: DRAFT → SUBMITTED
+   */
+  async submitAssessmentsBulk(params: {
+    ids: string[];
+    assessmentType: 'formative' | 'summative';
+    userId: string;
+    comments?: string;
+  }): Promise<{ submitted: number; errors: string[] }> {
+    const { ids, assessmentType, userId, comments } = params;
+
+    // Check user permission
+    const user = await this.getUser(userId);
+    if (!WORKFLOW_PERMISSIONS.submit.includes(user.role)) {
+      throw new Error(
+        `Role ${user.role} is not permitted to submit assessments`
+      );
+    }
+
+    let submitted = 0;
+    const errors: string[] = [];
+
+    for (const id of ids) {
+      try {
+        await this.submitForApproval({
+          assessmentId: id,
+          assessmentType,
+          userId,
+          comments
+        });
+        submitted++;
+      } catch (error: any) {
+        errors.push(`ID ${id}: ${error.message}`);
+      }
+    }
+
+    return { submitted, errors };
+  }
+
+  /**
    * Get pending approvals for a user
    * Returns assessments awaiting their approval based on their role
    */

@@ -71,12 +71,12 @@ const FormativeReport = ({ learners, brandingSettings }) => {
       const filename = `${reportData.learner.firstName}_${reportData.learner.lastName}_Formative_${setup.selectedTerm}_Report.pdf`;
 
       const schoolInfo = {
-        schoolName: brandingSettings?.schoolName || 'Zawadi JRN Academy',
+        schoolName: brandingSettings?.schoolName || 'Elimcrown Academy',
         address: 'P.O. Box 1234, Nairobi, Kenya',
         phone: '+254 700 000000',
-        email: 'info@zawadijrn.ac.ke',
-        website: 'www.zawadijrn.ac.ke',
-        logoUrl: brandingSettings?.logoUrl || '/logo-zawadi.png',
+        email: 'info@elimcrown.ac.ke',
+        website: 'www.elimcrown.ac.ke',
+        logoUrl: brandingSettings?.logoUrl || '/logo-elimcrown.png',
         brandColor: brandingSettings?.brandColor || '#1e3a8a'
       };
 
@@ -108,6 +108,7 @@ const FormativeReport = ({ learners, brandingSettings }) => {
     window.print();
     showSuccess('Printing report...');
   };
+
 
   // Get rating color
   const getRatingColor = (rating) => {
@@ -244,7 +245,7 @@ const FormativeReport = ({ learners, brandingSettings }) => {
               <DownloadReportButton
                 onDownload={handleDownloadPDF}
                 label="PDF"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm font-semibold text-sm flex items-center gap-2"
+                className="px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-sm font-semibold text-sm flex items-center gap-2"
               />
 
               <button
@@ -417,7 +418,7 @@ const FormativeReport = ({ learners, brandingSettings }) => {
               {/* Report Footer */}
               <div className="mt-8 pt-4 border-t border-gray-200 text-center text-[10px] text-gray-400">
                 <p>Generated on: {new Date(reportData.generatedDate).toLocaleString('en-GB')}</p>
-                <p className="mt-1">This is an official document from {brandingSettings?.schoolName || 'Zawadi JRN Academy'}</p>
+                <p className="mt-1">This is an official document from {brandingSettings?.schoolName || 'Elimcrown Academy'}</p>
               </div>
             </div>
           </div>

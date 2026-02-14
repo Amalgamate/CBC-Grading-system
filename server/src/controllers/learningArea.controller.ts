@@ -15,7 +15,12 @@ const router = Router();
  */
 export const getLearningAreas = async (req: AuthRequest, res: Response) => {
   try {
-    const schoolId = req.query.schoolId || req.user?.schoolId;
+    let schoolId = (req.query.schoolId as string) || req.user?.schoolId;
+
+    // Phase 5: Tenant Isolation
+    if (req.user?.role !== 'SUPER_ADMIN' && req.user?.schoolId) {
+      schoolId = req.user.schoolId;
+    }
 
     if (!schoolId) {
       return res.status(400).json({ error: 'School ID is required' });
@@ -55,6 +60,11 @@ export const getLearningArea = async (req: AuthRequest, res: Response) => {
 
     if (!learningArea) {
       return res.status(404).json({ error: 'Learning area not found' });
+    }
+
+    // Phase 5: Tenant Check
+    if (req.user?.role !== 'SUPER_ADMIN' && req.user?.schoolId && learningArea.schoolId && learningArea.schoolId !== req.user.schoolId) {
+      return res.status(403).json({ error: 'Unauthorized access to learning area' });
     }
 
     res.json(learningArea);
@@ -125,6 +135,11 @@ export const updateLearningArea = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Learning area not found' });
     }
 
+    // Phase 5: Tenant Check
+    if (req.user?.role !== 'SUPER_ADMIN' && req.user?.schoolId && learningArea.schoolId !== req.user.schoolId) {
+      return res.status(403).json({ error: 'Unauthorized: Cannot update learning areas from another school' });
+    }
+
     // Check if name already exists for this school (excluding current record)
     if (name && name !== learningArea.name) {
       const existing = await prisma.learningArea.findFirst({
@@ -175,6 +190,11 @@ export const deleteLearningArea = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Learning area not found' });
     }
 
+    // Phase 5: Tenant Check
+    if (req.user?.role !== 'SUPER_ADMIN' && req.user?.schoolId && learningArea.schoolId !== req.user.schoolId) {
+      return res.status(403).json({ error: 'Unauthorized: Cannot delete learning areas from another school' });
+    }
+
     await prisma.learningArea.delete({
       where: { id }
     });
@@ -211,9 +231,8 @@ export const seedLearningAreas = async (req: AuthRequest, res: Response) => {
         'Islamic Religious Education', 'Computer Studies (Interactive)', 'Kiswahili Lugha'
       ],
       'Lower Primary': [
-        'English Language Activities', 'Kiswahili Language Activities', 'Indigenous Language Activities',
-        'Mathematics', 'Environmental Activities', 'Creative Arts Activities',
-        'Christian Religious Education', 'Islamic Religious Education', 'Computer Studies', 'French (Optional)'
+        'Mathematics', 'English', 'Kiswahili', 'Environmental Studies',
+        'Creative Activities', 'Religious Education', 'Information Communications Technology'
       ],
       'Upper Primary': [
         'English Language', 'Kiswahili Lugha', 'Mathematics', 'Science and Technology',
@@ -268,10 +287,25 @@ export const seedLearningAreas = async (req: AuthRequest, res: Response) => {
           continue;
         }
 
+        // Specific short names for Lower Primary
+        let shortName = area.split(' ')[0];
+        if (gradeLevel === 'Lower Primary') {
+          const mapping: { [key: string]: string } = {
+            'Mathematics': 'Maths',
+            'English': 'ENG',
+            'Kiswahili': 'Kiswa',
+            'Environmental Studies': 'ENV',
+            'Creative Activities': 'CA',
+            'Religious Education': 'RE',
+            'Information Communications Technology': 'ICT'
+          };
+          shortName = mapping[area] || shortName;
+        }
+
         await prisma.learningArea.create({
           data: {
             name: area,
-            shortName: area.split(' ')[0],
+            shortName,
             gradeLevel,
             icon: icons[gradeLevel] || '📚',
             color: colors[gradeLevel] || '#3b82f6',

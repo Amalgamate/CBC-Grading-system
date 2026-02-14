@@ -11,6 +11,10 @@ import prisma from '../config/database';
 import { ApiError } from '../utils/error.util';
 import { AuthRequest } from '../middleware/permissions.middleware';
 import { Role, canManageRole } from '../config/permissions';
+import { whatsappService } from '../services/whatsapp.service';
+import { SmsService } from '../services/sms.service';
+import { SMS_MESSAGES } from '../config/communication.messages';
+import { generateStaffId } from '../services/staffId.service';
 
 export class UserController {
   /**
@@ -53,7 +57,8 @@ export class UserController {
           status: true,
           createdAt: true,
           lastLogin: true,
-          schoolId: true
+          schoolId: true,
+          staffId: true
         },
         orderBy: { createdAt: 'desc' }
       });
@@ -122,7 +127,17 @@ export class UserController {
         emailVerified: true,
         createdAt: true,
         updatedAt: true,
-        lastLogin: true
+        lastLogin: true,
+        schoolId: true,
+        staffId: true,
+        classesAsTeacher: {
+          select: {
+            id: true,
+            name: true,
+            grade: true,
+            stream: true
+          }
+        }
       }
     });
 
@@ -137,6 +152,11 @@ export class UserController {
 
     if (!canAccess) {
       throw new ApiError(403, 'Access denied');
+    }
+
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId && user.schoolId && user.schoolId !== req.user.schoolId) {
+      throw new ApiError(403, 'Unauthorized access to user from another school');
     }
 
     res.json({
@@ -200,6 +220,19 @@ export class UserController {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Auto-generate staff ID if not provided and role is staff
+    let staffId = req.body.staffId;
+    const staffRoles: Role[] = ['ADMIN', 'HEAD_TEACHER', 'TEACHER', 'ACCOUNTANT', 'RECEPTIONIST'];
+
+    if (!staffId && staffRoles.includes(role as Role) && schoolId) {
+      try {
+        staffId = await generateStaffId(schoolId);
+      } catch (error) {
+        console.error('Failed to auto-generate staff ID:', error);
+        // Continue without staff ID if generation fails, or we could throw error
+      }
+    }
+
     // Create user
     const user = await prisma.user.create({
       data: {
@@ -213,6 +246,7 @@ export class UserController {
         status: 'ACTIVE',
         emailVerified: false,
         schoolId, // Add schoolId
+        staffId, // Add staffId
       },
       select: {
         id: true,
@@ -223,7 +257,8 @@ export class UserController {
         phone: true,
         role: true,
         status: true,
-        createdAt: true
+        createdAt: true,
+        staffId: true
       }
     });
 
@@ -318,7 +353,8 @@ export class UserController {
         phone: true,
         role: true,
         status: true,
-        updatedAt: true
+        updatedAt: true,
+        staffId: true
       }
     });
 
@@ -358,6 +394,11 @@ export class UserController {
     // Teachers can only archive parents
     if (currentUserRole === 'TEACHER' && targetUser.role !== 'PARENT') {
       throw new ApiError(403, 'Teachers can only archive parent accounts');
+    }
+
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId && targetUser.schoolId !== req.user.schoolId) {
+      throw new ApiError(403, 'Unauthorized access: User belongs to another school');
     }
 
     // Admins can't archive higher roles
@@ -510,6 +551,11 @@ export class UserController {
 
     const whereClause: any = { role: role as Role };
 
+    // Phase 5: Tenant Scoping
+    if (currentUserRole !== 'SUPER_ADMIN' && req.user?.schoolId) {
+      whereClause.schoolId = req.user.schoolId;
+    }
+
     // Exclude archived users by default
     if (!includeArchived) {
       whereClause.archived = false;
@@ -539,7 +585,25 @@ export class UserController {
         role: true,
         status: true,
         createdAt: true,
-        lastLogin: true
+        lastLogin: true,
+        staffId: true,
+        learners: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            admissionNumber: true,
+            grade: true
+          }
+        },
+        classesAsTeacher: {
+          select: {
+            id: true,
+            name: true,
+            grade: true,
+            stream: true
+          }
+        }
       },
       orderBy: { createdAt: 'desc' },
       skip,
@@ -606,6 +670,7 @@ export class UserController {
       data: stats
     });
   }
+
   /**
    * Upload or update user profile picture
    * Access: SUPER_ADMIN, ADMIN, or self
@@ -664,7 +729,8 @@ export class UserController {
         firstName: true,
         lastName: true,
         role: true,
-        profilePicture: true, // This might fail if types are strict but runtime should be fine
+        profilePicture: true,
+        staffId: true,
       } as any
     });
 
@@ -672,6 +738,101 @@ export class UserController {
       success: true,
       message: 'Profile picture updated successfully',
       data: updatedUser
+    });
+  }
+
+  /**
+   * Reset user password manually by admin
+   * Access: SUPER_ADMIN, ADMIN (within school)
+   */
+  async resetPassword(req: AuthRequest, res: Response) {
+    const { id } = req.params;
+    const { newPassword, sendWhatsApp, sendSMS } = req.body;
+    const currentUserRole = req.user!.role;
+    const currentUserId = req.user!.userId;
+
+    if (!newPassword || newPassword.length < 8) {
+      throw new ApiError(400, 'New password must be at least 8 characters long');
+    }
+
+    // Find target user
+    const targetUser = await prisma.user.findUnique({
+      where: { id },
+      include: { school: true }
+    });
+
+    if (!targetUser) {
+      throw new ApiError(404, 'User not found');
+    }
+
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId && targetUser.schoolId !== req.user.schoolId) {
+      throw new ApiError(403, 'Unauthorized access to user from another school');
+    }
+
+    // Check hierarchy: manager must have higher authority than target
+    if (!canManageRole(currentUserRole, targetUser.role as Role)) {
+      throw new ApiError(403, `You do not have permission to reset passwords for ${targetUser.role} users`);
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update user
+    await prisma.user.update({
+      where: { id },
+      data: {
+        password: hashedPassword,
+        // Reset failed attempts and unlock if locked
+        loginAttempts: 0,
+        lockedUntil: null
+      }
+    });
+
+    // Handle notifications
+    const notifications: string[] = [];
+    const schoolName = targetUser.school?.name || 'your school';
+
+    if (sendWhatsApp || sendSMS) {
+      if (!targetUser.phone) {
+        notifications.push('Could not send notifications: User has no phone number recorded');
+      } else {
+        const message = SMS_MESSAGES.passwordReset(newPassword, schoolName);
+
+        if (sendWhatsApp) {
+          try {
+            const result = await whatsappService.sendCustomMessage({
+              schoolId: targetUser.schoolId!,
+              parentPhone: targetUser.phone, // Method uses parentPhone param but it's just a phone string
+              message
+            });
+            if (result.success) notifications.push('WhatsApp notification sent');
+            else notifications.push(`WhatsApp failed: ${result.error}`);
+          } catch (error: any) {
+            notifications.push(`WhatsApp error: ${error.message}`);
+          }
+        }
+
+        if (sendSMS) {
+          try {
+            const result = await SmsService.sendSms(
+              targetUser.schoolId!,
+              targetUser.phone,
+              message
+            );
+            if (result.success) notifications.push('SMS notification sent');
+            else notifications.push(`SMS failed: ${result.error}`);
+          } catch (error: any) {
+            notifications.push(`SMS error: ${error.message}`);
+          }
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Password reset successfully',
+      notifications
     });
   }
 }

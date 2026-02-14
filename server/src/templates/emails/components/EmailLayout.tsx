@@ -24,7 +24,7 @@ interface EmailLayoutProps {
     children: React.ReactNode;
 }
 
-const baseUrl = process.env.FRONTEND_URL || 'https://educorev1.up.railway.app';
+const baseUrl = process.env.FRONTEND_URL || 'https://elimcrown.netlify.app';
 const brandColor = '#714B67'; // Elimcrown Purple
 const tealColor = '#017E84'; // Elimcrown Teal
 

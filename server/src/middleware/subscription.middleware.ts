@@ -89,7 +89,7 @@ export const requireActiveSubscription = async (
                 error: 'Subscription expired or inactive',
                 message: 'Your school subscription has expired. Please contact support to renew.',
                 code: 'SUBSCRIPTION_EXPIRED',
-                contactEmail: 'support@educore.com'
+                contactEmail: 'support@elimcrown.com'
             });
         }
 

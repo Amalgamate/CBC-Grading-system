@@ -6,11 +6,20 @@ import {
     sendTestSms,
     sendTestEmail,
     getBirthdaysToday,
-    sendBirthdayWishes
+    sendBirthdayWishes,
+    getBroadcastRecipients
 } from '../controllers/communication.controller';
 import { requireRole } from '../middleware/permissions.middleware';
+import { authenticate } from '../middleware/auth.middleware';
+import { requireTenant } from '../middleware/tenant.middleware';
 
 const router = express.Router();
+
+/**
+ * Apply authentication and tenant middleware to all routes
+ */
+router.use(authenticate);
+router.use(requireTenant);
 
 /**
  * Communication Routes
@@ -59,10 +68,20 @@ router.get(
 
 // Send Birthday Wishes
 // Allowed: Admin, Super Admin, Head Teacher
+// Send Birthday Wishes
+// Allowed: Admin, Super Admin, Head Teacher
 router.post(
     '/birthdays/send',
     requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
     sendBirthdayWishes
+);
+
+// Get Broadcast Recipients
+// Allowed: Admin, Super Admin, Head Teacher
+router.get(
+    '/recipients',
+    requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
+    getBroadcastRecipients
 );
 
 export default router;

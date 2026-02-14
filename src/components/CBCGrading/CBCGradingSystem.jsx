@@ -10,7 +10,6 @@ import Toast from './shared/Toast';
 import ConfirmDialog from './shared/ConfirmDialog';
 import EmptyState from './shared/EmptyState';
 import AddEditParentModal from './shared/AddEditParentModal';
-import AddEditTeacherModal from './shared/AddEditTeacherModal';
 
 // Hooks
 import { useLearners } from './hooks/useLearners';
@@ -27,6 +26,7 @@ import { clearAllSchoolData } from '../../utils/schoolDataCleanup';
 const RoleDashboard = lazy(() => import('./pages/dashboard/RoleDashboard'));
 const LearnersList = lazy(() => import('./pages/LearnersList'));
 const TeachersList = lazy(() => import('./pages/TeachersList'));
+const AddEditTeacherPage = lazy(() => import('./pages/AddEditTeacherPage'));
 const ParentsList = lazy(() => import('./pages/ParentsList'));
 const LearningHubPage = lazy(() => import('./pages/LearningHubPage'));
 const PromotionPage = lazy(() => import('./pages/PromotionPage'));
@@ -45,6 +45,7 @@ const TermlyReport = lazy(() => import('./pages/TermlyReport'));
 const SummaryReportPage = lazy(() => import('./pages/reports/SummaryReportPage'));
 const PerformanceScale = lazy(() => import('./pages/PerformanceScale'));
 const NoticesPage = lazy(() => import('./pages/NoticesPage'));
+const InventoryList = lazy(() => import('./pages/InventoryList'));
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const SupportHub = lazy(() => import('./pages/SupportHub'));
 const TimetablePage = lazy(() => import('./pages/TimetablePage'));
@@ -61,9 +62,11 @@ const FeeStructurePage = lazy(() => import('./pages/FeeStructurePage'));
 const FeeReportsPage = lazy(() => import('./pages/FeeReportsPage'));
 const StudentStatementsPage = lazy(() => import('./pages/StudentStatementsPage'));
 const DocumentCenter = lazy(() => import('./pages/DocumentCenter'));
+const KnowledgeBase = lazy(() => import('./pages/KnowledgeBase'));
 const LearnerProfile = lazy(() => import('./pages/profiles/LearnerProfile'));
 const TeacherProfile = lazy(() => import('./pages/profiles/TeacherProfile'));
 const ParentProfile = lazy(() => import('./pages/profiles/ParentProfile'));
+const PlannerLayout = lazy(() => import('./pages/planner/PlannerLayout'));
 
 
 // Premium Loading Component for Lazy Transitions
@@ -84,7 +87,24 @@ const LoadingOverlay = () => (
 export default function CBCGradingSystem({ user, onLogout, brandingSettings, setBrandingSettings }) {
   // UI State
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [pageParams, setPageParams] = useState({});
+  // Initialize pageParams from localStorage to survive refreshes
+  const [pageParams, setPageParams] = useState(() => {
+    try {
+      const saved = localStorage.getItem('cbc_page_params');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  // Persist pageParams changes
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('cbc_page_params', JSON.stringify(pageParams));
+    } catch (e) {
+      console.error('Failed to save page params', e);
+    }
+  }, [pageParams]);
 
   // Initialize from localStorage or default to 'dashboard'
   const [currentPage, setCurrentPage] = useState(() => {
@@ -183,14 +203,11 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   const [showParentModal, setShowParentModal] = useState(false);
   const [editingParent, setEditingParent] = useState(null);
 
-  // Teacher Modal State
-  const [showTeacherModal, setShowTeacherModal] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null);
 
   // Learner Modal State - VIEW MODAL REMOVED
   const [editingLearner, setEditingLearner] = useState(null);
 
-  // Custom Hooks
   const {
     learners,
     pagination,
@@ -200,6 +217,8 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
     bulkDeleteLearners,
     fetchLearners,
     loading: learnersLoading,
+    promoteLearners,
+    transferOutLearner,
   } = useLearners();
 
   const {
@@ -227,7 +246,8 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
     toastMessage,
     toastType,
     showSuccess,
-    hideNotification
+    hideNotification,
+    showError
   } = useNotifications();
 
   // Handlers
@@ -251,6 +271,9 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
 
   const handleNavigate = (page, params = {}) => {
     setPageParams(params);
+    if (params.learner) {
+      setEditingLearner(params.learner);
+    }
     setCurrentPage(page);
   };
 
@@ -290,13 +313,16 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       } else {
         showSuccess('Error updating student: ' + result.error);
       }
+      return result;
     } else {
       const result = await createLearner(learnerData);
       if (result.success) {
         showSuccess('Student added successfully!');
       } else {
-        showSuccess('Error creating student: ' + result.error);
+        const errorMsg = typeof result.error === 'object' ? JSON.stringify(result.error) : result.error;
+        showSuccess('Error creating student: ' + errorMsg);
       }
+      return result;
     }
   };
 
@@ -336,14 +362,33 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
     }
   }, [bulkDeleteLearners, showSuccess]);
 
+  const handlePromoteLearners = async (learnerIds, nextGrade) => {
+    const result = await promoteLearners(learnerIds, nextGrade);
+    if (!result.success && result.error) {
+      showSuccess('Error promoting students: ' + result.error);
+    }
+    return result;
+  };
+
+  const handleTransferOut = async (transferData) => {
+    const result = await transferOutLearner(transferData);
+    if (result.success) {
+      showSuccess('Student transfer processed successfully');
+      setCurrentPage('learners-exited');
+    } else {
+      showSuccess('Error processing transfer: ' + result.error);
+    }
+    return result;
+  };
+
   const handleAddTeacher = () => {
     setEditingTeacher(null);
-    setShowTeacherModal(true);
+    setCurrentPage('add-teacher');
   };
 
   const handleEditTeacher = (teacher) => {
     setEditingTeacher(teacher);
-    setShowTeacherModal(true);
+    setCurrentPage('add-teacher');
   };
 
   const handleSaveTeacher = async (teacherData) => {
@@ -351,18 +396,18 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       const result = await updateTeacher(editingTeacher.id, teacherData);
       if (result.success) {
         showSuccess('Tutor updated successfully!');
-        setShowTeacherModal(false);
+        setCurrentPage('teachers-list');
         setEditingTeacher(null);
       } else {
-        showSuccess('Error updating tutor: ' + result.error);
+        showError('Error updating tutor: ' + result.error);
       }
     } else {
       const result = await createTeacher(teacherData);
       if (result.success) {
         showSuccess('Tutor added successfully!');
-        setShowTeacherModal(false);
+        setCurrentPage('teachers-list');
       } else {
-        showSuccess('Error creating tutor: ' + result.error);
+        showError('Error creating tutor: ' + result.error);
       }
     }
   };
@@ -456,6 +501,12 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       case 'dashboard':
         return <RoleDashboard learners={learners} pagination={pagination} teachers={teachers} user={user} onNavigate={handleNavigate} />;
 
+      // Planner Module
+      case 'planner-calendar':
+      case 'planner-timetable':
+      case 'planner-agenda':
+        return <PlannerLayout currentPage={currentPage} onNavigate={handleNavigate} />;
+
       // Learners Module
       case 'learners-list':
         return (
@@ -489,9 +540,21 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       case 'learners-exited':
         return <ExitedLearnersPage />;
       case 'learners-promotion':
-        return <PromotionPage learners={learners} />;
+        return (
+          <PromotionPage
+            learners={learners}
+            onPromote={handlePromoteLearners}
+            showNotification={(msg, type) => showSuccess(msg)} // Map showNotification to showSuccess
+          />
+        );
       case 'learners-transfer-out':
-        return <TransferOutPage learners={learners} />;
+        return (
+          <TransferOutPage
+            learners={learners}
+            onTransferOut={handleTransferOut}
+            showNotification={(msg, type) => showSuccess(msg)}
+          />
+        );
       case 'learner-profile':
         return (
           <LearnerProfile
@@ -518,6 +581,17 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
           <TeacherProfile
             teacher={pageParams.teacher}
             onBack={() => handleNavigate('teachers-list')}
+          />
+        );
+      case 'add-teacher':
+        return (
+          <AddEditTeacherPage
+            onSave={handleSaveTeacher}
+            onCancel={() => {
+              setCurrentPage('teachers-list');
+              setEditingTeacher(null);
+            }}
+            teacher={editingTeacher}
           />
         );
 
@@ -586,9 +660,15 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       case 'comm-messages':
         return <MessagesPage />;
 
+      // Inventory Module
+      case 'inventory-books':
+        return <InventoryList />;
+
       // Documents Module
-      case 'documents-center':
+      case 'docs-center':
         return <DocumentCenter />;
+      case 'knowledge-base':
+        return <KnowledgeBase />;
 
       // Fee Management Module
       case 'fees-structure':
@@ -685,16 +765,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
         learners={learners}
       />
 
-      {/* Add/Edit Teacher Modal */}
-      <AddEditTeacherModal
-        show={showTeacherModal}
-        onClose={() => {
-          setShowTeacherModal(false);
-          setEditingTeacher(null);
-        }}
-        onSave={handleSaveTeacher}
-        teacher={editingTeacher}
-      />
+      {/* Add/Edit Teacher Modal Removed - Replaced by AddEditTeacherPage */}
 
 
 

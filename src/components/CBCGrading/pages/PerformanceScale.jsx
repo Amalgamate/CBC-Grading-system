@@ -283,7 +283,7 @@ const PerformanceScale = () => {
               type="text"
               value={scaleName}
               onChange={(e) => setScaleName(e.target.value)}
-              placeholder="e.g., Zawadi Internal Exams"
+              placeholder="e.g., Elimcrown Internal Exams"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-lg"
             />
             <p className="mt-2 text-xs text-gray-500">This name will identify this scale across all subjects</p>

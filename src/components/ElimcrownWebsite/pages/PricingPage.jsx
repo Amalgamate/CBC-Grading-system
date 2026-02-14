@@ -1,6 +1,6 @@
 import React from 'react';
 import { WebsiteLayout } from '../WebsiteLayout';
-import { Check } from 'lucide-react';
+import { Check, Box, Folder } from 'lucide-react';
 
 const PricingPage = (props) => {
     return (
@@ -69,7 +69,49 @@ const PricingPage = (props) => {
                         </div>
                     </div>
 
-                    <div className="mt-16 bg-[#f9fafb] p-8 rounded border border-gray-200">
+                    <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="bg-[#f9fafb] p-8 rounded-2xl border border-gray-200 text-left">
+                            <h3 className="text-xl font-bold text-[#1a1a1a] mb-4 flex items-center gap-2">
+                                <span className="p-2 bg-brand-teal/10 rounded-lg text-brand-teal">
+                                    <Box size={24} />
+                                </span>
+                                Mobile App Add-ons
+                            </h3>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span className="text-slate-600 font-medium text-sm">Android App Deployment</span>
+                                    <span className="text-[#1a1a1a] font-bold">KES 50,000</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span className="text-slate-600 font-medium text-sm">iOS App Deployment</span>
+                                    <span className="text-[#1a1a1a] font-bold">KES 50,000</span>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-2 italic">* One-time setup fee for white-label app publishing.</p>
+                            </div>
+                        </div>
+
+                        <div className="bg-[#f9fafb] p-8 rounded-2xl border border-gray-200 text-left">
+                            <h3 className="text-xl font-bold text-[#1a1a1a] mb-4 flex items-center gap-2">
+                                <span className="p-2 bg-[#875A7B]/10 rounded-lg text-[#875A7B]">
+                                    <Folder size={24} />
+                                </span>
+                                Storage & Media
+                            </h3>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span className="text-slate-600 font-medium text-sm">Standard (10GB)</span>
+                                    <span className="text-[#1a1a1a] font-bold">Included</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span className="text-slate-600 font-medium text-sm">Enhanced (100GB + Video)</span>
+                                    <span className="text-[#1a1a1a] font-bold">KES 2,500/mo</span>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-2 italic">* Ideal for schools hosting extensive tutorial videos and learning materials.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-8 bg-white p-8 rounded shadow-sm border border-gray-100">
                         <h3 className="text-lg font-bold text-[#1a1a1a] mb-2">Need a custom plan?</h3>
                         <p className="text-slate-500">Contact us for tailored solutions for counties and large education networks.</p>
                     </div>

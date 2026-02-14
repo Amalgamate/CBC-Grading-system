@@ -35,6 +35,12 @@ router.post(
   workflowController.submitForApproval
 );
 
+router.post(
+  '/bulk-submit',
+  canPerformWorkflowAction('submit'),
+  workflowController.bulkSubmitForApproval
+);
+
 /**
  * POST /api/workflow/approve/:type/:id
  * Approve assessment

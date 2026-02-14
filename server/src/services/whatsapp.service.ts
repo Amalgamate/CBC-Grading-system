@@ -1,172 +1,258 @@
 /**
- * WhatsApp Service using Africa's Talking
- * Handles sending WhatsApp messages to parents
+ * WhatsApp Service using WhatsApp Web (whatsapp-web.js)
+ * Handles sending WhatsApp messages through WhatsApp Web automation
  * 
  * @module services/whatsapp.service
  */
 
-import axios from 'axios';
+import { Client, LocalAuth, MessageMedia } from 'whatsapp-web.js';
+import qrcode from 'qrcode-terminal';
 
 interface WhatsAppMessage {
   to: string; // Phone number in international format (+254...)
   message: string;
-  templateName?: string;
-  templateParams?: Record<string, string>;
 }
 
 class WhatsAppService {
-  private username: string;
-  private apiKey: string;
-  private baseUrl: string;
-  private enabled: boolean;
+  private clients: Map<string, Client> = new Map();
+  private isReadyMap: Map<string, boolean> = new Map();
+  private isInitializingMap: Map<string, boolean> = new Map();
+  private qrCodeMap: Map<string, string | null> = new Map();
+  private connectionStatusMap: Map<string, 'disconnected' | 'qr_needed' | 'authenticated' | 'initializing'> = new Map();
 
   constructor() {
-    this.username = process.env.AFRICASTALKING_USERNAME || 'sandbox';
-    this.apiKey = process.env.AFRICASTALKING_API_KEY || '';
-    this.baseUrl = 'https://api.africastalking.com/version1';
-    this.enabled = !!this.apiKey && this.apiKey !== '';
+    // We no longer auto-initialize a global client
+  }
 
-    if (!this.enabled) {
-      console.warn('[WhatsApp Service] API key not configured. Messages will be simulated.');
+  /**
+   * Initialize WhatsApp Web client for a specific school
+   */
+  async initialize(schoolId: string) {
+    if (this.isInitializingMap.get(schoolId) || this.clients.has(schoolId)) {
+      return;
+    }
+
+    this.isInitializingMap.set(schoolId, true);
+    this.connectionStatusMap.set(schoolId, 'initializing');
+
+    console.log(`[WhatsApp Service] Initializing WhatsApp Web client for school: ${schoolId}...`);
+
+    try {
+      const client = new Client({
+        authStrategy: new LocalAuth({
+          clientId: schoolId, // Unique ID for each school session
+          dataPath: `./.wwebjs_auth` // base path, LocalAuth uses clientId to differentiate
+        }),
+        puppeteer: {
+          headless: true,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu'
+          ]
+        }
+      });
+
+      this.clients.set(schoolId, client);
+
+      // QR Code event
+      client.on('qr', (qr) => {
+        this.qrCodeMap.set(schoolId, qr);
+        this.connectionStatusMap.set(schoolId, 'qr_needed');
+        console.log(`[WhatsApp Service] QR Code generated for school ${schoolId}`);
+      });
+
+      // Ready event
+      client.on('ready', () => {
+        this.isReadyMap.set(schoolId, true);
+        this.connectionStatusMap.set(schoolId, 'authenticated');
+        this.qrCodeMap.set(schoolId, null);
+        console.log(`[WhatsApp Service] ✅ WhatsApp Client for school ${schoolId} is ready!`);
+      });
+
+      // Authenticated event
+      client.on('authenticated', () => {
+        console.log(`[WhatsApp Service] ✅ WhatsApp for ${schoolId} authenticated successfully`);
+        this.connectionStatusMap.set(schoolId, 'authenticated');
+      });
+
+      // Disconnected event
+      client.on('disconnected', (reason: any) => {
+        console.log(`[WhatsApp Service] ⚠️ WhatsApp for ${schoolId} disconnected:`, reason);
+        this.isReadyMap.set(schoolId, false);
+        this.connectionStatusMap.set(schoolId, 'disconnected');
+
+        // Remove client so it can be re-initialized
+        this.clients.delete(schoolId);
+        this.isInitializingMap.delete(schoolId);
+      });
+
+      // Auth failure event
+      client.on('auth_failure', (msg: any) => {
+        console.error(`[WhatsApp Service] ❌ Auth failure for ${schoolId}:`, msg);
+        this.connectionStatusMap.set(schoolId, 'qr_needed');
+      });
+
+      await client.initialize();
+      this.isInitializingMap.set(schoolId, false);
+
+    } catch (error: any) {
+      console.error(`[WhatsApp Service] ❌ Initialization error for ${schoolId}:`, error.message);
+      this.isInitializingMap.set(schoolId, false);
+      this.connectionStatusMap.set(schoolId, 'disconnected');
+      this.clients.delete(schoolId);
     }
   }
 
   /**
-   * Format phone number to international format
-   * @param phone - Phone number (e.g., 0712345678 or +254712345678)
-   * @returns Formatted phone number (+254712345678)
+   * Get current connection status for a school
+   */
+  getStatus(schoolId: string): {
+    status: 'disconnected' | 'qr_needed' | 'authenticated' | 'initializing';
+    qrCode: string | null;
+  } {
+    return {
+      status: this.connectionStatusMap.get(schoolId) || 'disconnected',
+      qrCode: this.qrCodeMap.get(schoolId) || null
+    };
+  }
+
+  /**
+   * Format phone number to WhatsApp format
    */
   private formatPhoneNumber(phone: string): string {
-    // Remove spaces and special characters
     let formatted = phone.replace(/[\s\-\(\)]/g, '');
-
-    // If starts with 0, replace with +254
-    if (formatted.startsWith('0')) {
-      formatted = '+254' + formatted.substring(1);
-    }
-
-    // If starts with 254, add +
-    if (formatted.startsWith('254')) {
-      formatted = '+' + formatted;
-    }
-
-    // If doesn't start with +, assume Kenya and add +254
-    if (!formatted.startsWith('+')) {
-      formatted = '+254' + formatted;
-    }
-
-    return formatted;
+    if (formatted.startsWith('0')) formatted = '254' + formatted.substring(1);
+    if (formatted.startsWith('+254')) formatted = formatted.substring(1);
+    if (formatted.startsWith('+')) formatted = formatted.substring(1);
+    if (!formatted.startsWith('254')) formatted = '254' + formatted;
+    return `${formatted}@c.us`;
   }
 
   /**
-   * Send WhatsApp message via Africa's Talking
-   * @param params - Message parameters
-   * @returns Promise with send result
+   * Send WhatsApp message using a school's session
    */
-  async sendMessage(params: WhatsAppMessage): Promise<{
+  async sendMessage(params: WhatsAppMessage & { schoolId: string }): Promise<{
     success: boolean;
     messageId?: string;
     message: string;
     error?: string;
   }> {
+    const { schoolId } = params;
     try {
-      const formattedPhone = this.formatPhoneNumber(params.to);
+      const client = this.clients.get(schoolId);
+      const isReady = this.isReadyMap.get(schoolId);
 
-      // If not enabled, simulate sending
-      if (!this.enabled) {
-        console.log('[WhatsApp Service] SIMULATED MESSAGE:');
-        console.log(`  To: ${formattedPhone}`);
-        console.log(`  Message: ${params.message}`);
-        return {
-          success: true,
-          messageId: `sim_${Date.now()}`,
-          message: 'Message simulated (API key not configured)',
-        };
-      }
-
-      // Prepare request
-      const requestData = {
-        username: this.username,
-        to: formattedPhone,
-        message: params.message,
-      };
-
-      // Send via Africa's Talking API
-      const response = await axios.post(
-        `${this.baseUrl}/messaging`,
-        new URLSearchParams(requestData as any).toString(),
-        {
-          headers: {
-            'apiKey': this.apiKey,
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Accept': 'application/json',
-          },
-        }
-      );
-
-      if (response.data.SMSMessageData?.Recipients?.[0]?.status === 'Success') {
-        return {
-          success: true,
-          messageId: response.data.SMSMessageData.Recipients[0].messageId,
-          message: 'WhatsApp message sent successfully',
-        };
-      } else {
+      if (!client || !isReady) {
+        // Trigger initialization if not already in progress
+        this.initialize(schoolId);
         return {
           success: false,
-          message: 'Failed to send WhatsApp message',
-          error: response.data.SMSMessageData?.Recipients?.[0]?.status || 'Unknown error',
+          message: 'WhatsApp client for this school is not ready. Please go to settings to authenticate.',
+          error: `Status: ${this.connectionStatusMap.get(schoolId) || 'disconnected'}`
         };
       }
+
+      const formattedPhone = this.formatPhoneNumber(params.to);
+      const sentMessage = await client.sendMessage(formattedPhone, params.message);
+
+      return {
+        success: true,
+        messageId: sentMessage.id.id,
+        message: 'WhatsApp message sent successfully'
+      };
+
     } catch (error: any) {
-      console.error('[WhatsApp Service] Error:', error.message);
+      console.error(`[WhatsApp Service] ❌ Error sending message for ${schoolId}:`, error.message);
       return {
         success: false,
         message: 'Failed to send WhatsApp message',
-        error: error.message,
+        error: error.message
       };
     }
   }
 
   /**
-   * Send assessment completion notification to parent
+   * Send assessment report via WhatsApp to parent
    */
-  async sendAssessmentNotification(params: {
-    parentPhone: string;
-    parentName: string;
+  async sendAssessmentReport(data: {
+    learnerId: string;
     learnerName: string;
-    assessmentType: string; // 'Formative' or 'Summative'
-    subject?: string;
-    grade?: string;
-    term?: string;
+    learnerGrade: string;
+    parentPhone: string;
+    parentName?: string;
+    term: string;
+    totalTests: number;
+    averageScore?: string;
+    overallGrade?: string;
+    totalMarks?: number;
+    maxPossibleMarks?: number;
+    subjects?: Record<string, string | { score: number, grade: string }>;
+    schoolName?: string;
+    schoolId: string;
   }): Promise<{
     success: boolean;
     message: string;
     error?: string;
   }> {
-    const { parentPhone, parentName, learnerName, assessmentType, subject, grade, term } = params;
+    const { parentPhone, parentName, learnerName, learnerGrade, term, averageScore, overallGrade, subjects, schoolId } = data;
 
-    // Construct message
-    let message = `Dear ${parentName},\n\n`;
-    message += `${assessmentType} assessment has been completed for ${learnerName}`;
-    
-    if (grade) message += ` (${grade})`;
-    if (subject) message += ` - ${subject}`;
-    if (term) message += ` - ${term}`;
-    
-    message += `.\n\n`;
-    message += `You can view the results by logging into the parent portal.\n\n`;
-    message += `Regards,\nZawadi JRN Academy`;
+    const greeting = parentName ? `Dear *${parentName}*,` : 'Dear Parent,';
+    const schoolNameHeader = data.schoolName ? `*${data.schoolName.toUpperCase()}*` : '*SCHOOL REPORT*';
+
+    const LEARNING_AREA_MAP: Record<string, string> = {
+      'MATHEMATICS': 'MAT', 'ENGLISH': 'ENG', 'KISWAHILI': 'KIS',
+      'SCIENCE AND TECHNOLOGY': 'SCITECH', 'SOCIAL STUDIES': 'SST',
+      'CHRISTIAN RELIGIOUS EDUCATION': 'CRE', 'ISLAMIC RELIGIOUS EDUCATION': 'IRE',
+      'CREATIVE ARTS AND SPORTS': 'CREATIVE', 'AGRICULTURE AND NUTRITION': 'AGRNT',
+      'ENVIRONMENTAL ACTIVITIES': 'ENV', 'MATHEMATICAL ACTIVITIES': 'MAT',
+      'ENGLISH LANGUAGE ACTIVITIES': 'ENG', 'KISWAHILI LANGUAGE ACTIVITIES': 'KIS',
+      'RELIGIOUS EDUCATION': 'RE'
+    };
+
+    let subjectsSummary = '';
+    if (subjects && Object.keys(subjects).length > 0) {
+      const subArray = Object.entries(subjects).map(([name, detail]) => {
+        const upper = name.toUpperCase().trim();
+        const code = LEARNING_AREA_MAP[upper] || (name.length > 8 ? name.substring(0, 8).toUpperCase() : name.toUpperCase());
+
+        if (typeof detail === 'string') {
+          return `• *${code}:* ${detail}`;
+        } else {
+          const gradeStr = detail.grade.includes('EE') ? `*${detail.grade}*` : detail.grade;
+          return `• *${code}:* ${detail.score}% (${gradeStr})`;
+        }
+      });
+      subjectsSummary = `\n\n*SUBJECT PERFORMANCE:*\n${subArray.join('\n')}`;
+    }
+
+    const currentYear = new Date().getFullYear();
+    const message = `${schoolNameHeader}\n\n` +
+      `${greeting}\n\n` +
+      `Here is the ${term} ${currentYear} assessment report for:\n` +
+      `👤 *${learnerName}* (${learnerGrade})\n\n` +
+      `📊 *RESULTS SUMMARY:*\n` +
+      `• Mean Score: *${averageScore || '0'}%*\n` +
+      `• Overall Grade: *${overallGrade || 'N/A'}*\n` +
+      `• Total Assessments: ${data.totalTests}` +
+      `${subjectsSummary}\n\n` +
+      `_This is an automated message. Please do not reply._`;
 
     return await this.sendMessage({
       to: parentPhone,
       message,
+      schoolId
     });
   }
 
   /**
-   * Send bulk assessment notifications to multiple parents
+   * Send assessment notification to parent
    */
-  async sendBulkAssessmentNotifications(notifications: Array<{
+  async sendAssessmentNotification(params: {
     parentPhone: string;
     parentName: string;
     learnerName: string;
@@ -174,40 +260,57 @@ class WhatsAppService {
     subject?: string;
     grade?: string;
     term?: string;
-  }>): Promise<{
+    schoolId: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    error?: string;
+  }> {
+    const { parentPhone, parentName, learnerName, assessmentType, subject, grade, term, schoolId } = params;
+
+    let message = `Dear ${parentName},\n\n`;
+    message += `${assessmentType} assessment has been completed for ${learnerName}`;
+    if (subject) message += ` in ${subject}`;
+    if (grade) message += `.\n\nGrade: ${grade}`;
+    if (term) message += `\nTerm: ${term}`;
+    message += `\n\nYou can view the full report in the parent portal.`;
+    message += `\n\n_This is an automated notification._`;
+
+    return await this.sendMessage({
+      to: parentPhone,
+      message,
+      schoolId
+    });
+  }
+
+  /**
+   * Send bulk assessment notifications with batching
+   */
+  async sendBulkAssessmentNotifications(notifications: Array<any>, schoolId: string): Promise<{
     success: boolean;
     sent: number;
     failed: number;
-    results: Array<{ phone: string; success: boolean; error?: string }>;
+    message: string;
   }> {
-    const results = [];
     let sent = 0;
     let failed = 0;
 
     for (const notification of notifications) {
-      const result = await this.sendAssessmentNotification(notification);
-      
-      if (result.success) {
-        sent++;
-      } else {
+      try {
+        const result = await this.sendAssessmentNotification({ ...notification, schoolId });
+        if (result.success) sent++;
+        else failed++;
+        await new Promise(resolve => setTimeout(resolve, 2500));
+      } catch (error) {
         failed++;
       }
-
-      results.push({
-        phone: notification.parentPhone,
-        success: result.success,
-        error: result.error,
-      });
-
-      // Add small delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     return {
-      success: failed === 0,
+      success: sent > 0,
       sent,
       failed,
-      results,
+      message: `Sent ${sent} messages, ${failed} failed`
     };
   }
 
@@ -216,18 +319,17 @@ class WhatsAppService {
    */
   async sendCustomMessage(params: {
     parentPhone: string;
-    parentName: string;
     message: string;
+    schoolId: string;
   }): Promise<{
     success: boolean;
     message: string;
     error?: string;
   }> {
-    const formattedMessage = `Dear ${params.parentName},\n\n${params.message}\n\nRegards,\nZawadi JRN Academy`;
-
     return await this.sendMessage({
       to: params.parentPhone,
-      message: formattedMessage,
+      message: params.message,
+      schoolId: params.schoolId
     });
   }
 
@@ -240,20 +342,24 @@ class WhatsAppService {
     learnerName: string;
     amountDue: number;
     dueDate: string;
+    schoolId: string;
   }): Promise<{
     success: boolean;
     message: string;
     error?: string;
   }> {
-    const message = `Dear ${params.parentName},\n\n` +
-      `This is a reminder that the school fee balance for ${params.learnerName} is KES ${params.amountDue.toLocaleString()}.\n\n` +
-      `Due date: ${params.dueDate}\n\n` +
+    const message = `Dear *${params.parentName}*,\n\n` +
+      `This is a friendly reminder regarding school fees for *${params.learnerName}*.\n\n` +
+      `*Amount Due:* KES ${params.amountDue.toLocaleString()}\n` +
+      `*Due Date:* ${params.dueDate}\n\n` +
       `Please make payment at your earliest convenience.\n\n` +
-      `Regards,\nZawadi JRN Academy`;
+      `For any queries, contact the school administration.\n\n` +
+      `_This is an automated reminder._`;
 
     return await this.sendMessage({
       to: params.parentPhone,
       message,
+      schoolId: params.schoolId
     });
   }
 
@@ -265,19 +371,21 @@ class WhatsAppService {
     parentName: string;
     title: string;
     content: string;
+    schoolId: string;
   }): Promise<{
     success: boolean;
     message: string;
     error?: string;
   }> {
-    const message = `Dear ${params.parentName},\n\n` +
-      `${params.title}\n\n` +
+    const message = `Dear *${params.parentName}*,\n\n` +
+      `*${params.title}*\n\n` +
       `${params.content}\n\n` +
-      `Regards,\nZawadi JRN Academy`;
+      `Regards,\nSchool Administration`;
 
     return await this.sendMessage({
       to: params.parentPhone,
       message,
+      schoolId: params.schoolId
     });
   }
 }

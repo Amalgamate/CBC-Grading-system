@@ -972,6 +972,7 @@ export const getAdmissionNumberPreview = async (req: AuthRequest, res: Response)
         );
 
         return {
+          branchId: branch.id,
           branchCode: branch.code,
           branchName: branch.name,
           nextAdmissionNumber: nextNumber

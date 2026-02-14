@@ -7,6 +7,8 @@ import React from 'react';
 import {
   Users, GraduationCap, BookOpen, Activity, Calendar, ShieldCheck, Zap, Target
 } from 'lucide-react';
+import SchoolOnboardingWizard from './onboarding/SchoolOnboardingWizard';
+import { useState, useEffect } from 'react';
 
 const MetricCard = ({ title, value, subtitle, icon: Icon, colorClass = "text-gray-400" }) => (
   <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:border-brand-purple/30 transition-all">
@@ -22,11 +24,27 @@ const MetricCard = ({ title, value, subtitle, icon: Icon, colorClass = "text-gra
 );
 
 const Dashboard = ({ learners, teachers }) => {
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
   const activeLearners = learners?.filter(l => l.status === 'Active' || l.status === 'ACTIVE').length || 0;
   const activeTeachers = teachers?.filter(t => t.status === 'Active' || t.status === 'ACTIVE').length || 0;
 
+  useEffect(() => {
+    // Show onboarding if no learners exist and not previously dismissed in this session
+    const dismissed = sessionStorage.getItem('onboarding_dismissed');
+    if (activeLearners === 0 && !dismissed) {
+      setShowOnboarding(true);
+    }
+  }, [activeLearners]);
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    sessionStorage.setItem('onboarding_dismissed', 'true');
+  };
+
   return (
     <div className="space-y-6">
+      {showOnboarding && <SchoolOnboardingWizard onComplete={handleOnboardingComplete} />}
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard title="Enrollment" value={activeLearners} subtitle="Active Students" icon={Users} colorClass="text-blue-500" />

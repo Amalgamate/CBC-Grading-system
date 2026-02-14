@@ -82,7 +82,7 @@ export const gradeStructure = [
     capacity: 35,
     active: true,
     curriculum: 'CBC',
-    subjects: ['English Language Activities', 'Kiswahili Language Activities', 'Indigenous Language Activities', 'Mathematics', 'Environmental Activities', 'Creative Arts Activities', 'Christian Religious Education', 'Islamic Religious Education', 'Computer Studies', 'French (Optional)']
+    subjects: ['Mathematics', 'English', 'Kiswahili', 'Environmental Studies', 'Creative Activities', 'Religious Education', 'Information Communications Technology']
   },
   {
     id: 8,
@@ -93,7 +93,7 @@ export const gradeStructure = [
     capacity: 35,
     active: true,
     curriculum: 'CBC',
-    subjects: ['English Language Activities', 'Kiswahili Language Activities', 'Indigenous Language Activities', 'Mathematics', 'Environmental Activities', 'Creative Arts Activities', 'Christian Religious Education', 'Islamic Religious Education', 'Computer Studies', 'French (Optional)']
+    subjects: ['Mathematics', 'English', 'Kiswahili', 'Environmental Studies', 'Creative Activities', 'Religious Education', 'Information Communications Technology']
   },
   {
     id: 9,
@@ -104,7 +104,7 @@ export const gradeStructure = [
     capacity: 40,
     active: true,
     curriculum: 'CBC',
-    subjects: ['English Language Activities', 'Kiswahili Language Activities', 'Indigenous Language Activities', 'Mathematics', 'Environmental Activities', 'Creative Arts Activities', 'Christian Religious Education', 'Islamic Religious Education', 'Computer Studies', 'French (Optional)']
+    subjects: ['Mathematics', 'English', 'Kiswahili', 'Environmental Studies', 'Creative Activities', 'Religious Education', 'Information Communications Technology']
   },
 
   // UPPER PRIMARY

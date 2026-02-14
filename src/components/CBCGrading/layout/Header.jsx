@@ -177,10 +177,10 @@ const Header = React.memo(({ user, onLogout, brandingSettings, title }) => {
       <div className="flex items-center gap-6">
         <div>
           <h1 className="text-2xl font-bold text-transparent bg-gradient-to-r from-indigo-900 to-indigo-600 bg-clip-text">
-            {isSuperAdmin && selectedSchool ? selectedSchool.name : (title || brandingSettings?.schoolName || 'EDucore V1')}
+            {isSuperAdmin && selectedSchool ? selectedSchool.name : (title || brandingSettings?.schoolName || 'Elimcrown')}
           </h1>
           <p className="text-xs text-gray-600">
-            {isSuperAdmin && selectedBranch ? `${selectedBranch.name} | CBC System` : (title ? (brandingSettings?.schoolName || 'EDucore V1') : 'CBC Assessment & Grading System')}
+            {isSuperAdmin && selectedBranch ? `${selectedBranch.name} | CBC System` : (title ? (brandingSettings?.schoolName || 'Elimcrown') : 'CBC Assessment & Grading System')}
           </p>
         </div>
 

@@ -152,7 +152,7 @@ const TermlyReportTemplate = ({ reportData, id = "termly-report-content" }) => {
                         {reportData.schoolSlogan || 'Excellence in Knowledge and Character'}
                     </p>
                     <p className="text-[8px] font-bold opacity-60">
-                        Valid only with official school stamp and signatures. Generated via Amalgamate EDucore on {new Date().toLocaleDateString()}.
+                        Valid only with official school stamp and signatures. Generated via Elimcrown on {new Date().toLocaleDateString()}.
                     </p>
                 </div>
             </div>

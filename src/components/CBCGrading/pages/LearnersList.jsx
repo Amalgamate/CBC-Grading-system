@@ -3,14 +3,15 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Upload, Eye, Edit, Trash2, LogOut, Lock, ChevronLeft, ChevronRight, Search, RefreshCw, Users, MoreVertical } from 'lucide-react';
+import { Plus, Upload, Eye, Edit, Trash2, LogOut, Lock, ChevronLeft, ChevronRight, Search, RefreshCw, Users, MoreVertical, MessageCircle, MessageSquare, X, Loader2, Send } from 'lucide-react';
 import StatusBadge from '../shared/StatusBadge';
 import EmptyState from '../shared/EmptyState';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { useAuth } from '../../../hooks/useAuth';
-import { configAPI } from '../../../services/api';
+import { configAPI, communicationAPI } from '../../../services/api';
 import BulkOperationsModal from '../shared/bulk/BulkOperationsModal';
 import VirtualizedTable from '../shared/VirtualizedTable';
+import { formatPhoneNumber } from '../../../utils/phoneFormatter';
 
 const LearnersList = ({
   learners,
@@ -27,13 +28,18 @@ const LearnersList = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGrade, setFilterGrade] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('ACTIVE');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [filterStream, setFilterStream] = useState('all');
   const [availableStreams, setAvailableStreams] = useState([]);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [selectedLearners, setSelectedLearners] = useState([]);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showQuickContact, setShowQuickContact] = useState(false);
+  const [selectedGuardian, setSelectedGuardian] = useState(null);
+  const [quickMessage, setQuickMessage] = useState('');
+  const [isSendingSMS, setIsSendingSMS] = useState(false);
+  const [contactType, setContactType] = useState('sms'); // 'sms' or 'whatsapp'
   const { can, isRole } = usePermissions();
   const { user } = useAuth();
 
@@ -48,7 +54,7 @@ const LearnersList = ({
         try {
           const resp = await configAPI.getStreamConfigs(user.schoolId);
           const arr = resp?.data || [];
-          setAvailableStreams(arr.filter(s => s.active));
+          setAvailableStreams(arr.filter(s => s.active !== false));
         } catch (error) {
           console.error('Failed to fetch streams:', error);
         }
@@ -98,8 +104,56 @@ const LearnersList = ({
   const handleReset = () => {
     setSearchTerm('');
     setFilterGrade('all');
-    setFilterStatus('ACTIVE');
+    setFilterStatus('all');
     setSelectedLearners([]);
+  };
+
+  const handleOpenQuickContact = (guardian) => {
+    setSelectedGuardian(guardian);
+    setQuickMessage('');
+    setContactType('sms');
+    setShowQuickContact(true);
+  };
+
+  const handleSendQuickMessage = async () => {
+    if (!selectedGuardian || !quickMessage.trim()) {
+      alert('Please select a guardian and enter a message');
+      return;
+    }
+
+    setIsSendingSMS(true);
+    try {
+      const phoneNumber = selectedGuardian.phone || selectedGuardian.primaryContactPhone;
+      const formattedPhone = formatPhoneNumber(phoneNumber);
+
+      if (contactType === 'whatsapp') {
+        // Open WhatsApp directly
+        const encodedMessage = encodeURIComponent(quickMessage);
+        window.open(`https://wa.me/${formattedPhone.replace(/\D/g, '')}?text=${encodedMessage}`, '_blank');
+        setShowQuickContact(false);
+        setQuickMessage('');
+      } else {
+        // Send SMS
+        const response = await communicationAPI.sendTestSMS({
+          phoneNumber: formattedPhone,
+          message: quickMessage,
+          schoolId: user?.schoolId
+        });
+
+        if (response && (response.message || response.success)) {
+          alert('Message sent successfully!');
+          setShowQuickContact(false);
+          setQuickMessage('');
+        } else {
+          alert('Failed to send message. Please try again.');
+        }
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Error sending message: ' + (error.message || 'Unknown error'));
+    } finally {
+      setIsSendingSMS(false);
+    }
   };
 
   const handleSelectAll = (e) => {
@@ -428,8 +482,50 @@ const LearnersList = ({
                 <td className="px-3 py-2 text-sm text-gray-600">{learner.admNo}</td>
                 <td className="px-3 py-2 text-sm font-semibold">{learner.grade} {learner.stream}</td>
                 <td className="px-3 py-2">
-                  <p className="text-sm font-semibold">{learner.guardianName || (learner.parent ? `${learner.parent.firstName} ${learner.parent.lastName}` : '')}</p>
-                  <p className="text-xs text-gray-500">{learner.guardianPhone || (learner.parent ? learner.parent.phone : '')}</p>
+                  <div className="flex items-center gap-2">
+                    {learner.primaryContactType && (
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                        learner.primaryContactType === 'FATHER' ? 'bg-blue-100 text-blue-800' :
+                        learner.primaryContactType === 'MOTHER' ? 'bg-amber-100 text-amber-800' :
+                        'bg-rose-100 text-rose-800'
+                      }`}>
+                        {learner.primaryContactType === 'FATHER' ? '👨 Father' :
+                         learner.primaryContactType === 'MOTHER' ? '👩 Mother' :
+                         '👤 Guardian'}
+                      </span>
+                    )}
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold">{learner.primaryContactName || learner.guardianName || (learner.parent ? `${learner.parent.firstName} ${learner.parent.lastName}` : '-')}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-gray-500">{learner.primaryContactPhone || learner.guardianPhone || (learner.parent ? learner.parent.phone : '-')}</p>
+                        {(learner.primaryContactPhone || learner.guardianPhone || (learner.parent && learner.parent.phone)) && (
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handleOpenQuickContact({
+                                name: learner.primaryContactName || learner.guardianName || (learner.parent ? `${learner.parent.firstName} ${learner.parent.lastName}` : ''),
+                                phone: learner.primaryContactPhone || learner.guardianPhone || (learner.parent ? learner.parent.phone : '')
+                              })}
+                              className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition"
+                              title="Send SMS"
+                            >
+                              <MessageCircle size={14} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                const phoneNumber = learner.primaryContactPhone || learner.guardianPhone || (learner.parent ? learner.parent.phone : '');
+                                const formattedPhone = formatPhoneNumber(phoneNumber);
+                                window.open(`https://wa.me/${formattedPhone.replace(/\D/g, '')}`, '_blank');
+                              }}
+                              className="p-1 text-green-600 hover:bg-green-50 rounded transition"
+                              title="Open WhatsApp"
+                            >
+                              <MessageSquare size={14} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </td>
                 <td className="px-3 py-2">
                   <StatusBadge status={learner.status} size="sm" />
@@ -505,6 +601,102 @@ const LearnersList = ({
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Quick Contact Modal */}
+      {showQuickContact && selectedGuardian && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-brand-purple/10 to-brand-teal/10 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-black text-gray-900">Quick Message</h3>
+                <p className="text-sm text-gray-500 font-medium mt-1">{selectedGuardian.name}</p>
+              </div>
+              <button
+                onClick={() => setShowQuickContact(false)}
+                className="p-1.5 hover:bg-gray-100 rounded-lg transition"
+              >
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              {/* Contact Type Tabs */}
+              <div className="flex gap-2 border-b border-gray-200">
+                <button
+                  onClick={() => setContactType('sms')}
+                  className={`flex items-center gap-2 px-4 py-2 pb-3 font-semibold border-b-2 transition ${
+                    contactType === 'sms'
+                      ? 'border-emerald-500 text-emerald-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <MessageCircle size={16} />
+                  SMS
+                </button>
+                <button
+                  onClick={() => setContactType('whatsapp')}
+                  className={`flex items-center gap-2 px-4 py-2 pb-3 font-semibold border-b-2 transition ${
+                    contactType === 'whatsapp'
+                      ? 'border-green-500 text-green-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <MessageSquare size={16} />
+                  WhatsApp
+                </button>
+              </div>
+
+              {/* Phone Display */}
+              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-1">To:</p>
+                <p className="text-sm font-medium text-gray-800">{selectedGuardian.phone}</p>
+              </div>
+
+              {/* Message Input */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase mb-2">Message</label>
+                <textarea
+                  value={quickMessage}
+                  onChange={(e) => setQuickMessage(e.target.value)}
+                  placeholder="Type your message here..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-teal focus:border-transparent text-sm font-medium resize-none"
+                  rows={4}
+                />
+                <p className="text-xs text-gray-500 mt-1">{quickMessage.length} characters</p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-2 justify-end">
+              <button
+                onClick={() => setShowQuickContact(false)}
+                className="px-4 py-2 text-gray-700 font-bold border border-gray-300 rounded-lg hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendQuickMessage}
+                disabled={isSendingSMS || !quickMessage.trim()}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {isSendingSMS ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send size={16} />
+                    Send
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

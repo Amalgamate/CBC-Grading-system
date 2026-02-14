@@ -191,54 +191,47 @@ const FormativeAssessment = ({ learners }) => {
   const handleSaveAll = async () => {
     try {
       setSaving(true);
-      let successCount = 0;
-      let errorCount = 0;
-      const newSavedAssessments = {};
 
-      // Save each assessment
-      for (const [learnerId, assessment] of Object.entries(assessments)) {
-        if (assessment.detailedRating && !savedAssessments[learnerId]) {
-          try {
-            const response = await api.assessments.createFormative({
-              learnerId,
-              term: selectedTerm,
-              academicYear: academicYear,
-              learningArea: selectedArea,
-              strand,
-              subStrand,
-              title: assessmentTitle,
-              type: assessmentType,
-              weight: assessmentWeight,
-              maxScore: maxScore,
-              detailedRating: assessment.detailedRating,
-              percentage: assessment.percentage,
-              strengths: assessment.strengths,
-              areasImprovement: assessment.areasImprovement,
-              recommendations: assessment.recommendations
-            });
+      const resultsToSave = Object.entries(assessments)
+        .filter(([learnerId, assessment]) => assessment.detailedRating && !savedAssessments[learnerId])
+        .map(([learnerId, assessment]) => ({
+          learnerId,
+          detailedRating: assessment.detailedRating,
+          percentage: assessment.percentage,
+          strengths: assessment.strengths,
+          areasImprovement: assessment.areasImprovement,
+          recommendations: assessment.recommendations
+        }));
 
-            if (response.success) {
-              successCount++;
-              newSavedAssessments[learnerId] = response.data;
-            } else {
-              errorCount++;
-            }
-          } catch (err) {
-            console.error(`Error saving assessment for learner ${learnerId}:`, err);
-            errorCount++;
-          }
-        }
-      }
-
-      if (successCount > 0) {
-        showSuccess(`Successfully saved ${successCount} assessment(s)!`);
-        setSavedAssessments(prev => ({ ...prev, ...newSavedAssessments }));
-      } else if (errorCount === 0) {
+      if (resultsToSave.length === 0) {
         showSuccess('No new assessments to save.');
+        return;
       }
 
-      if (errorCount > 0) {
-        showError(`Failed to save ${errorCount} assessment(s)`);
+      const response = await api.assessments.recordFormativeBulk({
+        results: resultsToSave,
+        term: selectedTerm,
+        academicYear: academicYear,
+        learningArea: selectedArea,
+        strand,
+        subStrand,
+        title: assessmentTitle,
+        type: assessmentType,
+        weight: assessmentWeight,
+        maxScore: maxScore
+      });
+
+      if (response.success) {
+        showSuccess(response.message || `Successfully saved ${resultsToSave.length} assessments!`);
+
+        // Update local state with DRAFT status for saved items
+        const newSaved = {};
+        resultsToSave.forEach(r => {
+          newSaved[r.learnerId] = { ...r, status: 'DRAFT', id: 'temp-' + Date.now() }; // Temporary ID until re-fetch
+        });
+        setSavedAssessments(prev => ({ ...prev, ...newSaved }));
+      } else {
+        showError(response.message || 'Failed to save assessments');
       }
 
     } catch (error) {
@@ -252,42 +245,34 @@ const FormativeAssessment = ({ learners }) => {
   const handleSubmitForApproval = async () => {
     try {
       setSubmitting(true);
-      let successCount = 0;
-      let errorCount = 0;
-      const updatedSavedAssessments = { ...savedAssessments };
 
-      // Submit each saved assessment
-      for (const [learnerId, assessment] of Object.entries(savedAssessments)) {
-        if (assessment && assessment.id && assessment.status === 'DRAFT') {
-          try {
-            const response = await workflowAPI.submit({
-              assessmentId: assessment.id,
-              assessmentType: 'formative',
-              comments: 'Submitted for approval'
-            });
+      const idsToSubmit = Object.values(savedAssessments)
+        .filter(a => a && a.id && a.status === 'DRAFT' && !String(a.id).startsWith('temp-'))
+        .map(a => a.id);
 
-            if (response.success) {
-              successCount++;
-              updatedSavedAssessments[learnerId] = { ...assessment, status: 'SUBMITTED' };
-            } else {
-              errorCount++;
-            }
-          } catch (err) {
-            console.error(`Error submitting assessment for learner ${learnerId}:`, err);
-            errorCount++;
+      if (idsToSubmit.length === 0) {
+        showError('No draft assessments ready to submit. Please ensure assessments are saved and synchronized.');
+        return;
+      }
+
+      const response = await workflowAPI.bulkSubmit({
+        ids: idsToSubmit,
+        assessmentType: 'formative',
+        comments: 'Bulk submitted for approval'
+      });
+
+      if (response.success) {
+        showSuccess(response.message || `Successfully submitted ${idsToSubmit.length} assessment(s) for approval!`);
+
+        const updatedSavedAssessments = { ...savedAssessments };
+        Object.keys(updatedSavedAssessments).forEach(learnerId => {
+          if (idsToSubmit.includes(updatedSavedAssessments[learnerId]?.id)) {
+            updatedSavedAssessments[learnerId] = { ...updatedSavedAssessments[learnerId], status: 'SUBMITTED' };
           }
-        }
-      }
-
-      if (successCount > 0) {
-        showSuccess(`Successfully submitted ${successCount} assessment(s) for approval!`);
+        });
         setSavedAssessments(updatedSavedAssessments);
-      }
-
-      if (errorCount > 0) {
-        showError(`Failed to submit ${errorCount} assessment(s)`);
-      } else if (successCount === 0) {
-        showError('No draft assessments found to submit. Please save assessments first.');
+      } else {
+        showError(response.message || 'Failed to submit assessments');
       }
 
     } catch (error) {

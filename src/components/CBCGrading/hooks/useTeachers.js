@@ -32,6 +32,8 @@ export const useTeachers = () => {
           phone: teacher.phone || 'N/A',
           subject: 'N/A', // TODO: Add subject field to backend
           classAssigned: 'N/A', // TODO: Add class assignment to backend
+          staffId: teacher.staffId || '---',
+          assignedClasses: teacher.classesAsTeacher?.map(c => c.name) || [],
           status: teacher.status,
           joinDate: new Date(teacher.createdAt).toLocaleDateString(),
           lastLogin: teacher.lastLogin

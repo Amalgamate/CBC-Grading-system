@@ -11,6 +11,7 @@ import {
 import { useNotifications } from '../../hooks/useNotifications';
 import { communicationAPI } from '../../../../services/api';
 import { getAdminSchoolId, getStoredUser } from '../../../../services/tenantContext';
+import { COMMUNICATION_DEFAULTS, TEST_MESSAGES } from '../../../../constants/communicationMessages';
 
 const CommunicationSettings = () => {
   const { showSuccess, showError } = useNotifications();
@@ -31,24 +32,21 @@ const CommunicationSettings = () => {
     onboarding: { heading: '', body: '' }
   });
 
-  // Hardcoded defaults per user request
-  const DEFAULT_API_KEY = 'UrkwuO5UfKfN6wuwwQPG3KkCfIvtgiWOa0EPcGb7R1r5JsVSxgEz4zR0fSdq';
-  const DEFAULT_SENDER_ID = 'MOBILESASA';
-
   const [emailSettings, setEmailSettings] = useState({
-    provider: 'resend',
+    provider: COMMUNICATION_DEFAULTS.email.provider,
     apiKey: '',
-    fromEmail: 'noreply@zawadijrn.ac.ke',
-    fromName: 'Zawadi JRN Academy',
+    fromEmail: COMMUNICATION_DEFAULTS.email.fromEmail,
+    fromName: COMMUNICATION_DEFAULTS.email.fromName,
     enabled: false,
     hasApiKey: false
   });
 
   const [smsSettings, setSmsSettings] = useState({
-    provider: 'mobilesasa',
-    baseUrl: 'https://api.mobilesasa.com',
-    apiKey: DEFAULT_API_KEY,
-    senderId: DEFAULT_SENDER_ID,
+    provider: COMMUNICATION_DEFAULTS.sms.provider,
+    baseUrl: COMMUNICATION_DEFAULTS.sms.baseUrl,
+    apiKey: '',
+    username: '',
+    senderId: COMMUNICATION_DEFAULTS.sms.senderId,
     customName: '',
     customBaseUrl: '',
     customAuthHeader: 'Authorization',
@@ -56,12 +54,8 @@ const CommunicationSettings = () => {
     enabled: false
   });
 
-
-
-
-
   const [testContact, setTestContact] = useState('');
-  const [testMessage, setTestMessage] = useState('This is a test message from EDucore.');
+  const [testMessage, setTestMessage] = useState(TEST_MESSAGES.sms);
 
   // Load Configuration on Mount
 
@@ -121,11 +115,14 @@ const CommunicationSettings = () => {
           if (data.sms) {
             setSmsSettings(prev => ({
               ...prev,
-              provider: data.sms.provider || 'mobilesasa',
+              provider: data.sms.provider || COMMUNICATION_DEFAULTS.sms.provider,
               enabled: data.sms.enabled,
-              baseUrl: data.sms.baseUrl || 'https://api.mobilesasa.com',
-              senderId: data.sms.senderId || DEFAULT_SENDER_ID, // Use Default if empty
+              baseUrl: data.sms.baseUrl || COMMUNICATION_DEFAULTS.sms.baseUrl,
+              senderId: data.sms.senderId || COMMUNICATION_DEFAULTS.sms.senderId,
               hasApiKey: data.sms.hasApiKey,
+
+              // AT specific
+              username: data.sms.username || '',
 
               // Custom fields
               customName: data.sms.customName || '',
@@ -133,11 +130,6 @@ const CommunicationSettings = () => {
               customAuthHeader: data.sms.customAuthHeader || 'Authorization',
               hasCustomToken: data.sms.hasCustomToken
             }));
-
-            // If no API key is set on backend (hasApiKey is false), prefill the default one for convenience
-            if (!data.sms.hasApiKey && data.sms.provider === 'mobilesasa') {
-              setSmsSettings(prev => ({ ...prev, apiKey: DEFAULT_API_KEY }));
-            }
           }
 
 
@@ -182,6 +174,7 @@ const CommunicationSettings = () => {
           enabled: true, // Auto-enable on save
           baseUrl: smsSettings.baseUrl,
           senderId: smsSettings.senderId,
+          username: smsSettings.username,
           // Only send API key if it's entered
           apiKey: smsSettings.apiKey || undefined,
 
@@ -274,7 +267,7 @@ const CommunicationSettings = () => {
                   if (saved) setTestContact(saved);
                 } else {
                   setTestContact('');
-                  setTestMessage('This is a test message from EDucore.');
+                  setTestMessage('This is a test message from Elimcrown.');
                   const saved = localStorage.getItem('testContactPhone');
                   if (saved) setTestContact(saved);
                 }
@@ -325,7 +318,7 @@ const CommunicationSettings = () => {
                     value={emailSettings.fromName}
                     onChange={(e) => setEmailSettings({ ...emailSettings, fromName: e.target.value })}
                     className="w-full px-4 py-2 border rounded-lg"
-                    placeholder="EDucore / Your School Name"
+                    placeholder="Elimcrown / Your School Name"
                   />
                 </div>
               </div>
@@ -592,87 +585,142 @@ const CommunicationSettings = () => {
                 <label className="block text-sm font-semibold mb-2">Provider</label>
                 <select
                   value={smsSettings.provider}
-                  onChange={(e) => setSmsSettings({ ...smsSettings, provider: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  onChange={(e) => {
+                    const newProvider = e.target.value;
+                    setSmsSettings({
+                      ...smsSettings,
+                      provider: newProvider,
+                      apiKey: '', // Clear API key on switch to avoid saving wrong provider's defaults
+                      hasApiKey: false, // Force user to re-enter
+                      username: '' // Clear AT username too
+                    });
+                  }}
+                  className="w-full px-4 py-2 border rounded-lg font-semibold"
                 >
-                  <option value="mobilesasa">MobileSasa (Recommended)</option>
-                  <option value="custom">Custom Provider</option>
+                  <option value="mobilesasa">📱 MobileSasa</option>
+                  <option value="africastalking">🌍 Africa's Talking</option>
                 </select>
+                <p className="text-xs text-gray-600 mt-1">
+                  {smsSettings.provider === 'mobilesasa' && "You will need MobileSasa API Key to proceed"}
+                  {smsSettings.provider === 'africastalking' && "You will need Africa's Talking API Key and Username to proceed"}
+                </p>
               </div>
 
-              {smsSettings.provider === 'mobilesasa' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-semibold mb-2">API Base URL</label>
-                    <input
-                      type="text"
-                      value={smsSettings.baseUrl}
-                      onChange={(e) => setSmsSettings({ ...smsSettings, baseUrl: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg bg-gray-50"
-                      readOnly
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold mb-2">API Key / Token</label>
-                    <div className="relative">
+              {/* Africa's Talking Fields */}
+              {smsSettings.provider === 'africastalking' && (
+                <div className="border-l-4 border-yellow-400 bg-yellow-50 p-4 rounded">
+                  <p className="text-sm font-semibold text-yellow-800 mb-3">Africa's Talking Configuration</p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">
+                        Africa's Talking Username <span className="text-red-600">*</span>
+                      </label>
                       <input
-                        type="password"
-                        value={smsSettings.apiKey}
-                        onChange={(e) => setSmsSettings({ ...smsSettings, apiKey: e.target.value })}
-                        className="w-full px-4 py-2 border rounded-lg pr-24"
-                        placeholder={smsSettings.hasApiKey ? '••••••••••••••••' : 'Enter API Key'}
+                        type="text"
+                        value={smsSettings.username}
+                        onChange={(e) => setSmsSettings({ ...smsSettings, username: e.target.value })}
+                        className="w-full px-4 py-2 border rounded-lg"
+                        placeholder="e.g. 'sandbox' or your production username"
                       />
-                      {smsSettings.hasApiKey && !smsSettings.apiKey && (
-                        <span className="absolute right-3 top-2 text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
-                          Saved
-                        </span>
-                      )}
+                      <p className="text-xs text-gray-600 mt-1">Your AT account username</p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">
+                        API Key / Token <span className="text-red-600">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="password"
+                          value={smsSettings.apiKey}
+                          onChange={(e) => setSmsSettings({ ...smsSettings, apiKey: e.target.value })}
+                          className={`w-full px-4 py-2 border rounded-lg pr-24 ${!smsSettings.apiKey && smsSettings.hasApiKey ? 'bg-green-50 border-green-300' : ''}`}
+                          placeholder={smsSettings.hasApiKey && !smsSettings.apiKey ? 'Already saved - leave blank to keep' : 'Enter your Africa\'s Talking API Key'}
+                        />
+                        {smsSettings.hasApiKey && !smsSettings.apiKey && (
+                          <span className="absolute right-3 top-2 text-xs text-green-600 font-medium bg-green-50 px-3 py-1 rounded border border-green-300">
+                            ✓ Saved
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1">Found in your AT dashboard under API Keys</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Sender ID (Optional)</label>
+                      <input
+                        type="text"
+                        value={smsSettings.senderId}
+                        onChange={(e) => setSmsSettings({ ...smsSettings, senderId: e.target.value.toUpperCase() })}
+                        className="w-full px-4 py-2 border rounded-lg"
+                        placeholder="Your registered AT Sender ID"
+                      />
+                      <p className="text-xs text-gray-600 mt-1">Leave blank if not configured</p>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold mb-2">Sender ID</label>
-                    {!editingSenderId ? (
-                      <div className="flex items-center justify-between px-4 py-2 border rounded-lg bg-gray-50">
-                        <span className="text-gray-800 font-mono font-semibold">{smsSettings.senderId || DEFAULT_SENDER_ID}</span>
-                        <button
-                          onClick={() => setEditingSenderId(true)}
-                          className="p-1 text-blue-600 hover:bg-blue-100 rounded transition"
-                          title="Edit Sender ID"
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                          </svg>
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={smsSettings.senderId}
-                          onChange={(e) => setSmsSettings({ ...smsSettings, senderId: e.target.value.toUpperCase() })}
-                          className="flex-1 px-4 py-2 border rounded-lg"
-                          maxLength={11}
-                          placeholder="MOBILESASA"
-                          autoFocus
-                        />
-                        <button
-                          onClick={() => setEditingSenderId(false)}
-                          className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-                        >
-                          ✓
-                        </button>
-                      </div>
-                    )}
-                    <p className="text-xs text-gray-600 mt-1">Max 11 characters. Default: MOBILESASA</p>
-                  </div>
-                </>
+                </div>
               )}
 
-              <div className="flex items-center gap-4 mt-4">
+              {/* MobileSasa Fields */}
+              {smsSettings.provider === 'mobilesasa' && (
+                <div className="border-l-4 border-blue-400 bg-blue-50 p-4 rounded">
+                  <p className="text-sm font-semibold text-blue-800 mb-3">MobileSasa Configuration</p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">API Base URL</label>
+                      <input
+                        type="text"
+                        value={smsSettings.baseUrl}
+                        onChange={(e) => setSmsSettings({ ...smsSettings, baseUrl: e.target.value })}
+                        className="w-full px-4 py-2 border rounded-lg bg-gray-100"
+                        readOnly
+                      />
+                      <p className="text-xs text-gray-600 mt-1">Default MobileSasa endpoint</p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">
+                        API Key <span className="text-red-600">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="password"
+                          value={smsSettings.apiKey}
+                          onChange={(e) => setSmsSettings({ ...smsSettings, apiKey: e.target.value })}
+                          className={`w-full px-4 py-2 border rounded-lg pr-24 ${!smsSettings.apiKey && smsSettings.hasApiKey ? 'bg-green-50 border-green-300' : ''}`}
+                          placeholder={smsSettings.hasApiKey && !smsSettings.apiKey ? 'Already saved - leave blank to keep' : 'Enter your MobileSasa API Key'}
+                        />
+                        {smsSettings.hasApiKey && !smsSettings.apiKey && (
+                          <span className="absolute right-3 top-2 text-xs text-green-600 font-medium bg-green-50 px-3 py-1 rounded border border-green-300">
+                            ✓ Saved
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1">Get this from your MobileSasa account</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Sender ID</label>
+                      <input
+                        type="text"
+                        value={smsSettings.senderId}
+                        onChange={(e) => setSmsSettings({ ...smsSettings, senderId: e.target.value.toUpperCase() })}
+                        className="w-full px-4 py-2 border rounded-lg"
+                        maxLength={11}
+                        placeholder="Your registered Sender ID"
+                      />
+                      <p className="text-xs text-gray-600 mt-1">Max 11 characters. Alphanumeric only.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-4 mt-6">
                 <button
                   onClick={() => handleSave('SMS')}
-                  disabled={loading}
-                  className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold disabled:opacity-50"
+                  disabled={loading || (!smsSettings.apiKey && !smsSettings.hasApiKey)}
+                  className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={!smsSettings.apiKey && !smsSettings.hasApiKey ? "Please enter API Key first" : "Save SMS settings"}
                 >
                   {loading ? <Loader size={20} className="animate-spin" /> : <Save size={20} />}
                   {loading ? 'Saving...' : 'Save SMS Settings'}

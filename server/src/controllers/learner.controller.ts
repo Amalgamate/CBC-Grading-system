@@ -12,6 +12,7 @@ import { ApiError } from '../utils/error.util';
 import { AuthRequest } from '../middleware/permissions.middleware';
 import { Grade, LearnerStatus, Gender } from '@prisma/client';
 import { generateAdmissionNumber } from '../services/admissionNumber.service';
+import { feeService } from '../services/fee.service';
 
 export class LearnerController {
   /**
@@ -65,7 +66,39 @@ export class LearnerController {
     const [learners, total] = await Promise.all([
       prisma.learner.findMany({
         where: whereClause,
-        include: {
+        select: {
+          // Basic info
+          id: true,
+          firstName: true,
+          lastName: true,
+          middleName: true,
+          admissionNumber: true,
+          grade: true,
+          stream: true,
+          dateOfBirth: true,
+          gender: true,
+          schoolId: true,
+          branchId: true,
+          parentId: true,
+          status: true,
+          archived: true,
+          createdAt: true,
+          updatedAt: true,
+          // Contact fields for SMS/WhatsApp
+          primaryContactPhone: true,
+          primaryContactName: true,
+          primaryContactType: true,
+          primaryContactEmail: true,
+          fatherPhone: true,
+          fatherName: true,
+          fatherEmail: true,
+          motherPhone: true,
+          motherName: true,
+          motherEmail: true,
+          guardianPhone: true,
+          guardianName: true,
+          guardianEmail: true,
+          // Parent relation
           parent: {
             select: {
               id: true,
@@ -77,6 +110,7 @@ export class LearnerController {
           },
         },
         orderBy: [
+          { createdAt: 'desc' }, // Show newest admissions first
           { grade: 'asc' },
           { stream: 'asc' },
           { lastName: 'asc' },
@@ -172,7 +206,39 @@ export class LearnerController {
 
     const learner = await prisma.learner.findUnique({
       where: { id },
-      include: {
+      select: {
+        // Basic info
+        id: true,
+        firstName: true,
+        lastName: true,
+        middleName: true,
+        admissionNumber: true,
+        grade: true,
+        stream: true,
+        dateOfBirth: true,
+        gender: true,
+        schoolId: true,
+        branchId: true,
+        parentId: true,
+        status: true,
+        archived: true,
+        createdAt: true,
+        updatedAt: true,
+        // Contact fields for SMS/WhatsApp
+        primaryContactPhone: true,
+        primaryContactName: true,
+        primaryContactType: true,
+        primaryContactEmail: true,
+        fatherPhone: true,
+        fatherName: true,
+        fatherEmail: true,
+        motherPhone: true,
+        motherName: true,
+        motherEmail: true,
+        guardianPhone: true,
+        guardianName: true,
+        guardianEmail: true,
+        // Parent relation
         parent: {
           select: {
             id: true,
@@ -262,6 +328,7 @@ export class LearnerController {
    * Access: SUPER_ADMIN, ADMIN, HEAD_TEACHER
    */
   async createLearner(req: AuthRequest, res: Response) {
+    console.log('📝 Creating learner...');
     const currentUserId = req.user!.userId;
 
     let {
@@ -290,6 +357,20 @@ export class LearnerController {
       previousSchool,
       religion,
       specialNeeds,
+      photo,
+      fatherName,
+      fatherPhone,
+      fatherEmail,
+      fatherDeceased,
+      motherName,
+      motherPhone,
+      motherEmail,
+      motherDeceased,
+      guardianRelation,
+      primaryContactType,
+      primaryContactName,
+      primaryContactPhone,
+      primaryContactEmail,
     } = req.body;
 
     // Phase 5: Tenant Scoping
@@ -352,109 +433,161 @@ export class LearnerController {
     });
 
     if (existing) {
-      throw new ApiError(400, `Learner with admission number ${admissionNumber} already exists`);
+      // Phase 5: Check if it's archived, maybe we can re-use it? 
+      // For now, simpler to just block as per existing logic but ensure it's tenant-safe.
+      throw new ApiError(400, `Learner with admission number ${admissionNumber} already exists in this school`);
     }
 
-    // Parent handling logic: Automatically create a parent user if phone is provided and no parentId exists
-    if (!parentId && guardianPhone) {
-      // Try to find an existing parent by phone
-      let parent = await prisma.user.findFirst({
-        where: {
-          phone: guardianPhone,
-          role: 'PARENT',
-          schoolId: schoolId
-        }
-      });
-
-      if (!parent) {
-        // Create new parent user
-        const nameParts = guardianName ? guardianName.split(' ') : ['Parent'];
-        const pFirstName = nameParts[0];
-        const pLastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Guardian';
-
-        // Generate a unique email if not provided (required by schema)
-        const pEmail = guardianEmail || `${guardianPhone.replace(/\D/g, '')}@elimcrown.com`;
-
-        // Check if email already exists
-        const existingEmail = await prisma.user.findUnique({ where: { email: pEmail } });
-        const finalEmail = existingEmail ? `${guardianPhone.replace(/\D/g, '')}-${Date.now()}@elimcrown.com` : pEmail;
-
-        const hashedPassword = await bcrypt.hash('ChangeMe123!', 12);
-
-        parent = await prisma.user.create({
-          data: {
-            firstName: pFirstName,
-            lastName: pLastName,
-            email: finalEmail,
+    try {
+      // Parent handling logic: Automatically create a parent user if phone is provided and no parentId exists
+      if (!parentId && guardianPhone) {
+        // Try to find an existing parent by phone
+        let parent = await prisma.user.findFirst({
+          where: {
             phone: guardianPhone,
-            password: hashedPassword,
             role: 'PARENT',
-            schoolId,
-            branchId,
-            status: 'ACTIVE'
+            schoolId: schoolId
           }
         });
-      }
-      parentId = parent.id;
-    } else if (parentId) {
-      const parent = await prisma.user.findUnique({ where: { id: parentId } });
-      if (!parent) {
-        throw new ApiError(400, 'Parent user not found');
-      }
-      if (parent.role !== 'PARENT') {
-        throw new ApiError(400, 'Specified user is not a parent');
-      }
-    }
 
-    // Create learner
-    const learner = await prisma.learner.create({
-      data: {
-        schoolId,
-        branchId,
+        if (!parent) {
+          // Create new parent user
+          const nameParts = guardianName ? guardianName.split(' ') : ['Parent'];
+          const pFirstName = nameParts[0];
+          const pLastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Guardian';
+
+          // Generate a unique email if not provided (required by schema)
+          // Handle "N/A" or "n/a" or empty string as valid absence of email
+          const validEmail = (guardianEmail && guardianEmail !== 'N/A' && guardianEmail !== 'n/a' && guardianEmail.includes('@'))
+            ? guardianEmail
+            : null;
+
+          const pEmail = validEmail || `${guardianPhone.replace(/\D/g, '')}@elimcrown.com`;
+
+          // Check if email already exists
+          const existingEmail = await prisma.user.findUnique({ where: { email: pEmail } });
+          const finalEmail = existingEmail ? `${guardianPhone.replace(/\D/g, '')}-${Date.now()}@elimcrown.com` : pEmail;
+
+          const hashedPassword = await bcrypt.hash('ChangeMe123!', 12);
+
+          parent = await prisma.user.create({
+            data: {
+              firstName: pFirstName,
+              lastName: pLastName,
+              email: finalEmail,
+              phone: guardianPhone,
+              password: hashedPassword,
+              role: 'PARENT',
+              schoolId,
+              branchId,
+              status: 'ACTIVE'
+            }
+          });
+        }
+        parentId = parent.id;
+      } else if (parentId) {
+        const parent = await prisma.user.findUnique({ where: { id: parentId } });
+        if (!parent) {
+          throw new ApiError(400, 'Parent user not found');
+        }
+        if (parent.role !== 'PARENT') {
+          throw new ApiError(400, 'Specified user is not a parent');
+        }
+      }
+
+      // Create learner
+      console.log('Attempting to create learner with data:', {
         admissionNumber,
-        firstName,
-        lastName,
-        middleName,
-        dateOfBirth: new Date(dateOfBirth),
-        gender: gender as Gender,
-        grade: grade as Grade,
-        stream: (stream as any) || 'A',
-        parentId,
-        guardianName,
-        guardianPhone,
+        schoolId,
+        grade,
         guardianEmail,
-        medicalConditions,
-        allergies,
-        emergencyContact,
-        emergencyPhone,
-        bloodGroup,
-        address,
-        county,
-        subCounty,
-        previousSchool,
-        religion,
-        specialNeeds,
-        status: 'ACTIVE',
-        createdBy: currentUserId,
-      },
-      include: {
-        parent: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
+        parentId
+      });
+
+      const learner = await prisma.learner.create({
+        data: {
+          schoolId,
+          branchId,
+          admissionNumber,
+          firstName,
+          lastName,
+          middleName,
+          dateOfBirth: new Date(dateOfBirth),
+          gender: gender as Gender,
+          grade: grade as Grade,
+          stream: (stream as any) || 'A',
+          parentId,
+          guardianName,
+          guardianPhone,
+          guardianEmail,
+          medicalConditions,
+          allergies,
+          emergencyContact,
+          emergencyPhone,
+          bloodGroup,
+          address,
+          county,
+          subCounty,
+          previousSchool,
+          religion,
+          specialNeeds,
+          photoUrl: photo,
+          fatherName,
+          fatherPhone,
+          fatherEmail,
+          fatherDeceased: fatherDeceased || false,
+          motherName,
+          motherPhone,
+          motherEmail,
+          motherDeceased: motherDeceased || false,
+          guardianRelation,
+          primaryContactType,
+          primaryContactName,
+          primaryContactPhone,
+          primaryContactEmail,
+          status: 'ACTIVE',
+          createdBy: currentUserId,
+        },
+        include: {
+          parent: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    res.status(201).json({
-      success: true,
-      data: learner,
-      message: 'Learner created successfully',
-    });
+
+
+      // Automate invoice generation
+      try {
+        console.log('💰 Generating initial invoice for learner...');
+        await feeService.generateInvoiceForLearner(learner.id);
+      } catch (invError) {
+        console.error('⚠️ Failed to generate initial invoice:', invError);
+        // We don't block the response, just log the error
+      }
+
+      res.status(201).json({
+        success: true,
+        data: learner,
+        message: 'Learner created successfully',
+      });
+    } catch (createError: any) {
+      console.error('❌ LEARNER CREATION ERROR:', createError.message);
+      console.error('Code:', createError.code);
+      console.error('Stack:', createError.stack);
+
+      // Extract generic error message if possible to show to user
+      const prismaCode = createError.code ? ` (Code: ${createError.code})` : '';
+      const metaInfo = createError.meta ? ` Meta: ${JSON.stringify(createError.meta)}` : '';
+
+      throw new ApiError(500, `Creation Failed${prismaCode}: ${createError.message || 'Unknown Error'}${metaInfo}`);
+    }
   }
 
   /**
@@ -506,6 +639,20 @@ export class LearnerController {
       previousSchool,
       religion,
       specialNeeds,
+      photo,
+      fatherName,
+      fatherPhone,
+      fatherEmail,
+      fatherDeceased,
+      motherName,
+      motherPhone,
+      motherEmail,
+      motherDeceased,
+      guardianRelation,
+      primaryContactType,
+      primaryContactName,
+      primaryContactPhone,
+      primaryContactEmail,
     } = req.body;
 
     // Parent handling logic: Automatically create a parent user if phone is provided and no parentId exists
@@ -526,7 +673,13 @@ export class LearnerController {
         const pLastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Guardian';
 
         // Generate a unique email if not provided (required by schema)
-        const pEmail = guardianEmail || `${guardianPhone.replace(/\D/g, '')}@elimcrown.com`;
+        // Generate a unique email if not provided (required by schema)
+        // Handle "N/A" or "n/a" or empty string as valid absence of email
+        const validEmail = (guardianEmail && guardianEmail !== 'N/A' && guardianEmail !== 'n/a' && guardianEmail.includes('@'))
+          ? guardianEmail
+          : null;
+
+        const pEmail = validEmail || `${guardianPhone.replace(/\D/g, '')}@elimcrown.com`;
 
         // Check if email already exists
         const existingEmail = await prisma.user.findUnique({ where: { email: pEmail } });
@@ -596,6 +749,20 @@ export class LearnerController {
     if (previousSchool !== undefined) updateData.previousSchool = previousSchool;
     if (religion !== undefined) updateData.religion = religion;
     if (specialNeeds !== undefined) updateData.specialNeeds = specialNeeds;
+    if (photo !== undefined) updateData.photoUrl = photo;
+    if (fatherName !== undefined) updateData.fatherName = fatherName;
+    if (fatherPhone !== undefined) updateData.fatherPhone = fatherPhone;
+    if (fatherEmail !== undefined) updateData.fatherEmail = fatherEmail;
+    if (fatherDeceased !== undefined) updateData.fatherDeceased = fatherDeceased;
+    if (motherName !== undefined) updateData.motherName = motherName;
+    if (motherPhone !== undefined) updateData.motherPhone = motherPhone;
+    if (motherEmail !== undefined) updateData.motherEmail = motherEmail;
+    if (motherDeceased !== undefined) updateData.motherDeceased = motherDeceased;
+    if (guardianRelation !== undefined) updateData.guardianRelation = guardianRelation;
+    if (primaryContactType !== undefined) updateData.primaryContactType = primaryContactType;
+    if (primaryContactName !== undefined) updateData.primaryContactName = primaryContactName;
+    if (primaryContactPhone !== undefined) updateData.primaryContactPhone = primaryContactPhone;
+    if (primaryContactEmail !== undefined) updateData.primaryContactEmail = primaryContactEmail;
 
     const updatedLearner = await prisma.learner.update({
       where: { id },
@@ -737,8 +904,12 @@ export class LearnerController {
     const currentUserId = req.user!.userId;
 
     if (!photoData) {
+      console.log(`[UPLOAD] Failed: No photoData provided for learner ${id}`);
       throw new ApiError(400, 'Photo data is required');
     }
+
+    console.log(`[UPLOAD] Processing photo for learner ${id}. Size: ${photoData.length} chars`);
+
 
     // Validate base64 format
     if (!photoData.startsWith('data:image/')) {
@@ -945,5 +1116,95 @@ export class LearnerController {
         error: error.message
       });
     }
+  }
+
+  /**
+   * Promote multiple learners to the next grade
+   * Access: SUPER_ADMIN, ADMIN, HEAD_TEACHER
+   */
+  async promoteLearners(req: AuthRequest, res: Response) {
+    const { learnerIds, nextGrade } = req.body;
+    const currentUserId = req.user!.userId;
+    const schoolId = req.user?.schoolId;
+
+    if (!Array.isArray(learnerIds) || learnerIds.length === 0) {
+      throw new ApiError(400, 'learnerIds must be a non-empty array');
+    }
+
+    if (!nextGrade) {
+      throw new ApiError(400, 'nextGrade is required');
+    }
+
+    // Verify all learners belong to the same school
+    const learners = await prisma.learner.findMany({
+      where: {
+        id: { in: learnerIds },
+        archived: false,
+        ...(schoolId ? { schoolId } : {})
+      },
+      select: { id: true, schoolId: true }
+    });
+
+    if (learners.length !== learnerIds.length) {
+      throw new ApiError(403, 'Some learners were not found or do not belong to your school');
+    }
+
+    // Perform bulk update in a transaction
+    const result = await prisma.$transaction(
+      learnerIds.map(id =>
+        prisma.learner.update({
+          where: { id },
+          data: {
+            grade: nextGrade as Grade,
+            updatedBy: currentUserId
+          }
+        })
+      )
+    );
+
+    res.json({
+      success: true,
+      message: `Successfully promoted ${result.length} learners to ${nextGrade}`,
+      data: result.length
+    });
+  }
+
+  /**
+   * Process student transfer out
+   * Access: SUPER_ADMIN, ADMIN, HEAD_TEACHER
+   */
+  async transferOut(req: AuthRequest, res: Response) {
+    const { learnerId, transferDate, destinationSchool, reason, certificateNumber } = req.body;
+    const currentUserId = req.user!.userId;
+    const schoolId = req.user?.schoolId;
+
+    const learner = await prisma.learner.findUnique({
+      where: { id: learnerId }
+    });
+
+    if (!learner) {
+      throw new ApiError(404, 'Learner not found');
+    }
+
+    // Tenant check
+    if (schoolId && learner.schoolId !== schoolId) {
+      throw new ApiError(403, 'Unauthorized: Learner belongs to another school');
+    }
+
+    const updatedLearner = await prisma.learner.update({
+      where: { id: learnerId },
+      data: {
+        status: 'TRANSFERRED_OUT',
+        exitDate: transferDate ? new Date(transferDate) : new Date(),
+        exitReason: `Transferred to ${destinationSchool}. Reason: ${reason}. TC: ${certificateNumber || 'N/A'}`,
+        updatedBy: currentUserId
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Student transfer processed successfully',
+      data: updatedLearner
+    });
   }
 }

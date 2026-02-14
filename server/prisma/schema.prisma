@@ -16,21 +16,21 @@ datasource db {
 // ============================================
 
 enum UserRole {
-  SUPER_ADMIN      // System owner - full access
-  ADMIN            // School administrator
-  HEAD_TEACHER     // Senior teacher with oversight
-  TEACHER          // Regular classroom teacher
-  PARENT           // Parent/guardian (view-only for their children)
-  ACCOUNTANT       // Financial officer
-  RECEPTIONIST     // Front desk staff
-  LIBRARIAN        // Library staff
-  NURSE            // School nurse
-  SECURITY         // Security personnel
-  DRIVER           // Transport driver
-  COOK             // Kitchen staff
-  CLEANER          // Cleaning staff
-  GROUNDSKEEPER    // Grounds maintenance
-  IT_SUPPORT       // IT support staff
+  SUPER_ADMIN // System owner - full access
+  ADMIN // School administrator
+  HEAD_TEACHER // Senior teacher with oversight
+  TEACHER // Regular classroom teacher
+  PARENT // Parent/guardian (view-only for their children)
+  ACCOUNTANT // Financial officer
+  RECEPTIONIST // Front desk staff
+  LIBRARIAN // Library staff
+  NURSE // School nurse
+  SECURITY // Security personnel
+  DRIVER // Transport driver
+  COOK // Kitchen staff
+  CLEANER // Cleaning staff
+  GROUNDSKEEPER // Grounds maintenance
+  IT_SUPPORT // IT support staff
 }
 
 enum UserStatus {
@@ -40,78 +40,83 @@ enum UserStatus {
 }
 
 model User {
-  id            String      @id @default(uuid())
-  email         String      @unique
-  username      String?     @unique
-  password      String
-  firstName     String
-  lastName      String
-  middleName    String?
-  phone         String?
-  role          UserRole    @default(TEACHER)
-  status        UserStatus  @default(ACTIVE)
-  archived      Boolean     @default(false)  // Soft delete for teachers
-  archivedAt    DateTime?   // When archived
-  archivedBy    String?     // Who archived
-  emailVerificationToken String?
+  id                      String     @id @default(uuid())
+  email                   String     @unique
+  username                String?    @unique
+  password                String
+  firstName               String
+  lastName                String
+  middleName              String?
+  phone                   String?
+  role                    UserRole   @default(TEACHER)
+  status                  UserStatus @default(ACTIVE)
+  archived                Boolean    @default(false) // Soft delete for teachers
+  archivedAt              DateTime? // When archived
+  archivedBy              String? // Who archived
+  emailVerificationToken  String?
   emailVerificationSentAt DateTime?
-  phoneVerificationCode String?
+  phoneVerificationCode   String?
   phoneVerificationSentAt DateTime?
-  
+
   // School & Branch Association
-  schoolId      String?     // School the user belongs to (null for SUPER_ADMIN)
-  school        School?     @relation("SchoolUsers", fields: [schoolId], references: [id], onDelete: SetNull)
-  branchId      String?     // Primary branch (null if user has access to all branches)
-  branch        Branch?     @relation("BranchUsers", fields: [branchId], references: [id], onDelete: SetNull)
-  
+  schoolId String? // School the user belongs to (null for SUPER_ADMIN)
+  school   School? @relation("SchoolUsers", fields: [schoolId], references: [id], onDelete: SetNull)
+  branchId String? // Primary branch (null if user has access to all branches)
+  branch   Branch? @relation("BranchUsers", fields: [branchId], references: [id], onDelete: SetNull)
+
   // ID Badge Information
-  staffId       String?     @unique // Staff number/employee ID
-  profilePicture String?    // Profile picture URL (base64)
-  idCardPhoto   String?     // Photo for ID card
-  idCardIssued  DateTime?   // When ID was issued
-  idCardExpiry  DateTime?   // ID expiry date
-  
+  staffId        String?   @unique // Staff number/employee ID
+  profilePicture String? // Profile picture URL (base64)
+  idCardPhoto    String? // Photo for ID card
+  idCardIssued   DateTime? // When ID was issued
+  idCardExpiry   DateTime? // ID expiry date
+
   lastLogin     DateTime?
-  emailVerified Boolean     @default(false)
-  
+  emailVerified Boolean   @default(false)
+
   // Security & Account Management
-  loginAttempts Int         @default(0)
-  lockedUntil   DateTime?
-  passwordResetToken String?
+  loginAttempts       Int       @default(0)
+  lockedUntil         DateTime?
+  passwordResetToken  String?
   passwordResetExpiry DateTime?
 
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations (UPDATED WITH CBC RELATIONS)
-  learners                    Learner[]               @relation("ParentLearners")
-  classesAsTeacher            Class[]                 @relation("ClassTeacher")
-  attendancesMarked           Attendance[]            @relation("AttendanceMarker")
-  formativeAssessments        FormativeAssessment[]   @relation("TeacherFormativeAssessments")
-  createdTests                SummativeTest[]         @relation("CreatedTests")
-  recordedResults             SummativeResult[]       @relation("RecordedResults")
-  assessedCoreCompetencies    CoreCompetency[]        @relation("AssessorCoreCompetencies")
-  assessedValues              ValuesAssessment[]      @relation("AssessorValues")
-  recordedCoCurricular        CoCurricularActivity[]  @relation("RecorderCoCurricular")
-  
+  learners                 Learner[]              @relation("ParentLearners")
+  classesAsTeacher         Class[]                @relation("ClassTeacher")
+  attendancesMarked        Attendance[]           @relation("AttendanceMarker")
+  formativeAssessments     FormativeAssessment[]  @relation("TeacherFormativeAssessments")
+  createdTests             SummativeTest[]        @relation("CreatedTests")
+  recordedResults          SummativeResult[]      @relation("RecordedResults")
+  assessedCoreCompetencies CoreCompetency[]       @relation("AssessorCoreCompetencies")
+  assessedValues           ValuesAssessment[]     @relation("AssessorValues")
+  recordedCoCurricular     CoCurricularActivity[] @relation("RecorderCoCurricular")
+  assignedBooks            Book[]                 @relation("AssignedBooks")
+
   // New Relations for Phase 1 (Foundation)
-  createdTermConfigs          TermConfig[]
-  createdAggregationConfigs   AggregationConfig[]
-  submittedTests              SummativeTest[]         @relation("SubmittedTests")
-  approvedTests               SummativeTest[]         @relation("ApprovedTests")
-  changeHistory               ChangeHistory[]
+  createdTermConfigs        TermConfig[]
+  createdAggregationConfigs AggregationConfig[]
+  submittedTests            SummativeTest[]     @relation("SubmittedTests")
+  approvedTests             SummativeTest[]     @relation("ApprovedTests")
+  changeHistory             ChangeHistory[]
 
   // For SummativeResultHistory
-  summativeResultHistories    SummativeResultHistory[] @relation("ChangedBy")
+  summativeResultHistories SummativeResultHistory[] @relation("ChangedBy")
 
   // Support System Relations
-  tickets                     SupportTicket[]          @relation("UserTickets")
-  assignedTickets             SupportTicket[]          @relation("AssignedTickets")
-  sentMessages                SupportMessage[]         @relation("SentMessages")
-  
-  @@map("users")
+  tickets              SupportTicket[]  @relation("UserTickets")
+  assignedTickets      SupportTicket[]  @relation("AssignedTickets")
+  sentMessages         SupportMessage[] @relation("SentMessages")
+  uploadedDocuments    Document[]
+  createdFeeStructures FeeStructure[]   @relation("CreatedFeeStructures")
+  recordedPayments     FeePayment[]     @relation("RecordedPayments")
+  createdEvents        Event[]          @relation("EventCreator")
+
   @@index([schoolId])
   @@index([branchId])
+  @@map("users")
 }
 
 // ============================================
@@ -175,50 +180,50 @@ enum AttendanceStatus {
 // ============================================
 
 enum FormativeAssessmentType {
-  OPENER          // Daily/weekly quick test
-  WEEKLY          // Weekly assessment
-  MONTHLY         // Monthly comprehensive test
-  CAT             // Continuous Assessment Test
-  MID_TERM        // Mid-term test
-  ASSIGNMENT      // Take-home assignment
-  PROJECT         // Project-based assessment
-  PRACTICAL       // Hands-on/lab work
-  QUIZ            // Short quiz
-  OBSERVATION     // Teacher observation
-  ORAL            // Oral assessment
-  EXAM            // Formative exam
-  OTHER           // Custom type
+  OPENER // Daily/weekly quick test
+  WEEKLY // Weekly assessment
+  MONTHLY // Monthly comprehensive test
+  CAT // Continuous Assessment Test
+  MID_TERM // Mid-term test
+  ASSIGNMENT // Take-home assignment
+  PROJECT // Project-based assessment
+  PRACTICAL // Hands-on/lab work
+  QUIZ // Short quiz
+  OBSERVATION // Teacher observation
+  ORAL // Oral assessment
+  EXAM // Formative exam
+  OTHER // Custom type
 }
 
 enum AssessmentStatus {
-  DRAFT         // Being created/edited
-  SUBMITTED     // Submitted for review
-  APPROVED      // Approved by head teacher
-  PUBLISHED     // Made visible to students/parents
-  LOCKED        // Locked, no further edits allowed
+  DRAFT // Being created/edited
+  SUBMITTED // Submitted for review
+  APPROVED // Approved by head teacher
+  PUBLISHED // Made visible to students/parents
+  LOCKED // Locked, no further edits allowed
 }
 
 enum AggregationStrategy {
-  SIMPLE_AVERAGE      // Average all scores
-  BEST_N              // Take best N scores only
-  DROP_LOWEST_N       // Drop N lowest, average rest
-  WEIGHTED_AVERAGE    // Each assessment has different weight
-  MEDIAN              // Use median instead of mean
+  SIMPLE_AVERAGE // Average all scores
+  BEST_N // Take best N scores only
+  DROP_LOWEST_N // Drop N lowest, average rest
+  WEIGHTED_AVERAGE // Each assessment has different weight
+  MEDIAN // Use median instead of mean
 }
 
 enum CurriculumType {
-  CBC_ONLY          // Only competency-based
-  EXAM_ONLY         // Traditional exam-based
-  CBC_AND_EXAM      // Both (most common)
-  IGCSE             // International curriculum
-  CAMBRIDGE         // Cambridge system
-  CUSTOM            // School-defined
+  CBC_ONLY // Only competency-based
+  EXAM_ONLY // Traditional exam-based
+  CBC_AND_EXAM // Both (most common)
+  IGCSE // International curriculum
+  CAMBRIDGE // Cambridge system
+  CUSTOM // School-defined
 }
 
 enum AssessmentMode {
-  FORMATIVE_ONLY    // No end-term exams
-  SUMMATIVE_ONLY    // Only exams, no continuous assessment
-  MIXED             // Both (default)
+  FORMATIVE_ONLY // No end-term exams
+  SUMMATIVE_ONLY // Only exams, no continuous assessment
+  MIXED // Both (default)
 }
 
 // ============================================
@@ -231,10 +236,10 @@ enum AssessmentMode {
 // ============================================
 
 enum AdmissionFormatType {
-  NO_BRANCH              // ADM-2025-001 (single branch/no branches)
-  BRANCH_PREFIX_START    // KB-ADM-2025-001 (branch code at start)
-  BRANCH_PREFIX_MIDDLE   // ADM-KB-2025-001 (branch code in middle)
-  BRANCH_PREFIX_END      // ADM-2025-001-KB (branch code at end)
+  NO_BRANCH // ADM-2025-001 (single branch/no branches)
+  BRANCH_PREFIX_START // KB-ADM-2025-001 (branch code at start)
+  BRANCH_PREFIX_MIDDLE // ADM-KB-2025-001 (branch code in middle)
+  BRANCH_PREFIX_END // ADM-2025-001-KB (branch code at end)
 }
 
 // ============================================
@@ -242,87 +247,92 @@ enum AdmissionFormatType {
 // ============================================
 
 model School {
-  id                      String                @id @default(uuid())
-  name                    String                @unique
-  registrationNo          String?               @unique
-  address                 String?
-  county                  String?
-  subCounty               String?
-  ward                    String?
-  phone                   String?
-  email                   String?
-  website                 String?
-  principalName           String?
-  principalPhone          String?
-  logoUrl                 String?               // School logo URL or base64
-  faviconUrl              String?               // School favicon URL or base64
-  schoolType              String?
-  motto                   String?               // School motto
-  vision                  String?               @db.Text // School vision statement
-  mission                 String?               @db.Text // School mission statement
-  
-  // Admission Format Configuration (set at setup, immutable)
-  admissionFormatType     AdmissionFormatType   @default(BRANCH_PREFIX_START)
-  branchSeparator         String                @default("-")  // "-" or "_" or ""
-  
-  // Status
-  active                  Boolean               @default(true)
-  status                  String                @default("ACTIVE")
-  trialStart              DateTime?
-  trialDays               Int?                  @default(30)
-  
-  // NEW: Curriculum configuration (Phase 1)
-  curriculumType      CurriculumType   @default(CBC_AND_EXAM)
-  assessmentMode      AssessmentMode   @default(MIXED)
-  
-  // Optional custom grading scale
-  customGradingScale  Json?
+  id             String  @id @default(uuid())
+  name           String  @unique
+  registrationNo String? @unique
+  address        String?
+  county         String?
+  subCounty      String?
+  ward           String?
+  phone          String?
+  email          String?
+  website        String?
+  principalName  String?
+  principalPhone String?
+  logoUrl        String? // School logo URL or base64
+  faviconUrl     String? // School favicon URL or base64
+  schoolType     String?
+  motto          String? // School motto
+  vision         String? @db.Text // School vision statement
+  mission        String? @db.Text // School mission statement
 
-  archived                Boolean               @default(false)
-  archivedAt              DateTime?
-  archivedBy              String?
+  // Admission Format Configuration (set at setup, immutable)
+  admissionFormatType AdmissionFormatType @default(BRANCH_PREFIX_START)
+  branchSeparator     String              @default("-") // "-" or "_" or ""
+
+  // Status
+  active     Boolean   @default(true)
+  status     String    @default("ACTIVE")
+  trialStart DateTime?
+  trialDays  Int?      @default(30)
+
+  // NEW: Curriculum configuration (Phase 1)
+  curriculumType CurriculumType @default(CBC_AND_EXAM)
+  assessmentMode AssessmentMode @default(MIXED)
+
+  // Optional custom grading scale
+  customGradingScale Json?
+
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
 
   // Metadata
-  createdAt               DateTime              @default(now())
-  updatedAt               DateTime              @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  branches                Branch[]
-  learners                Learner[]
-  admissionSequences      AdmissionSequence[]
-  users                   User[]                @relation("SchoolUsers")
-  scaleGroups             ScaleGroup[]          @relation("SchoolScaleGroups")
-  gradingSystems          GradingSystem[]       @relation("SchoolGradingSystems")
-  termConfigs             TermConfig[]
-  aggregationConfigs      AggregationConfig[]
-  streamConfigs           StreamConfig[]
-  changeHistory           ChangeHistory[]
-  subscriptions           SchoolSubscription[]
-  communicationConfig     CommunicationConfig?
-  
+  branches            Branch[]
+  learners            Learner[]
+  admissionSequences  AdmissionSequence[]
+  staffSequences      StaffSequence[]
+  users               User[]               @relation("SchoolUsers")
+  scaleGroups         ScaleGroup[]         @relation("SchoolScaleGroups")
+  gradingSystems      GradingSystem[]      @relation("SchoolGradingSystems")
+  events              Event[]
+  termConfigs         TermConfig[]
+  aggregationConfigs  AggregationConfig[]
+  streamConfigs       StreamConfig[]
+  changeHistory       ChangeHistory[]
+  subscriptions       SchoolSubscription[]
+  communicationConfig CommunicationConfig?
+
   // Assessment Relations (Phase 2)
-  formativeAssessments    FormativeAssessment[]
-  summativeTests          SummativeTest[]
-  summativeResults        SummativeResult[]
-  feeStructures           FeeStructure[]
-  learningAreas           LearningArea[]        @relation("SchoolLearningAreas")
-  supportTickets          SupportTicket[]
-  
-  @@map("schools")
+  formativeAssessments FormativeAssessment[]
+  summativeTests       SummativeTest[]
+  summativeResults     SummativeResult[]
+  feeStructures        FeeStructure[]        @relation("SchoolFeeStructures")
+  feeTypes             FeeType[]             @relation("SchoolFeeTypes")
+  learningAreas        LearningArea[]        @relation("SchoolLearningAreas")
+  supportTickets       SupportTicket[]
+  documents            Document[]
+  books                Book[]                @relation("SchoolBooks")
+
   @@index([county])
+  @@map("schools")
 }
 
 // ============================================
 // SUBSCRIPTION & PLANS (Multi-tenant)
 // ============================================
 model SubscriptionPlan {
-  id            String   @id @default(uuid())
-  name          String   @unique
-  modules       Json
-  maxBranches   Int      @default(1)
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String   @id @default(uuid())
+  name        String   @unique
+  modules     Json
+  maxBranches Int      @default(1)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   subscriptions SchoolSubscription[]
 
@@ -330,20 +340,20 @@ model SubscriptionPlan {
 }
 
 model SchoolSubscription {
-  id            String   @id @default(uuid())
-  schoolId      String
-  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  planId        String
-  plan          SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
-  startedAt     DateTime @default(now())
-  expiresAt     DateTime
-  status        String   @default("ACTIVE") // ACTIVE, EXPIRED, CANCELED
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        String           @id @default(uuid())
+  schoolId  String
+  school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  planId    String
+  plan      SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  startedAt DateTime         @default(now())
+  expiresAt DateTime
+  status    String           @default("ACTIVE") // ACTIVE, EXPIRED, CANCELED
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
-  @@map("school_subscriptions")
   @@index([schoolId])
   @@index([planId])
+  @@map("school_subscriptions")
 }
 
 // ============================================
@@ -351,46 +361,46 @@ model SchoolSubscription {
 // ============================================
 
 model Branch {
-  id              String    @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // References
-  schoolId        String
-  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
   // Branch Details
-  name            String            // e.g., "Nairobi Campus", "Mombasa Branch"
-  code            String            // e.g., "KB", "MB" - used in admission numbers
-  address         String?
-  phone           String?
-  email           String?
-  principalName   String?
-  
+  name          String // e.g., "Nairobi Campus", "Mombasa Branch"
+  code          String // e.g., "KB", "MB" - used in admission numbers
+  address       String?
+  phone         String?
+  email         String?
+  principalName String?
+
   // Status
-  active          Boolean   @default(true)
-  archived        Boolean   @default(false)
-  archivedAt      DateTime?
-  archivedBy      String?
-  
+  active     Boolean   @default(true)
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   // Metadata
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  learners        Learner[]
-  classes         Class[]
-  users           User[]    @relation("BranchUsers")
-  
+  learners Learner[]
+  classes  Class[]
+  users    User[]    @relation("BranchUsers")
+
   // Assessment Relations (Phase 2)
-  formativeAssessments    FormativeAssessment[]
-  summativeTests          SummativeTest[]
-  summativeResults        SummativeResult[]
-  feeStructures           FeeStructure[]
-  
+  formativeAssessments FormativeAssessment[]
+  summativeTests       SummativeTest[]
+  summativeResults     SummativeResult[]
+  feeStructures        FeeStructure[]        @relation("BranchFeeStructures")
+
   // Unique constraint: branch code must be unique per school
   @@unique([schoolId, code])
-  @@map("branches")
   @@index([schoolId])
   @@index([code])
+  @@map("branches")
 }
 
 // ============================================
@@ -398,25 +408,59 @@ model Branch {
 // ============================================
 
 model AdmissionSequence {
-  id              String    @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // References
-  schoolId        String
-  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
   // Sequence Configuration (school-wide, shared across all branches)
-  academicYear    Int
-  currentValue    Int       @default(0)
-  
+  academicYear Int
+  currentValue Int @default(0)
+
   // Metadata
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Status
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   // Unique constraint per school per academic year (school-wide sequence)
   @@unique([schoolId, academicYear])
-  @@map("admission_sequences")
   @@index([schoolId])
   @@index([academicYear])
+  @@map("admission_sequences")
+}
+
+// ============================================
+// STAFF SEQUENCE MANAGEMENT
+// ============================================
+
+model StaffSequence {
+  id String @id @default(uuid())
+
+  // References
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  // Sequence Configuration (school-wide)
+  currentValue Int @default(0)
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Status
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
+  // Unique constraint per school
+  @@unique([schoolId])
+  @@index([schoolId])
+  @@map("staff_sequences")
 }
 
 // ============================================
@@ -424,47 +468,47 @@ model AdmissionSequence {
 // ============================================
 
 model Class {
-  id          String     @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Branch Assignment
-  branchId    String
-  branch      Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  
-  name        String     // e.g., "Grade 1 A", "PP1 East"
-  grade       Grade
-  stream      String?
-  
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  name   String // e.g., "Grade 1 A", "PP1 East"
+  grade  Grade
+  stream String?
+
   // Teacher Assignment
-  teacherId   String?
-  teacher     User?      @relation("ClassTeacher", fields: [teacherId], references: [id])
-  
+  teacherId String?
+  teacher   User?   @relation("ClassTeacher", fields: [teacherId], references: [id])
+
   // Academic Year & Term
-  academicYear Int       @default(2025)
-  term        Term      @default(TERM_1)
-  
+  academicYear Int  @default(2025)
+  term         Term @default(TERM_1)
+
   // Class Details
-  capacity    Int       @default(40)
-  room        String?
-  
+  capacity Int     @default(40)
+  room     String?
+
   // Status
-  active      Boolean   @default(true)
-  archived    Boolean   @default(false)
-  archivedAt  DateTime?
-  archivedBy  String?
-  
+  active     Boolean   @default(true)
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   // Metadata
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
   enrollments ClassEnrollment[]
   attendances Attendance[]
-  
+
   @@unique([branchId, grade, stream, academicYear, term])
-  @@map("classes")
   @@index([branchId])
   @@index([teacherId])
   @@index([grade, stream])
+  @@map("classes")
 }
 
 // ============================================
@@ -472,24 +516,29 @@ model Class {
 // ============================================
 
 model ClassEnrollment {
-  id          String    @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // References
-  classId     String
-  class       Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
-  learnerId   String
-  learner     Learner   @relation(fields: [learnerId], references: [id], onDelete: Cascade)
-  
+  classId   String
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  learnerId String
+  learner   Learner @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+
   // Enrollment Details
-  enrolledAt  DateTime  @default(now())
-  active      Boolean   @default(true)
-  
+  enrolledAt DateTime @default(now())
+  active     Boolean  @default(true)
+
+  // Status
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   @@unique([classId, learnerId])
-  @@map("class_enrollments")
   @@index([classId])
   @@index([learnerId])
   @@index([learnerId, active])
   @@index([classId, active])
+  @@map("class_enrollments")
 }
 
 // ============================================
@@ -497,99 +546,121 @@ model ClassEnrollment {
 // ============================================
 
 model Learner {
-  id                String          @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // School & Branch Scope
-  schoolId          String
-  school            School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  
-  branchId          String
-  branch            Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
   // Admission Information
-  admissionNumber   String
-  
+  admissionNumber String
+
   // Personal Information
-  firstName         String
-  lastName          String
-  middleName        String?
-  dateOfBirth       DateTime
-  gender            Gender
-  photoUrl          String?         // Student photo URL (base64 or cloud URL)
-  photoPublicId     String?         // For cloud storage tracking
-  
+  firstName     String
+  lastName      String
+  middleName    String?
+  dateOfBirth   DateTime
+  gender        Gender
+  photoUrl      String? // Student photo URL (base64 or cloud URL)
+  photoPublicId String? // For cloud storage tracking
+
   // Academic Information
-  grade             Grade
-  stream            String?
-  
-  // Parent/Guardian Information
-  parentId          String?
-  parent            User?           @relation("ParentLearners", fields: [parentId], references: [id])
-  guardianName      String?
-  guardianPhone     String?
-  guardianEmail     String?
-  
+  grade  Grade
+  stream String?
+
+  // Parent/Guardian Information (Hierarchical: Father → Mother → Guardian)
+  parentId String?
+  parent   User?   @relation("ParentLearners", fields: [parentId], references: [id])
+
+  // Father Information (Primary)
+  fatherName     String?
+  fatherPhone    String?
+  fatherEmail    String?
+  fatherDeceased Boolean @default(false)
+
+  // Mother Information (Secondary - if father deceased)
+  motherName     String?
+  motherPhone    String?
+  motherEmail    String?
+  motherDeceased Boolean @default(false)
+
+  // Guardian Information (Tertiary - if both parents deceased)
+  guardianName     String?
+  guardianPhone    String?
+  guardianEmail    String?
+  guardianRelation String? // "Aunt", "Uncle", "Grandfather", "Grandmother", "Sibling", "Other"
+
+  // Derived Primary Contact (Auto-computed: Father → Mother → Guardian)
+  primaryContactType  String? // "FATHER" | "MOTHER" | "GUARDIAN"
+  primaryContactName  String?
+  primaryContactPhone String?
+  primaryContactEmail String?
+
   // Medical & Emergency Information
   medicalConditions String?
   allergies         String?
   emergencyContact  String?
   emergencyPhone    String?
   bloodGroup        String?
-  
+
   // Address Information
-  address           String?
-  county            String?
-  subCounty         String?
-  
+  address   String?
+  county    String?
+  subCounty String?
+
   // Academic Status
-  status            LearnerStatus   @default(ACTIVE)
-  admissionDate     DateTime        @default(now())
-  exitDate          DateTime?
-  exitReason        String?
-  
+  status        LearnerStatus @default(ACTIVE)
+  admissionDate DateTime      @default(now())
+  exitDate      DateTime?
+  exitReason    String?
+
   // Additional Information
-  previousSchool    String?
-  religion          String?       // Christianity, Islam, Hindu, SDA, Buddhist, Other
-  specialNeeds      String?
-  
+  previousSchool String?
+  religion       String? // Christianity, Islam, Hindu, SDA, Buddhist, Other
+  specialNeeds   String?
+
   // ID Card Information
-  idCardIssued      DateTime?     // When ID was issued
-  idCardExpiry      DateTime?     // ID expiry date
-  idCardNumber      String?       // Unique ID card number
-  
+  idCardIssued DateTime? // When ID was issued
+  idCardExpiry DateTime? // ID expiry date
+  idCardNumber String? // Unique ID card number
+
   // Metadata
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  createdBy         String?
-  updatedBy         String?
-  archived          Boolean         @default(false)
-  archivedAt        DateTime?
-  archivedBy        String?
-  
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  createdBy  String?
+  updatedBy  String?
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   // Relations (UPDATED WITH CBC RELATIONS)
-  enrollments           ClassEnrollment[]
-  attendances           Attendance[]
-  formativeAssessments  FormativeAssessment[]
-  summativeResults      SummativeResult[]
-  feeInvoices           FeeInvoice[]              @relation("LearnerInvoices")
-  coreCompetencies      CoreCompetency[]          @relation("LearnerCoreCompetencies")
-  valuesAssessments     ValuesAssessment[]        @relation("LearnerValues")
-  coCurricularActivities CoCurricularActivity[]   @relation("LearnerCoCurricular")
-  reportComments        TermlyReportComment[]     @relation("LearnerReportComments")
-  smsAudits             AssessmentSmsAudit[]      @relation("LearnerSmsAudits")
-  
+  enrollments            ClassEnrollment[]
+  attendances            Attendance[]
+  formativeAssessments   FormativeAssessment[]
+  summativeResults       SummativeResult[]
+  feeInvoices            FeeInvoice[]           @relation("LearnerInvoices")
+  coreCompetencies       CoreCompetency[]       @relation("LearnerCoreCompetencies")
+  valuesAssessments      ValuesAssessment[]     @relation("LearnerValues")
+  coCurricularActivities CoCurricularActivity[] @relation("LearnerCoCurricular")
+  reportComments         TermlyReportComment[]  @relation("LearnerReportComments")
+  smsAudits              AssessmentSmsAudit[]   @relation("LearnerSmsAudits")
+
   // Unique constraint: admission number scoped per school (not per branch)
   // This ensures no duplicates across all branches of a school
   @@unique([schoolId, admissionNumber])
-  @@map("learners")
   @@index([schoolId])
   @@index([branchId])
   @@index([admissionNumber])
   @@index([parentId])
+  @@index([primaryContactType])
   @@index([grade, stream])
   @@index([status])
   @@index([lastName, firstName])
   @@index([schoolId, grade, stream, status])
+  @@map("learners")
 }
 
 // ============================================
@@ -597,31 +668,36 @@ model Learner {
 // ============================================
 
 model Attendance {
-  id          String            @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // References
-  learnerId   String
-  learner     Learner           @relation(fields: [learnerId], references: [id], onDelete: Cascade)
-  
-  classId     String?
-  class       Class?            @relation(fields: [classId], references: [id], onDelete: SetNull)
-  
+  learnerId String
+  learner   Learner @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+
+  classId String?
+  class   Class?  @relation(fields: [classId], references: [id], onDelete: SetNull)
+
   // Attendance Data
-  date        DateTime          @db.Date
-  status      AttendanceStatus  @default(PRESENT)
-  remarks     String?
-  
+  date    DateTime         @db.Date
+  status  AttendanceStatus @default(PRESENT)
+  remarks String?
+
   // Metadata
-  markedAt    DateTime          @default(now())
-  markedBy    String
-  teacher     User              @relation("AttendanceMarker", fields: [markedBy], references: [id])
-  
+  markedAt DateTime @default(now())
+  markedBy String
+  teacher  User     @relation("AttendanceMarker", fields: [markedBy], references: [id])
+
+  // Status
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   @@unique([learnerId, date])
-  @@map("attendances")
   @@index([date])
   @@index([learnerId])
   @@index([classId])
   @@index([status])
+  @@map("attendances")
 }
 
 // ============================================
@@ -629,30 +705,30 @@ model Attendance {
 // ============================================
 
 enum RubricRating {
-  EE  // Exceeds Expectations (General)
-  ME  // Meets Expectations (General)
-  AE  // Approaches Expectations (General)
-  BE  // Below Expectations (General)
+  EE // Exceeds Expectations (General)
+  ME // Meets Expectations (General)
+  AE // Approaches Expectations (General)
+  BE // Below Expectations (General)
 }
 
 // Detailed 8-level CBC Rubric Rating
 enum DetailedRubricRating {
-  EE1  // Exceeds Expectations 1 - Outstanding (90-100%) - 8 points
-  EE2  // Exceeds Expectations 2 - Very High (75-89%) - 7 points
-  ME1  // Meets Expectations 1 - High Average (58-74%) - 6 points
-  ME2  // Meets Expectations 2 - Average (41-57%) - 5 points
-  AE1  // Approaches Expectations 1 - Low Average (31-40%) - 4 points
-  AE2  // Approaches Expectations 2 - Below Average (21-30%) - 3 points
-  BE1  // Below Expectations 1 - Low (11-20%) - 2 points
-  BE2  // Below Expectations 2 - Very Low (1-10%) - 1 point
+  EE1 // Exceeds Expectations 1 - Outstanding (90-100%) - 8 points
+  EE2 // Exceeds Expectations 2 - Very High (75-89%) - 7 points
+  ME1 // Meets Expectations 1 - High Average (58-74%) - 6 points
+  ME2 // Meets Expectations 2 - Average (41-57%) - 5 points
+  AE1 // Approaches Expectations 1 - Low Average (31-40%) - 4 points
+  AE2 // Approaches Expectations 2 - Below Average (21-30%) - 3 points
+  BE1 // Below Expectations 1 - Low (11-20%) - 2 points
+  BE2 // Below Expectations 2 - Very Low (1-10%) - 1 point
 }
 
 enum SummativeGrade {
-  A   // 80-100%
-  B   // 60-79%
-  C   // 50-59%
-  D   // 40-49%
-  E   // 0-39%
+  A // 80-100%
+  B // 60-79%
+  C // 50-59%
+  D // 40-49%
+  E // 0-39%
 }
 
 enum TestStatus {
@@ -661,10 +737,10 @@ enum TestStatus {
 }
 
 enum ModerationStatus {
-  PENDING     // Awaiting review by moderator
-  APPROVED    // Approved by moderator
-  REJECTED    // Rejected by moderator, needs revision
-  DRAFT       // Initial state, not yet submitted for moderation
+  PENDING // Awaiting review by moderator
+  APPROVED // Approved by moderator
+  REJECTED // Rejected by moderator, needs revision
+  DRAFT // Initial state, not yet submitted for moderation
 }
 
 // ============================================
@@ -672,81 +748,80 @@ enum ModerationStatus {
 // ============================================
 
 model FormativeAssessment {
-  id                String        @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Learner Reference
-  learnerId         String
-  learner           Learner       @relation(fields: [learnerId], references: [id], onDelete: Cascade)
-  
+  learnerId String
+  learner   Learner @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+
   // Academic Period
-  term              Term          @default(TERM_1)
-  academicYear      Int           @default(2026)
-  
+  term         Term @default(TERM_1)
+  academicYear Int  @default(2026)
+
   // Learning Area Details
-  learningArea      String        // "Mathematics", "English", "Kiswahili", etc.
-  strand            String?       // Specific strand within learning area
-  subStrand         String?       // More specific sub-topic
-  
+  learningArea String // "Mathematics", "English", "Kiswahili", etc.
+  strand       String? // Specific strand within learning area
+  subStrand    String? // More specific sub-topic
+
   // CBC Rubric Assessment (4-level system)
-  overallRating     RubricRating  // Overall performance: EE, ME, AE, BE
-  
+  overallRating RubricRating // Overall performance: EE, ME, AE, BE
+
   // Detailed CBC Rubric (8-level system) - RECOMMENDED
-  detailedRating    DetailedRubricRating?  // Specific level: EE1, EE2, ME1, ME2, AE1, AE2, BE1, BE2
-  points            Int?          // Points earned (1-8) based on detailed rating
-  percentage        Float?        // Calculated percentage (0-100)
-  
+  detailedRating DetailedRubricRating? // Specific level: EE1, EE2, ME1, ME2, AE1, AE2, BE1, BE2
+  points         Int? // Points earned (1-8) based on detailed rating
+  percentage     Float? // Calculated percentage (0-100)
+
   // Detailed Competency Tracking (Optional - for detailed tracking)
-  exceedingCount    Int           @default(0)  // Number of EE ratings
-  meetingCount      Int           @default(0)  // Number of ME ratings
-  approachingCount  Int           @default(0)  // Number of AE ratings
-  belowCount        Int           @default(0)  // Number of BE ratings
-  
+  exceedingCount   Int @default(0) // Number of EE ratings
+  meetingCount     Int @default(0) // Number of ME ratings
+  approachingCount Int @default(0) // Number of AE ratings
+  belowCount       Int @default(0) // Number of BE ratings
+
   // Teacher Feedback
-  strengths         String?       @db.Text
-  areasImprovement  String?       @db.Text
-  remarks           String?       @db.Text
-  recommendations   String?       @db.Text
-  
+  strengths        String? @db.Text
+  areasImprovement String? @db.Text
+  remarks          String? @db.Text
+  recommendations  String? @db.Text
+
   // Teacher Reference
-  teacherId         String
-  teacher           User          @relation("TeacherFormativeAssessments", fields: [teacherId], references: [id])
-  
+  teacherId String
+  teacher   User   @relation("TeacherFormativeAssessments", fields: [teacherId], references: [id])
+
   // New Fields for Phase 1 (Foundation)
-  type              FormativeAssessmentType @default(OPENER)
-  status            AssessmentStatus        @default(DRAFT)
-  title             String?                 // e.g., "Week 1 Opener"
-  date              DateTime?               @default(now())
-  maxScore          Float?                  // Max possible score
-  weight            Float                   @default(1.0) // Weight in aggregation
-  locked            Boolean                 @default(false) // If true, no further edits allowed
-  lockedAt          DateTime?
-  lockedBy          String?
+  type     FormativeAssessmentType @default(OPENER)
+  status   AssessmentStatus        @default(DRAFT)
+  title    String? // e.g., "Week 1 Opener"
+  date     DateTime?               @default(now())
+  maxScore Float? // Max possible score
+  weight   Float                   @default(1.0) // Weight in aggregation
+  locked   Boolean                 @default(false) // If true, no further edits allowed
+  lockedAt DateTime?
+  lockedBy String?
 
   // TENANT FIELDS (PHASE 2)
-  schoolId          String
-  school            School      @relation(fields: [schoolId], references: [id])
-  branchId          String?
-  branch            Branch?     @relation(fields: [branchId], references: [id])
-  archived          Boolean     @default(false)
-  archivedAt        DateTime?
-  archivedBy        String?
-  
-  @@index([schoolId])
-  @@index([branchId])
+  schoolId   String
+  school     School    @relation(fields: [schoolId], references: [id])
+  branchId   String?
+  branch     Branch?   @relation(fields: [branchId], references: [id])
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
 
   // Metadata
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Adjusted constraint to allow multiple assessments per term/subject
   // Uniqueness is now based on ID, but we enforce uniqueness on (learner, term, subject, type, title) to prevent duplicates if title is provided
   @@unique([learnerId, term, academicYear, learningArea, type, title])
-  @@map("formative_assessments")
+  @@index([schoolId])
+  @@index([branchId])
   @@index([learnerId])
   @@index([teacherId])
   @@index([term, academicYear])
   @@index([learningArea])
   @@index([learnerId, learningArea, term, academicYear])
+  @@map("formative_assessments")
 }
 
 // ============================================
@@ -754,81 +829,80 @@ model FormativeAssessment {
 // ============================================
 
 model SummativeTest {
-  id              String          @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Test Details
-  title           String          // "End of Term 1 Mathematics"
-  learningArea    String          // "Mathematics", "English", etc.
-  testType        String?         // NEW: Test grouping (OPENER, MIDTERM, END_TERM, MONTHLY, WEEKLY, RANDOM)
-  
+  title        String // "End of Term 1 Mathematics"
+  learningArea String // "Mathematics", "English", etc.
+  testType     String? // NEW: Test grouping (OPENER, MIDTERM, END_TERM, MONTHLY, WEEKLY, RANDOM)
+
   // Academic Period
-  term            Term            @default(TERM_1)
-  academicYear    Int             @default(2026)
-  grade           Grade           // Which grade is this test for
-  
+  term         Term  @default(TERM_1)
+  academicYear Int   @default(2026)
+  grade        Grade // Which grade is this test for
+
   // Test Configuration
-  testDate        DateTime        @db.Date
-  totalMarks      Int             // e.g., 100
-  passMarks       Int             // e.g., 50
-  duration        Int?            // Duration in minutes
-  
+  testDate   DateTime @db.Date
+  totalMarks Int // e.g., 100
+  passMarks  Int // e.g., 50
+  duration   Int? // Duration in minutes
+
   // Additional Info
-  description     String?         @db.Text
-  instructions    String?         @db.Text
-  
+  description  String? @db.Text
+  instructions String? @db.Text
+
   // Creator
-  createdBy       String
-  creator         User            @relation("CreatedTests", fields: [createdBy], references: [id])
-  
+  createdBy String
+  creator   User   @relation("CreatedTests", fields: [createdBy], references: [id])
+
   // Status
-  published       Boolean         @default(false)
-  active          Boolean         @default(true)
-  status          AssessmentStatus @default(DRAFT)
-  
+  published Boolean          @default(false)
+  active    Boolean          @default(true)
+  status    AssessmentStatus @default(DRAFT)
+
   // Phase 1: Workflow & Config
-  curriculum      CurriculumType  @default(CBC_AND_EXAM)
-  weight          Float           @default(100.0) // Contribution to final grade
-  locked          Boolean         @default(false) // If true, no further edits allowed
-  lockedAt        DateTime?
-  lockedBy        String?
-  statusHistory   Json[]          @default([])
-  
+  curriculum    CurriculumType @default(CBC_AND_EXAM)
+  weight        Float          @default(100.0) // Contribution to final grade
+  locked        Boolean        @default(false) // If true, no further edits allowed
+  lockedAt      DateTime?
+  lockedBy      String?
+  statusHistory Json[]         @default([])
+
   // Workflow
   submittedBy     String?
   submittedAt     DateTime?
-  submittedByUser User?           @relation("SubmittedTests", fields: [submittedBy], references: [id])
-  
-  approvedBy      String?
-  approvedAt      DateTime?
-  approvedByUser  User?           @relation("ApprovedTests", fields: [approvedBy], references: [id])
-  
+  submittedByUser User?     @relation("SubmittedTests", fields: [submittedBy], references: [id])
+
+  approvedBy     String?
+  approvedAt     DateTime?
+  approvedByUser User?     @relation("ApprovedTests", fields: [approvedBy], references: [id])
+
   // Scale / Grading System
-  scaleId         String?
-  scale           GradingSystem?  @relation(fields: [scaleId], references: [id])
+  scaleId String?
+  scale   GradingSystem? @relation(fields: [scaleId], references: [id])
 
   // Results
-  results         SummativeResult[]
-  
+  results SummativeResult[]
+
   // TENANT FIELDS (PHASE 2)
-  schoolId          String
-  school            School      @relation(fields: [schoolId], references: [id])
-  branchId          String?
-  branch            Branch?     @relation(fields: [branchId], references: [id])
-  
-  @@index([schoolId])
-  @@index([branchId])
-  @@index([testType])             // NEW: Index for fast test grouping queries
-  @@index([schoolId, grade, learningArea, term])
+  schoolId String
+  school   School  @relation(fields: [schoolId], references: [id])
+  branchId String?
+  branch   Branch? @relation(fields: [branchId], references: [id])
 
   // Metadata
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  archived        Boolean         @default(false)
-  archivedAt      DateTime?
-  archivedBy      String?
-  
-  @@map("summative_tests")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
+  @@index([schoolId])
+  @@index([branchId])
+  @@index([testType]) // NEW: Index for fast test grouping queries
+  @@index([schoolId, grade, learningArea, term])
   @@index([grade, term, academicYear])
+  @@map("summative_tests")
 }
 
 // ============================================
@@ -836,83 +910,93 @@ model SummativeTest {
 // ============================================
 
 model TermConfig {
-  id              String        @id @default(uuid())
-  
-  schoolId        String
-  school          School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  
-  academicYear    Int
-  term            Term
-  
-  startDate       DateTime
-  endDate         DateTime
-  
+  id String @id @default(uuid())
+
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  academicYear Int
+  term         Term
+
+  startDate DateTime
+  endDate   DateTime
+
   // Weights (e.g., Formative 30%, Summative 70%)
-  formativeWeight Float         @default(30.0)
-  summativeWeight Float         @default(70.0)
-  
+  formativeWeight Float @default(30.0)
+  summativeWeight Float @default(70.0)
+
   // Status
-  isActive        Boolean       @default(false)
-  isClosed        Boolean       @default(false)
-  
-  createdBy       String
-  creator         User          @relation(fields: [createdBy], references: [id])
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
+  isActive Boolean @default(false)
+  isClosed Boolean @default(false)
+
+  createdBy String
+  creator   User   @relation(fields: [createdBy], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Status
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   @@unique([schoolId, academicYear, term])
   @@map("term_configs")
 }
 
 model AggregationConfig {
-  id              String        @id @default(uuid())
-  
-  schoolId        String
-  school          School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  
-  grade           Grade?        // Apply to specific grade (optional, null = all)
-  learningArea    String?       // Apply to specific subject (optional, null = all)
-  
-  type            FormativeAssessmentType
-  strategy        AggregationStrategy     @default(SIMPLE_AVERAGE)
-  
+  id String @id @default(uuid())
+
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  grade        Grade? // Apply to specific grade (optional, null = all)
+  learningArea String? // Apply to specific subject (optional, null = all)
+
+  type     FormativeAssessmentType
+  strategy AggregationStrategy     @default(SIMPLE_AVERAGE)
+
   // Strategy Parameters
-  nValue          Int?          // For BEST_N or DROP_LOWEST_N
-  weight          Float         @default(1.0)
-  
-  createdBy       String
-  creator         User          @relation(fields: [createdBy], references: [id])
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
+  nValue Int? // For BEST_N or DROP_LOWEST_N
+  weight Float @default(1.0)
+
+  createdBy String
+  creator   User   @relation(fields: [createdBy], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Status
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   @@map("aggregation_configs")
 }
 
 model ChangeHistory {
-  id              String        @id @default(uuid())
-  
-  schoolId        String
-  school          School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  
-  entityType      String        // e.g., "SummativeResult", "FormativeAssessment"
-  entityId        String
-  action          String        // CREATE, UPDATE, DELETE
-  
-  field           String?       // Specific field changed
-  oldValue        String?       // Serialized old value
-  newValue        String?       // Serialized new value
-  
-  changedBy       String
-  changer         User          @relation(fields: [changedBy], references: [id])
-  
-  changedAt       DateTime      @default(now())
-  reason          String?
-  
-  @@map("change_history")
+  id String @id @default(uuid())
+
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  entityType String // e.g., "SummativeResult", "FormativeAssessment"
+  entityId   String
+  action     String // CREATE, UPDATE, DELETE
+
+  field    String? // Specific field changed
+  oldValue String? // Serialized old value
+  newValue String? // Serialized new value
+
+  changedBy String
+  changer   User   @relation(fields: [changedBy], references: [id])
+
+  changedAt DateTime @default(now())
+  reason    String?
+
   @@index([schoolId])
   @@index([entityType, entityId])
+  @@map("change_history")
 }
 
 // ============================================
@@ -920,85 +1004,84 @@ model ChangeHistory {
 // ============================================
 
 model SummativeResult {
-  id              String          @id @default(uuid())
-  
-  // Test Reference
-  testId          String
-  test            SummativeTest   @relation(fields: [testId], references: [id], onDelete: Cascade)
-  
-  // Learner Reference
-  learnerId       String
-  learner         Learner         @relation(fields: [learnerId], references: [id], onDelete: Cascade)
-  
-  // Marks and Performance
-  marksObtained   Int
-  percentage      Float           // Auto-calculated: (marksObtained / totalMarks) * 100
-  grade           SummativeGrade  // A, B, C, D, E
-  status          TestStatus      // PASS or FAIL
-  moderationStatus ModerationStatus @default(DRAFT) // New: Moderation workflow status
-  
-  // Position/Rank
-  position        Int?            // Position in class
-  outOf           Int?            // Total students who took test
-  
-  // Feedback
-  remarks         String?         @db.Text
-  teacherComment  String?         @db.Text
-  
-  // Recorder
-  recordedBy      String
-  recorder        User            @relation("RecordedResults", fields: [recordedBy], references: [id])
-  
-  // TENANT FIELDS (PHASE 2)
-  schoolId          String
-  school            School      @relation(fields: [schoolId], references: [id])
-  branchId          String?
-  branch            Branch?     @relation(fields: [branchId], references: [id])
-  
-  // History of changes to this result
-  resultHistory   SummativeResultHistory[]
+  id String @id @default(uuid())
 
+  // Test Reference
+  testId String
+  test   SummativeTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  // Learner Reference
+  learnerId String
+  learner   Learner @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+
+  // Marks and Performance
+  marksObtained    Int
+  percentage       Float // Auto-calculated: (marksObtained / totalMarks) * 100
+  grade            SummativeGrade // A, B, C, D, E
+  status           TestStatus // PASS or FAIL
+  moderationStatus ModerationStatus @default(DRAFT) // New: Moderation workflow status
+
+  // Position/Rank
+  position Int? // Position in class
+  outOf    Int? // Total students who took test
+
+  // Feedback
+  remarks        String? @db.Text
+  teacherComment String? @db.Text
+
+  // Recorder
+  recordedBy String
+  recorder   User   @relation("RecordedResults", fields: [recordedBy], references: [id])
+
+  // TENANT FIELDS (PHASE 2)
+  schoolId String
+  school   School  @relation(fields: [schoolId], references: [id])
+  branchId String?
+  branch   Branch? @relation(fields: [branchId], references: [id])
+
+  // History of changes to this result
+  resultHistory SummativeResultHistory[]
+
+  // Metadata
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
+  @@unique([testId, learnerId])
   @@index([schoolId])
   @@index([branchId])
   @@index([moderationStatus]) // New index for moderation status
-
-  // Metadata
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  archived        Boolean         @default(false)
-  archivedAt      DateTime?
-  archivedBy      String?
-  
-  @@unique([testId, learnerId])
-  @@map("summative_results")
   @@index([testId])
   @@index([learnerId])
   @@index([grade])
   @@index([status])
   @@index([testId, grade, marksObtained])
+  @@map("summative_results")
 }
 
 model SummativeResultHistory {
-  id              String        @id @default(uuid())
-  resultId        String        // Reference to the SummativeResult that was changed
-  result          SummativeResult @relation(fields: [resultId], references: [id])
+  id       String          @id @default(uuid())
+  resultId String // Reference to the SummativeResult that was changed
+  result   SummativeResult @relation(fields: [resultId], references: [id])
 
   // Details of the change
-  action          String        // e.g., "CREATE", "UPDATE", "DELETE"
-  field           String?       // Specific field changed (e.g., "marksObtained", "remarks")
-  oldValue        String?       @db.Text // JSON string of the old value
-  newValue        String?       @db.Text // JSON string of the new value
-  
-  changedBy       String        // ID of the user who made the change
-  changer         User          @relation("ChangedBy", fields: [changedBy], references: [id])
-  
-  changeTimestamp DateTime      @default(now())
-  reason          String?       @db.Text // Optional reason for the change
+  action   String // e.g., "CREATE", "UPDATE", "DELETE"
+  field    String? // Specific field changed (e.g., "marksObtained", "remarks")
+  oldValue String? @db.Text // JSON string of the old value
+  newValue String? @db.Text // JSON string of the new value
 
-  @@map("summative_result_history")
+  changedBy String // ID of the user who made the change
+  changer   User   @relation("ChangedBy", fields: [changedBy], references: [id])
+
+  changeTimestamp DateTime @default(now())
+  reason          String?  @db.Text // Optional reason for the change
+
   @@index([resultId])
   @@index([changedBy])
   @@index([changeTimestamp])
+  @@map("summative_result_history")
 }
 
 // ============================================
@@ -1007,166 +1090,176 @@ model SummativeResultHistory {
 
 // Core Competencies Assessment (CBC Requirement)
 model CoreCompetency {
-  id              String        @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Learner Reference
-  learnerId       String
-  learner         Learner       @relation("LearnerCoreCompetencies", fields: [learnerId], references: [id], onDelete: Cascade)
-  
+  learnerId String
+  learner   Learner @relation("LearnerCoreCompetencies", fields: [learnerId], references: [id], onDelete: Cascade)
+
   // Academic Period
-  term            Term
-  academicYear    Int
-  
+  term         Term
+  academicYear Int
+
   // Six Core Competencies with detailed ratings
   communication        DetailedRubricRating
-  communicationComment String?  @db.Text
-  
+  communicationComment String?              @db.Text
+
   criticalThinking        DetailedRubricRating
-  criticalThinkingComment String?  @db.Text
-  
+  criticalThinkingComment String?              @db.Text
+
   creativity        DetailedRubricRating
-  creativityComment String?  @db.Text
-  
+  creativityComment String?              @db.Text
+
   collaboration        DetailedRubricRating
-  collaborationComment String?  @db.Text
-  
+  collaborationComment String?              @db.Text
+
   citizenship        DetailedRubricRating
-  citizenshipComment String?  @db.Text
-  
+  citizenshipComment String?              @db.Text
+
   learningToLearn        DetailedRubricRating
-  learningToLearnComment String?  @db.Text
-  
+  learningToLearnComment String?              @db.Text
+
   // Assessor
-  assessedBy      String
-  assessor        User          @relation("AssessorCoreCompetencies", fields: [assessedBy], references: [id])
-  
+  assessedBy String
+  assessor   User   @relation("AssessorCoreCompetencies", fields: [assessedBy], references: [id])
+
   // Metadata
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Status
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   @@unique([learnerId, term, academicYear])
-  @@map("core_competencies")
   @@index([learnerId])
   @@index([term, academicYear])
+  @@map("core_competencies")
 }
 
 // Values Assessment (CBC Requirement)
 model ValuesAssessment {
-  id              String        @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Learner Reference
-  learnerId       String
-  learner         Learner       @relation("LearnerValues", fields: [learnerId], references: [id], onDelete: Cascade)
-  
+  learnerId String
+  learner   Learner @relation("LearnerValues", fields: [learnerId], references: [id], onDelete: Cascade)
+
   // Academic Period
-  term            Term
-  academicYear    Int
-  
+  term         Term
+  academicYear Int
+
   // Seven National Values
-  love            DetailedRubricRating
-  responsibility  DetailedRubricRating
-  respect         DetailedRubricRating
-  unity           DetailedRubricRating
-  peace           DetailedRubricRating
-  patriotism      DetailedRubricRating
-  integrity       DetailedRubricRating
-  
+  love           DetailedRubricRating
+  responsibility DetailedRubricRating
+  respect        DetailedRubricRating
+  unity          DetailedRubricRating
+  peace          DetailedRubricRating
+  patriotism     DetailedRubricRating
+  integrity      DetailedRubricRating
+
   // General Comment
-  comment         String?       @db.Text
-  
+  comment String? @db.Text
+
   // Assessor
-  assessedBy      String
-  assessor        User          @relation("AssessorValues", fields: [assessedBy], references: [id])
-  
+  assessedBy String
+  assessor   User   @relation("AssessorValues", fields: [assessedBy], references: [id])
+
   // Metadata
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  archived        Boolean       @default(false)
-  archivedAt      DateTime?
-  archivedBy      String?
-  
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   @@unique([learnerId, term, academicYear])
-  @@map("values_assessments")
   @@index([learnerId])
   @@index([term, academicYear])
+  @@map("values_assessments")
 }
 
 // Co-Curricular Activities
 model CoCurricularActivity {
-  id              String        @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Learner Reference
-  learnerId       String
-  learner         Learner       @relation("LearnerCoCurricular", fields: [learnerId], references: [id], onDelete: Cascade)
-  
+  learnerId String
+  learner   Learner @relation("LearnerCoCurricular", fields: [learnerId], references: [id], onDelete: Cascade)
+
   // Academic Period
-  term            Term
-  academicYear    Int
-  
+  term         Term
+  academicYear Int
+
   // Activity Details
-  activityName    String                    // Football, Drama, Choir, etc.
-  activityType    String                    // Sports, Arts, Clubs, etc.
-  performance     DetailedRubricRating      // Performance rating
-  achievements    String?       @db.Text    // Competitions, awards, etc.
-  remarks         String?       @db.Text
-  
+  activityName String // Football, Drama, Choir, etc.
+  activityType String // Sports, Arts, Clubs, etc.
+  performance  DetailedRubricRating // Performance rating
+  achievements String?              @db.Text // Competitions, awards, etc.
+  remarks      String?              @db.Text
+
   // Recorder
-  recordedBy      String
-  recorder        User          @relation("RecorderCoCurricular", fields: [recordedBy], references: [id])
-  
+  recordedBy String
+  recorder   User   @relation("RecorderCoCurricular", fields: [recordedBy], references: [id])
+
   // Metadata
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  archived        Boolean       @default(false)
-  archivedAt      DateTime?
-  archivedBy      String?
-  
-  @@map("co_curricular_activities")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   @@index([learnerId])
   @@index([term, academicYear])
   @@index([activityType])
+  @@map("co_curricular_activities")
 }
 
 // Termly Report Comments
 model TermlyReportComment {
-  id              String        @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Learner Reference
-  learnerId       String
-  learner         Learner       @relation("LearnerReportComments", fields: [learnerId], references: [id], onDelete: Cascade)
-  
+  learnerId String
+  learner   Learner @relation("LearnerReportComments", fields: [learnerId], references: [id], onDelete: Cascade)
+
   // Academic Period
-  term            Term
-  academicYear    Int
-  
+  term         Term
+  academicYear Int
+
   // Class Teacher Comment
-  classTeacherComment    String   @db.Text
-  classTeacherName       String
-  classTeacherSignature  String?  // Base64 or URL
-  classTeacherDate       DateTime
-  
+  classTeacherComment   String   @db.Text
+  classTeacherName      String
+  classTeacherSignature String? // Base64 or URL
+  classTeacherDate      DateTime
+
   // Head Teacher Comment
-  headTeacherComment     String?  @db.Text
-  headTeacherName        String?
-  headTeacherSignature   String?
-  headTeacherDate        DateTime?
-  
+  headTeacherComment   String?   @db.Text
+  headTeacherName      String?
+  headTeacherSignature String?
+  headTeacherDate      DateTime?
+
   // Parent/Guardian Acknowledgment
-  parentComment          String?  @db.Text
-  parentSignature        String?
-  parentDate             DateTime?
-  
+  parentComment   String?   @db.Text
+  parentSignature String?
+  parentDate      DateTime?
+
   // Next Term Details
-  nextTermOpens          DateTime
-  
+  nextTermOpens DateTime
+
   // Metadata
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Status
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   @@unique([learnerId, term, academicYear])
-  @@map("termly_report_comments")
   @@index([learnerId])
   @@index([term, academicYear])
+  @@map("termly_report_comments")
 }
 
 // ============================================
@@ -1174,46 +1267,46 @@ model TermlyReportComment {
 // ============================================
 
 model IDCardTemplate {
-  id                String        @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Template Details
-  templateName      String        @unique
-  templateType      IDCardType    // STUDENT or STAFF
-  
+  templateName String     @unique
+  templateType IDCardType // STUDENT or STAFF
+
   // Template Design (HTML/CSS or image)
-  templateDesign    String        @db.Text  // HTML template or base64 image
-  templateCSS       String?       @db.Text  // Optional CSS for HTML templates
-  
+  templateDesign String  @db.Text // HTML template or base64 image
+  templateCSS    String? @db.Text // Optional CSS for HTML templates
+
   // Layout Configuration (JSON)
-  layoutConfig      Json?         // {photoPosition: {x: 10, y: 20}, namePosition: {}, etc}
-  
+  layoutConfig Json? // {photoPosition: {x: 10, y: 20}, namePosition: {}, etc}
+
   // Dimensions
-  width             Int           @default(320)  // pixels or mm
-  height            Int           @default(204)  // pixels or mm
-  orientation       String        @default("horizontal") // horizontal or vertical
-  
+  width       Int    @default(320) // pixels or mm
+  height      Int    @default(204) // pixels or mm
+  orientation String @default("horizontal") // horizontal or vertical
+
   // Template Settings
-  showPhoto         Boolean       @default(true)
-  showBarcode       Boolean       @default(true)
-  showQRCode        Boolean       @default(false)
-  
+  showPhoto   Boolean @default(true)
+  showBarcode Boolean @default(true)
+  showQRCode  Boolean @default(false)
+
   // Branding
-  schoolLogo        String?       // Logo URL or base64
-  backgroundColor   String        @default("#FFFFFF")
-  textColor         String        @default("#000000")
-  
+  schoolLogo      String? // Logo URL or base64
+  backgroundColor String  @default("#FFFFFF")
+  textColor       String  @default("#000000")
+
   // Status
-  isActive          Boolean       @default(false)
-  isDefault         Boolean       @default(false)
-  
+  isActive  Boolean @default(false)
+  isDefault Boolean @default(false)
+
   // Metadata
-  createdBy         String
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  archived          Boolean       @default(false)
-  archivedAt        DateTime?
-  archivedBy        String?
-  
+  createdBy  String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   @@map("id_card_templates")
 }
 
@@ -1228,15 +1321,12 @@ enum IDCardType {
 // FEE MANAGEMENT
 // ============================================
 
-enum FeeType {
-  TUITION
-  TRANSPORT
-  MEALS
-  ACTIVITY
-  UNIFORM
-  BOOKS
-  EXAM
-  LATE_PAYMENT
+enum FeeCategory {
+  ACADEMIC // Tuition, exams, books
+  BOARDING // Meals, hostel
+  TRANSPORT // Bus fees
+  EXTRA_CURRICULAR // Activities, sports
+  ADMINISTRATIVE // Late fees, penalties
   OTHER
 }
 
@@ -1246,6 +1336,7 @@ enum PaymentStatus {
   PAID
   OVERPAID
   WAIVED
+  CANCELLED
 }
 
 enum PaymentMethod {
@@ -1254,116 +1345,167 @@ enum PaymentMethod {
   BANK_TRANSFER
   CHEQUE
   CARD
+  OTHER
 }
 
-model FeeStructure {
-  id              String    @id @default(uuid())
-  
-  // Fee Details
-  name            String    // e.g., "Grade 1 Term 1 Fees"
-  description     String?   @db.Text
-  feeType         FeeType
-  amount          Decimal   @db.Decimal(10, 2)
-  
-  // Applicable To
-  grade           Grade?
-  term            Term?
-  academicYear    Int
-  
-  // Tenant Scoping
-  schoolId        String
-  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  branchId        String?
-  branch          Branch?   @relation(fields: [branchId], references: [id])
-  
-  // Status
-  active          Boolean   @default(true)
-  mandatory       Boolean   @default(true)
-  
-  // Metadata
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  createdBy       String
-  archived        Boolean   @default(false)
-  archivedAt      DateTime?
-  archivedBy      String?
-  
+// Tier 1: Fee Types (Master Data)
+model FeeType {
+  id          String      @id @default(uuid())
+  code        String // TUITION, MEALS, TRANSPORT, etc.
+  name        String // "Tuition Fees", "Lunch Program"
+  description String?
+  category    FeeCategory @default(ACADEMIC)
+  isActive    Boolean     @default(true)
+
+  schoolId String
+  school   School @relation("SchoolFeeTypes", fields: [schoolId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  invoices        FeeInvoice[]
-  
+  feeStructureItems FeeStructureItem[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId])
+  @@map("fee_types")
+}
+
+// Tier 2: Fee Structures (Templates per Grade/Term)
+model FeeStructure {
+  id          String  @id @default(uuid())
+  name        String // "Grade 1 Term 1 Fees 2024"
+  description String?
+
+  // Academic Context
+  grade        Grade
+  term         Term
+  academicYear Int
+
+  // Fee Composition (Multiple Fee Types)
+  feeItems FeeStructureItem[]
+
+  // Metadata
+  mandatory Boolean @default(true)
+  active    Boolean @default(true)
+
+  schoolId String
+  school   School  @relation("SchoolFeeStructures", fields: [schoolId], references: [id], onDelete: Cascade)
+  branchId String?
+  branch   Branch? @relation("BranchFeeStructures", fields: [branchId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  creator   User?    @relation("CreatedFeeStructures", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  // Soft Delete
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
+  // Relations
+  invoices FeeInvoice[]
+
+  @@unique([schoolId, grade, term, academicYear])
+  @@index([schoolId, academicYear])
   @@map("fee_structures")
-  @@index([grade, term, academicYear])
-  @@index([feeType])
+}
+
+// Junction Table: Fee Structure Items
+model FeeStructureItem {
+  id String @id @default(uuid())
+
+  feeStructureId String
+  feeStructure   FeeStructure @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+
+  feeTypeId String
+  feeType   FeeType @relation(fields: [feeTypeId], references: [id], onDelete: Restrict)
+
+  amount    Decimal @db.Decimal(10, 2)
+  mandatory Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([feeStructureId])
+  @@index([feeTypeId])
+  @@map("fee_structure_items")
 }
 
 model FeeInvoice {
-  id                String        @id @default(uuid())
-  invoiceNumber     String        @unique
-  
+  id            String @id @default(uuid())
+  invoiceNumber String @unique
+
   // Student Reference
-  learnerId         String
-  learner           Learner       @relation("LearnerInvoices", fields: [learnerId], references: [id], onDelete: Cascade)
-  
+  learnerId String
+  learner   Learner @relation("LearnerInvoices", fields: [learnerId], references: [id], onDelete: Cascade)
+
   // Fee Structure Reference
-  feeStructureId    String
-  feeStructure      FeeStructure  @relation(fields: [feeStructureId], references: [id])
-  
+  feeStructureId String
+  feeStructure   FeeStructure @relation(fields: [feeStructureId], references: [id])
+
   // Invoice Details
-  term              Term
-  academicYear      Int
-  dueDate           DateTime
-  
+  term         Term
+  academicYear Int
+  dueDate      DateTime
+
   // Amounts
-  totalAmount       Decimal       @db.Decimal(10, 2)
-  paidAmount        Decimal       @db.Decimal(10, 2) @default(0)
-  balance           Decimal       @db.Decimal(10, 2)
-  
+  totalAmount Decimal @db.Decimal(10, 2)
+  paidAmount  Decimal @default(0) @db.Decimal(10, 2)
+  balance     Decimal @db.Decimal(10, 2)
+
   // Status
-  status            PaymentStatus @default(PENDING)
-  
+  status PaymentStatus @default(PENDING)
+
   // Metadata
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  issuedBy          String
-  archived          Boolean       @default(false)
-  archivedAt        DateTime?
-  archivedBy        String?
-  
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  issuedBy   String
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   // Relations
-  payments          FeePayment[]
-  
-  @@map("fee_invoices")
+  payments FeePayment[]
+
   @@index([learnerId])
   @@index([term, academicYear])
   @@index([status])
   @@index([dueDate])
+  @@map("fee_invoices")
 }
 
 model FeePayment {
-  id                String        @id @default(uuid())
-  receiptNumber     String        @unique
-  
+  id            String @id @default(uuid())
+  receiptNumber String @unique
+
   // Invoice Reference
-  invoiceId         String
-  invoice           FeeInvoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  
+  invoiceId String
+  invoice   FeeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
   // Payment Details
-  amount            Decimal       @db.Decimal(10, 2)
-  paymentMethod     PaymentMethod
-  paymentDate       DateTime      @default(now())
-  
+  amount        Decimal       @db.Decimal(10, 2)
+  paymentMethod PaymentMethod
+  paymentDate   DateTime      @default(now())
+
   // Payment Reference
-  referenceNumber   String?       // M-Pesa code, cheque number, etc.
-  notes             String?       @db.Text
-  
+  referenceNumber String? // M-Pesa code, cheque number, etc.
+  notes           String? @db.Text
+
   // Metadata
-  createdAt         DateTime      @default(now())
-  recordedBy        String
-  
-  @@map("fee_payments")
+  createdAt  DateTime @default(now())
+  recordedBy String
+  recorder   User?    @relation("RecordedPayments", fields: [recordedBy], references: [id], onDelete: SetNull)
+
+  // Status
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   @@index([invoiceId])
   @@index([paymentDate])
   @@index([paymentMethod])
+  @@map("fee_payments")
 }
 
 // ============================================
@@ -1395,166 +1537,167 @@ enum RecipientType {
 }
 
 model Message {
-  id              String          @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Sender
-  senderId        String
-  senderType      UserRole
-  
+  senderId   String
+  senderType UserRole
+
   // Recipients
-  recipientType   RecipientType
-  recipientIds    String[]        // Array of user IDs
-  
+  recipientType RecipientType
+  recipientIds  String[] // Array of user IDs
+
   // Message Content
-  subject         String?
-  body            String          @db.Text
-  messageType     MessageType     @default(IN_APP)
-  
+  subject     String?
+  body        String      @db.Text
+  messageType MessageType @default(IN_APP)
+
   // Scheduling
-  scheduledFor    DateTime?       // If null, send immediately
-  sentAt          DateTime?
-  
+  scheduledFor DateTime? // If null, send immediately
+  sentAt       DateTime?
+
   // Status
-  status          MessageStatus   @default(DRAFT)
-  
+  status MessageStatus @default(DRAFT)
+
   // Attachments
-  attachments     Json?           // Array of file URLs
-  
+  attachments Json? // Array of file URLs
+
   // Metadata
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  receipts        MessageReceipt[]
-  
-  @@map("messages")
+  receipts MessageReceipt[]
+
   @@index([senderId])
   @@index([status])
   @@index([messageType])
   @@index([scheduledFor])
+  @@map("messages")
 }
 
 model MessageReceipt {
-  id              String          @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Message Reference
-  messageId       String
-  message         Message         @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
   // Recipient
-  recipientId     String
-  recipientEmail  String?
-  recipientPhone  String?
-  
+  recipientId    String
+  recipientEmail String?
+  recipientPhone String?
+
   // Delivery Status
-  status          MessageStatus   @default(SENT)
-  deliveredAt     DateTime?
-  readAt          DateTime?
-  failureReason   String?
-  
+  status        MessageStatus @default(SENT)
+  deliveredAt   DateTime?
+  readAt        DateTime?
+  failureReason String?
+
   // Metadata
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  
-  @@map("message_receipts")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([messageId])
   @@index([recipientId])
   @@index([status])
+  @@map("message_receipts")
 }
+
 // ============================================
 // GRADING SYSTEM CONFIGURATION
 // ============================================
 
 // Scale Group Model - Groups related grading systems
 model ScaleGroup {
-  id            String          @id @default(uuid())
-  name          String          // "Zawadi Internal Exams", "End of Term Exams"
-  description   String?         @db.Text
-  
+  id          String  @id @default(uuid())
+  name        String // "Zawadi Internal Exams", "End of Term Exams"
+  description String? @db.Text
+
   // Scope
-  schoolId      String
-  school        School          @relation("SchoolScaleGroups", fields: [schoolId], references: [id], onDelete: Cascade)
-  
+  schoolId String
+  school   School @relation("SchoolScaleGroups", fields: [schoolId], references: [id], onDelete: Cascade)
+
   // Status
-  active        Boolean         @default(true)
-  isDefault     Boolean         @default(false)
-  
+  active    Boolean @default(true)
+  isDefault Boolean @default(false)
+
   // Relations
   gradingSystems GradingSystem[] @relation("ScaleGroupSystems")
-  
+
   // Metadata
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  archived      Boolean         @default(false)
-  archivedAt    DateTime?
-  archivedBy    String?
-  
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   @@unique([schoolId, name])
-  @@map("scale_groups")
   @@index([schoolId])
+  @@map("scale_groups")
 }
 
 model GradingSystem {
-  id            String      @id @default(uuid())
-  name          String      // e.g. "Grade 1 - All Subjects"
-  type          String      // "SUMMATIVE" or "CBC"
-  
+  id   String @id @default(uuid())
+  name String // e.g. "Grade 1 - All Subjects"
+  type String // "SUMMATIVE" or "CBC"
+
   // Scale Group association
-  scaleGroupId  String?
-  scaleGroup    ScaleGroup? @relation("ScaleGroupSystems", fields: [scaleGroupId], references: [id])
-  
+  scaleGroupId String?
+  scaleGroup   ScaleGroup? @relation("ScaleGroupSystems", fields: [scaleGroupId], references: [id])
+
   // Grade and subject specific scales
-  grade         Grade?   
-  learningArea  String?     // NULL = applies to ALL learning areas
+  grade        Grade?
+  learningArea String? // NULL = applies to ALL learning areas
 
   // Scope
-  schoolId      String
-  school        School      @relation("SchoolGradingSystems", fields: [schoolId], references: [id], onDelete: Cascade)
-  
-  active        Boolean     @default(true)
-  archived      Boolean     @default(false)
-  archivedAt    DateTime?
-  archivedBy    String?
-  isDefault     Boolean     @default(false)
-  
-  ranges        GradingRange[]
-  summativeTests SummativeTest[]
-  
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  schoolId String
+  school   School @relation("SchoolGradingSystems", fields: [schoolId], references: [id], onDelete: Cascade)
 
-  @@map("grading_systems")
+  active     Boolean   @default(true)
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+  isDefault  Boolean   @default(false)
+
+  ranges         GradingRange[]
+  summativeTests SummativeTest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([schoolId])
   @@index([scaleGroupId])
   @@index([grade])
+  @@map("grading_systems")
 }
 
 model GradingRange {
-  id              String        @id @default(uuid())
-  
-  systemId        String
-  system          GradingSystem @relation(fields: [systemId], references: [id], onDelete: Cascade)
-  
-  label           String        // "A", "EE1"
-  minPercentage   Float
-  maxPercentage   Float
-  
+  id String @id @default(uuid())
+
+  systemId String
+  system   GradingSystem @relation(fields: [systemId], references: [id], onDelete: Cascade)
+
+  label         String // "A", "EE1"
+  minPercentage Float
+  maxPercentage Float
+
   // Mapping to Enums (Optional but helpful for type safety in code)
-  summativeGrade  SummativeGrade?
-  rubricRating    DetailedRubricRating?
-  
-  points          Int?          // 4, 3, 2, 1 or 8, 7, 6...
-  color           String?       // Hex code
-  description     String?       // "Exceeds Expectations"
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  archived        Boolean       @default(false)
-  archivedAt      DateTime?
-  archivedBy      String?
-  
-  @@map("grading_ranges")
+  summativeGrade SummativeGrade?
+  rubricRating   DetailedRubricRating?
+
+  points      Int? // 4, 3, 2, 1 or 8, 7, 6...
+  color       String? // Hex code
+  description String? // "Exceeds Expectations"
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   @@index([systemId])
+  @@map("grading_ranges")
 }
 
 // ============================================
@@ -1562,42 +1705,48 @@ model GradingRange {
 // ============================================
 
 model StreamConfig {
-  id              String    @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // References
-  schoolId        String
-  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
   // Stream Details
-  name            String    // e.g., "A", "Blue", "Eagle"
-  
+  name String // e.g., "A", "Blue", "Eagle"
+
   // Status
-  active          Boolean   @default(true)
-  
+  active Boolean @default(true)
+
   // Metadata
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Status
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+
   // Unique constraint: Stream name must be unique per school
   @@unique([schoolId, name])
-  @@map("stream_configs")
   @@index([schoolId])
+  @@map("stream_configs")
 }
 
 model CommunicationConfig {
-  id              String    @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // School Reference (One config per school)
-  schoolId        String    @unique
-  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  
+  schoolId String @unique
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
   // SMS Configuration
-  smsProvider     String?   @default("mobilesasa") // "mobilesasa" | "custom"
-  smsApiKey       String?   // Encrypted API key
-  smsBaseUrl      String?   @default("https://api.mobilesasa.com")
-  smsSenderId     String?   // Max 11 characters (e.g., "ZAWADI")
-  smsEnabled      Boolean   @default(false)
-  hasApiKey       Boolean   @default(false) // Helper flag for frontend to know if key is set
+  smsProvider String? @default("mobilesasa") // "mobilesasa" | "custom"
+  smsApiKey   String? // Encrypted API key
+  smsUsername String? // Africa's Talking username
+  smsBaseUrl  String? @default("https://api.mobilesasa.com")
+  smsSenderId String? // Max 11 characters (e.g., "ZAWADI")
+  smsEnabled  Boolean @default(false)
+  hasApiKey   Boolean @default(false) // Helper flag for frontend to know if key is set
 
   // SMS Custom Provider Settings
   smsCustomName       String?
@@ -1606,26 +1755,26 @@ model CommunicationConfig {
   smsCustomToken      String? // Encrypted token
 
   // Email Configuration
-  emailProvider   String?   @default("resend") // "resend" | "smtp"
-  emailApiKey     String?   // Encrypted
-  emailFrom       String?
-  emailFromName   String?
-  emailEnabled    Boolean   @default(false)
-  emailTemplates  Json?     // Stores custom subjects and bodies for 'welcome', 'onboarding', etc.
+  emailProvider  String? @default("resend") // "resend" | "smtp"
+  emailApiKey    String? // Encrypted
+  emailFrom      String?
+  emailFromName  String?
+  emailEnabled   Boolean @default(false)
+  emailTemplates Json? // Stores custom subjects and bodies for 'welcome', 'onboarding', etc.
 
   // M-Pesa Configuration
-  mpesaProvider   String?   @default("intasend") // "intasend" | "sasepay"
-  mpesaPublicKey  String?   // Encrypted
-  mpesaSecretKey  String?   // Encrypted
-  mpesaBusinessNo String?   // Paybill/Till
-  mpesaEnabled    Boolean   @default(false)
-  
-  // Birthday Configuration
-  birthdayEnabled         Boolean   @default(false)
-  birthdayMessageTemplate String?   @default("Happy Birthday {learnerName}! Best wishes from {schoolName}.")
+  mpesaProvider   String? @default("intasend") // "intasend" | "sasepay"
+  mpesaPublicKey  String? // Encrypted
+  mpesaSecretKey  String? // Encrypted
+  mpesaBusinessNo String? // Paybill/Till
+  mpesaEnabled    Boolean @default(false)
 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  // Birthday Configuration
+  birthdayEnabled         Boolean @default(false)
+  birthdayMessageTemplate String? @default("Happy Birthday {learnerName}! Best wishes from {schoolName}.")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("communication_configs")
 }
@@ -1634,56 +1783,66 @@ model CommunicationConfig {
 // ASSESSMENT SMS AUDIT (Parent Notifications)
 // ============================================
 
+enum CommunicationChannel {
+  SMS
+  WHATSAPP
+}
+
 model AssessmentSmsAudit {
-  id                    String      @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Learning context
-  learnerId             String
-  learner               Learner     @relation("LearnerSmsAudits", fields: [learnerId], references: [id], onDelete: Cascade)
-  
+  learnerId String
+  learner   Learner @relation("LearnerSmsAudits", fields: [learnerId], references: [id], onDelete: Cascade)
+
   // Assessment context
-  assessmentId          String?
-  assessmentType        String      // FORMATIVE, SUMMATIVE, CORE_COMPETENCY, VALUES
-  
+  assessmentId   String?
+  assessmentType String // FORMATIVE, SUMMATIVE, CORE_COMPETENCY, VALUES
+  term           String? // TERM_1, TERM_2, etc.
+  academicYear   Int?
+
   // Recipient details
-  parentId              String?
-  parentPhone           String      // Normalized (254712345678)
-  parentName            String?
-  learnerName           String
-  learnerGrade          String
-  
+  parentId     String?
+  parentPhone  String // Normalized (254712345678)
+  parentName   String?
+  learnerName  String
+  learnerGrade String
+
   // CBC-specific content
-  competencyName        String?     // Communication, Critical Thinking, etc.
-  achievementLevel      String?     // Exceeding, Achieving, Developing
-  subStrand             String?     // Specific area in competency
-  templateType          String      // FORMATIVE_EXCEEDING, SUMMATIVE_TERM, ALERT_CRITICAL, etc.
-  
+  competencyName   String? // Communication, Critical Thinking, etc.
+  achievementLevel String? // Exceeding, Achieving, Developing
+  subStrand        String? // Specific area in competency
+  templateType     String // FORMATIVE_EXCEEDING, SUMMATIVE_TERM, ALERT_CRITICAL, etc.
+
   // Message tracking
-  messageContent        String      @db.Text // Full SMS text (for audit)
-  smsMessageId          String?     // MobileSasa API response ID
-  reportLink            String?     // Shortened URL to parent portal
-  
+  messageContent    String               @db.Text // Full SMS text (for audit)
+  channel           CommunicationChannel @default(SMS)
+  smsMessageId      String? // MobileSasa API response ID
+  whatsappMessageId String? // For future WhatsApp API tracking
+  reportLink        String? // Shortened URL to parent portal
+
   // Delivery status
-  smsStatus             String      // QUEUED, SENT, DELIVERED, FAILED, BOUNCED
-  sentAt                DateTime    @default(now())
-  deliveredAt           DateTime?
-  failureReason         String?     // "Invalid phone", "Quota exceeded", etc.
-  
+  smsStatus     String    @default("SENT") // QUEUED, SENT, DELIVERED, FAILED, BOUNCED
+  sentAt        DateTime  @default(now())
+  deliveredAt   DateTime?
+  failureReason String? // "Invalid phone", "Quota exceeded", etc.
+
   // Audit trail
-  sentByUserId          String?     // Teacher/Admin who triggered send
-  cooldownExpiry        DateTime?   // When next SMS to this parent allowed
-  
+  sentByUserId   String? // Teacher/Admin who triggered send
+  cooldownExpiry DateTime? // When next SMS to this parent allowed
+
   // Relationships
-  schoolId              String
-  
-  createdAt             DateTime    @default(now())
-  updatedAt             DateTime    @updatedAt
-  
+  schoolId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([learnerId])
   @@index([parentPhone])
   @@index([sentAt])
   @@index([smsStatus])
   @@index([schoolId])
+  @@index([term, academicYear])
   @@map("assessment_sms_audits")
 }
 
@@ -1692,21 +1851,21 @@ model AssessmentSmsAudit {
 // ============================================
 
 model LearningArea {
-  id            String      @id @default(uuid())
-  name          String      // Full name (e.g., "Mathematics", "English Language")
-  shortName     String?     // Abbreviated name
-  gradeLevel    String      // Grade level category (e.g., "Lower Primary", "Upper Primary")
-  icon          String      @default("📚")
-  color         String      @default("#3b82f6")
-  description   String?
-  
+  id          String  @id @default(uuid())
+  name        String // Full name (e.g., "Mathematics", "English Language")
+  shortName   String? // Abbreviated name
+  gradeLevel  String // Grade level category (e.g., "Lower Primary", "Upper Primary")
+  icon        String  @default("📚")
+  color       String  @default("#3b82f6")
+  description String?
+
   // School Association
-  schoolId      String?     // NULL = applies to all schools
-  school        School?     @relation("SchoolLearningAreas", fields: [schoolId], references: [id], onDelete: Cascade)
-  
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  
+  schoolId String? // NULL = applies to all schools
+  school   School? @relation("SchoolLearningAreas", fields: [schoolId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([schoolId, name])
   @@index([gradeLevel])
   @@index([schoolId])
@@ -1732,54 +1891,150 @@ enum TicketStatus {
 }
 
 model SupportTicket {
-  id            String         @id @default(uuid())
-  subject       String
-  priority      TicketPriority @default(MEDIUM)
-  status        TicketStatus   @default(OPEN)
-  
+  id       String         @id @default(uuid())
+  subject  String
+  priority TicketPriority @default(MEDIUM)
+  status   TicketStatus   @default(OPEN)
+
   // Who opened the ticket
-  userId        String?
-  user          User?          @relation("UserTickets", fields: [userId], references: [id], onDelete: SetNull)
-  
+  userId String?
+  user   User?   @relation("UserTickets", fields: [userId], references: [id], onDelete: SetNull)
+
   // Guest Details (if not logged in)
-  guestName     String?
-  guestEmail    String?
-  
+  guestName  String?
+  guestEmail String?
+
   // Which school (usually context, optional as SUPER_ADMIN might open one)
-  schoolId      String?
-  school        School?        @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  schoolId String?
+  school   School? @relation(fields: [schoolId], references: [id], onDelete: SetNull)
 
   // Assigned Staff (Super Admin)
-  assignedToId  String?
-  assignedTo    User?          @relation("AssignedTickets", fields: [assignedToId], references: [id])
+  assignedToId String?
+  assignedTo   User?   @relation("AssignedTickets", fields: [assignedToId], references: [id])
 
-  messages      SupportMessage[]
-  
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  messages SupportMessage[]
 
-  @@map("support_tickets")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([schoolId])
   @@index([status])
+  @@map("support_tickets")
 }
 
 model SupportMessage {
-  id            String        @id @default(uuid())
-  message       String        @db.Text
-  
-  ticketId      String
-  ticket        SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  
-  senderId      String?
-  sender        User?          @relation("SentMessages", fields: [senderId], references: [id])
-  
-  read          Boolean       @default(false)
-  readAt        DateTime?
-  
-  createdAt     DateTime      @default(now())
-  
-  @@map("support_messages")
+  id      String @id @default(uuid())
+  message String @db.Text
+
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  senderId String?
+  sender   User?   @relation("SentMessages", fields: [senderId], references: [id])
+
+  read   Boolean   @default(false)
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
   @@index([ticketId])
   @@index([senderId])
+  @@map("support_messages")
+}
+
+// ============================================
+// DOCUMENT CENTER (THE "DATA CENTER")
+// ============================================
+model Document {
+  id       String  @id @default(uuid())
+  name     String
+  url      String
+  key      String? // Cloudinary public_id or S3 key
+  type     String // pdf, image, excel, etc.
+  size     Int? // Size in bytes
+  category String  @default("general") // academic, finance, hr, etc.
+
+  // Scoping
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolId])
+  @@index([category])
+  @@map("documents")
+}
+
+// ============================================
+// RESOURCE MANAGEMENT (Books, Equipment, etc.)
+// ============================================
+model Book {
+  id       String  @id @default(uuid())
+  title    String
+  author   String?
+  isbn     String?
+  category String? // Textbook, Teacher Guide, Reference, etc.
+
+  // Assignment details
+  assignedToId String?
+  assignedTo   User?     @relation("AssignedBooks", fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedAt   DateTime?
+  returnDate   DateTime?
+
+  // Scoping
+  schoolId String
+  school   School @relation("SchoolBooks", fields: [schoolId], references: [id], onDelete: Cascade)
+  status   String @default("AVAILABLE") // AVAILABLE, ISSUED, LOST, DAMAGED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolId])
+  @@index([assignedToId])
+  @@index([status])
+  @@map("books")
+}
+
+// ============================================
+// PLANNER MODULE
+// ============================================
+
+model Event {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  allDay      Boolean   @default(false)
+  type        EventType @default(GENERAL) // ACADEMIC, SPORTS, MEETING, HOLIDAY, EXAM
+  location    String?
+
+  // Google Integration
+  googleEventId String?
+  meetingLink   String? // Google Meet link
+
+  // Metadata
+  schoolId  String
+  school    School @relation(fields: [schoolId], references: [id])
+  creatorId String
+  creator   User   @relation("EventCreator", fields: [creatorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolId])
+}
+
+enum EventType {
+  GENERAL
+  ACADEMIC
+  SPORTS
+  MEETING
+  HOLIDAY
+  EXAM
 }

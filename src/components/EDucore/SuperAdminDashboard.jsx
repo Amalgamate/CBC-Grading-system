@@ -98,7 +98,7 @@ export default function SuperAdminDashboard({ onLogout }) {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl">
               E
             </div>
-            <div className="text-xl font-bold tracking-tight">EDucore</div>
+            <div className="text-xl font-bold tracking-tight">Elimcrown</div>
           </div>
           <div className="text-xs text-slate-400 font-medium uppercase tracking-wider pl-11">Super Admin Console</div>
         </div>
@@ -113,8 +113,8 @@ export default function SuperAdminDashboard({ onLogout }) {
                 key={item.key}
                 onClick={() => setSection(item.key)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${active
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50 font-semibold'
-                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50 font-semibold'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
                   }`}
               >
                 <Icon className={`w-5 h-5 ${active ? 'text-white' : 'text-slate-500 group-hover:text-white transition-colors'}`} />
@@ -220,8 +220,8 @@ export default function SuperAdminDashboard({ onLogout }) {
                     <label
                       key={plan.id}
                       className={`flex items-center gap-4 p-4 border rounded-xl cursor-pointer transition-all ${approvalModal.selectedPlanId === plan.id
-                          ? 'border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        ? 'border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                         }`}
                     >
                       <input

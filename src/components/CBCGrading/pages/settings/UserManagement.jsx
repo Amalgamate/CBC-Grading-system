@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   UserPlus, Edit, Trash2, X, Save, Shield, Users, Search,
-  RotateCcw, Eye, EyeOff, Mail, Phone, Archive, ArchiveRestore,
-  Settings, Lock, Check, AlertCircle, Clock, Activity, BookOpen, MessageCircle, Send
+  RotateCcw, Eye, EyeOff, Mail, Archive, ArchiveRestore,
+  Settings, Lock, Check, AlertCircle, Clock, Activity, BookOpen, MessageCircle, Send, Key
 } from 'lucide-react';
 import { userAPI } from '../../../../services/api';
 import { getAdminSchoolId, getStoredUser } from '../../../../services/tenantContext';
+import ResetPasswordModal from '../../shared/ResetPasswordModal';
 
 // Real API is imported from services/api.js
 
@@ -131,11 +132,6 @@ const PERMISSION_MODULES = [
 
 const PERMISSION_ACTIONS = ['view', 'create', 'edit', 'delete'];
 
-const getRoleColor = (role) => {
-  const config = ROLES_CONFIG.find(r => r.value === role);
-  return config?.color || 'gray';
-};
-
 const getRoleLabel = (role) => {
   const config = ROLES_CONFIG.find(r => r.value === role);
   return config?.label || role;
@@ -157,22 +153,21 @@ const formatDate = (dateString) => {
 };
 
 const UserManagement = () => {
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('all'); // 'all', 'staff', 'parents', 'admins', 'archive'
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [schoolId, setSchoolId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('ALL');
-  const [statusFilter, setStatusFilter] = useState('ACTIVE');
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [notification, setNotification] = useState(null);
-  const [userGroupTab, setUserGroupTab] = useState('all'); // 'all', 'parents', 'tutors', 'admins'
+  const [viewMode, setViewMode] = useState('list'); // 'list', 'config', 'logs'
   const [activityLogs, setActivityLogs] = useState([]);
-  const [activityFilterUser, setActivityFilterUser] = useState('all'); // Filter activity logs by user
+  const [activityFilterUser, setActivityFilterUser] = useState('all');
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetTargetUser, setResetTargetUser] = useState(null);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -205,8 +200,6 @@ const UserManagement = () => {
       if (!sid) {
         console.warn('No school ID found. Using API without schoolId filter.');
       }
-
-      setSchoolId(sid);
 
       // Fetch users for this school
       const response = await userAPI.getAll(sid);
@@ -412,30 +405,31 @@ const UserManagement = () => {
   const getParentUsers = () => users.filter(u => u.role === 'PARENT' && !u.archived);
 
   const filteredUsers = users.filter(user => {
-    // First, filter by user group tab
-    let groupFilter = true;
-    if (userGroupTab === 'parents') {
-      groupFilter = user.role === 'PARENT';
-    } else if (userGroupTab === 'tutors') {
-      groupFilter = ['TEACHER', 'HEAD_TEACHER'].includes(user.role);
-    } else if (userGroupTab === 'admins') {
-      groupFilter = ['SUPER_ADMIN', 'ADMIN'].includes(user.role);
+    // 1. Group Filtering (via main tabs)
+    let matchesTab = true;
+    if (activeTab === 'parents') {
+      matchesTab = user.role === 'PARENT' && !user.archived;
+    } else if (activeTab === 'staff') {
+      matchesTab = ['TEACHER', 'HEAD_TEACHER', 'ACCOUNTANT', 'RECEPTIONIST', 'LIBRARIAN'].includes(user.role) && !user.archived;
+    } else if (activeTab === 'admins') {
+      matchesTab = ['SUPER_ADMIN', 'ADMIN'].includes(user.role) && !user.archived;
+    } else if (activeTab === 'archive') {
+      matchesTab = user.archived === true;
+    } else if (activeTab === 'all') {
+      matchesTab = !user.archived;
     }
-    // 'all' tab shows all users
 
+    if (!matchesTab) return false;
+
+    // 2. Search search
     const matchesSearch = searchTerm === '' ||
       user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.phone && user.phone.includes(searchTerm)) ||
       (user.staffId && user.staffId.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchesRole = roleFilter === 'ALL' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'ALL' ||
-      (statusFilter === 'ACTIVE' && user.status === 'ACTIVE' && !user.archived) ||
-      (statusFilter === 'ARCHIVED' && user.archived) ||
-      (statusFilter === 'INACTIVE' && user.status === 'INACTIVE');
-
-    return groupFilter && matchesSearch && matchesRole && matchesStatus;
+    return matchesSearch;
   });
 
   const roleStats = ROLES_CONFIG.map(role => ({
@@ -456,220 +450,125 @@ const UserManagement = () => {
 
       <div className="space-y-4">
 
-        {/* Tab Navigation */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="flex border-b">
+        {/* Unified Header & Search */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+            <p className="text-sm text-gray-500">Manage school staff, parents, and administrative access</p>
+          </div>
+          <div className="flex gap-2">
             <button
-              onClick={() => setActiveTab('users')}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm ${activeTab === 'users'
-                  ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-                }`}
+              onClick={() => {
+                setEditingUser(null);
+                resetForm();
+                setShowModal(true);
+              }}
+              className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md font-bold"
             >
-              <Users size={18} />
-              <span>Users</span>
-              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
-                {users.filter(u => !u.archived).length}
-              </span>
+              <UserPlus size={20} />
+              Add New User
             </button>
-
-            <button
-              onClick={() => setActiveTab('roles')}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm ${activeTab === 'roles'
-                  ? 'bg-purple-50 text-purple-700 border-b-2 border-purple-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-                }`}
-            >
-              <Shield size={18} />
-              <span>Roles & Permissions</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('activity')}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm ${activeTab === 'activity'
-                  ? 'bg-green-50 text-green-700 border-b-2 border-green-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-                }`}
-            >
-              <Activity size={18} />
-              <span>Activity Log</span>
-            </button>
+            <div className="relative group">
+              <button className="p-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition">
+                <Settings size={20} />
+              </button>
+              <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
+                <button onClick={() => setViewMode('list')} className="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm flex items-center gap-2">
+                  <Users size={16} /> User List
+                </button>
+                <button onClick={() => setViewMode('config')} className="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm flex items-center gap-2">
+                  <Shield size={16} /> Permissions Matrix
+                </button>
+                <button onClick={() => setViewMode('logs')} className="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm flex items-center gap-2">
+                  <Activity size={16} /> Activity Logs
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* USERS TAB */}
-        {activeTab === 'users' && (
-          <>
-            {/* User Group Sub-Tabs */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-4">
-              <div className="flex border-b overflow-x-auto">
+        {/* View Selection: List View */}
+        {viewMode === 'list' && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+            {/* Primary Navigation Tabs */}
+            <div className="flex items-center gap-1 bg-white p-1 rounded-xl shadow-sm border border-gray-200 overflow-x-auto no-scrollbar">
+              {[
+                { id: 'all', label: 'All Users', icon: Users, color: 'gray' },
+                { id: 'staff', label: 'Academic Staff', icon: BookOpen, color: 'blue' },
+                { id: 'parents', label: 'Parents', icon: Users, color: 'green' },
+                { id: 'admins', label: 'Administrators', icon: Shield, color: 'purple' },
+                { id: 'archive', label: 'Archived', icon: Archive, color: 'orange' }
+              ].map(tab => (
                 <button
-                  onClick={() => setUserGroupTab('all')}
-                  className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm whitespace-nowrap ${userGroupTab === 'all'
-                      ? 'bg-gray-50 text-gray-900 border-b-2 border-gray-800'
-                      : 'text-gray-600 hover:bg-gray-50'
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-lg transition-all text-sm font-bold whitespace-nowrap ${activeTab === tab.id
+                    ? `bg-${tab.color}-600 text-white shadow-md`
+                    : 'text-gray-500 hover:bg-gray-50'
                     }`}
                 >
-                  <Users size={16} />
-                  <span>All Users</span>
-                  <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs font-bold">
-                    {users.filter(u => !u.archived).length}
+                  <tab.icon size={18} />
+                  {tab.label}
+                  <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-white/20' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                    {tab.id === 'all' ? users.filter(u => !u.archived).length :
+                      tab.id === 'archive' ? users.filter(u => u.archived).length :
+                        tab.id === 'parents' ? getParentUsers().length :
+                          tab.id === 'staff' ? getTutorUsers().length :
+                            getAdminUsers().length}
                   </span>
                 </button>
-
-                <button
-                  onClick={() => setUserGroupTab('admins')}
-                  className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm whitespace-nowrap ${userGroupTab === 'admins'
-                      ? 'bg-red-50 text-red-700 border-b-2 border-red-600'
-                      : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                >
-                  <Shield size={16} />
-                  <span>Admins</span>
-                  <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-bold">
-                    {getAdminUsers().length}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => setUserGroupTab('tutors')}
-                  className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm whitespace-nowrap ${userGroupTab === 'tutors'
-                      ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
-                      : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                >
-                  <BookOpen size={16} />
-                  <span>Tutors/Teachers</span>
-                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
-                    {getTutorUsers().length}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => setUserGroupTab('parents')}
-                  className={`flex items-center gap-2 px-6 py-3 font-semibold transition text-sm whitespace-nowrap ${userGroupTab === 'parents'
-                      ? 'bg-green-50 text-green-700 border-b-2 border-green-600'
-                      : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                >
-                  <Users size={16} />
-                  <span>Parents</span>
-                  <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-bold">
-                    {getParentUsers().length}
-                  </span>
-                </button>
-              </div>
+              ))}
             </div>
 
-            {/* Toolbar */}
-            <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
-              <div className="flex flex-col xl:flex-row gap-4 justify-between items-center">
-                <div className="flex-1 min-w-[200px] max-w-md w-full">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                      type="text"
-                      placeholder="Search users..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-3 items-center flex-wrap justify-end w-full xl:w-auto">
-                  {/* Metrics */}
-                  <div className="hidden lg:flex items-center gap-4 mr-2 border-r pr-4 border-gray-200 h-10">
-                    <div className="text-right">
-                      <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total Users</p>
-                      <p className="text-xl font-bold text-gray-800 leading-none">{users.filter(u => !u.archived).length}</p>
-                    </div>
-                    <div className="text-right border-l pl-4 border-gray-100">
-                      <p className="text-[10px] text-green-600 uppercase font-bold tracking-wider">Active</p>
-                      <p className="text-xl font-bold text-green-700 leading-none">{users.filter(u => u.status === 'ACTIVE' && !u.archived).length}</p>
-                    </div>
-                    <div className="text-right border-l pl-4 border-gray-100">
-                      <p className="text-[10px] text-orange-600 uppercase font-bold tracking-wider">Archived</p>
-                      <p className="text-xl font-bold text-orange-700 leading-none">{users.filter(u => u.archived).length}</p>
-                    </div>
-                  </div>
-
-                  <select
-                    value={roleFilter}
-                    onChange={(e) => setRoleFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                  >
-                    <option value="ALL">All Roles</option>
-                    {ROLES_CONFIG.map(role => (
-                      <option key={role.value} value={role.value}>{role.label}</option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                  >
-                    <option value="ACTIVE">Active</option>
-                    <option value="ARCHIVED">Archived</option>
-                    <option value="INACTIVE">Inactive</option>
-                    <option value="ALL">All Status</option>
-                  </select>
-
-                  <button
-                    onClick={() => {
-                      setSearchTerm('');
-                      setRoleFilter('ALL');
-                      setStatusFilter('ACTIVE');
-                    }}
-                    className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                    title="Reset filters"
-                  >
-                    <RotateCcw size={20} />
-                  </button>
-
-                  {selectedUsers.length > 0 && (
-                    <button
-                      onClick={() => setShowBulkActions(!showBulkActions)}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2 text-sm"
-                    >
-                      <Settings size={18} />
-                      Bulk Actions ({selectedUsers.length})
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => {
-                      setEditingUser(null);
-                      resetForm();
-                      setShowModal(true);
-                    }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 text-sm font-semibold"
-                  >
-                    <UserPlus size={18} />
-                    <span className="hidden sm:inline">Add User</span>
-                  </button>
-                </div>
+            {/* Quick Search & Filter Strip */}
+            <div className="flex flex-col sm:flex-row gap-3 items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="text"
+                  placeholder={`Search in ${activeTab}...`}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 transition shadow-sm"
+                />
               </div>
-
-              {/* Bulk Actions Menu */}
-              {showBulkActions && selectedUsers.length > 0 && (
-                <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                  <p className="text-sm font-semibold text-purple-900 mb-3">Change role for {selectedUsers.length} selected users:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {ROLES_CONFIG.slice(0, 7).map(role => (
-                      <button
-                        key={role.value}
-                        onClick={() => handleBulkRoleChange(role.value)}
-                        className={`px-3 py-1 rounded-lg text-sm font-semibold bg-${role.color}-100 text-${role.color}-800 hover:bg-${role.color}-200`}
-                      >
-                        {role.label}
-                      </button>
-                    ))}
-                  </div>
+              {selectedUsers.length > 0 && (
+                <div className="flex items-center gap-2 p-1.5 bg-purple-50 rounded-xl border border-purple-100 shadow-sm animate-in zoom-in-95">
+                  <span className="text-xs font-bold text-purple-700 px-2 line-clamp-1">{selectedUsers.length} Selected</span>
+                  <button
+                    onClick={() => setShowBulkActions(!showBulkActions)}
+                    className="px-4 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-xs font-bold transition"
+                  >
+                    Bulk Actions
+                  </button>
                 </div>
               )}
             </div>
+
+            {/* Bulk Actions Menu Expanded */}
+            {showBulkActions && selectedUsers.length > 0 && (
+              <div className="p-4 bg-purple-50 rounded-xl border border-purple-200 shadow-inner flex flex-wrap items-center gap-3">
+                <span className="text-sm font-bold text-purple-900">Change Role:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {ROLES_CONFIG.slice(0, 7).map(role => (
+                    <button
+                      key={role.value}
+                      onClick={() => handleBulkRoleChange(role.value)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white border border-purple-100 text-purple-700 hover:bg-purple-600 hover:text-white shadow-sm`}
+                    >
+                      {role.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setSelectedUsers([])}
+                  className="ml-auto p-1.5 text-gray-400 hover:text-red-500 transition"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            )}
 
             {/* Users Table */}
             <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
@@ -687,138 +586,108 @@ const UserManagement = () => {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50 border-b text-xs">
+                    <thead className="bg-gray-50/50 border-b text-[10px] uppercase tracking-wider text-gray-500">
                       <tr>
-                        <th className="px-3 py-2 text-left">
+                        <th className="px-4 py-4 text-left w-10">
                           <input
                             type="checkbox"
-                            checked={selectedUsers.length === filteredUsers.length}
+                            checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
                             onChange={toggleSelectAll}
-                            className="w-4 h-4"
+                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
                         </th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600 uppercase">User</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600 uppercase">Contact</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600 uppercase">Role</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600 uppercase">Status</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600 uppercase">Last Login</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-600 uppercase">Actions</th>
+                        <th className="px-4 py-4 text-left font-bold">User Identity</th>
+                        <th className="px-4 py-4 text-left font-bold">Role & Access</th>
+                        <th className="px-4 py-4 text-left font-bold">Status</th>
+                        <th className="px-4 py-4 text-right font-bold">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y text-sm">
+                    <tbody className="divide-y divide-gray-100">
                       {filteredUsers.map(user => (
-                        <tr key={user.id} className={`hover:bg-gray-50 ${user.archived ? 'opacity-60' : ''}`}>
-                          <td className="px-3 py-2">
+                        <tr key={user.id} className={`group hover:bg-blue-50/30 transition-colors ${user.archived ? 'bg-gray-50/50' : ''}`}>
+                          <td className="px-4 py-4">
                             <input
                               type="checkbox"
                               checked={selectedUsers.includes(user.id)}
                               onChange={() => toggleUserSelection(user.id)}
-                              className="w-4 h-4"
+                              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                             />
                           </td>
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br transition-transform group-hover:scale-110 flex items-center justify-center text-white font-bold text-sm shadow-sm ${user.archived ? 'from-gray-400 to-gray-500' : 'from-blue-500 to-indigo-600'
+                                }`}>
                                 {user.firstName[0]}{user.lastName[0]}
                               </div>
                               <div>
-                                <div className="font-semibold text-gray-900 text-sm">
+                                <div className="font-bold text-gray-900 group-hover:text-blue-700 transition-colors flex items-center gap-2">
                                   {user.firstName} {user.lastName}
+                                  {user.staffId && <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded font-mono font-normal">{user.staffId}</span>}
                                 </div>
-                                <div className="text-xs text-gray-500">
-                                  {user.staffId || user.username || user.email}
+                                <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                                  <Mail size={12} className="opacity-70" /> {user.email}
                                 </div>
                               </div>
                             </div>
                           </td>
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-1 text-gray-700">
-                              <Mail size={14} className="text-gray-400" />
-                              <span className="text-xs">{user.email}</span>
-                            </div>
-                            {user.phone && (
-                              <div className="flex items-center gap-1 text-gray-600 mt-1">
-                                <Phone size={14} className="text-gray-400" />
-                                <span className="text-xs">{user.phone}</span>
+                          <td className="px-4 py-4">
+                            <div className="flex flex-col gap-1">
+                              <span className={`w-fit px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border shadow-sm ${user.role === 'SUPER_ADMIN' ? 'bg-red-50 text-red-700 border-red-100' :
+                                user.role === 'ADMIN' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                                  user.role === 'PARENT' ? 'bg-green-50 text-green-700 border-green-100' :
+                                    'bg-blue-50 text-blue-700 border-blue-100'
+                                }`}>
+                                {getRoleLabel(user.role)}
+                              </span>
+                              <div className="flex items-center gap-1 text-[10px] text-gray-400 font-medium">
+                                <Clock size={10} /> Active {formatDate(user.lastLogin)}
                               </div>
-                            )}
+                            </div>
                           </td>
-                          <td className="px-3 py-2">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold bg-${getRoleColor(user.role)}-100 text-${getRoleColor(user.role)}-800`}>
-                              {getRoleLabel(user.role)}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${user.status === 'ACTIVE' && !user.archived
-                                ? 'bg-green-100 text-green-800'
-                                : user.archived
-                                  ? 'bg-gray-100 text-gray-800'
-                                  : 'bg-red-100 text-red-800'
+                          <td className="px-4 py-4">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${user.archived ? 'bg-gray-100 text-gray-400' :
+                              user.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' :
+                                'bg-amber-100 text-amber-700'
                               }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${user.archived ? 'bg-gray-300' :
+                                user.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' :
+                                  'bg-amber-500'
+                                }`}></span>
                               {user.archived ? 'Archived' : user.status}
                             </span>
                           </td>
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-1 text-gray-600">
-                              <Clock size={14} className="text-gray-400" />
-                              <span className="text-xs">{formatDate(user.lastLogin)}</span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-2">
-                            <div className="flex gap-1">
-                              <button
-                                onClick={() => handleEdit(user)}
-                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                                title="Edit"
-                              >
+                          <td className="px-4 py-4">
+                            <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => handleEdit(user)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition" title="Edit Profile">
                                 <Edit size={16} />
                               </button>
                               {user.phone && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      const whatsappUrl = `https://wa.me/${user.phone.replace(/\D/g, '')}`;
-                                      window.open(whatsappUrl, '_blank');
-                                    }}
-                                    className="p-1.5 text-green-600 hover:bg-green-50 rounded"
-                                    title="Send WhatsApp"
-                                  >
-                                    <MessageCircle size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      const smsUrl = `sms:${user.phone}`;
-                                      window.location.href = smsUrl;
-                                    }}
-                                    className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
-                                    title="Send SMS"
-                                  >
-                                    <Send size={16} />
-                                  </button>
-                                </>
-                              )}
-                              {user.archived ? (
                                 <button
-                                  onClick={() => handleUnarchive(user.id)}
-                                  className="p-1.5 text-green-600 hover:bg-green-50 rounded"
-                                  title="Restore"
+                                  onClick={() => window.open(`https://wa.me/${user.phone.replace(/\D/g, '')}`, '_blank')}
+                                  className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg transition"
+                                  title="WhatsApp"
                                 >
-                                  <ArchiveRestore size={16} />
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleArchive(user.id)}
-                                  className="p-1.5 text-orange-600 hover:bg-orange-50 rounded"
-                                  title="Archive"
-                                >
-                                  <Archive size={16} />
+                                  <MessageCircle size={16} />
                                 </button>
                               )}
                               <button
-                                onClick={() => handleDelete(user.id)}
-                                className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                                title="Delete"
+                                onClick={() => user.archived ? handleUnarchive(user.id) : handleArchive(user.id)}
+                                className={`p-2 rounded-lg transition ${user.archived ? 'text-emerald-600 hover:bg-emerald-100' : 'text-orange-600 hover:bg-orange-100'}`}
+                                title={user.archived ? "Restore" : "Archive"}
                               >
+                                {user.archived ? <ArchiveRestore size={16} /> : <Archive size={16} />}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setResetTargetUser(user);
+                                  setShowResetModal(true);
+                                }}
+                                className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition"
+                                title="Reset Password"
+                              >
+                                <Key size={16} />
+                              </button>
+                              <button onClick={() => handleDelete(user.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition" title="Delete Permanent">
                                 <Trash2 size={16} />
                               </button>
                             </div>
@@ -830,11 +699,11 @@ const UserManagement = () => {
                 </div>
               )}
             </div>
-          </>
+          </div>
         )}
 
-        {/* ROLES & PERMISSIONS TAB */}
-        {activeTab === 'roles' && (
+        {/* ROLES & PERMISSIONS VIEW */}
+        {viewMode === 'config' && (
           <div className="space-y-6">
             {/* Role Overview Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -965,8 +834,8 @@ const UserManagement = () => {
           </div>
         )}
 
-        {/* ACTIVITY LOG TAB */}
-        {activeTab === 'activity' && (
+        {/* ACTIVITY LOG VIEW */}
+        {viewMode === 'logs' && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -1226,6 +1095,19 @@ const UserManagement = () => {
             </div>
           </div>
         )}
+
+        <ResetPasswordModal
+          isOpen={showResetModal}
+          onClose={() => {
+            setShowResetModal(false);
+            setResetTargetUser(null);
+          }}
+          user={resetTargetUser}
+          onResetSuccess={(msg) => {
+            showNotification(msg);
+            addActivityLog('PASSWORD_RESET', `Password reset for ${resetTargetUser?.firstName} ${resetTargetUser?.lastName}`);
+          }}
+        />
       </div>
     </div>
   );

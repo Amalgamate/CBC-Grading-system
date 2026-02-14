@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
-  Save, Search, Loader, ArrowLeft, Lock, Printer, UploadCloud, Database
+  Save, Search, Loader, ArrowLeft, Lock, Printer, UploadCloud, Database, ChevronRight
 } from 'lucide-react';
 import VirtualizedTable from '../shared/VirtualizedTable';
 import { assessmentAPI, gradingAPI, classAPI, configAPI, learnerAPI } from '../../../services/api';
@@ -100,7 +100,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
       if (schoolId) {
         const streamsResp = await configAPI.getStreamConfigs(schoolId);
         const streamsArr = (streamsResp && streamsResp.data) ? streamsResp.data : [];
-        const streamNames = streamsArr.filter(s => s.active).map(s => s.name);
+        const streamNames = streamsArr.filter(s => s.active !== false).map(s => s.name);
         setAvailableStreams(streamNames);
       } else {
         setAvailableStreams([]);
@@ -207,10 +207,27 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
           }
 
           if (!scale) {
-            scale = systems.find(s =>
-              String(s.name).includes(String(test.grade)) &&
-              String(s.name).includes(String(test.learningArea))
-            );
+            const normalizedGrade = String(test.grade || '').replace(/\s+/g, '_').toUpperCase();
+            const normalizedArea = String(test.learningArea || '').toUpperCase().trim();
+
+            scale = systems.find(s => {
+              const systemName = String(s.name).toUpperCase();
+              const hasGrade = systemName.includes(normalizedGrade);
+
+              if (!hasGrade) return false;
+
+              // 1. Direct match (e.g. "PP2 - MATHEMATICAL ACTIVITIES" contains "MATHEMATICAL ACTIVITIES")
+              if (systemName.includes(normalizedArea)) return true;
+
+              // 2. Fuzzy matching for common terms
+              if (normalizedArea.includes('MATHEMATIC') && systemName.includes('MATHEMATIC')) return true;
+              if (normalizedArea.includes('LANGUAGE') && systemName.includes('LANGUAGE')) return true;
+              if (normalizedArea.includes('ENVIRONMENTAL') && systemName.includes('ENVIRONMENTAL')) return true;
+              if (normalizedArea.includes('CREATIVE') && systemName.includes('CREATIVE')) return true;
+              if (normalizedArea.includes('RELIGIOUS') && systemName.includes('RELIGIOUS')) return true;
+
+              return false;
+            });
           }
 
           if (scale && scale.ranges) {
@@ -523,7 +540,7 @@ Are you sure you want to unlock this test?`;
         phone: user?.school?.phone || 'Phone Number',
         email: user?.school?.email || 'email@school.com',
         website: user?.school?.website || 'www.school.com',
-        logoUrl: user?.school?.logo || '/logo-zawadi.png',
+        logoUrl: user?.school?.logo || '/logo-elimcrown.png',
         brandColor: '#1e3a8a'
       };
 
@@ -797,125 +814,141 @@ Are you sure you want to unlock this test?`;
   // Render Step 2: Assess
   return (
     <div className="space-y-6">
-      {/* Warning Banner for Locked Tests */}
-      {isTestLocked && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
-          <div className="flex items-center gap-2">
-            <Lock className="text-yellow-600" size={20} />
-            <p className="text-yellow-800 font-medium">
-              ⚠️ This test is locked. Marks cannot be modified. If you need to make changes, please contact an administrator.
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Sticky Premium Header */}
+      {/* Sticky Premium Header */}
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-8 py-4 shadow-sm -mx-8 -mt-8 mb-8 flex gap-4">
+        {/* Back Button */}
+        <button
+          onClick={() => setStep(1)}
+          className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-400 hover:text-gray-900 self-start -ml-2"
+        >
+          <ArrowLeft size={20} />
+        </button>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setStep(1)}
-            className="p-2 hover:bg-gray-100 rounded-full transition"
-          >
-            <ArrowLeft size={24} className="text-gray-600" />
-          </button>
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">Summative Assessment</h2>
-            {/* Progress Indicator */}
-            <div className="flex items-center gap-3 mt-1">
-              <span className="text-sm text-gray-600 font-medium">
-                Progress: {assessmentProgress.assessed}/{assessmentProgress.total}
-              </span>
-              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${assessmentProgress.percentage === 100
-                ? 'bg-brand-teal/10 text-brand-teal'
-                : assessmentProgress.percentage >= 50
-                  ? 'bg-brand-purple/10 text-brand-purple'
-                  : 'bg-orange-100 text-orange-700'
+        <div className="flex-1">
+          {/* Top Row: Context & Helper */}
+          <div className="flex items-center justify-between mb-1 h-6">
+            <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
+              <span>Assessment</span>
+              <ChevronRight size={10} className="text-gray-300" />
+              <span className="capitalize">{setup.selectedGrade?.replace(/_/g, ' ').toLowerCase()}</span>
+              <ChevronRight size={10} className="text-gray-300" />
+              <span className="capitalize">{setup.selectedTerm?.replace(/_/g, ' ').toLowerCase()}</span>
+            </div>
+
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                alert("Standard CBC Headers Required:\n- Mathematical Activities\n- Language Activities\n- Literacy & Reading\n- Environmental Activities\n- Creative Activities\n- Religious Education\n\nPlease ensure your Excel headers match these exactly.");
+              }}
+              className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Template Guide
+            </a>
+          </div>
+
+          {/* Bottom Row: Title & Actions */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-bold text-gray-800 leading-none">
+                {selectedTest?.title || selectedTest?.name}
+              </h2>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wide border ${assessmentProgress.percentage === 100
+                ? 'bg-green-50 text-green-700 border-green-200'
+                : 'bg-blue-50 text-blue-700 border-blue-200'
                 }`}>
-                {assessmentProgress.percentage}%
+                {assessmentProgress.percentage}% Complete
               </span>
-              {assessmentProgress.isComplete && (
-                <span className="text-green-600 font-semibold text-sm flex items-center gap-1">
-                  ✅ Complete
+              {isTestLocked && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200 flex items-center gap-1">
+                  <Lock size={10} /> Locked
                 </span>
               )}
               {isDraft && (
-                <span className="text-[10px] text-gray-500 italic flex items-center gap-1 ml-2">
+                <span className="text-[10px] text-gray-400 font-medium italic flex items-center gap-1.5 ml-1">
                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                  Draft Saved {lastSaved && `at ${lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                  Saved {lastSaved && `at ${lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                 </span>
               )}
             </div>
-          </div>
-        </div>
 
-        {/* Test Name Header Badge - Centered between title and buttons */}
-        <div className="hidden lg:flex items-center">
-          <div className="flex flex-col items-center border border-brand-purple/20 bg-brand-purple/5 px-4 py-2 rounded-lg shadow-sm">
-            <span className="text-[10px] font-black text-brand-purple uppercase tracking-widest leading-none mb-1">Active Test</span>
-            <span className="text-xs font-black text-brand-purple uppercase tracking-tighter leading-none">
-              {selectedTest?.title || selectedTest?.name}
-            </span>
-          </div>
-        </div>
+            {/* Actions */}
+            <div className="flex items-center">
+              <button
+                onClick={() => setShowPDFPreview(true)}
+                disabled={generatingPDF || filteredLearners.length === 0}
+                className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Preview
+              </button>
 
-        <div className="flex items-center gap-3">
-          {/* Print Report Button */}
-          <button
-            onClick={() => setShowPDFPreview(true)}
-            disabled={generatingPDF || filteredLearners.length === 0}
-            className="flex items-center gap-2 px-6 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Printer size={18} />
-            Preview & Print
-          </button>
-          {/* Import Marks Button */}
-          <button
-            onClick={() => setShowBulkImportModal(true)}
-            disabled={isTestLocked || !selectedTestId || loading || loadingLearners}
-            className="flex items-center gap-2 px-6 py-2 bg-brand-purple text-white rounded-lg hover:bg-brand-purple/90 transition font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <UploadCloud size={18} />
-            Import Marks
-          </button>
-          {/* Lock Test Button - Only shows at 100% and when unlocked */}
-          {assessmentProgress.isComplete && !isTestLocked && (
-            <button
-              onClick={handleLockTest}
-              disabled={lockingTest}
-              className="flex items-center gap-2 px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition font-semibold disabled:opacity-50"
-            >
-              {lockingTest ? <Loader className="animate-spin" size={18} /> : <Lock size={18} />}
-              Lock Test
-            </button>
-          )}
-          {/* Unlock Test Button - Only shows when locked and for authorized roles */}
-          {isTestLocked && (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'HEAD_TEACHER') && (
-            <button
-              onClick={handleUnlockTest}
-              disabled={lockingTest}
-              className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold disabled:opacity-50"
-            >
-              {lockingTest ? <Loader className="animate-spin" size={18} /> : <Lock size={18} />}
-              Unlock Test
-            </button>
-          )}
-          {/* Locked Indicator */}
-          {isTestLocked && (
-            <div className="flex items-center gap-2 px-6 py-2 bg-gray-100 border-2 border-gray-300 rounded-lg">
-              <Lock size={18} className="text-gray-600" />
-              <span className="text-gray-600 font-semibold">Test Locked</span>
+              <div className="h-3 w-px bg-gray-200 mx-3" />
+
+              <button
+                onClick={() => setShowBulkImportModal(true)}
+                disabled={isTestLocked || !selectedTestId || loading || loadingLearners}
+                className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Import
+              </button>
+
+              <div className="h-3 w-px bg-gray-200 mx-3" />
+
+              {assessmentProgress.isComplete && !isTestLocked && (
+                <>
+                  <button
+                    onClick={handleLockTest}
+                    disabled={lockingTest}
+                    className="text-sm font-medium text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50"
+                  >
+                    {lockingTest ? 'Locking...' : 'Lock'}
+                  </button>
+                  <div className="h-3 w-px bg-gray-200 mx-3" />
+                </>
+              )}
+
+              {isTestLocked && (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'HEAD_TEACHER') && (
+                <>
+                  <button
+                    onClick={handleUnlockTest}
+                    disabled={lockingTest}
+                    className="text-sm font-medium text-gray-500 hover:text-green-600 transition-colors disabled:opacity-50"
+                  >
+                    {lockingTest ? 'Unlocking...' : 'Unlock'}
+                  </button>
+                  <div className="h-3 w-px bg-gray-200 mx-3" />
+                </>
+              )}
+
+              <button
+                onClick={() => handleSave()}
+                disabled={loading || isTestLocked}
+                className="text-sm font-bold text-[#0D9488] hover:text-[#0f766e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Saving...' : 'Save'}
+              </button>
             </div>
-          )}
-          {/* Save Button */}
-          <button
-            onClick={() => handleSave()}
-            disabled={loading || isTestLocked}
-            className="flex items-center gap-2 px-6 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? <Loader className="animate-spin" size={18} /> : <Save size={18} />}
-            Save Results
-          </button>
+          </div>
         </div>
       </div>
+
+      {/* Warning Banner for Locked Tests - Moved below header */}
+      {isTestLocked && (
+        <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-md mx-1 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-orange-100 rounded-full">
+              <Lock className="text-orange-600" size={16} />
+            </div>
+            <div>
+              <p className="text-orange-900 font-bold text-sm">Assessment Locked</p>
+              <p className="text-orange-800 text-xs mt-0.5">
+                Marks cannot be modified. Contact an administrator to unlock.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PDF Export Content Wrapper */}
       <div id="assessment-report-content" className="bg-white">
@@ -1188,10 +1221,10 @@ Are you sure you want to unlock this test?`;
             header={
               <tr className="bg-brand-purple text-white">
                 <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-10 border-r border-brand-purple/20">No</th>
-                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-20 border-r border-brand-purple/20">Adm No</th>
-                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide border-r border-brand-purple/20">Student Name</th>
+                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-32 border-r border-brand-purple/20">Adm No</th>
+                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide border-r border-brand-purple/20 w-1/3">Student Name</th>
                 <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide text-center w-20 border-r border-brand-purple/20">Score</th>
-                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide w-72">Performance Descriptor</th>
+                <th className="px-3 py-2 text-[9px] font-bold uppercase tracking-wide">Performance Descriptor</th>
               </tr>
             }
             renderRow={(learner, index) => {

@@ -11,14 +11,14 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
   const { showSuccess, showError } = useNotifications();
 
   const [localSettings, setLocalSettings] = useState({
-    welcomeTitle: brandingSettings?.welcomeTitle || 'Welcome to EDucore V1',
+    welcomeTitle: brandingSettings?.welcomeTitle || 'Welcome to Elimcrown',
     welcomeMessage: brandingSettings?.welcomeMessage || 'Empowering education through innovative learning management.',
     onboardingTitle: brandingSettings?.onboardingTitle || 'Join Our Community',
     onboardingMessage: brandingSettings?.onboardingMessage || 'Start your journey with us today. Create an account to access powerful tools for managing learning and assessment with ease.',
     brandColor: brandingSettings?.brandColor || '#1e3a8a',
-    logoUrl: brandingSettings?.logoUrl || '/logo-educore.png',
+    logoUrl: brandingSettings?.logoUrl || '/logo-elimcrown.png',
     faviconUrl: brandingSettings?.faviconUrl || '/favicon.png',
-    schoolName: brandingSettings?.schoolName || 'EDucore V1'
+    schoolName: brandingSettings?.schoolName || 'Elimcrown'
   });
 
   const [logoPreview, setLogoPreview] = useState(localSettings.logoUrl);
@@ -27,16 +27,16 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
   // Sync with parent branding settings
   useEffect(() => {
     setLocalSettings({
-      welcomeTitle: brandingSettings?.welcomeTitle || 'Welcome to EDucore V1',
+      welcomeTitle: brandingSettings?.welcomeTitle || 'Welcome to Elimcrown',
       welcomeMessage: brandingSettings?.welcomeMessage || 'Empowering education through innovative learning management.',
       onboardingTitle: brandingSettings?.onboardingTitle || 'Join Our Community',
       onboardingMessage: brandingSettings?.onboardingMessage || 'Start your journey with us today. Create an account to access powerful tools for managing learning and assessment with ease.',
       brandColor: brandingSettings?.brandColor || '#1e3a8a',
-      logoUrl: brandingSettings?.logoUrl || '/logo-educore.png',
+      logoUrl: brandingSettings?.logoUrl || '/logo-elimcrown.png',
       faviconUrl: brandingSettings?.faviconUrl || '/favicon.png',
-      schoolName: brandingSettings?.schoolName || 'EDucore V1'
+      schoolName: brandingSettings?.schoolName || 'Elimcrown'
     });
-    setLogoPreview(brandingSettings?.logoUrl || '/logo-educore.png');
+    setLogoPreview(brandingSettings?.logoUrl || '/logo-elimcrown.png');
     setFaviconPreview(brandingSettings?.faviconUrl || '/favicon.png');
   }, [brandingSettings]);
 
@@ -104,14 +104,14 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
 
   const handleReset = () => {
     const defaultSettings = {
-      welcomeTitle: 'Welcome to EDucore V1',
+      welcomeTitle: 'Welcome to Elimcrown',
       welcomeMessage: 'Empowering education through innovative learning management.',
       onboardingTitle: 'Join Our Community',
       onboardingMessage: 'Start your journey with us today. Create an account to access powerful tools for managing learning and assessment with ease.',
       brandColor: '#1e3a8a',
-      logoUrl: '/logo-educore.png',
+      logoUrl: '/logo-elimcrown.png',
       faviconUrl: '/favicon.png',
-      schoolName: 'EDucore V1'
+      schoolName: 'Elimcrown'
     };
 
     setLocalSettings(defaultSettings);
@@ -196,7 +196,7 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
                   alt="Logo Preview"
                   className="w-32 h-32 object-contain mx-auto mb-3"
                   onError={(e) => {
-                    e.target.src = '/logo-educore.png';
+                    e.target.src = '/logo-elimcrown.png';
                   }}
                 />
                 <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
@@ -263,7 +263,7 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
                     value={localSettings.welcomeTitle}
                     onChange={(e) => handleChange('welcomeTitle', e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                    placeholder="e.g., Welcome to EDucore Academy"
+                    placeholder="e.g., Welcome to Elimcrown Academy"
                   />
                 </div>
 
@@ -339,7 +339,7 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
                   alt="Logo"
                   className="w-24 h-24 object-contain mx-auto mb-4"
                   onError={(e) => {
-                    e.target.src = '/logo-educore.png';
+                    e.target.src = '/logo-elimcrown.png';
                   }}
                 />
                 <h3 className="text-xl font-bold mb-2">{localSettings.welcomeTitle}</h3>
@@ -366,7 +366,7 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
                   alt="Logo"
                   className="w-24 h-24 object-contain mx-auto mb-4"
                   onError={(e) => {
-                    e.target.src = '/logo-educore.png';
+                    e.target.src = '/logo-elimcrown.png';
                   }}
                 />
                 <h3 className="text-xl font-bold mb-2">{localSettings.onboardingTitle}</h3>

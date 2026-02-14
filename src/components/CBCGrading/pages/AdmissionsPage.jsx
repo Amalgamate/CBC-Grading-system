@@ -7,7 +7,8 @@ import React, { useState, useEffect } from 'react';
 import { Save, X, ArrowRight, ArrowLeft, CheckCircle, User, Users as UsersIcon, Heart } from 'lucide-react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useAuth } from '../../../hooks/useAuth';
-import { configAPI } from '../../../services/api';
+import { configAPI, schoolAPI } from '../../../services/api';
+import ParentGuardianStep from './steps/ParentGuardianStep';
 
 const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
   const { showSuccess, showError } = useNotifications();
@@ -15,8 +16,11 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
   const isEdit = !!learner;
   const [currentStep, setCurrentStep] = useState(1);
   const [availableStreams, setAvailableStreams] = useState([]);
+  const [availableGrades, setAvailableGrades] = useState([]);
   const [isDraft, setIsDraft] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [stepErrors, setStepErrors] = useState({}); // Track validation errors per step
 
   // Fetch streams
   useEffect(() => {
@@ -25,7 +29,7 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
         try {
           const resp = await configAPI.getStreamConfigs(user.schoolId);
           const arr = resp?.data || [];
-          setAvailableStreams(arr.filter(s => s.active));
+          setAvailableStreams(arr.filter(s => s.active !== false));
         } catch (error) {
           console.error('Failed to fetch streams:', error);
         }
@@ -34,17 +38,39 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
     fetchStreams();
   }, [user?.schoolId]);
 
-  const initialFormData = {
-    firstName: '', middleName: '', lastName: '', gender: 'MALE', dateOfBirth: '', birthCertNo: '',
-    nationality: 'Kenyan', religion: 'Christianity', admissionNumber: '', grade: 'GRADE_1', stream: 'A',
-    dateOfAdmission: new Date().toISOString().split('T')[0], previousSchool: '', previousClass: '',
-    guardianName: '', guardian1Relationship: 'Father', guardianPhone: '', guardianEmail: '',
-    guardian1IdNumber: '', guardian1Occupation: '', guardian1Employer: '', guardian1Address: '',
-    guardian2Name: '', guardian2Relationship: 'Mother', guardian2Phone: '', guardian2Email: '',
-    guardian2IdNumber: '', guardian2Occupation: '', bloodGroup: '', allergies: '', medicalConditions: '',
-    doctorName: '', doctorPhone: '', transport: 'Walking', specialNeeds: '', photo: null,
+  // Fetch grades
+  useEffect(() => {
+    const fetchGrades = async () => {
+      try {
+        const resp = await configAPI.getGrades();
+        const grades = resp?.data || [];
+        setAvailableGrades(grades);
+      } catch (error) {
+        console.error('Failed to fetch grades:', error);
+      }
+    };
+    fetchGrades();
+  }, []);
+
+  const initialFormData = React.useMemo(() => {
+    const now = new Date();
+    const iso = now.toISOString();
+    const dateTimeLocal = iso.slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+    return {
+    firstName: '', middleName: '', lastName: '', gender: '', dateOfBirth: '',
+    nationality: '', religion: '', admissionNumber: '', grade: '', stream: '',
+    dateOfAdmission: dateTimeLocal, previousSchool: '', previousClass: '',
+    // Parent/Guardian Information (New Hierarchical System)
+    fatherName: '', fatherPhone: '', fatherEmail: '', fatherDeceased: false,
+    motherName: '', motherPhone: '', motherEmail: '', motherDeceased: false,
+    guardianName: '', guardianPhone: '', guardianEmail: '', guardianRelation: '',
+    primaryContactType: '', primaryContactName: '', primaryContactPhone: '', primaryContactEmail: '',
+    // Medical & Emergency
+    bloodGroup: '', allergies: '', medicalConditions: '',
+    doctorName: '', doctorPhone: '', specialNeeds: '', photo: null,
     emergencyContact: '', emergencyPhone: ''
-  };
+    };
+  }, []);
 
   const [formData, setFormData] = useState(initialFormData);
 
@@ -57,6 +83,10 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
         dateOfBirth: learner.dateOfBirth ? (typeof learner.dateOfBirth === 'string' ? learner.dateOfBirth.split('T')[0] : new Date(learner.dateOfBirth).toISOString().split('T')[0]) : '',
         dateOfAdmission: learner.admissionDate ? (typeof learner.admissionDate === 'string' ? learner.admissionDate.split('T')[0] : new Date(learner.admissionDate).toISOString().split('T')[0]) : initialFormData.dateOfAdmission,
       });
+      // Set photo preview if exists
+      if (learner.photo) {
+        setPhotoPreview(learner.photo);
+      }
     } else {
       const savedDraft = localStorage.getItem('admission-form-draft');
       if (savedDraft) {
@@ -71,7 +101,37 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
         }
       }
     }
-  }, [learner, initialFormData, showSuccess]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [learner]);
+
+  // Fetch Next Admission Number Preview (only for new admissions)
+  useEffect(() => {
+    const fetchAdmPreview = async () => {
+      if (user?.schoolId && !isEdit) {
+        try {
+          const academicYear = new Date().getFullYear();
+          const resp = await schoolAPI.getAdmissionNumberPreview(user.schoolId, academicYear);
+
+          if (resp?.data?.previews?.length > 0) {
+            // Find preview for current branch if possible, otherwise use first one
+            const branchPreview = resp.data.previews.find(p => p.branchId === user.branchId) || resp.data.previews[0];
+            const nextAdm = branchPreview.nextAdmissionNumber;
+
+            if (nextAdm) {
+              setFormData(prev => ({
+                ...prev,
+                admissionNumber: nextAdm
+              }));
+              console.log('📡 Fetched next admission number:', nextAdm);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch admission preview:', error);
+        }
+      }
+    };
+    fetchAdmPreview();
+  }, [user?.schoolId, user?.branchId, isEdit]);
 
   // Debounced auto-save to localStorage
   useEffect(() => {
@@ -92,45 +152,266 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    // Clear error for this field if it becomes valid
+    if (stepErrors[name]) {
+      const newErrors = { ...stepErrors };
+      
+      // Check if field is now valid based on current step
+      if (currentStep === 1) {
+        if (name === 'firstName' && value.trim()) {
+          delete newErrors.firstName;
+        } else if (name === 'lastName' && value.trim()) {
+          delete newErrors.lastName;
+        } else if (name === 'gender' && value) {
+          delete newErrors.gender;
+        } else if (name === 'dateOfBirth' && value) {
+          delete newErrors.dateOfBirth;
+        } else if (name === 'grade' && value) {
+          delete newErrors.grade;
+        }
+      }
+      
+      setStepErrors(newErrors);
+    }
   };
 
-  const handleNext = () => { if (currentStep < 4) setCurrentStep(currentStep + 1); };
-  const handlePrevious = () => { if (currentStep > 1) setCurrentStep(currentStep - 1); };
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        showError('Please select a valid image file');
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        showError('Image size should be less than 5MB');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result;
+        setFormData(prev => ({ ...prev, photo: base64String }));
+        setPhotoPreview(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setFormData(prev => ({ ...prev, photo: null }));
+    setPhotoPreview(null);
+  };
+
+  // Camera capture functions
+  // Age validation function
+  const validateAge = (dateOfBirth, grade) => {
+    if (!dateOfBirth || !grade) return { valid: true };
+
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    const ageInYears = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    const dayDiff = today.getDate() - birthDate.getDate();
+
+    // Adjust age if birthday hasn't occurred this year
+    let actualAge = ageInYears;
+    if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+      actualAge--;
+    }
+
+    // Minimum age requirements (Kenya CBC system)
+    const minAges = {
+      'PP1': 4,
+      'PP2': 5,
+      'GRADE_1': 6,
+      'GRADE_2': 7,
+      'GRADE_3': 8,
+      'GRADE_4': 9,
+      'GRADE_5': 10,
+      'GRADE_6': 11,
+      'GRADE_7': 12
+    };
+
+    const requiredAge = minAges[grade];
+    if (requiredAge && actualAge < requiredAge) {
+      return {
+        valid: false,
+        message: `Student is ${actualAge} years old. Minimum age for ${grade.replace('_', ' ').replace('GRADE', 'Grade')} is ${requiredAge} years.`,
+        actualAge,
+        requiredAge
+      };
+    }
+
+    return { valid: true, actualAge };
+  };
+
+  // Validation function for each step
+  const validateStep = (step) => {
+    const errors = {};
+
+    if (step === 1) {
+      // Step 1: Student Information validation
+      if (!formData.firstName?.trim()) errors.firstName = 'First name is required';
+      if (!formData.lastName?.trim()) errors.lastName = 'Last name is required';
+      if (!formData.gender) errors.gender = 'Gender is required';
+      if (!formData.dateOfBirth) errors.dateOfBirth = 'Date of birth is required';
+      if (!formData.grade) errors.grade = 'Grade is required';
+      
+      // Validate age requirements on step 1
+      if (formData.dateOfBirth && formData.grade) {
+        const ageValidation = validateAge(formData.dateOfBirth, formData.grade);
+        if (!ageValidation.valid) {
+          errors.dateOfBirth = `⚠️ ${ageValidation.message}`;
+        }
+      }
+      // Stream is now optional
+    } else if (step === 2) {
+      // Step 2: Parent/Guardian validation - at least one parent with phone
+      const hasFatherPhone = formData.fatherPhone?.trim();
+      const hasMotherPhone = formData.motherPhone?.trim();
+      const hasGuardianPhone = formData.guardianPhone?.trim();
+      
+      if (!hasFatherPhone && !hasMotherPhone && !hasGuardianPhone) {
+        errors.parentPhone = 'Please provide at least one parent/guardian with a phone number';
+      }
+    }
+    // Step 3 (Medical) has no required fields
+    // Step 4 (Review) has no required fields
+
+    setStepErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Clear parentPhone error when any parent/guardian phone is filled
+  React.useEffect(() => {
+    if (stepErrors.parentPhone) {
+      const hasFatherPhone = formData.fatherPhone?.trim();
+      const hasMotherPhone = formData.motherPhone?.trim();
+      const hasGuardianPhone = formData.guardianPhone?.trim();
+      
+      if (hasFatherPhone || hasMotherPhone || hasGuardianPhone) {
+        setStepErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.parentPhone;
+          return newErrors;
+        });
+      }
+    }
+  }, [formData.fatherPhone, formData.motherPhone, formData.guardianPhone, stepErrors.parentPhone]);
+
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      if (currentStep < 4) {
+        setStepErrors({}); // Clear errors when moving to next step
+        setCurrentStep(currentStep + 1);
+      }
+    } else {
+      showError('Please fill in all required fields');
+    }
+  };
+  const handlePrevious = () => { 
+    if (currentStep > 1) {
+      setStepErrors({}); // Clear errors when moving to previous step
+      setCurrentStep(currentStep - 1); 
+    }
+  };
+
+  // Helper: Compute primary contact based on parent hierarchy
+  const computePrimaryContact = (data) => {
+    if (!data.fatherDeceased && data.fatherName && data.fatherPhone) {
+      return {
+        primaryContactType: 'FATHER',
+        primaryContactName: data.fatherName,
+        primaryContactPhone: data.fatherPhone,
+        primaryContactEmail: data.fatherEmail || ''
+      };
+    } else if (!data.motherDeceased && data.motherName && data.motherPhone) {
+      return {
+        primaryContactType: 'MOTHER',
+        primaryContactName: data.motherName,
+        primaryContactPhone: data.motherPhone,
+        primaryContactEmail: data.motherEmail || ''
+      };
+    } else if (data.guardianName && data.guardianPhone) {
+      return {
+        primaryContactType: 'GUARDIAN',
+        primaryContactName: data.guardianName,
+        primaryContactPhone: data.guardianPhone,
+        primaryContactEmail: data.guardianEmail || ''
+      };
+    }
+    return {
+      primaryContactType: null,
+      primaryContactName: '',
+      primaryContactPhone: '',
+      primaryContactEmail: ''
+    };
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('📝 Form submission started...');
+    
     if (!formData.firstName || !formData.lastName || !formData.gender || !formData.dateOfBirth) {
       showError('Please fill in all required fields'); setCurrentStep(1); return;
     }
-    if (!formData.guardianName || !formData.guardianPhone) {
-      showError('Please fill in Guardian 1 information'); setCurrentStep(2); return;
+
+    // Validate that at least one parent/guardian is provided with phone
+    const primaryContact = computePrimaryContact(formData);
+    if (!primaryContact.primaryContactPhone) {
+      showError('Please provide at least one parent/guardian with a phone number'); setCurrentStep(2); return;
     }
+
+    // Append computed primary contact to form data before saving
+    const finalFormData = {
+      ...formData,
+      ...primaryContact
+    };
+
+    console.log('📤 Submitting form data:', finalFormData);
 
     // Success logic managed by onSave handler
     if (onSave) {
-      const result = await onSave(formData);
-      if (result) {
+      const result = await onSave(finalFormData);
+      console.log('📥 Save result:', result);
+      
+      if (result?.success) {
+        console.log('✅ Save successful, showing success message...');
+        showSuccess('Student admission successful!');
+
         localStorage.removeItem('admission-form-draft');
         if (!isEdit) {
-          setFormData(initialFormData);
+          // Clear form with fresh datetime
+          const now = new Date();
+          const iso = now.toISOString();
+          const dateTimeLocal = iso.slice(0, 16);
+          const clearedForm = { ...initialFormData, dateOfAdmission: dateTimeLocal };
+          setFormData(clearedForm);
           setIsDraft(false);
           setLastSaved(null);
           setCurrentStep(1);
         }
         if (onCancel) onCancel(); // Go back to list
+      } else {
+        console.log('❌ Save failed:', result?.error);
+        showError('Failed to create student: ' + (result?.error || 'Unknown error'));
       }
     }
   };
 
   const steps = [
-    { number: 1, title: 'Personal Info', icon: User },
+    { number: 1, title: 'Students Info', icon: User },
     { number: 2, title: 'Guardian Info', icon: UsersIcon },
     { number: 3, title: 'Medical Info', icon: Heart },
     { number: 4, title: 'Review', icon: CheckCircle }
   ];
 
   return (
-    <div className="space-y-6 px-2">
+    <div className="space-y-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
       <div className="border-b border-gray-100 pb-4 mb-6 flex justify-between items-end">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">{isEdit ? 'Edit Student Details' : 'Student Admission'}</h2>
@@ -152,7 +433,7 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
         </button>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-4xl mx-auto">
         {/* Progress Steps - More Compact */}
         <div className="flex items-center justify-between bg-gray-50/50 rounded-lg p-3 border border-gray-100">
           {steps.map((step, index) => {
@@ -175,10 +456,10 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* Step 1: Personal Information */}
+          {/* Step 1: Students Information */}
           {currentStep === 1 && (
             <div className="space-y-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">Personal Information</h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Students Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[{ name: 'firstName', label: 'First Name', required: true },
                 { name: 'middleName', label: 'Middle Name', required: false },
@@ -188,27 +469,38 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
                       {field.label} {field.required && <span className="text-red-500">*</span>}
                     </label>
                     <input type="text" name={field.name} value={formData[field.name]} onChange={handleInputChange}
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple transition-all"
+                      className={`w-full px-3 py-2 bg-white border rounded-md text-sm transition-all focus:ring-1 focus:ring-brand-purple ${
+                        stepErrors[field.name] 
+                          ? 'border-red-500 bg-red-50 focus:border-red-500' 
+                          : 'border-gray-200 focus:border-brand-purple'
+                      }`}
                       placeholder={`Enter ${field.label.toLowerCase()}`} required={field.required} />
+                    {stepErrors[field.name] && <p className="text-xs text-red-500 font-semibold mt-1">{stepErrors[field.name]}</p>}
                   </div>
                 ))}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Gender <span className="text-red-500">*</span></label>
-                  <select name="gender" value={formData.gender} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" required>
+                  <select name="gender" value={formData.gender} onChange={handleInputChange} className={`w-full px-3 py-2 bg-white border rounded-md text-sm transition-all focus:ring-1 focus:ring-brand-purple ${
+                    stepErrors.gender 
+                      ? 'border-red-500 bg-red-50 focus:border-red-500' 
+                      : 'border-gray-200 focus:border-brand-purple'
+                  }`} required>
                     <option value="">Select Gender</option>
                     <option value="MALE">Male</option>
                     <option value="FEMALE">Female</option>
                   </select>
+                  {stepErrors.gender && <p className="text-xs text-red-500 font-semibold mt-1">{stepErrors.gender}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Date of Birth <span className="text-red-500">*</span></label>
-                  <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" required />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Birth Certificate No.</label>
-                  <input type="text" name="birthCertNo" value={formData.birthCertNo} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" placeholder="Certificate number" />
+                  <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleInputChange} className={`w-full px-3 py-2 bg-white border rounded-md text-sm transition-all focus:ring-1 focus:ring-brand-purple ${
+                    stepErrors.dateOfBirth 
+                      ? 'border-red-500 bg-red-50 focus:border-red-500' 
+                      : 'border-gray-200 focus:border-brand-purple'
+                  }`} required />
+                  {stepErrors.dateOfBirth && <p className="text-xs text-red-500 font-semibold mt-1">{stepErrors.dateOfBirth}</p>}
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -218,43 +510,97 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Religion</label>
-                  <input type="text" name="religion" value={formData.religion} onChange={handleInputChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple" />
+                  <select name="religion" value={formData.religion} onChange={handleInputChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple bg-white">
+                    <option value="">Select Religion</option>
+                    <option value="Christianity">Christianity</option>
+                    <option value="Islam">Islam</option>
+                    <option value="Hinduism">Hinduism</option>
+                    <option value="Buddhism">Buddhism</option>
+                    <option value="Judaism">Judaism</option>
+                    <option value="Other">Other</option>
+                    <option value="None">None</option>
+                  </select>
                 </div>
               </div>
+
+              {/* Photo Upload */}
+              <div className="border-t pt-6 mt-6">
+                <h4 className="text-lg font-bold text-gray-800 mb-4">Student Photo</h4>
+                <div className="flex items-start gap-6">
+                  {photoPreview ? (
+                    <div className="relative">
+                      <img
+                        src={photoPreview}
+                        alt="Student preview"
+                        className="w-32 h-32 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors shadow-md"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                      <User size={48} className="text-gray-300" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Upload Photo</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-purple"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Accepted formats: JPG, PNG. Max size: 5MB</p>
+                  </div>
+                </div>
+              </div>
+
               <div className="border-t pt-6 mt-6">
                 <h4 className="text-lg font-bold text-gray-800 mb-4">Academic Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Admission Number</label>
-                    <input type="text" name="admissionNumber" value={formData.admissionNumber} onChange={handleInputChange} disabled={isEdit} className={`w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm shadow-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple ${isEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`} placeholder="Auto-generated" />
+                    <input
+                      type="text"
+                      name="admissionNumber"
+                      value={formData.admissionNumber}
+                      onChange={handleInputChange}
+                      disabled={true}
+                      className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-md text-sm shadow-sm cursor-not-allowed font-mono font-bold text-brand-purple"
+                      placeholder="Auto-generating..."
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Grade <span className="text-red-500">*</span></label>
-                    <select name="grade" value={formData.grade} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm shadow-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" required>
-                      {[
-                        { val: 'PP1', label: 'PP1' },
-                        { val: 'PP2', label: 'PP2' },
-                        { val: 'GRADE_1', label: 'Grade 1' },
-                        { val: 'GRADE_2', label: 'Grade 2' },
-                        { val: 'GRADE_3', label: 'Grade 3' },
-                        { val: 'GRADE_4', label: 'Grade 4' },
-                        { val: 'GRADE_5', label: 'Grade 5' },
-                        { val: 'GRADE_6', label: 'Grade 6' },
-                        { val: 'GRADE_7', label: 'Grade 7' }
-                      ].map(g => <option key={g.val} value={g.val}>{g.label}</option>)}
+                    <select name="grade" value={formData.grade} onChange={handleInputChange} className={`w-full px-3 py-2 bg-white border rounded-md text-sm shadow-sm transition-all focus:ring-1 focus:ring-brand-purple ${
+                      stepErrors.grade 
+                        ? 'border-red-500 bg-red-50 focus:border-red-500' 
+                        : 'border-gray-200 focus:border-brand-purple'
+                    }`} required>
+                      <option value="">Select Grade</option>
+                      {availableGrades.map(grade => (
+                        <option key={grade} value={grade}>
+                          {grade.replace('_', ' ').replace('GRADE', 'Grade')}
+                        </option>
+                      ))}
                     </select>
+                    {stepErrors.grade && <p className="text-xs text-red-500 font-semibold mt-1">{stepErrors.grade}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Stream <span className="text-red-500">*</span></label>
-                    <select name="stream" value={formData.stream} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm shadow-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" required>
-                      <option value="">Select Stream</option>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Stream</label>
+                    <select name="stream" value={formData.stream} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm shadow-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple">
+                      <option value="">Select Stream (Optional)</option>
                       {availableStreams.length > 0 ? (
                         availableStreams.map(s => (
                           <option key={s.id} value={s.name}>{s.name}</option>
                         ))
                       ) : (
-                        // Fallback if no streams configured
-                        ['A', 'B', 'C', 'Red', 'Blue', 'Green'].map(s => <option key={s} value={s}>{s}</option>)
+                        <option disabled>No streams configured</option>
                       )}
                     </select>
                   </div>
@@ -262,7 +608,8 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Date of Admission</label>
-                    <input type="date" name="dateOfAdmission" value={formData.dateOfAdmission} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm shadow-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" />
+                    <input type="datetime-local" name="dateOfAdmission" value={formData.dateOfAdmission} disabled={true} className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-md text-sm shadow-sm cursor-not-allowed font-mono text-gray-600" />
+                    <p className="text-xs text-gray-400 mt-1">Auto-captured on save</p>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Previous School</label>
@@ -276,86 +623,19 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
               </div>
             </div>
           )}
-
-          {/* Step 2: Guardian Information */}
+          {/* Step 2: Parent/Guardian Information */}
           {currentStep === 2 && (
-            <div className="space-y-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">Guardian Information</h3>
-              <div className="border-b border-gray-100 pb-4 mb-4">
-                <h4 className="text-sm font-black text-brand-purple uppercase tracking-widest">Primary Guardian</h4>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Full Name <span className="text-red-500">*</span></label>
-                  <input type="text" name="guardianName" value={formData.guardianName} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" required />
+            <>
+              <ParentGuardianStep
+                formData={formData}
+                onChange={setFormData}
+              />
+              {stepErrors.parentPhone && (
+                <div className="mt-6 p-4 bg-red-50 border border-red-300 rounded-lg">
+                  <p className="text-sm font-semibold text-red-700">⚠️ {stepErrors.parentPhone}</p>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Relationship <span className="text-red-500">*</span></label>
-                  <select name="guardian1Relationship" value={formData.guardian1Relationship} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" required>
-                    {['Father', 'Mother', 'Guardian', 'Grandparent', 'Other'].map(r => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Phone Number <span className="text-red-500">*</span></label>
-                  <input type="tel" name="guardianPhone" value={formData.guardianPhone} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" placeholder="Guardian's phone number" required />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Email Address</label>
-                  <input type="email" name="guardianEmail" value={formData.guardianEmail} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">ID Number</label>
-                  <input type="text" name="guardian1IdNumber" value={formData.guardian1IdNumber} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Occupation</label>
-                  <input type="text" name="guardian1Occupation" value={formData.guardian1Occupation} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Employer</label>
-                  <input type="text" name="guardian1Employer" value={formData.guardian1Employer} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Residential Address</label>
-                  <input type="text" name="guardian1Address" value={formData.guardian1Address} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" />
-                </div>
-              </div>
-              <div className="pt-4 mt-4 border-t border-gray-100">
-                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Secondary Guardian</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Full Name</label>
-                    <input type="text" name="guardian2Name" value={formData.guardian2Name} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Relationship</label>
-                    <select name="guardian2Relationship" value={formData.guardian2Relationship} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple">
-                      {['Mother', 'Father', 'Guardian', 'Grandparent', 'Other'].map(r => <option key={r} value={r}>{r}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Phone Number</label>
-                    <input type="tel" name="guardian2Phone" value={formData.guardian2Phone} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Email Address</label>
-                    <input type="email" name="guardian2Email" value={formData.guardian2Email} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">ID Number</label>
-                    <input type="text" name="guardian2IdNumber" value={formData.guardian2IdNumber} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple" />
-                  </div>
-                </div>
-              </div>
-            </div>
+              )}
+            </>
           )}
 
           {/* Step 3: Medical Information */}
@@ -368,12 +648,6 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
                   <select name="bloodGroup" value={formData.bloodGroup} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple">
                     <option value="">Select Blood Group</option>
                     {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-tight mb-1">Transport Mode</label>
-                  <select name="transport" value={formData.transport} onChange={handleInputChange} className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md text-sm focus:border-brand-purple focus:ring-1 focus:ring-brand-purple">
-                    {['Walking', 'Private', 'School Bus', 'Public Transport'].map(t => <option key={t} value={t}>{t === 'Private' ? 'Private Vehicle' : t}</option>)}
                   </select>
                 </div>
               </div>
@@ -422,11 +696,26 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
                   </div>
                 </div>
                 <div className="border border-gray-100 rounded-md p-3 bg-gray-50/30">
-                  <h4 className="text-xs font-bold text-green-600 uppercase tracking-widest mb-2 border-b border-green-50 pb-1">Guardian Info</h4>
+                  <h4 className="text-xs font-bold text-green-600 uppercase tracking-widest mb-2 border-b border-green-50 pb-1">
+                    {(() => {
+                      const pc = computePrimaryContact(formData);
+                      const typeLabel = { 'FATHER': '👨 Father', 'MOTHER': '👩 Mother', 'GUARDIAN': '👤 Guardian' }[pc.primaryContactType] || 'Contact';
+                      return `Primary Guardian (${typeLabel})`;
+                    })()}
+                  </h4>
                   <div className="space-y-2 text-sm">
-                    <p className="flex justify-between"><span className="text-gray-500">Parent:</span> <span className="font-semibold text-gray-800">{formData.guardianName}</span></p>
-                    <p className="flex justify-between"><span className="text-gray-500">Phone:</span> <span className="font-semibold text-gray-800">{formData.guardianPhone}</span></p>
-                    <p className="flex justify-between"><span className="text-gray-500">Email:</span> <span className="font-semibold text-gray-800">{formData.guardianEmail || 'N/A'}</span></p>
+                    <p className="flex justify-between">
+                      <span className="text-gray-500">Contact:</span> 
+                      <span className="font-semibold text-gray-800">{computePrimaryContact(formData).primaryContactName || 'Not specified'}</span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span className="text-gray-500">Phone:</span> 
+                      <span className="font-semibold text-gray-800">{computePrimaryContact(formData).primaryContactPhone || 'N/A'}</span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span className="text-gray-500">Email:</span> 
+                      <span className="font-semibold text-gray-800">{computePrimaryContact(formData).primaryContactEmail || 'N/A'}</span>
+                    </p>
                   </div>
                 </div>
                 <div className="border border-gray-100 rounded-md p-3 bg-gray-50/30">
@@ -434,7 +723,6 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
                   <div className="space-y-2 text-sm">
                     <p className="flex justify-between"><span className="text-gray-500">Blood Group:</span> <span className="font-semibold text-gray-800">{formData.bloodGroup || 'N/A'}</span></p>
                     <p className="flex justify-between"><span className="text-gray-500">Allergies:</span> <span className="font-semibold text-gray-800 truncate max-w-[150px]">{formData.allergies || 'None'}</span></p>
-                    <p className="flex justify-between"><span className="text-gray-500">Transport:</span> <span className="font-semibold text-gray-800">{formData.transport}</span></p>
                   </div>
                 </div>
                 <div className="border border-gray-100 rounded-md p-3 bg-gray-50/30">
@@ -463,7 +751,11 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
                 <X size={16} /> Clear
               </button>
               {currentStep < 4 ? (
-                <button type="button" onClick={handleNext} className="flex items-center gap-2 px-5 py-2.5 bg-brand-teal text-white rounded-md hover:bg-brand-teal/90 transition-all shadow-sm text-sm font-bold">
+                <button type="button" onClick={handleNext} disabled={Object.keys(stepErrors).length > 0} className={`flex items-center gap-2 px-5 py-2.5 rounded-md transition-all shadow-sm text-sm font-bold ${
+                  Object.keys(stepErrors).length > 0
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-brand-teal text-white hover:bg-brand-teal/90'
+                }`}>
                   Next Step <ArrowRight size={16} />
                 </button>
               ) : (
@@ -474,6 +766,7 @@ const AdmissionsPage = ({ onSave, onCancel, learner = null }) => {
             </div>
           </div>
         </form>
+      </div>
       </div>
     </div>
   );

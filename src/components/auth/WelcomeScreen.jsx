@@ -46,7 +46,7 @@ export default function WelcomeScreen({ user, onGetStarted, brandingSettings }) 
 
         {/* Footer */}
         <p className="text-white/40 text-sm mt-12 font-medium tracking-wide">
-          © 2025 {brandingSettings?.schoolName || 'Zawadi JRN Academy'} • CBC Grading System
+          © 2026 {brandingSettings?.schoolName || 'Elimcrown Academy'} • CBC Grading System
         </p>
       </div>
     </div>

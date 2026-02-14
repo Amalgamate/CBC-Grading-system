@@ -111,7 +111,7 @@ export class AuthController {
 
     EmailService.sendWelcomeEmail({
       to: email,
-      schoolName: 'EDucore Platform', // Or fetch school name if we had it handy, but for speed 'EDucore Platform' works or we can make it optional
+      schoolName: 'Elimcrown Platform', // Or fetch school name if we had it handy, but for speed 'Elimcrown Platform' works or we can make it optional
       adminName: `${firstName} ${lastName}`,
       loginUrl,
       schoolId: finalSchoolId || undefined
@@ -355,7 +355,7 @@ export class AuthController {
       await EmailService.sendPasswordReset({
         to: user.email,
         userName: `${user.firstName} ${user.lastName}`,
-        schoolName: user.school?.name || 'EDucore',
+        schoolName: user.school?.name || 'Elimcrown',
         resetLink: resetUrl,
         schoolId: user.schoolId || undefined
       });

@@ -398,16 +398,18 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
 
 
                 {/* Skip OTP Checkbox (Development) */}
-                <label className="flex items-center p-3 bg-orange-50 rounded-lg border border-orange-100 cursor-pointer hover:bg-orange-100 transition-colors">
-                  <input
-                    type="checkbox"
-                    name="skipOTP"
-                    checked={formData.skipOTP}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
-                  />
-                  <span className="ml-3 text-sm text-orange-700 font-semibold">Skip OTP verification (Dev Check)</span>
-                </label>
+                {process.env.NODE_ENV === 'development' && (
+                  <label className="flex items-center p-3 bg-orange-50 rounded-lg border border-orange-100 cursor-pointer hover:bg-orange-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      name="skipOTP"
+                      checked={formData.skipOTP}
+                      onChange={handleChange}
+                      className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                    />
+                    <span className="ml-3 text-sm text-orange-700 font-semibold">Skip OTP verification (Dev Check)</span>
+                  </label>
+                )}
 
                 {/* Submit Button */}
                 <button
@@ -439,15 +441,17 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                     Create an account
                   </button>
                 </p>
-                <div className="mt-4">
-                  <button
-                    type="button"
-                    className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-                    onClick={loginAsSuperAdmin}
-                  >
-                    Login as Super Admin
-                  </button>
-                </div>
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                      onClick={loginAsSuperAdmin}
+                    >
+                      Login as Super Admin
+                    </button>
+                  </div>
+                )}
               </div>
 
 

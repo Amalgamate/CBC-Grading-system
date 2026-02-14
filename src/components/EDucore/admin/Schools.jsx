@@ -266,7 +266,7 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
                   className="w-full border rounded-lg px-3 py-2 text-sm"
                   value={newSchool.schoolName}
                   onChange={(e) => setNewSchool({ ...newSchool, schoolName: e.target.value })}
-                  placeholder="e.g. Zawadi Junior Academy"
+                  placeholder="e.g. Elimcrown Academy"
                 />
               </div>
               <div>

@@ -15,6 +15,7 @@ const router = express.Router();
 // ============================================
 
 router.post('/formative', authenticate, requireTenant, assessmentController.createFormativeAssessment);
+router.post('/formative/bulk', authenticate, requireTenant, assessmentController.recordFormativeResultsBulk);
 
 router.get('/formative', authenticate, requireTenant, assessmentController.getFormativeAssessments);
 
@@ -50,6 +51,13 @@ router.delete('/tests/:id', authenticate, requireTenant, assessmentController.de
 router.post('/summative/results', authenticate, requireTenant, assessmentController.recordSummativeResult);
 
 router.post('/summative/results/bulk', authenticate, requireTenant, assessmentController.recordSummativeResultsBulk);
+
+router.get(
+  '/summative/results/bulk',
+  authenticate,
+  requireTenant,
+  assessmentController.getBulkSummativeResults
+);
 
 router.get(
   '/summative/results/learner/:learnerId',

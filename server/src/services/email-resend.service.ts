@@ -3,6 +3,7 @@ import prisma from '../config/database';
 import { decrypt } from '../utils/encryption.util';
 import { render } from '@react-email/render';
 import * as React from 'react';
+import { COMMUNICATION_CONFIG } from '../config/communication.messages';
 
 // Templates
 import WelcomeEmail from '../templates/emails/WelcomeEmail';
@@ -15,6 +16,7 @@ export interface WelcomeEmailData {
   schoolName: string;
   adminName: string;
   loginUrl: string;
+  tempPassword?: string;
   schoolId?: string;
 }
 
@@ -45,7 +47,7 @@ export interface TicketCreatedEmailData {
 }
 
 export class EmailService {
-  private static defaultFrom = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+  private static defaultFrom = COMMUNICATION_CONFIG.email.fromEmail;
 
   private static getResendClient(apiKey?: string) {
     // Fallback to null if no key is available anywhere
@@ -66,7 +68,7 @@ export class EmailService {
         return {
           apiKey: decrypt(config.emailApiKey),
           from: config.emailFrom || this.defaultFrom,
-          fromName: config.emailFromName || 'EDucore',
+          fromName: config.emailFromName || 'Elimcrown',
           emailTemplates: config.emailTemplates as any
         };
       }
@@ -82,7 +84,7 @@ export class EmailService {
     const config = await this.getSchoolConfig(schoolId);
     const client = this.getResendClient(config?.apiKey);
     const fromEmail = config?.from || this.defaultFrom;
-    const fromName = config?.fromName || 'EDucore';
+    const fromName = config?.fromName || 'Elimcrown';
 
     if (!client) {
       console.warn(`⚠️ Skipped Welcome Email to ${to}: No Resend API Key configured.`);
@@ -95,6 +97,7 @@ export class EmailService {
           schoolName,
           adminName,
           loginUrl,
+          tempPassword: data.tempPassword,
           customHeading: config?.emailTemplates?.welcome?.heading,
           customBody: config?.emailTemplates?.welcome?.body
         })
@@ -103,7 +106,7 @@ export class EmailService {
       const response = await client.emails.send({
         from: fromName ? `${fromName} <${fromEmail}>` : fromEmail,
         to: [to],
-        subject: `Welcome to ${schoolName} on EDucore!`,
+        subject: `Welcome to ${schoolName} on Elimcrown!`,
         html,
       });
 
@@ -123,7 +126,7 @@ export class EmailService {
     const config = await this.getSchoolConfig(schoolId);
     const client = this.getResendClient(config?.apiKey);
     const fromEmail = config?.from || this.defaultFrom;
-    const fromName = config?.fromName || 'EDucore';
+    const fromName = config?.fromName || 'Elimcrown';
 
     if (!client) {
       console.warn(`⚠️ Skipped Onboarding Email to ${to}: No Resend API Key configured.`);
@@ -165,7 +168,7 @@ export class EmailService {
     const config = await this.getSchoolConfig(schoolId);
     const client = this.getResendClient(config?.apiKey);
     const fromEmail = config?.from || this.defaultFrom;
-    const fromName = config?.fromName || 'EDucore';
+    const fromName = config?.fromName || 'Elimcrown';
 
     if (!client) {
       console.warn(`⚠️ Skipped Password Reset Email to ${to}: No Resend API Key configured.`);
@@ -209,7 +212,7 @@ export class EmailService {
 
     // Support Email Destination
     // In production, this should be env var like SUPPORT_EMAIL
-    const toEmail = process.env.SUPPORT_EMAIL || 'support@educore.dev';
+    const toEmail = process.env.SUPPORT_EMAIL || 'support@elimcrown.com';
 
     if (!client) {
       console.warn(`⚠️ Skipped Ticket Notification: No Resend API Key configured.`);
@@ -229,7 +232,7 @@ export class EmailService {
       );
 
       const response = await client.emails.send({
-        from: `EDucore Support <${fromEmail}>`,
+        from: `Elimcrown Support <${fromEmail}>`,
         to: [toEmail],
         subject: `[${data.ticketPriority}] New Ticket: ${data.ticketSubject}`,
         html,

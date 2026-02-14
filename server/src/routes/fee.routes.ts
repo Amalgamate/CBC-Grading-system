@@ -7,10 +7,20 @@ import { Router } from 'express';
 import { FeeController } from '../controllers/fee.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { requireRole, auditLog } from '../middleware/permissions.middleware';
+import { requireTenant } from '../middleware/tenant.middleware';
 import { asyncHandler } from '../utils/async.util';
+
+import feeTypeRoutes from './feeType.routes';
 
 const router = Router();
 const feeController = new FeeController();
+
+router.use(authenticate, requireTenant);
+
+// ============================================
+// FEE TYPE ROUTES
+// ============================================
+router.use('/types', feeTypeRoutes);
 
 // ============================================
 // FEE STRUCTURE ROUTES
@@ -23,7 +33,6 @@ const feeController = new FeeController();
  */
 router.get(
   '/structures',
-  authenticate,
   requireRole(['ACCOUNTANT', 'ADMIN', 'SUPER_ADMIN']),
   asyncHandler(feeController.getAllFeeStructures)
 );
@@ -35,7 +44,6 @@ router.get(
  */
 router.post(
   '/structures',
-  authenticate,
   requireRole(['ACCOUNTANT', 'ADMIN', 'SUPER_ADMIN']),
   auditLog('CREATE_FEE_STRUCTURE'),
   asyncHandler(feeController.createFeeStructure)
@@ -48,7 +56,6 @@ router.post(
  */
 router.put(
   '/structures/:id',
-  authenticate,
   requireRole(['ACCOUNTANT', 'ADMIN', 'SUPER_ADMIN']),
   auditLog('UPDATE_FEE_STRUCTURE'),
   asyncHandler(feeController.updateFeeStructure)
@@ -61,7 +68,6 @@ router.put(
  */
 router.delete(
   '/structures/:id',
-  authenticate,
   requireRole(['ADMIN', 'SUPER_ADMIN']),
   auditLog('DELETE_FEE_STRUCTURE'),
   asyncHandler(feeController.deleteFeeStructure)
@@ -78,7 +84,6 @@ router.delete(
  */
 router.get(
   '/invoices',
-  authenticate,
   requireRole(['ACCOUNTANT', 'ADMIN', 'SUPER_ADMIN']),
   asyncHandler(feeController.getAllInvoices)
 );
@@ -90,7 +95,6 @@ router.get(
  */
 router.get(
   '/invoices/learner/:learnerId',
-  authenticate,
   requireRole(['ACCOUNTANT', 'ADMIN', 'SUPER_ADMIN', 'PARENT']),
   asyncHandler(feeController.getLearnerInvoices)
 );
@@ -102,7 +106,6 @@ router.get(
  */
 router.post(
   '/invoices',
-  authenticate,
   requireRole(['ACCOUNTANT', 'ADMIN', 'SUPER_ADMIN']),
   auditLog('CREATE_INVOICE'),
   asyncHandler(feeController.createInvoice)
@@ -115,7 +118,6 @@ router.post(
  */
 router.post(
   '/invoices/bulk',
-  authenticate,
   requireRole(['ACCOUNTANT', 'ADMIN', 'SUPER_ADMIN']),
   auditLog('BULK_CREATE_INVOICES'),
   asyncHandler(feeController.bulkGenerateInvoices)
@@ -132,7 +134,6 @@ router.post(
  */
 router.post(
   '/payments',
-  authenticate,
   requireRole(['ACCOUNTANT', 'ADMIN', 'SUPER_ADMIN']),
   auditLog('RECORD_PAYMENT'),
   asyncHandler(feeController.recordPayment)
@@ -145,7 +146,6 @@ router.post(
  */
 router.get(
   '/stats',
-  authenticate,
   requireRole(['ACCOUNTANT', 'ADMIN', 'SUPER_ADMIN']),
   asyncHandler(feeController.getPaymentStats)
 );

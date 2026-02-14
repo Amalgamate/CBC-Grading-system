@@ -115,13 +115,79 @@ const FeeCollectionPage = ({ learnerId }) => {
     return invoice.learner?.id === searchLearnerId;
   }), [invoices, searchLearnerId]);
 
-  if (loading) return <LoadingSpinner />;
+  // Create Invoice State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [feeStructures, setFeeStructures] = useState([]);
+  const [allLearners, setAllLearners] = useState([]);
+  const [newInvoice, setNewInvoice] = useState({
+    learnerId: '',
+    feeStructureId: '',
+    term: 'TERM1',
+    academicYear: new Date().getFullYear(),
+    dueDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0]
+  });
+
+  // Fetch fee structures when modal opens
+  useEffect(() => {
+    if (showCreateModal) {
+      const loadFeeStructures = async () => {
+        try {
+          const response = await api.fees.getAllFeeStructures({ status: 'ACTIVE' });
+          setFeeStructures(response.data || []);
+
+          // Load Learners
+          const learnerResponse = await api.learners.getAll({ status: 'ACTIVE' });
+          setAllLearners(Array.isArray(learnerResponse.data) ? learnerResponse.data : []);
+        } catch (error) {
+          console.error('Failed to load fee structures:', error);
+          showError('Failed to load fee structures');
+        }
+      };
+      loadFeeStructures();
+    }
+  }, [showCreateModal, showError]);
+
+  const handleCreateInvoice = async () => {
+    const targetLearnerId = newInvoice.learnerId || searchLearnerId;
+    if (!targetLearnerId) {
+      showError('Please select a student');
+      return;
+    }
+    if (!newInvoice.feeStructureId || !newInvoice.term || !newInvoice.dueDate) {
+      showError('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.fees.createInvoice({
+        ...newInvoice,
+        learnerId: targetLearnerId
+      });
+      showSuccess('Invoice created successfully');
+      setShowCreateModal(false);
+      fetchInvoices();
+      // Reset form (keep year and term defaults)
+      setNewInvoice(prev => ({
+        ...prev,
+        learnerId: '',
+        feeStructureId: ''
+      }));
+    } catch (error) {
+      showError(error.message || 'Failed to create invoice');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading && !showCreateModal && !showPaymentModal) return <LoadingSpinner />;
 
   return (
     <div className="space-y-6">
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* ... (existing stats cards) ... */}
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -168,8 +234,8 @@ const FeeCollectionPage = ({ learnerId }) => {
 
       {/* Search and Filters */}
       <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
+        <div className="flex flex-col md:flex-row gap-4 items-end">
+          <div className="flex-1 w-full">
             <div className="relative">
               <SmartLearnerSearch
                 learners={uniqueLearners}
@@ -189,15 +255,31 @@ const FeeCollectionPage = ({ learnerId }) => {
             <option value="partial">Partial</option>
             <option value="paid">Paid</option>
           </select>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold flex items-center gap-2 whitespace-nowrap"
+          >
+            <Plus size={18} />
+            Create Invoice
+          </button>
         </div>
       </div>
 
       {/* Invoices Table */}
+      {/* ... (existing table code) ... */}
       {filteredInvoices.length === 0 ? (
         <EmptyState
           icon={FileText}
           title="No Invoices Found"
           message={searchLearnerId ? "No invoices found for selected learner." : "No invoices have been created yet."}
+          action={
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+            >
+              Create Invoice
+            </button>
+          }
         />
       ) : (
         <div className="bg-white rounded-xl shadow overflow-hidden">
@@ -269,6 +351,122 @@ const FeeCollectionPage = ({ learnerId }) => {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Create Invoice Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="bg-blue-600 px-6 py-4 rounded-t-xl flex justify-between items-center">
+              <h3 className="text-xl font-bold text-white">Create New Invoice</h3>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-white hover:bg-blue-700 p-1 rounded-full"
+              >
+                <span className="text-2xl">&times;</span>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="mb-4">
+                <label className="block text-sm font-semibold mb-2">Student *</label>
+                {!searchLearnerId ? (
+                  <select
+                    value={newInvoice.learnerId}
+                    onChange={(e) => setNewInvoice({ ...newInvoice, learnerId: e.target.value })}
+                    className="w-full px-4 py-2 border rounded-lg max-h-48 overflow-y-auto"
+                  >
+                    <option value="">Select Student</option>
+                    {allLearners.map(l => (
+                      <option key={l.id} value={l.id}>
+                        {l.firstName} {l.lastName} ({l.admissionNumber})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="p-2 bg-gray-50 border rounded-lg text-sm text-gray-700 flex justify-between items-center">
+                    <span>
+                      Selected: {uniqueLearners.find(l => l.id === searchLearnerId)?.firstName || 'Current Selection'}
+                      {uniqueLearners.find(l => l.id === searchLearnerId)?.lastName}
+                    </span>
+                    <button
+                      onClick={() => setSearchLearnerId(null)}
+                      className="ml-2 text-blue-600 text-xs hover:underline"
+                    >
+                      Change
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2">Fee Structure *</label>
+                <select
+                  value={newInvoice.feeStructureId}
+                  onChange={(e) => setNewInvoice({ ...newInvoice, feeStructureId: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg"
+                >
+                  <option value="">Select Fee Structure</option>
+                  {feeStructures.map(fs => (
+                    <option key={fs.id} value={fs.id}>
+                      {fs.name} ({fs.period || fs.term}) - {fs.academicYear}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Term *</label>
+                  <select
+                    value={newInvoice.term}
+                    onChange={(e) => setNewInvoice({ ...newInvoice, term: e.target.value })}
+                    className="w-full px-4 py-2 border rounded-lg"
+                  >
+                    <option value="TERM1">Term 1</option>
+                    <option value="TERM2">Term 2</option>
+                    <option value="TERM3">Term 3</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Year *</label>
+                  <input
+                    type="number"
+                    value={newInvoice.academicYear}
+                    onChange={(e) => setNewInvoice({ ...newInvoice, academicYear: parseInt(e.target.value) })}
+                    className="w-full px-4 py-2 border rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2">Due Date *</label>
+                <input
+                  type="date"
+                  value={newInvoice.dueDate}
+                  onChange={(e) => setNewInvoice({ ...newInvoice, dueDate: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={handleCreateInvoice}
+                  disabled={loading}
+                  className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold disabled:opacity-50"
+                >
+                  {loading ? 'Creating...' : 'Create Invoice'}
+                </button>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-6 py-3 border rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

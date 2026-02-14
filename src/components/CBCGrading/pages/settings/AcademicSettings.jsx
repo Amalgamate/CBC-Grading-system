@@ -344,7 +344,11 @@ const AcademicSettings = () => {
       showError('Stream name is required');
       return;
     }
-    if (streamConfigs.some((s) => (s.name || '').toLowerCase() === streamFormData.name.trim().toLowerCase())) {
+    const isDuplicate = streamConfigs.some((s) =>
+      (s.name || '').toLowerCase() === streamFormData.name.trim().toLowerCase() &&
+      (!editingStream || s.id !== editingStream.id)
+    );
+    if (isDuplicate) {
       showError('Stream name already exists');
       return;
     }
@@ -446,7 +450,7 @@ const AcademicSettings = () => {
   const openStreamModal = (stream = null) => {
     if (stream) {
       setEditingStream(stream);
-      setStreamFormData({ name: stream.name, active: stream.active });
+      setStreamFormData({ name: stream.name, active: stream.active !== false });
     } else {
       setEditingStream(null);
       setStreamFormData({ name: '', active: true });
@@ -1070,8 +1074,8 @@ const AcademicSettings = () => {
                     <tr key={stream.id} className="border-b hover:bg-gray-50">
                       <td className="p-4 font-medium">{stream.name}</td>
                       <td className="p-4">
-                        <span className={`px-2 py-1 rounded text-xs font-semibold ${stream.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                          {stream.active ? 'Active' : 'Inactive'}
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${stream.active !== false ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {stream.active !== false ? 'Active' : 'Inactive'}
                         </span>
                       </td>
                       <td className="p-4 flex gap-2">

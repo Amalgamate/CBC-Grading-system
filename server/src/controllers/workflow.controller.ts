@@ -100,6 +100,81 @@ export const submitForApproval = async (req: AuthRequest, res: Response) => {
 };
 
 /**
+ * POST /api/workflow/bulk-submit
+ * Bulk submit assessments for approval
+ */
+export const bulkSubmitForApproval = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'User not authenticated'
+        }
+      });
+    }
+
+    const { ids, assessmentType, comments } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'ids array is required'
+        }
+      });
+    }
+
+    if (!assessmentType || !['formative', 'summative'].includes(assessmentType)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Valid assessmentType (formative/summative) is required'
+        }
+      });
+    }
+
+    const result = await workflowService.submitAssessmentsBulk({
+      ids,
+      assessmentType,
+      userId,
+      comments
+    });
+
+    res.json({
+      success: true,
+      message: `Processed ${result.submitted} submissions`,
+      data: result
+    });
+  } catch (error: any) {
+    console.error('Error bulk submitting assessments:', error);
+
+    if (error.message.includes('not permitted')) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: error.message
+        }
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'BULK_SUBMIT_ERROR',
+        message: 'Failed to bulk submit assessments',
+        details: error.message
+      }
+    });
+  }
+};
+
+/**
  * POST /api/workflow/approve/:type/:id
  * Approve assessment
  */
@@ -678,6 +753,7 @@ export const bulkLockTermAssessments = async (req: AuthRequest, res: Response) =
 
 export const workflowController = {
   submitForApproval,
+  bulkSubmitForApproval,
   approveAssessment,
   rejectAssessment,
   publishAssessment,

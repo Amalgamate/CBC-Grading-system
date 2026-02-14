@@ -4,6 +4,7 @@
  */
 
 import { Response } from 'express';
+import { PaymentStatus } from '@prisma/client';
 import prisma from '../config/database';
 import { ApiError } from '../utils/error.util';
 import { AuthRequest } from '../middleware/permissions.middleware';
@@ -30,6 +31,13 @@ export class FeeController {
 
     const feeStructures = await prisma.feeStructure.findMany({
       where,
+      include: {
+        feeItems: {
+          include: {
+            feeType: true
+          }
+        }
+      } as any, // Cast to any to bypass type error
       orderBy: [
         { academicYear: 'desc' },
         { term: 'asc' },
@@ -49,12 +57,11 @@ export class FeeController {
    * Access: ACCOUNTANT, ADMIN, SUPER_ADMIN
    */
   async createFeeStructure(req: AuthRequest, res: Response) {
-    const { name, description, feeType, amount, grade, term, academicYear, mandatory, active } = req.body;
+    const { name, description, feeItems, grade, term, academicYear, mandatory, active } = req.body;
     const userId = req.user!.userId;
 
     // Phase 5: Tenant Scoping
     const schoolId = req.user?.schoolId;
-    // Allow SUPER_ADMIN to potentially set schoolId if needed, or enforce context
     if (!schoolId && req.user?.role !== 'SUPER_ADMIN') {
       throw new ApiError(400, 'School context required');
     }
@@ -64,8 +71,8 @@ export class FeeController {
     }
 
     // Validate required fields
-    if (!name || !feeType || !amount || !academicYear) {
-      throw new ApiError(400, 'Missing required fields: name, feeType, amount, academicYear');
+    if (!name || !feeItems || !Array.isArray(feeItems) || feeItems.length === 0 || !academicYear) {
+      throw new ApiError(400, 'Missing required fields: name, feeItems (array), academicYear');
     }
 
     // Check for duplicate
@@ -83,12 +90,11 @@ export class FeeController {
       throw new ApiError(400, 'Fee structure with this name already exists for this period');
     }
 
+    // Create structure with items
     const feeStructure = await prisma.feeStructure.create({
       data: {
         name,
         description,
-        feeType,
-        amount,
         grade: grade || null,
         term: term || null,
         academicYear,
@@ -96,8 +102,20 @@ export class FeeController {
         active: active !== undefined ? active : true,
         createdBy: userId,
         schoolId: targetSchoolId,
-        branchId: req.user?.branchId || req.body.branchId
-      }
+        branchId: req.user?.branchId || req.body.branchId,
+        feeItems: {
+          create: feeItems.map((item: any) => ({
+            feeTypeId: item.feeTypeId,
+            amount: item.amount,
+            mandatory: item.mandatory !== undefined ? item.mandatory : true
+          }))
+        } as any // Cast to any
+      },
+      include: {
+        feeItems: {
+          include: { feeType: true }
+        }
+      } as any // Cast to any
     });
 
     res.status(201).json({
@@ -113,7 +131,7 @@ export class FeeController {
    */
   async updateFeeStructure(req: AuthRequest, res: Response) {
     const { id } = req.params;
-    const { name, description, feeType, amount, grade, term, mandatory, active } = req.body;
+    const { name, description, feeItems, grade, term, mandatory, active } = req.body;
 
     const existing = await prisma.feeStructure.findUnique({ where: { id } });
     if (!existing) {
@@ -125,18 +143,49 @@ export class FeeController {
       throw new ApiError(403, 'Unauthorized access to fee structure');
     }
 
-    const updated = await prisma.feeStructure.update({
-      where: { id },
-      data: {
-        ...(name && { name }),
-        ...(description !== undefined && { description }),
-        ...(feeType && { feeType }),
-        ...(amount && { amount }),
-        ...(grade !== undefined && { grade }),
-        ...(term !== undefined && { term }),
-        ...(mandatory !== undefined && { mandatory }),
-        ...(active !== undefined && { active })
+    // Use transaction to update structure and replace items if provided
+    const updated = await prisma.$transaction(async (tx: any) => {
+      // 1. Update basic fields
+      const structure = await tx.feeStructure.update({
+        where: { id },
+        data: {
+          ...(name && { name }),
+          ...(description !== undefined && { description }),
+          ...(grade !== undefined && { grade }),
+          ...(term !== undefined && { term }),
+          ...(mandatory !== undefined && { mandatory }),
+          ...(active !== undefined && { active })
+        }
+      });
+
+      // 2. If feeItems provided, replace existing items
+      if (feeItems && Array.isArray(feeItems)) {
+        // Delete existing items
+        await tx.feeStructureItem.deleteMany({
+          where: { feeStructureId: id }
+        });
+
+        // Create new items
+        if (feeItems.length > 0) {
+          await tx.feeStructureItem.createMany({
+            data: feeItems.map((item: any) => ({
+              feeStructureId: id,
+              feeTypeId: item.feeTypeId,
+              amount: item.amount,
+              mandatory: item.mandatory !== undefined ? item.mandatory : true
+            }))
+          });
+        }
       }
+
+      return await tx.feeStructure.findUnique({
+        where: { id },
+        include: {
+          feeItems: {
+            include: { feeType: true }
+          }
+        } as any
+      });
     });
 
     res.json({
@@ -184,9 +233,6 @@ export class FeeController {
       await prisma.feeStructure.update({
         where: { id },
         data: {
-          archived: true,
-          archivedAt: new Date(),
-          archivedBy: req.user?.userId,
           active: false
         }
       });
@@ -320,22 +366,36 @@ export class FeeController {
   async createInvoice(req: AuthRequest, res: Response) {
     const { learnerId, feeStructureId, term, academicYear, dueDate } = req.body;
     const userId = req.user!.userId;
+    const schoolId = req.user?.schoolId;
 
     if (!learnerId || !feeStructureId || !term || !academicYear || !dueDate) {
       throw new ApiError(400, 'Missing required fields');
     }
 
-    // Check if learner exists
+    // Get learner
     const learner = await prisma.learner.findUnique({ where: { id: learnerId } });
     if (!learner) {
       throw new ApiError(404, 'Learner not found');
     }
+    if (schoolId && learner.schoolId !== schoolId) {
+      throw new ApiError(403, 'Unauthorized access to learner');
+    }
 
-    // Check if fee structure exists
-    const feeStructure = await prisma.feeStructure.findUnique({ where: { id: feeStructureId } });
+    // Get fee structure with items
+    const feeStructure = await prisma.feeStructure.findUnique({
+      where: { id: feeStructureId },
+      include: { feeItems: true }
+    });
+
     if (!feeStructure) {
       throw new ApiError(404, 'Fee structure not found');
     }
+    if (schoolId && feeStructure.schoolId !== schoolId) {
+      throw new ApiError(403, 'Unauthorized access to fee structure');
+    }
+
+    // Calculate total amount
+    const totalAmount = (feeStructure as any).feeItems?.reduce((sum: number, item: any) => sum + Number(item.amount), 0) || 0;
 
     // Check for duplicate invoice
     const existing = await prisma.feeInvoice.findFirst({
@@ -363,15 +423,17 @@ export class FeeController {
         term,
         academicYear,
         dueDate: new Date(dueDate),
-        totalAmount: feeStructure.amount,
+        totalAmount,
         paidAmount: 0,
-        balance: feeStructure.amount,
+        balance: totalAmount,
         status: 'PENDING',
         issuedBy: userId
       },
       include: {
         learner: true,
-        feeStructure: true
+        feeStructure: {
+          include: { feeItems: { include: { feeType: true } } }
+        } as any
       }
     });
 
@@ -387,81 +449,116 @@ export class FeeController {
    * Access: ACCOUNTANT, ADMIN, SUPER_ADMIN
    */
   async recordPayment(req: AuthRequest, res: Response) {
-    const { invoiceId, amount, paymentMethod, referenceNumber, notes } = req.body;
+    const { invoiceId, amount: rawAmount, paymentMethod, referenceNumber, notes } = req.body;
     const userId = req.user!.userId;
+    const schoolId = req.user?.schoolId;
 
-    if (!invoiceId || !amount || !paymentMethod) {
+    if (!invoiceId || !rawAmount || !paymentMethod) {
       throw new ApiError(400, 'Missing required fields: invoiceId, amount, paymentMethod');
     }
 
-    // Get invoice
+    const amount = Number(rawAmount);
+
+    // Get invoice with tenant check
     const invoice = await prisma.feeInvoice.findUnique({
-      where: { id: invoiceId }
+      where: { id: invoiceId },
+      include: {
+        learner: { select: { schoolId: true } }
+      }
     });
 
     if (!invoice) {
       throw new ApiError(404, 'Invoice not found');
     }
 
+    // Phase 5: Tenant Scoping
+    if (schoolId && invoice.learner.schoolId !== schoolId) {
+      throw new ApiError(403, 'Unauthorized access to invoice');
+    }
+
+    // Guardrail: Block payments for inactive/waived invoices
+    if (invoice.status === 'PAID') {
+      throw new ApiError(400, 'Invoice is already fully paid');
+    }
+    if (invoice.status === 'WAIVED') {
+      throw new ApiError(400, 'Cannot record payment for a waived invoice');
+    }
+
     // Validate amount
-    if (amount <= 0) {
-      throw new ApiError(400, 'Amount must be greater than zero');
+    if (isNaN(amount) || amount <= 0) {
+      throw new ApiError(400, 'Amount must be a positive number');
     }
 
-    // Generate receipt number
-    const count = await prisma.feePayment.count();
-    const receiptNumber = `RCP-${new Date().getFullYear()}-${String(count + 1).padStart(6, '0')}`;
+    // Process payment in a transaction to prevent race conditions
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Generate receipt number (atomic within transaction)
+      const count = await tx.feePayment.count();
+      const receiptNumber = `RCP-${new Date().getFullYear()}-${String(count + 1).padStart(6, '0')}`;
 
-    // Create payment
-    const payment = await prisma.feePayment.create({
-      data: {
-        receiptNumber,
-        invoiceId,
-        amount,
-        paymentMethod,
-        referenceNumber,
-        notes,
-        recordedBy: userId
-      }
-    });
+      // 2. Create the payment record
+      const payment = await tx.feePayment.create({
+        data: {
+          receiptNumber,
+          invoiceId,
+          amount,
+          paymentMethod,
+          referenceNumber,
+          notes,
+          recordedBy: userId
+        }
+      });
 
-    // Update invoice
-    const newPaidAmount = Number(invoice.paidAmount) + Number(amount);
-    const newBalance = Number(invoice.totalAmount) - newPaidAmount;
-
-    let newStatus = invoice.status;
-    if (newBalance === 0) {
-      newStatus = 'PAID';
-    } else if (newBalance < 0) {
-      newStatus = 'OVERPAID';
-    } else if (newPaidAmount > 0) {
-      newStatus = 'PARTIAL';
-    }
-
-    const updatedInvoice = await prisma.feeInvoice.update({
-      where: { id: invoiceId },
-      data: {
-        paidAmount: newPaidAmount,
-        balance: newBalance,
-        status: newStatus
-      },
-      include: {
-        learner: {
-          include: {
-            parent: true
-          }
+      // 3. Increment paidAmount and update status/balance on invoice
+      // Note: We re-fetch to get most current values or use atomic increment
+      const updatedInvoice = await tx.feeInvoice.update({
+        where: { id: invoiceId },
+        data: {
+          paidAmount: { increment: amount },
+          balance: { decrement: amount }
         },
-        feeStructure: true,
-        payments: true
+        include: {
+          learner: {
+            include: {
+              parent: true
+            }
+          },
+          feeStructure: true,
+          payments: {
+            orderBy: { paymentDate: 'asc' }
+          }
+        }
+      });
+
+      // 4. Recalculate status based on new balance
+      let newStatus: PaymentStatus = updatedInvoice.status;
+      const balance = Number(updatedInvoice.balance);
+      const paid = Number(updatedInvoice.paidAmount);
+
+      if (balance <= 0) {
+        newStatus = balance < 0 ? 'OVERPAID' : 'PAID';
+      } else if (paid > 0) {
+        newStatus = 'PARTIAL';
       }
+
+      // 5. Update status if changed
+      if (newStatus !== updatedInvoice.status) {
+        return await tx.feeInvoice.update({
+          where: { id: invoiceId },
+          data: { status: newStatus },
+          include: {
+            learner: { include: { parent: true } },
+            feeStructure: true,
+            payments: true
+          }
+        });
+      }
+
+      return { payment, invoice: updatedInvoice };
     });
 
     res.status(201).json({
       success: true,
-      data: {
-        payment,
-        invoice: updatedInvoice
-      },
+      data: result,
       message: 'Payment recorded successfully'
     });
   }
@@ -471,14 +568,40 @@ export class FeeController {
    * Access: ACCOUNTANT, ADMIN, SUPER_ADMIN
    */
   async getPaymentStats(req: AuthRequest, res: Response) {
-    const { academicYear, term } = req.query;
+    const { academicYear, term, grade, startDate, endDate } = req.query;
+    const schoolId = req.user?.schoolId;
 
-    const where: any = {};
+    if (!schoolId) {
+      throw new ApiError(403, 'School context required');
+    }
+
+    const where: any = {
+      learner: {
+        schoolId: schoolId
+      }
+    };
+
     if (academicYear) where.academicYear = parseInt(academicYear as string);
-    if (term) where.term = term;
+    if (term && term !== 'all') where.term = term;
+    if (grade && grade !== 'all') {
+      where.learner = {
+        ...where.learner,
+        grade: grade as string
+      };
+    }
+
+    // Date range filtering for payments (recent payments and breakdown)
+    const paymentDateFilter: any = {};
+    if (startDate || endDate) {
+      paymentDateFilter.paymentDate = {};
+      if (startDate) paymentDateFilter.paymentDate.gte = new Date(startDate as string);
+      if (endDate) paymentDateFilter.paymentDate.lte = new Date(endDate as string);
+    }
 
     // Total invoices
-    const totalInvoices = await prisma.feeInvoice.count({ where });
+    const totalInvoices = await prisma.feeInvoice.count({
+      where
+    });
 
     // Invoices by status
     const invoicesByStatus = await prisma.feeInvoice.groupBy({
@@ -495,6 +618,7 @@ export class FeeController {
     // Recent payments
     const recentPayments = await prisma.feePayment.findMany({
       where: {
+        ...paymentDateFilter,
         invoice: where
       },
       include: {
@@ -518,6 +642,7 @@ export class FeeController {
     const paymentsByMethod = await prisma.feePayment.groupBy({
       by: ['paymentMethod'],
       where: {
+        ...paymentDateFilter,
         invoice: where
       },
       _sum: {
@@ -536,7 +661,8 @@ export class FeeController {
         summary: {
           totalExpected: invoicesByStatus.reduce((sum, item) => sum + (Number(item._sum.totalAmount) || 0), 0),
           totalCollected: invoicesByStatus.reduce((sum, item) => sum + (Number(item._sum.paidAmount) || 0), 0),
-          totalOutstanding: invoicesByStatus.reduce((sum, item) => sum + (Number(item._sum.balance) || 0), 0)
+          totalOutstanding: invoicesByStatus.reduce((sum, item) => sum + (Number(item._sum.balance) || 0), 0),
+          collectionRate: invoicesByStatus.length > 0 ? Math.round((invoicesByStatus.reduce((sum, item) => sum + (Number(item._sum.paidAmount) || 0), 0) / invoicesByStatus.reduce((sum, item) => sum + (Number(item._sum.totalAmount) || 0), 0)) * 100) : 0
         }
       }
     });
@@ -549,81 +675,89 @@ export class FeeController {
   async bulkGenerateInvoices(req: AuthRequest, res: Response) {
     const { feeStructureId, term, academicYear, dueDate, grade, stream } = req.body;
     const userId = req.user!.userId;
+    const schoolId = req.user?.schoolId;
 
     if (!feeStructureId || !term || !academicYear || !dueDate || !grade) {
       throw new ApiError(400, 'Missing required fields');
     }
 
-    // Get fee structure
-    const feeStructure = await prisma.feeStructure.findUnique({ where: { id: feeStructureId } });
+    // Get and validate fee structure with items
+    const feeStructure = await prisma.feeStructure.findUnique({
+      where: { id: feeStructureId },
+      include: { feeItems: true } as any
+    });
+
     if (!feeStructure) {
       throw new ApiError(404, 'Fee structure not found');
     }
 
     // Phase 5: Tenant Scoping
-    if (req.user?.schoolId && feeStructure.schoolId !== req.user.schoolId) {
+    if (schoolId && feeStructure.schoolId !== schoolId) {
       throw new ApiError(403, 'Unauthorized access to fee structure');
     }
 
-    // Get learners
-    const where: any = { grade, status: 'ACTIVE' };
-    if (stream) where.stream = stream;
-    // Phase 5: Tenant Scoping for learners
-    if (req.user?.schoolId) {
-      where.schoolId = req.user.schoolId;
-    }
+    // Calculate total amount
+    const totalAmount = (feeStructure as any).feeItems?.reduce((sum: number, item: any) => sum + Number(item.amount), 0) || 0;
 
-    const learners = await prisma.learner.findMany({ where });
+    // Get learners for the specific grade/stream and tenant
+    const learnerWhere: any = { grade, status: 'ACTIVE' };
+    if (stream) learnerWhere.stream = stream;
+    if (schoolId) learnerWhere.schoolId = schoolId;
+
+    const learners = await prisma.learner.findMany({ where: learnerWhere });
 
     if (learners.length === 0) {
       throw new ApiError(400, 'No active learners found for the specified criteria');
     }
 
-    // Generate invoices
-    const invoices = [];
-    const startCount = await prisma.feeInvoice.count();
+    // Generate invoices in a transaction
+    const results = await prisma.$transaction(async (tx) => {
+      const invoices = [];
+      const startCount = await tx.feeInvoice.count();
 
-    for (let i = 0; i < learners.length; i++) {
-      const learner = learners[i];
+      for (let i = 0; i < learners.length; i++) {
+        const learner = learners[i];
 
-      // Check if invoice already exists
-      const existing = await prisma.feeInvoice.findFirst({
-        where: {
-          learnerId: learner.id,
-          feeStructureId,
-          term,
-          academicYear
-        }
-      });
+        // Ensure we don't duplicate for this period/type
+        const existing = await tx.feeInvoice.findFirst({
+          where: {
+            learnerId: learner.id,
+            feeStructureId,
+            term,
+            academicYear
+          }
+        });
 
-      if (existing) continue;
+        if (existing) continue;
 
-      const invoiceNumber = `INV-${academicYear}-${String(startCount + i + 1).padStart(6, '0')}`;
+        const invoiceNumber = `INV-${academicYear}-${String(startCount + i + 1).padStart(6, '0')}`;
 
-      const invoice = await prisma.feeInvoice.create({
-        data: {
-          invoiceNumber,
-          learnerId: learner.id,
-          feeStructureId,
-          term,
-          academicYear,
-          dueDate: new Date(dueDate),
-          totalAmount: feeStructure.amount,
-          paidAmount: 0,
-          balance: feeStructure.amount,
-          status: 'PENDING',
-          issuedBy: userId
-        }
-      });
+        const invoice = await tx.feeInvoice.create({
+          data: {
+            invoiceNumber,
+            learnerId: learner.id,
+            feeStructureId,
+            term,
+            academicYear,
+            dueDate: new Date(dueDate),
+            totalAmount,
+            paidAmount: 0,
+            balance: totalAmount,
+            status: 'PENDING',
+            issuedBy: userId
+          }
+        });
 
-      invoices.push(invoice);
-    }
+        invoices.push(invoice);
+      }
+      return invoices;
+    });
 
     res.status(201).json({
       success: true,
-      data: invoices,
-      count: invoices.length,
-      message: `${invoices.length} invoices generated successfully`
+      data: results,
+      count: results.length,
+      message: `${results.length} invoices generated successfully`
     });
   }
 }

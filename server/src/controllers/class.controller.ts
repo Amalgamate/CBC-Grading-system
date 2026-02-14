@@ -10,15 +10,38 @@ import prisma from '../config/database';
 import { ApiError } from '../utils/error.util';
 import { AuthRequest } from '../middleware/permissions.middleware';
 import { Grade, Term } from '@prisma/client';
+import { ConfigService } from '../services/config.service';
+
+const configService = new ConfigService();
 
 export class ClassController {
+
+  /**
+   * Helper to get active term context
+   */
+  private async getActiveContext(schoolId: string) {
+    const activeConfig = await configService.getActiveTermConfig(schoolId);
+    if (!activeConfig) {
+      // Fallback to hardcoded if no config found (prevent system lockout)
+      const year = new Date().getFullYear();
+      // Simple term logic based on month
+      const month = new Date().getMonth(); // 0-11
+      let term: Term = 'TERM_1';
+      if (month >= 4 && month <= 7) term = 'TERM_2';
+      if (month >= 8 && month <= 11) term = 'TERM_3';
+
+      return { academicYear: year, term };
+    }
+    return { academicYear: activeConfig.academicYear, term: activeConfig.term };
+  }
+
   /**
    * Get all classes
    * Access: SUPER_ADMIN, ADMIN, HEAD_TEACHER, TEACHER
    */
   async getAllClasses(req: AuthRequest, res: Response) {
     const { grade, stream, academicYear, term, active = 'true' } = req.query;
-    
+
     const whereClause: any = {};
 
     // Phase 5: Tenant Scoping
@@ -27,11 +50,27 @@ export class ClassController {
     } else if (req.user?.schoolId) {
       whereClause.branch = { schoolId: req.user.schoolId };
     }
-    
+
     if (grade) whereClause.grade = grade as Grade;
     if (stream) whereClause.stream = stream as any;
-    if (academicYear) whereClause.academicYear = parseInt(academicYear as string);
-    if (term) whereClause.term = term as Term;
+
+    // Dynamic Term/Year Resolution if not provided
+    if (academicYear) {
+      whereClause.academicYear = parseInt(academicYear as string);
+    }
+
+    if (term) {
+      whereClause.term = term as Term;
+    }
+
+    // If neither provided, default to current context ONLY if specific filters aren't requested
+    // Actually, usually users want to see *current* classes by default.
+    if (!academicYear && !term && req.user?.schoolId) {
+      const context = await this.getActiveContext(req.user.schoolId);
+      whereClause.academicYear = context.academicYear;
+      whereClause.term = context.term;
+    }
+
     if (active) whereClause.active = active === 'true';
 
     const classes = await prisma.class.findMany({
@@ -61,6 +100,7 @@ export class ClassController {
       success: true,
       data: classes,
       count: classes.length,
+      context: (whereClause.academicYear && whereClause.term) ? { year: whereClause.academicYear, term: whereClause.term } : 'all-time'
     });
   }
 
@@ -99,9 +139,13 @@ export class ClassController {
                 dateOfBirth: true,
                 gender: true,
                 status: true,
+                photoUrl: true
               },
             },
           },
+          orderBy: {
+            learner: { firstName: 'asc' }
+          }
         },
       },
     });
@@ -137,14 +181,15 @@ export class ClassController {
       stream,
       branchId,
       teacherId,
-      academicYear = 2025,
-      term = 'TERM_1',
+      academicYear,
+      term,
       capacity = 40,
       room,
     } = req.body;
 
     // Phase 5: Tenant Scoping
     let finalBranchId = branchId;
+    let schoolId = req.user?.schoolId;
 
     if (req.user?.branchId) {
       finalBranchId = req.user.branchId;
@@ -157,12 +202,25 @@ export class ClassController {
       }
       finalBranchId = branchId;
     } else {
-        // SUPER_ADMIN or no tenant context?
-        if (!finalBranchId) throw new ApiError(400, 'branchId is required');
+      // SUPER_ADMIN or no tenant context?
+      if (!finalBranchId) throw new ApiError(400, 'branchId is required');
+      // Retrieve schoolId from branch if possible
+      const branch = await prisma.branch.findUnique({ where: { id: finalBranchId } });
+      if (branch) schoolId = branch.schoolId;
     }
 
     if (!name || !grade) {
       throw new ApiError(400, 'Missing required fields: name, grade');
+    }
+
+    // Determine Academic Context
+    let finalYear = academicYear;
+    let finalTerm = term;
+
+    if ((!finalYear || !finalTerm) && schoolId) {
+      const context = await this.getActiveContext(schoolId);
+      if (!finalYear) finalYear = context.academicYear;
+      if (!finalTerm) finalTerm = context.term;
     }
 
     // Check if teacher exists
@@ -172,20 +230,38 @@ export class ClassController {
         throw new ApiError(400, 'Invalid teacher');
       }
       // Phase 5: Check teacher tenant
-      if (req.user?.schoolId && teacher.schoolId !== req.user.schoolId) {
-         throw new ApiError(400, 'Teacher must belong to the same school');
+      if (schoolId && teacher.schoolId !== schoolId) {
+        throw new ApiError(400, 'Teacher must belong to the same school');
       }
     }
 
+    // Check for duplicate class in same term
+    const existingClass = await prisma.class.findFirst({
+      where: {
+        branchId: finalBranchId,
+        grade: grade as Grade,
+        stream: stream || null,
+        academicYear: finalYear,
+        term: finalTerm as Term
+      }
+    });
+
+    if (existingClass) {
+      throw new ApiError(409, `Class already exists for ${finalYear} ${finalTerm}`);
+    }
+
+    const finalStream = stream || 'A';
+    const finalName = name || `${grade} ${finalStream}`;
+
     const newClass = await prisma.class.create({
       data: {
-        name,
+        name: finalName,
         grade: grade as Grade,
-        stream: stream as any,
+        stream: finalStream as any,
         branchId: finalBranchId,
         teacherId,
-        academicYear,
-        term: term as Term,
+        academicYear: finalYear,
+        term: finalTerm as Term,
         capacity,
         room,
       },
@@ -215,7 +291,7 @@ export class ClassController {
     const { id } = req.params;
     const { name, teacherId, capacity, room, active } = req.body;
 
-    const classData = await prisma.class.findUnique({ 
+    const classData = await prisma.class.findUnique({
       where: { id },
       include: { branch: { select: { schoolId: true } } }
     });
@@ -236,27 +312,27 @@ export class ClassController {
 
     // Validate teacher if being assigned/changed
     if (teacherId !== undefined && teacherId !== null) {
-      const teacher = await prisma.user.findUnique({ 
-        where: { id: teacherId } 
+      const teacher = await prisma.user.findUnique({
+        where: { id: teacherId }
       });
-      
+
       if (!teacher) {
         throw new ApiError(404, 'Teacher not found');
       }
 
       // Phase 5: Teacher Tenant Check
       if (req.user?.schoolId && teacher.schoolId !== req.user.schoolId) {
-         throw new ApiError(400, 'Teacher must belong to the same school');
+        throw new ApiError(400, 'Teacher must belong to the same school');
       }
-      
+
       if (teacher.role !== 'TEACHER' && teacher.role !== 'HEAD_TEACHER') {
         throw new ApiError(400, 'User must have TEACHER or HEAD_TEACHER role');
       }
-      
+
       if (teacher.status !== 'ACTIVE') {
         throw new ApiError(400, 'Teacher must be in ACTIVE status');
       }
-      
+
       if (teacher.archived) {
         throw new ApiError(400, 'Cannot assign archived teacher');
       }
@@ -305,7 +381,7 @@ export class ClassController {
     }
 
     // Check if class exists
-    const classData = await prisma.class.findUnique({ 
+    const classData = await prisma.class.findUnique({
       where: { id: classId },
       include: { branch: { select: { schoolId: true } } }
     });
@@ -335,7 +411,28 @@ export class ClassController {
       throw new ApiError(403, 'Learner belongs to a different school');
     }
 
-    // Check if already enrolled
+    // Check if already enrolled in ANY active class for this term?
+    // Usually learners can only be in one class per term.
+    // Let's enforce single active enrollment rule.
+    const existingActiveEnrollment = await prisma.classEnrollment.findFirst({
+      where: {
+        learnerId,
+        active: true,
+        class: {
+          academicYear: classData.academicYear,
+          term: classData.term
+        }
+      },
+      include: { class: true }
+    });
+
+    if (existingActiveEnrollment && existingActiveEnrollment.classId !== classId) {
+      // Enrolled in different class, same term. Should we auto-transfer?
+      // For now, blocking and asking to unenroll first is safer to prevent accidents.
+      throw new ApiError(400, `Learner is already enrolled in ${existingActiveEnrollment.class.name} for this term.`);
+    }
+
+    // Check if already enrolled in THIS class
     const existing = await prisma.classEnrollment.findUnique({
       where: {
         classId_learnerId: {
@@ -359,6 +456,17 @@ export class ClassController {
         data: updated,
         message: 'Learner re-enrolled successfully',
       });
+    }
+
+    // Check capacity
+    const currentCount = await prisma.classEnrollment.count({
+      where: { classId, active: true }
+    });
+
+    if (currentCount >= classData.capacity) {
+      // Warning but proceed? Or strict block? 
+      // Strict block for now.
+      throw new ApiError(400, `Class capacity reached (${classData.capacity})`);
     }
 
     // Create enrollment
@@ -455,16 +563,16 @@ export class ClassController {
     });
 
     if (enrollment) {
-        // Phase 5: Tenant Check
-        if (req.user?.schoolId) {
-            if (enrollment.class.branch.schoolId !== req.user.schoolId) {
-                 // If learner is in another school's class, don't show it? 
-                 // Or throw error? Since we are querying by learnerId, 
-                 // we should probably check learner first or just return null if not authorized.
-                 // But let's throw 403 for safety if we found it but it's wrong tenant.
-                 throw new ApiError(403, 'Unauthorized access to learner class information');
-            }
+      // Phase 5: Tenant Check
+      if (req.user?.schoolId) {
+        if (enrollment.class.branch.schoolId !== req.user.schoolId) {
+          // If learner is in another school's class, don't show it? 
+          // Or throw error? Since we are querying by learnerId, 
+          // we should probably check learner first or just return null if not authorized.
+          // But let's throw 403 for safety if we found it but it's wrong tenant.
+          throw new ApiError(403, 'Unauthorized access to learner class information');
         }
+      }
     }
 
     res.json({
@@ -485,9 +593,9 @@ export class ClassController {
     }
 
     // Validate class exists
-    const classData = await prisma.class.findUnique({ 
+    const classData = await prisma.class.findUnique({
       where: { id: classId },
-      include: { 
+      include: {
         teacher: {
           select: {
             id: true,
@@ -499,7 +607,7 @@ export class ClassController {
         branch: { select: { schoolId: true } }
       }
     });
-    
+
     if (!classData) {
       throw new ApiError(404, 'Class not found');
     }
@@ -515,29 +623,37 @@ export class ClassController {
     }
 
     // Validate teacher
-    const teacher = await prisma.user.findUnique({ 
-      where: { id: teacherId } 
+    const teacher = await prisma.user.findUnique({
+      where: { id: teacherId }
     });
-    
+
     if (!teacher) {
       throw new ApiError(404, 'Teacher not found');
     }
 
     // Phase 5: Teacher Tenant Check
     if (req.user?.schoolId && teacher.schoolId !== req.user.schoolId) {
-        throw new ApiError(400, 'Teacher must belong to the same school');
+      throw new ApiError(400, 'Teacher must belong to the same school');
     }
-    
+
     if (teacher.role !== 'TEACHER' && teacher.role !== 'HEAD_TEACHER') {
       throw new ApiError(400, 'User must have TEACHER or HEAD_TEACHER role');
     }
-    
+
     if (teacher.status !== 'ACTIVE') {
       throw new ApiError(400, 'Teacher must be in ACTIVE status');
     }
-    
+
     if (teacher.archived) {
       throw new ApiError(400, 'Cannot assign archived teacher');
+    }
+
+    // Check if teacher is already assigned to this exact class
+    if (classData.teacherId === teacherId) {
+      return res.json({
+        success: true,
+        message: 'Teacher is already assigned to this class'
+      });
     }
 
     // Check if teacher is already assigned to another class in same term/year
@@ -547,7 +663,7 @@ export class ClassController {
         academicYear: classData.academicYear,
         term: classData.term,
         active: true,
-        NOT: { id: classId }
+        NOT: { id: classId } // Exclude current class
       },
       select: {
         name: true,
@@ -601,7 +717,7 @@ export class ClassController {
       throw new ApiError(400, 'classId is required');
     }
 
-    const classData = await prisma.class.findUnique({ 
+    const classData = await prisma.class.findUnique({
       where: { id: classId },
       include: {
         teacher: {
@@ -609,12 +725,18 @@ export class ClassController {
             firstName: true,
             lastName: true,
           }
-        }
+        },
+        branch: { select: { schoolId: true } }
       }
     });
-    
+
     if (!classData) {
       throw new ApiError(404, 'Class not found');
+    }
+
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId && classData.branch.schoolId !== req.user.schoolId) {
+      throw new ApiError(403, 'Unauthorized access to class');
     }
 
     if (!classData.teacherId) {
@@ -644,7 +766,7 @@ export class ClassController {
    */
   async getTeacherWorkload(req: AuthRequest, res: Response) {
     const { teacherId } = req.params;
-    const { academicYear = '2025', term = 'TERM_1' } = req.query;
+    let { academicYear, term } = req.query;
 
     const teacher = await prisma.user.findUnique({
       where: { id: teacherId },
@@ -655,11 +777,24 @@ export class ClassController {
         email: true,
         role: true,
         status: true,
+        schoolId: true,
       }
     });
 
     if (!teacher) {
       throw new ApiError(404, 'Teacher not found');
+    }
+
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId && teacher.schoolId !== req.user.schoolId) {
+      throw new ApiError(403, 'Unauthorized access to teacher workload');
+    }
+
+    // Default to active context if not provided
+    if ((!academicYear || !term) && teacher.schoolId) {
+      const context = await this.getActiveContext(teacher.schoolId);
+      if (!academicYear) academicYear = context.academicYear.toString();
+      if (!term) term = context.term;
     }
 
     const classes = await prisma.class.findMany({
@@ -687,13 +822,13 @@ export class ClassController {
     });
 
     const totalStudents = classes.reduce(
-      (sum, cls) => sum + cls._count.enrollments, 
+      (sum, cls) => sum + cls._count.enrollments,
       0
     );
 
-    const workloadLevel = totalStudents > 120 ? 'HIGH' : 
-                         totalStudents > 80 ? 'MEDIUM' : 
-                         totalStudents > 0 ? 'LOW' : 'NONE';
+    const workloadLevel = totalStudents > 120 ? 'HIGH' :
+      totalStudents > 80 ? 'MEDIUM' :
+        totalStudents > 0 ? 'LOW' : 'NONE';
 
     res.json({
       success: true,

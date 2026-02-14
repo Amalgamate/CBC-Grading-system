@@ -72,7 +72,7 @@ export const TicketCreatedEmail = ({
                     <Hr style={hr} />
 
                     <Text style={footer}>
-                        This is an automated notification from the EDucore Support System.
+                        This is an automated notification from the Elimcrown Support System.
                     </Text>
                 </Container>
             </Body>

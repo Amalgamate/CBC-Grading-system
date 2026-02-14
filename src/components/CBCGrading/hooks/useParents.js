@@ -26,7 +26,7 @@ export const useParents = () => {
       setLoading(true);
       setError(null);
       const response = await api.parents.getAll(params);
-      
+
       if (response.success) {
         // Transform backend data to match frontend format
         const transformedParents = response.data.map(parent => ({
@@ -41,9 +41,10 @@ export const useParents = () => {
           county: 'Nairobi', // TODO: Add county field to backend
           status: parent.status,
           createdAt: parent.createdAt,
-          learnerIds: [], // TODO: Fetch learner relationships
+          learners: parent.learners || [],
+          learnerIds: parent.learners ? parent.learners.map(l => l.admissionNumber) : [],
         }));
-        
+
         setParents(transformedParents);
         if (response.pagination) {
           setPagination(response.pagination);
@@ -65,11 +66,11 @@ export const useParents = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       console.log('Creating parent with data:', parentData);
       const response = await api.parents.create(parentData);
       console.log('Parent creation response:', response);
-      
+
       if (response.success) {
         await fetchParents(); // Refresh the list
         return { success: true, data: response.data };
@@ -91,9 +92,9 @@ export const useParents = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await api.parents.update(id, parentData);
-      
+
       if (response.success) {
         await fetchParents(); // Refresh the list
         return { success: true, data: response.data };
@@ -114,9 +115,9 @@ export const useParents = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await api.parents.archive(id);
-      
+
       if (response.success) {
         await fetchParents(); // Refresh the list
         return { success: true };
@@ -137,9 +138,9 @@ export const useParents = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await api.parents.unarchive(id);
-      
+
       if (response.success) {
         await fetchParents(); // Refresh the list
         return { success: true };
@@ -160,9 +161,9 @@ export const useParents = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await api.parents.delete(id);
-      
+
       if (response.success) {
         await fetchParents(); // Refresh the list
         return { success: true };

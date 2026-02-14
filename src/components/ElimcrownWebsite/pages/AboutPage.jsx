@@ -21,7 +21,7 @@ const AboutPage = (props) => {
                         <h2 className="text-2xl font-bold text-[#1a1a1a] mb-6">The Elimcrown Story</h2>
                         <div className="prose prose-lg text-slate-600">
                             <p className="mb-4">
-                                Elimcrown (formerly EDucore) began with a simple observation: schools in Kenya were drowning in paperwork. The transition to the Competency Based Curriculum (CBC) introduced new layers of complexity that legacy systems simply couldn't handle.
+                                Elimcrown began with a simple observation: schools in Kenya were drowning in paperwork. The transition to the Competency Based Curriculum (CBC) introduced new layers of complexity that legacy systems simply couldn't handle.
                             </p>
                             <p className="mb-4">
                                 We built Elimcrown from the ground up to be the first "CBC-Native" operating system. Unlike other platforms that tried to shoehorn new requirements into old paradigms, we designed our data models around the learner's journey.

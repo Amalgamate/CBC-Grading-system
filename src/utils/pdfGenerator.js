@@ -25,13 +25,13 @@
  */
 export const createLetterhead = (schoolInfo) => {
   const {
-    schoolName = 'Zawadi JRN Academy',
-    logoUrl = '/logo-educore.png',
+    schoolName = 'Elimcrown Academy',
+    logoUrl = '/logo-elimcrown.png',
     brandColor = '#1e3a8a',
     address = 'P.O. Box 1234, Nairobi, Kenya',
     phone = '+254 700 000000',
-    email = 'info@zawadijrn.ac.ke',
-    website = 'www.zawadijrn.ac.ke'
+    email = 'info@elimcrown.ac.ke',
+    website = 'www.elimcrown.ac.ke'
   } = schoolInfo;
 
   return {

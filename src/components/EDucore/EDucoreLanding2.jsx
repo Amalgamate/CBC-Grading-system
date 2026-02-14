@@ -13,7 +13,7 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
       <header className="sticky top-0 bg-white/95 backdrop-blur-sm shadow-sm z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-4">
           <div className="flex items-center gap-3">
-            <img src="/logo-educore.png" alt="ElimCrown" className="w-10 h-10" />
+            <img src="/logo-elimcrown.png" alt="Elimcrown" className="w-10 h-10" />
             <div>
               <h1 className="text-xl font-bold text-gray-900">ElimCrown</h1>
               <p className="text-xs text-gray-500">Bridging the Assessment Gaps</p>
@@ -327,7 +327,7 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
               <h3 className="text-lg font-black text-gray-900 mb-4">Contact Information</h3>
               <div className="space-y-3 text-gray-700">
                 <p className="flex items-start gap-2">
-                  <span className="font-bold">Email:</span> support@elimcrown.local
+                  <span className="font-bold">Email:</span> support@elimcrown.ac.ke
                 </p>
                 <p className="flex items-start gap-2">
                   <span className="font-bold">Phone:</span> +254 700 000 000
@@ -345,7 +345,7 @@ const EDucoreLanding2 = ({ onLoginClick, onGetStartedClick, isAuthenticated = fa
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <img src="/logo-educore.png" alt="Elimcrown" className="w-8 h-8" />
+              <img src="/logo-elimcrown.png" alt="Elimcrown" className="w-8 h-8" />
               <div>
                 <p className="font-bold text-gray-900">Elimcrown V1</p>
                 <p className="text-xs text-gray-500">School Management Platform</p>

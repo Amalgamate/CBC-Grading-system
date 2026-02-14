@@ -649,7 +649,7 @@ export class ConfigService {
     // Normalize optional fields
     const normalizedData = {
       ...prismaData,
-      stream: prismaData.stream || null,
+      stream: prismaData.stream || 'A',
       teacherId: prismaData.teacherId || null,
       capacity: prismaData.capacity || 40,
       academicYear: prismaData.academicYear || 2025,

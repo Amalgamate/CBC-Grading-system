@@ -20,7 +20,10 @@ import communicationRoutes from './communication.routes';
 import adminRoutes from './admin.routes';
 import learningAreaRoutes from './learningArea.routes';
 import dashboardRoutes from './dashboard.routes';
+import bookRoutes from './book.routes';
 import supportRoutes from './support.routes';
+import documentRoutes from './document.routes';
+import plannerRoutes from './planner.routes';
 import { checkSchoolActive } from '../middleware/trial.guard';
 import onboardingRoutes from './onboarding.routes';
 import { issueCsrfToken } from '../middleware/csrf.middleware';
@@ -37,6 +40,7 @@ const router = Router();
 router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
 router.use('/onboarding', onboardingRoutes); // Public onboarding endpoints
+router.use('/books', bookRoutes);
 router.use('/tenants', tenantRoutes); // Public tenant branding endpoints
 router.get('/auth/csrf', issueCsrfToken);
 
@@ -73,5 +77,7 @@ router.use('/learning-areas', checkSchoolActive, learningAreaRoutes);
 router.use('/workflow', workflowRoutes);
 router.use('/communication', checkSchoolActive, communicationRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/documents', checkSchoolActive, documentRoutes);
+router.use('/planner', checkSchoolActive, plannerRoutes);
 
 export default router;

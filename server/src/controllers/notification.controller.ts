@@ -24,6 +24,11 @@ export class NotificationController {
       grade,
       term,
     } = req.body;
+    const schoolId = (req as any).tenant?.schoolId;
+
+    if (!schoolId) {
+      throw new ApiError(403, 'School context required');
+    }
 
     // Validate input
     if (!learnerId || !assessmentType) {
@@ -32,7 +37,10 @@ export class NotificationController {
 
     // Get learner with parent info
     const learner = await prisma.learner.findUnique({
-      where: { id: learnerId },
+      where: {
+        id: learnerId,
+        schoolId // Strict scoping
+      },
       include: {
         parent: {
           select: {
@@ -67,7 +75,8 @@ export class NotificationController {
       subject,
       grade: grade || learner.grade,
       term,
-    });
+      schoolId // Pass for multi-tenant sessions
+    } as any);
 
     if (result.success) {
       res.json({
@@ -95,6 +104,11 @@ export class NotificationController {
       grade,
       term,
     } = req.body;
+    const schoolId = (req as any).tenant?.schoolId;
+
+    if (!schoolId) {
+      throw new ApiError(403, 'School context required');
+    }
 
     // Validate input
     if (!learnerIds || !Array.isArray(learnerIds) || learnerIds.length === 0) {
@@ -109,6 +123,7 @@ export class NotificationController {
     const learners = await prisma.learner.findMany({
       where: {
         id: { in: learnerIds },
+        schoolId // Strict scoping
       },
       include: {
         parent: {
@@ -140,7 +155,7 @@ export class NotificationController {
     }
 
     // Send bulk notifications
-    const result = await whatsappService.sendBulkAssessmentNotifications(notifications);
+    const result = await whatsappService.sendBulkAssessmentNotifications(notifications, schoolId);
 
     res.json({
       success: true,
@@ -150,7 +165,6 @@ export class NotificationController {
         sent: result.sent,
         failed: result.failed,
         skipped: learnerIds.length - notifications.length,
-        results: result.results,
       },
     });
   }
@@ -161,6 +175,11 @@ export class NotificationController {
    */
   async sendCustomMessage(req: AuthRequest, res: Response) {
     const { parentId, message } = req.body;
+    const schoolId = (req as any).tenant?.schoolId;
+
+    if (!schoolId) {
+      throw new ApiError(403, 'School context required');
+    }
 
     // Validate input
     if (!parentId || !message) {
@@ -169,7 +188,10 @@ export class NotificationController {
 
     // Get parent info
     const parent = await prisma.user.findUnique({
-      where: { id: parentId },
+      where: {
+        id: parentId,
+        schoolId // Strict scoping
+      },
       select: {
         id: true,
         firstName: true,
@@ -194,9 +216,9 @@ export class NotificationController {
     // Send message
     const result = await whatsappService.sendCustomMessage({
       parentPhone: parent.phone,
-      parentName: `${parent.firstName} ${parent.lastName}`,
       message,
-    });
+      schoolId // Pass for multi-tenant sessions
+    } as any);
 
     if (result.success) {
       res.json({
@@ -218,6 +240,11 @@ export class NotificationController {
    */
   async sendAnnouncement(req: AuthRequest, res: Response) {
     const { title, content, grade, stream } = req.body;
+    const schoolId = (req as any).tenant?.schoolId;
+
+    if (!schoolId) {
+      throw new ApiError(403, 'School context required');
+    }
 
     // Validate input
     if (!title || !content) {
@@ -228,6 +255,7 @@ export class NotificationController {
     const whereClause: any = {
       role: 'PARENT',
       phone: { not: null },
+      schoolId // CRITICAL: Fix cross-tenant leak
     };
 
     // If grade/stream specified, filter parents by their children's grade/stream
@@ -239,7 +267,7 @@ export class NotificationController {
 
       // Get unique parent IDs from learners
       const learners = await prisma.learner.findMany({
-        where: learnerWhere,
+        where: { ...learnerWhere, schoolId }, // Strict scoping
         select: { parentId: true },
       });
 
@@ -285,7 +313,8 @@ export class NotificationController {
         parentName: `${parent.firstName} ${parent.lastName}`,
         title,
         content,
-      });
+        schoolId // Pass for multi-tenant sessions
+      } as any);
 
       if (result.success) {
         sent++;
@@ -346,9 +375,9 @@ export class NotificationController {
     }
 
     // Get user's school ID
-    const schoolId = req.user?.schoolId;
+    const schoolId = (req as any).tenant?.schoolId;
     if (!schoolId) {
-      throw new ApiError(400, 'School ID not found');
+      throw new ApiError(400, 'School context required');
     }
 
     // Import SmsService
@@ -388,6 +417,145 @@ export class NotificationController {
   }
 
   /**
+   * Send assessment report via WhatsApp to parent
+   * POST /api/notifications/whatsapp/assessment-report
+   */
+  async sendAssessmentReportWhatsApp(req: AuthRequest, res: Response) {
+    const {
+      learnerId,
+      learnerName,
+      learnerGrade,
+      parentPhone,
+      parentName,
+      term,
+      totalTests,
+      averageScore,
+      overallGrade,
+      subjects,
+    } = req.body;
+
+    // Validate required fields
+    if (!learnerId || !learnerName || !learnerGrade || !parentPhone || !term) {
+      throw new ApiError(400, 'Missing required fields');
+    }
+
+    // Get school info for header
+    const schoolId = (req as any).tenant?.schoolId;
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId || undefined },
+      select: { name: true }
+    });
+
+    const result = await whatsappService.sendAssessmentReport({
+      learnerId,
+      learnerName,
+      learnerGrade,
+      parentPhone,
+      parentName,
+      term,
+      totalTests,
+      averageScore,
+      overallGrade,
+      subjects,
+      schoolName: school?.name || 'School',
+      schoolId // Pass for multi-tenant sessions
+    } as any);
+
+    // Audit log
+    await prisma.assessmentSmsAudit.create({
+      data: {
+        learnerId,
+        assessmentType: 'SUMMATIVE',
+        term,
+        academicYear: new Date().getFullYear(),
+        parentPhone: parentPhone,
+        parentName: parentName || 'Unknown',
+        learnerName: learnerName,
+        learnerGrade: learnerGrade,
+        templateType: 'SUMMATIVE_TERM',
+        messageContent: 'WhatsApp Report',
+        channel: 'WHATSAPP',
+        smsStatus: result.success ? 'SENT' : 'FAILED',
+        failureReason: result.error,
+        sentByUserId: req.user?.userId,
+        schoolId: schoolId!,
+      }
+    });
+
+    if (result.success) {
+      res.json({ success: true, message: 'WhatsApp sent' });
+    } else {
+      throw new ApiError(500, result.error || 'Failed to send WhatsApp');
+    }
+  }
+
+  /**
+   * Log a communication action (e.g., WhatsApp send which is client-side)
+   * POST /api/notifications/log-communication
+   */
+  async logCommunication(req: AuthRequest, res: Response) {
+    const {
+      learnerId,
+      channel, // 'SMS' or 'WHATSAPP'
+      term,
+      academicYear,
+      assessmentType = 'SUMMATIVE'
+    } = req.body;
+
+    if (!learnerId || !channel) {
+      throw new ApiError(400, 'Learner ID and channel are required');
+    }
+
+    const schoolId = req.user?.schoolId;
+    if (!schoolId) {
+      throw new ApiError(400, 'School context required');
+    }
+
+    // Get learner info for the audit record
+    const learner = await prisma.learner.findUnique({
+      where: { id: learnerId, schoolId }, // Strict scoping
+      include: {
+        parent: {
+          select: {
+            firstName: true,
+            lastName: true,
+            phone: true
+          }
+        }
+      }
+    });
+
+    if (!learner) {
+      throw new ApiError(404, 'Learner not found');
+    }
+
+    // Create audit record
+    const audit = await prisma.assessmentSmsAudit.create({
+      data: {
+        learnerId,
+        assessmentType,
+        term,
+        academicYear: academicYear ? parseInt(academicYear) : new Date().getFullYear(),
+        parentPhone: learner.parent?.phone || learner.guardianPhone || 'Unknown',
+        parentName: learner.parent ? `${learner.parent.firstName} ${learner.parent.lastName}` : (learner.guardianName || 'Parent'),
+        learnerName: `${learner.firstName} ${learner.lastName}`,
+        learnerGrade: learner.grade,
+        templateType: 'SUMMATIVE_TERM',
+        messageContent: `Action: ${channel} log via Dashboard`,
+        channel: channel as any,
+        smsStatus: 'SENT',
+        sentByUserId: req.user?.userId,
+        schoolId
+      }
+    });
+
+    res.json({
+      success: true,
+      data: audit
+    });
+  }
+
+  /**
    * Test WhatsApp connection
    * POST /api/notifications/test
    */
@@ -398,10 +566,13 @@ export class NotificationController {
       throw new ApiError(400, 'Phone number is required');
     }
 
+    const schoolId = (req as any).tenant?.schoolId;
+
     const result = await whatsappService.sendMessage({
       to: phoneNumber,
       message: 'This is a test message from Zawadi JRN Academy. WhatsApp integration is working correctly!',
-    });
+      schoolId // Pass for multi-tenant sessions
+    } as any);
 
     res.json({
       success: result.success,

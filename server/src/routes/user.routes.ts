@@ -137,4 +137,17 @@ router.post(
   asyncHandler(userController.uploadProfilePicture)
 );
 
+/**
+ * @route   POST /api/users/:id/reset-password
+ * @desc    Reset user password manually by admin
+ * @access  SUPER_ADMIN, ADMIN
+ */
+router.post(
+  '/:id/reset-password',
+  authenticate,
+  requirePermission('EDIT_USER'),
+  auditLog('RESET_PASSWORD'),
+  asyncHandler(userController.resetPassword)
+);
+
 export default router;

@@ -366,7 +366,7 @@ export default function SchoolDetails({ schoolId, onBack }) {
                         onChange={(e) => setCommConfig({ ...commConfig, smsSenderId: e.target.value.toUpperCase() })}
                         maxLength={11}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                        placeholder="e.g. EDucore"
+                        placeholder="e.g. Elimcrown"
                       />
                     </div>
                   </div>

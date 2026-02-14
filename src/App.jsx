@@ -11,7 +11,7 @@ import ContactPage from './components/ElimcrownWebsite/pages/ContactPage';
 import AboutPage from './components/ElimcrownWebsite/pages/AboutPage';
 import PlayroomPage from './components/ElimcrownWebsite/pages/PlayroomPage';
 // import Registration from './components/auth/RegisterForm'; // Use the consolidated register form if needed, but we already have routes
-import SuperAdminDashboard from './components/EDucore/SuperAdminDashboard';
+import SuperAdminDashboard from './components/EDucore/SuperAdminDashboard'; // Legacy path, but functional
 import api from './services/api';
 import { clearPortalSchoolId, setPortalSchoolId } from './services/tenantContext';
 import { SocketProvider } from './contexts/SocketContext';
@@ -42,7 +42,7 @@ function AppContent() {
       logoUrl: localStorage.getItem('schoolLogo') || '/logo-new.png',
       faviconUrl: localStorage.getItem('schoolFavicon') || '/favicon.png',
       brandColor: localStorage.getItem('brandColor') || '#875A7B',
-      welcomeTitle: localStorage.getItem('welcomeTitle') || 'Welcome to Elimcrown V1',
+      welcomeTitle: localStorage.getItem('welcomeTitle') || 'Welcome to Elimcrown',
       welcomeMessage: localStorage.getItem('welcomeMessage') || 'Unified education management for schools and institutions.',
       onboardingTitle: localStorage.getItem('onboardingTitle') || 'Create Your Elimcrown Account',
       onboardingMessage: localStorage.getItem('onboardingMessage') || 'Sign up to access powerful tools for managing learning and assessment.',
@@ -75,7 +75,7 @@ function AppContent() {
   }, [urlSchoolId]);
 
   useEffect(() => {
-    if (brandingSettings.logoUrl && brandingSettings.logoUrl !== '/logo-zawadi.png')
+    if (brandingSettings.logoUrl && brandingSettings.logoUrl !== '/logo-elimcrown.png')
       localStorage.setItem('schoolLogo', brandingSettings.logoUrl);
     if (brandingSettings.schoolName) localStorage.setItem('schoolName', brandingSettings.schoolName);
     if (brandingSettings.faviconUrl && brandingSettings.faviconUrl !== '/favicon.png')
@@ -99,14 +99,14 @@ function AppContent() {
     let title = 'Elimcrown V1';
     if (!isAuthenticated) {
       const { schoolId, view } = parseTenantFromPath(pathname);
-      if (schoolId) title = `${brandingSettings.schoolName || 'Elimcrown V1'} — ${view === 'get-started' ? 'Get Started' : 'Login'}`;
-      else if (pathname === '/') title = 'Elimcrown V1 — Home';
-      else if (pathname === '/get-started') title = 'Elimcrown V1 — Get Started';
-      else if (pathname.startsWith('/auth')) title = 'Elimcrown V1 — Login';
+      if (schoolId) title = `${brandingSettings.schoolName || 'Elimcrown'} — ${view === 'get-started' ? 'Get Started' : 'Login'}`;
+      else if (pathname === '/') title = 'Elimcrown — Home';
+      else if (pathname === '/get-started') title = 'Elimcrown — Get Started';
+      else if (pathname.startsWith('/auth')) title = 'Elimcrown — Login';
     } else {
       title = user?.role === 'SUPER_ADMIN'
-        ? 'Elimcrown V1 — Super Admin'
-        : `${(user?.school?.name || user?.schoolName) || brandingSettings.schoolName || 'Elimcrown V1'} — Dashboard`;
+        ? 'Elimcrown — Super Admin'
+        : `${(user?.school?.name || user?.schoolName) || brandingSettings.schoolName || 'Elimcrown'} — Dashboard`;
     }
     document.title = title;
   }, [isAuthenticated, pathname, user, brandingSettings.schoolName]);

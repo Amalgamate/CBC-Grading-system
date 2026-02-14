@@ -22,6 +22,15 @@ import prisma from '../config/database';
 export const getTermConfigs = async (req: Request, res: Response) => {
   try {
     const { schoolId } = req.params;
+    const currentUser = (req as any).user;
+
+    // Phase 5: Tenant Isolation Check
+    if (currentUser?.role !== 'SUPER_ADMIN' && currentUser?.schoolId && schoolId !== currentUser.schoolId) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Unauthorized access to configurations of another school' }
+      });
+    }
 
     const configs = await configService.getSchoolTermConfigs(schoolId);
 
@@ -49,6 +58,15 @@ export const getTermConfigs = async (req: Request, res: Response) => {
 export const getSpecificTermConfig = async (req: Request, res: Response) => {
   try {
     const { schoolId, term, year } = req.params;
+    const currentUser = (req as any).user;
+
+    // Phase 5: Tenant Isolation Check
+    if (currentUser?.role !== 'SUPER_ADMIN' && currentUser?.schoolId && schoolId !== currentUser.schoolId) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Unauthorized access to configurations of another school' }
+      });
+    }
 
     const config = await configService.getTermConfig({
       schoolId,
@@ -80,6 +98,15 @@ export const getSpecificTermConfig = async (req: Request, res: Response) => {
 export const getActiveTermConfig = async (req: Request, res: Response) => {
   try {
     const { schoolId } = req.params;
+    const currentUser = (req as any).user;
+
+    // Phase 5: Tenant Isolation Check
+    if (currentUser?.role !== 'SUPER_ADMIN' && currentUser?.schoolId && schoolId !== currentUser.schoolId) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Unauthorized access to configurations of another school' }
+      });
+    }
 
     const config = await configService.getActiveTermConfig(schoolId);
 
@@ -138,6 +165,14 @@ export const upsertTermConfig = async (req: AuthRequest, res: Response) => {
       isActive
     } = req.body;
 
+    // Phase 5: Tenant Isolation Check
+    if (req.user?.role !== 'SUPER_ADMIN' && req.user?.schoolId && schoolId !== req.user.schoolId) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Cannot save configurations for another school' }
+      });
+    }
+
     const config = await configService.upsertTermConfig({
       schoolId,
       academicYear: parseInt(academicYear),
@@ -186,6 +221,17 @@ export const upsertTermConfig = async (req: AuthRequest, res: Response) => {
 export const updateTermConfig = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // Phase 5: Fetch record and check ownership
+    const existingConfig = await prisma.termConfig.findUnique({ where: { id } });
+    if (!existingConfig) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Term configuration not found' } });
+    }
+
+    if (req.user?.role !== 'SUPER_ADMIN' && req.user?.schoolId && existingConfig.schoolId !== req.user.schoolId) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Unauthorized to update this configuration' } });
+    }
+
     const {
       startDate,
       endDate,
@@ -255,6 +301,15 @@ export const updateTermConfig = async (req: Request, res: Response) => {
 export const getAggregationConfigs = async (req: Request, res: Response) => {
   try {
     const { schoolId } = req.params;
+    const currentUser = (req as any).user;
+
+    // Phase 5: Tenant Isolation Check
+    if (currentUser?.role !== 'SUPER_ADMIN' && currentUser?.schoolId && schoolId !== currentUser.schoolId) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Unauthorized access to configurations of another school' }
+      });
+    }
 
     const configs = await configService.getSchoolAggregationConfigs(schoolId);
 
@@ -282,6 +337,16 @@ export const getAggregationConfigs = async (req: Request, res: Response) => {
 export const getSpecificAggregationConfig = async (req: Request, res: Response) => {
   try {
     const { schoolId, assessmentType } = req.params;
+    const currentUser = (req as any).user;
+
+    // Phase 5: Tenant Isolation Check
+    if (currentUser?.role !== 'SUPER_ADMIN' && currentUser?.schoolId && schoolId !== currentUser.schoolId) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Unauthorized access to configurations of another school' }
+      });
+    }
+
     const { grade, learningArea } = req.query;
 
     const config = await configService.getAggregationConfig({
@@ -345,6 +410,14 @@ export const createAggregationConfig = async (req: AuthRequest, res: Response) =
       weight
     } = req.body;
 
+    // Phase 5: Tenant Isolation Check
+    if (req.user?.role !== 'SUPER_ADMIN' && req.user?.schoolId && schoolId !== req.user.schoolId) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Cannot create configurations for another school' }
+      });
+    }
+
     const config = await configService.createAggregationConfig({
       schoolId,
       grade,
@@ -392,6 +465,17 @@ export const createAggregationConfig = async (req: AuthRequest, res: Response) =
 export const updateAggregationConfig = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // Phase 5: Fetch record and check ownership
+    const existingConfig = await prisma.aggregationConfig.findUnique({ where: { id } });
+    if (!existingConfig) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Aggregation configuration not found' } });
+    }
+
+    if (req.user?.role !== 'SUPER_ADMIN' && req.user?.schoolId && existingConfig.schoolId !== req.user.schoolId) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Unauthorized to update this configuration' } });
+    }
+
     const { strategy, nValue, weight } = req.body;
 
     const updateData: any = {};
@@ -448,6 +532,16 @@ export const deleteAggregationConfig = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
+    // Phase 5: Fetch record and check ownership
+    const existingConfig = await prisma.aggregationConfig.findUnique({ where: { id } });
+    if (!existingConfig) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Aggregation configuration not found' } });
+    }
+
+    if (req.user?.role !== 'SUPER_ADMIN' && req.user?.schoolId && existingConfig.schoolId !== req.user.schoolId) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Unauthorized to delete this configuration' } });
+    }
+
     await configService.deleteAggregationConfig(id);
 
     res.json({
@@ -478,6 +572,15 @@ export const deleteAggregationConfig = async (req: Request, res: Response) => {
 export const getStreamConfigs = async (req: Request, res: Response) => {
   try {
     const { schoolId } = req.params;
+    const currentUser = (req as any).user;
+
+    // Phase 5: Tenant Isolation Check
+    if (currentUser?.role !== 'SUPER_ADMIN' && currentUser?.schoolId && schoolId !== currentUser.schoolId) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Unauthorized access to configurations of another school' }
+      });
+    }
 
     const configs = await configService.getStreamConfigs(schoolId);
 
@@ -506,8 +609,13 @@ export const upsertStreamConfig = async (req: AuthRequest, res: Response) => {
   try {
     const { id, name, active } = req.body;
     let { schoolId } = req.body;
-    if (!schoolId) {
-      schoolId = req.user?.schoolId || undefined as any;
+
+    // Phase 5: Tenant Force/Verify
+    if (req.user?.role !== 'SUPER_ADMIN') {
+      if (schoolId && req.user?.schoolId && schoolId !== req.user.schoolId) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Unauthorized school identifier' } });
+      }
+      schoolId = req.user?.schoolId || schoolId;
     }
 
     if (!schoolId || !name) {
@@ -518,6 +626,14 @@ export const upsertStreamConfig = async (req: AuthRequest, res: Response) => {
           message: 'School ID and Name are required'
         }
       });
+    }
+
+    // Phase 5: If updating existing, check ownership
+    if (id) {
+      const existing = await prisma.streamConfig.findUnique({ where: { id } });
+      if (existing && req.user?.role !== 'SUPER_ADMIN' && existing.schoolId !== req.user?.schoolId) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Unauthorized access to this stream' } });
+      }
     }
 
     const config = await configService.upsertStreamConfig({
@@ -564,6 +680,16 @@ export const deleteStreamConfig = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
+    // Phase 5: Fetch record and check ownership
+    const existing = await prisma.streamConfig.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Stream not found' } });
+    }
+
+    if (req.user?.role !== 'SUPER_ADMIN' && req.user?.schoolId && existing.schoolId !== req.user.schoolId) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Unauthorized to delete this stream' } });
+    }
+
     await configService.deleteStreamConfig(id);
 
     res.json({
@@ -594,6 +720,15 @@ export const deleteStreamConfig = async (req: Request, res: Response) => {
 export const getClasses = async (req: Request, res: Response) => {
   try {
     const { schoolId } = req.params;
+    const currentUser = (req as any).user;
+
+    // Phase 5: Tenant Isolation Check
+    if (currentUser?.role !== 'SUPER_ADMIN' && currentUser?.schoolId && schoolId !== currentUser.schoolId) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Unauthorized access to classes of another school' }
+      });
+    }
 
     const classes = await configService.getClasses(schoolId);
 
@@ -651,8 +786,12 @@ export const upsertClass = async (req: AuthRequest, res: Response) => {
     const { id, name, grade, stream, teacherId, capacity, room, academicYear, term, active, branchId } = req.body;
     let { schoolId } = req.body;
 
-    if (!schoolId) {
-      schoolId = req.user?.schoolId || undefined as any;
+    // Phase 5: Tenant Force/Verify
+    if (req.user?.role !== 'SUPER_ADMIN') {
+      if (schoolId && req.user?.schoolId && schoolId !== req.user.schoolId) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Unauthorized school identifier' } });
+      }
+      schoolId = req.user?.schoolId || schoolId;
     }
 
     if (!schoolId || !name || !grade) {
@@ -663,6 +802,14 @@ export const upsertClass = async (req: AuthRequest, res: Response) => {
           message: 'School ID, name, and grade are required'
         }
       });
+    }
+
+    // Phase 5: If updating existing, check ownership
+    if (id) {
+      const existing = await prisma.class.findUnique({ where: { id }, include: { branch: true } });
+      if (existing && req.user?.role !== 'SUPER_ADMIN' && existing.branch?.schoolId !== req.user?.schoolId) {
+        return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Unauthorized access to this class' } });
+      }
     }
 
     // Map friendly grade name to Enum if necessary
@@ -724,6 +871,20 @@ export const deleteClass = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
+    // Phase 5: Fetch record and check ownership
+    const existing = await prisma.class.findUnique({
+      where: { id },
+      include: { branch: true }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Class not found' } });
+    }
+
+    if (req.user?.role !== 'SUPER_ADMIN' && req.user?.schoolId && existing.branch?.schoolId !== req.user.schoolId) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Unauthorized to delete this class' } });
+    }
+
     await configService.deleteClass(id);
 
     res.json({
@@ -754,6 +915,15 @@ export const deleteClass = async (req: Request, res: Response) => {
 export const getConfigurationSummary = async (req: Request, res: Response) => {
   try {
     const { schoolId } = req.params;
+    const currentUser = (req as any).user;
+
+    // Phase 5: Tenant Isolation Check
+    if (currentUser?.role !== 'SUPER_ADMIN' && currentUser?.schoolId && schoolId !== currentUser.schoolId) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Unauthorized access to configuration summary' }
+      });
+    }
 
     const summary = await configService.getConfigurationSummary(schoolId);
 
@@ -844,6 +1014,14 @@ export const resetToDefaults = async (req: AuthRequest, res: Response) => {
 
     const { schoolId, term, academicYear } = req.body;
 
+    // Phase 5: Tenant Isolation Check
+    if (req.user?.role !== 'SUPER_ADMIN' && req.user?.schoolId && schoolId !== req.user.schoolId) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Cannot reset configurations for another school' }
+      });
+    }
+
     const config = await configService.resetToDefaults({
       schoolId,
       term,
@@ -888,6 +1066,14 @@ export const createDefaultAggregationConfigs = async (req: AuthRequest, res: Res
 
     const { schoolId } = req.body;
 
+    // Phase 5: Tenant Isolation Check
+    if (req.user?.role !== 'SUPER_ADMIN' && req.user?.schoolId && schoolId !== req.user.schoolId) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Cannot create default configurations for another school' }
+      });
+    }
+
     const configs = await configService.createDefaultAggregationConfigs(schoolId, userId);
 
     res.status(201).json({
@@ -915,6 +1101,20 @@ export const createDefaultAggregationConfigs = async (req: AuthRequest, res: Res
 export const recalculateClassScores = async (req: Request, res: Response) => {
   try {
     const { classId, term, academicYear } = req.body;
+
+    // Phase 5: Verify class ownership
+    const targetClass = await prisma.class.findUnique({
+      where: { id: classId },
+      include: { branch: true }
+    });
+
+    if (!targetClass) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Class not found' } });
+    }
+
+    if (req.user?.role !== 'SUPER_ADMIN' && req.user?.schoolId && targetClass.branch?.schoolId !== req.user.schoolId) {
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Unauthorized to recalculate scores for this class' } });
+    }
 
     const result = await calculationService.recalculateClassScores({
       classId,
@@ -947,7 +1147,7 @@ export const recalculateClassScores = async (req: Request, res: Response) => {
 export const seedClasses = async (req: AuthRequest, res: Response) => {
   try {
     const schoolId = req.user?.schoolId;
-    
+
     if (!schoolId) {
       return res.status(400).json({
         success: false,
@@ -969,8 +1169,8 @@ export const seedClasses = async (req: AuthRequest, res: Response) => {
 
     const GRADES = [
       Grade.CRECHE, Grade.RECEPTION, Grade.TRANSITION, Grade.PLAYGROUP,
-      Grade.PP1, Grade.PP2, Grade.GRADE_1, Grade.GRADE_2, Grade.GRADE_3, Grade.GRADE_4, 
-      Grade.GRADE_5, Grade.GRADE_6, Grade.GRADE_7, Grade.GRADE_8, Grade.GRADE_9, 
+      Grade.PP1, Grade.PP2, Grade.GRADE_1, Grade.GRADE_2, Grade.GRADE_3, Grade.GRADE_4,
+      Grade.GRADE_5, Grade.GRADE_6, Grade.GRADE_7, Grade.GRADE_8, Grade.GRADE_9,
       Grade.GRADE_10, Grade.GRADE_11, Grade.GRADE_12
     ];
 
@@ -1031,7 +1231,7 @@ export const seedClasses = async (req: AuthRequest, res: Response) => {
 export const seedStreams = async (req: AuthRequest, res: Response) => {
   try {
     const schoolId = req.user?.schoolId;
-    
+
     if (!schoolId) {
       return res.status(400).json({
         success: false,
@@ -1122,7 +1322,7 @@ export const configController = {
   createDefaultAggregationConfigs,
   recalculateClassScores,
   getGrades,
-  
+
   // Seeding
   seedClasses,
   seedStreams

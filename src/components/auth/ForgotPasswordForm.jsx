@@ -207,7 +207,7 @@ export default function ForgotPasswordForm({ onSwitchToLogin, brandingSettings }
           {/* Footer Copyright */}
           <div className="relative z-10 text-center">
             <p className="text-white/60 text-sm">
-              © 2025 {brandingSettings?.schoolName || 'Zawadi JRN Academy'}. All rights reserved.
+              © 2026 {brandingSettings?.schoolName || 'Elimcrown Academy'}. All rights reserved.
             </p>
           </div>
         </div>

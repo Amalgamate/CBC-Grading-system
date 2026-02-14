@@ -4,6 +4,7 @@ export interface WelcomeEmailData {
   to: string;
   schoolName: string;
   adminName: string;
+  tempPassword: string;
   loginUrl: string;
 }
 
@@ -26,7 +27,7 @@ export class EmailService {
   });
 
   static async sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
-    const { to, schoolName, adminName, loginUrl } = data;
+    const { to, schoolName, adminName, tempPassword, loginUrl } = data;
 
     const brandColor = '#1e3a8a'; // Industry standard blue
 
@@ -47,14 +48,18 @@ export class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <img src="/logo-educore.png" alt="EDucore Logo" class="logo">
-            <h1 style="color: ${brandColor};">Welcome to EDucore!</h1>
+            <img src="https://elimcrown.com/logo.png" alt="Elimcrown Logo" class="logo">
+            <h1 style="color: ${brandColor};">Welcome to Elimcrown!</h1>
           </div>
           <div class="content">
             <p>Dear <strong>${adminName}</strong>,</p>
-            <p>Congratulations! Your school, <strong>${schoolName}</strong>, has been successfully registered on EDucore V1.</p>
+            <p>Congratulations! Your school, <strong>${schoolName}</strong>, has been successfully registered on Elimcrown.</p>
             <p>We are excited to help you streamline your school management, from CBC assessments to real-time reporting.</p>
-            <p>You can now log in to your dashboard to complete your school profile and start managing your learners.</p>
+            <p>You can now log in to your dashboard with the temporary password below:</p>
+            <div style="background: #ffffff; padding: 15px; border: 1px dashed ${brandColor}; border-radius: 6px; text-align: center; margin: 20px 0;">
+              <span style="font-size: 1.2rem; font-family: monospace; font-weight: bold; color: ${brandColor};">${tempPassword}</span>
+            </div>
+            <p style="font-size: 0.875rem; color: #ef4444; text-align: center;"><strong>Note:</strong> Please change your password after your first login.</p>
             <div style="text-align: center;">
               <a href="${loginUrl}" class="button">Log In to Dashboard</a>
             </div>
@@ -62,8 +67,8 @@ export class EmailService {
             <a href="${loginUrl}">${loginUrl}</a></p>
           </div>
           <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} EDucore V1. All rights reserved.</p>
-            <p>You received this email because you signed up for an EDucore account.</p>
+            <p>&copy; ${new Date().getFullYear()} Elimcrown Academy. All rights reserved.</p>
+            <p>You received this email because you signed up for an Elimcrown account.</p>
           </div>
         </div>
       </body>
@@ -72,9 +77,9 @@ export class EmailService {
 
     try {
       await this.transporter.sendMail({
-        from: `"${schoolName} via EDucore" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+        from: `"${schoolName} via Elimcrown" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
         to,
-        subject: `Welcome to ${schoolName} on EDucore!`,
+        subject: `Welcome to ${schoolName} on Elimcrown!`,
         html,
       });
       console.log(`📧 Welcome email sent to ${to}`);
@@ -107,12 +112,12 @@ export class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <img src="/logo-educore.png" alt="EDucore Logo" class="logo">
+            <img src="https://elimcrown.com/logo.png" alt="Elimcrown Logo" class="logo">
             <h1 style="color: ${brandColor};">Password Reset Request</h1>
           </div>
           <div class="content">
             <p>Hi <strong>${userName}</strong>,</p>
-            <p>We received a request to reset your password for your EDucore account at <strong>${schoolName}</strong>.</p>
+            <p>We received a request to reset your password for your Elimcrown account at <strong>${schoolName}</strong>.</p>
             <p>Click the button below to reset your password. This link will expire in 1 hour.</p>
             <div style="text-align: center;">
               <a href="${resetLink}" class="button">Reset Password</a>
@@ -130,7 +135,7 @@ export class EmailService {
             </div>
           </div>
           <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} EDucore V1. All rights reserved.</p>
+            <p>&copy; ${new Date().getFullYear()} Elimcrown Academy. All rights reserved.</p>
             <p>This is an automated security email. Please do not reply.</p>
           </div>
         </div>
@@ -140,7 +145,7 @@ export class EmailService {
 
     try {
       await this.transporter.sendMail({
-        from: `"${schoolName} via EDucore" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+        from: `"${schoolName} via Elimcrown" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
         to,
         subject: `Password Reset Request - ${schoolName}`,
         html,
@@ -149,6 +154,91 @@ export class EmailService {
     } catch (error) {
       console.error('❌ Failed to send password reset email:', error);
       throw error; // We throw here because password reset is critical
+    }
+  }
+  static async sendFeeInvoiceEmail(data: {
+    to: string;
+    schoolName: string;
+    parentName: string;
+    learnerName: string;
+    invoiceNumber: string;
+    term: string;
+    amount: number;
+    dueDate: string;
+    feeItems: { name: string; amount: number }[];
+  }): Promise<void> {
+    const { to, schoolName, parentName, learnerName, invoiceNumber, term, amount, dueDate, feeItems } = data;
+    const brandColor = '#1e3a8a';
+
+    // Generate table rows for fee items
+    const feeRows = feeItems.map(item => `
+      <tr>
+        <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.name}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">KES ${item.amount.toLocaleString()}</td>
+      </tr>
+    `).join('');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .logo { width: 80px; height: 80px; margin-bottom: 10px; }
+          .content { background: #f9fafb; padding: 25px; border-radius: 8px; }
+          .amount-box { background: ${brandColor}; color: white; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; }
+          .footer { margin-top: 30px; font-size: 0.875rem; color: #6b7280; text-align: center; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="color: ${brandColor};">${schoolName}</h1>
+            <h3>New Fee Invoice Generated</h3>
+          </div>
+          <div class="content">
+            <p>Dear <strong>${parentName}</strong>,</p>
+            <p>A new fee invoice has been generated for <strong>${learnerName}</strong> for <strong>${term}</strong>.</p>
+            
+            <div class="amount-box">
+              <div style="font-size: 0.9rem; opacity: 0.9;">Total Amount Due</div>
+              <div style="font-size: 2rem; font-weight: bold;">KES ${amount.toLocaleString()}</div>
+              <div style="font-size: 0.9rem; margin-top: 5px;">Due Date: ${dueDate}</div>
+            </div>
+
+            <h4>Invoice Details (${invoiceNumber})</h4>
+            <table>
+              ${feeRows}
+              <tr>
+                <td style="padding: 8px; border-top: 2px solid #ddd; font-weight: bold;">Total</td>
+                <td style="padding: 8px; border-top: 2px solid #ddd; text-align: right; font-weight: bold;">KES ${amount.toLocaleString()}</td>
+              </tr>
+            </table>
+
+            <p style="margin-top: 20px;">Please ensure payment is made by the due date to avoid disruption of services.</p>
+          </div>
+          <div class="footer">
+            <p>&copy; ${new Date().getFullYear()} ${schoolName}. All rights reserved.</p>
+            <p>This is an automated notification.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    try {
+      await this.transporter.sendMail({
+        from: `"${schoolName}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+        to,
+        subject: `New Invoice: ${learnerName} - ${term}`,
+        html,
+      });
+      console.log(`📧 Fee invoice email sent to ${to}`);
+    } catch (error) {
+      console.error('❌ Failed to send fee invoice email:', error);
     }
   }
 }

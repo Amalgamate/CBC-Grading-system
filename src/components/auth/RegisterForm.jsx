@@ -936,7 +936,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${fieldStatus.schoolName === 'invalid' || (showErrors && errors.schoolName) ? 'border-red-500 shadow-sm' :
                           fieldStatus.schoolName === 'valid' ? 'border-green-500' : 'border-gray-300'
                           }`}
-                        placeholder="EDucore Academy"
+                        placeholder="Elimcrown Academy"
                       />
                       <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                         {fieldStatus.schoolName === 'loading' && <Loader2 className="animate-spin text-gray-400 h-5 w-5" />}

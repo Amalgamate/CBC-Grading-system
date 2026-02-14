@@ -41,22 +41,28 @@ const resolveImagesToBase64 = async (element, onProgress) => {
 
   if (onProgress) onProgress(`Embedding ${total} images...`);
 
-  const promises = Array.from(images).map(async (img) => {
-    const originalSrc = img.getAttribute('src');
-    if (!originalSrc || originalSrc.startsWith('data:')) return;
+  const CONCURRENCY_LIMIT = 3; // Process 3 images at a time
+  const imagesArray = Array.from(images);
 
-    // Convert to absolute URL if it's relative
-    const absoluteUrl = new URL(originalSrc, window.location.href).href;
+  for (let i = 0; i < imagesArray.length; i += CONCURRENCY_LIMIT) {
+    const batch = imagesArray.slice(i, i + CONCURRENCY_LIMIT);
+    if (onProgress) onProgress(`Converting images (${i + 1}-${Math.min(i + CONCURRENCY_LIMIT, total)} of ${total})...`);
 
-    try {
-      const base64 = await convertImageToBase64(absoluteUrl);
-      img.setAttribute('src', base64);
-    } catch (err) {
-      console.warn(`Failed to convert image ${originalSrc} to base64:`, err);
-    }
-  });
+    await Promise.all(batch.map(async (img) => {
+      const originalSrc = img.getAttribute('src');
+      if (!originalSrc || originalSrc.startsWith('data:')) return;
 
-  await Promise.all(promises);
+      // Convert to absolute URL if it's relative
+      const absoluteUrl = new URL(originalSrc, window.location.href).href;
+
+      try {
+        const base64 = await convertImageToBase64(absoluteUrl);
+        img.setAttribute('src', base64);
+      } catch (err) {
+        console.warn(`Failed to convert image ${originalSrc} to base64:`, err);
+      }
+    }));
+  }
 };
 
 /**
@@ -240,12 +246,12 @@ export const generatePDFWithLetterhead = async (
   } = options;
 
   const {
-    schoolName = 'Zawadi JRN Academy',
+    schoolName = 'Elimcrown Academy',
     address = 'P.O. Box 1234, Nairobi, Kenya',
     phone = '+254 700 000000',
-    email = 'info@zawadijrn.ac.ke',
-    website = 'www.zawadijrn.ac.ke',
-    logoUrl = '/logo-educore.png',
+    email = 'info@elimcrown.ac.ke',
+    website = 'www.elimcrown.ac.ke',
+    logoUrl = '/logo-elimcrown.png',
     brandColor = '#1e3a8a',
     skipLetterhead = false
   } = schoolInfo;
@@ -577,15 +583,19 @@ export const generateHighFidelityPDF = async (elementId, filename, options = {})
       throw new Error(`Element with ID "${elementId}" not found`);
     }
 
+    // 2. Resolve all images to Base64 so Puppeteer doesn't have to fetch them
+    await resolveImagesToBase64(originalElement.cloneNode(true), onProgress); // Use a clone for image resolution check
+
     if (onProgress) onProgress('Processing report layout...');
 
     // Clone element so we don't mess up the live UI while resolving images
     const element = originalElement.cloneNode(true);
 
-    // Resolve all images to Base64 so Puppeteer doesn't have to fetch them
+    // Resolve images again on the actual clone we will send
     await resolveImagesToBase64(element, onProgress);
 
     // 2. Capture all stylesheets from the document
+    if (onProgress) onProgress('Linking stylesheets...');
     const styleHeaders = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
       .map(el => el.outerHTML)
       .join('\n');
@@ -621,6 +631,11 @@ export const generateHighFidelityPDF = async (elementId, filename, options = {})
             .page-break-inside-avoid {
               page-break-inside: avoid;
             }
+            /* PDF Optimization: Reduce image size impact */
+            img {
+              max-width: 100%;
+              height: auto;
+            }
           </style>
         </head>
         <body>
@@ -631,9 +646,7 @@ export const generateHighFidelityPDF = async (elementId, filename, options = {})
       </html>
     `;
 
-    if (onProgress) onProgress('Sending to server for processing...');
-
-    if (onProgress) onProgress('Sending to server for processing...');
+    if (onProgress) onProgress('Connecting to generation server...');
 
     // 3. Send to backend via our namespaced API
     const pdfBlob = await api.reports.generatePdf({
@@ -642,11 +655,12 @@ export const generateHighFidelityPDF = async (elementId, filename, options = {})
       options: {
         format: 'A4',
         printBackground: true,
+        preferCSSPageSize: true,
         ...options.pdfOptions
       }
     });
 
-    if (onProgress) onProgress('Finalizing download...');
+    if (onProgress) onProgress('Downloading high-quality PDF...');
 
     // 4. Download the received blob
     const url = window.URL.createObjectURL(pdfBlob);
@@ -662,6 +676,7 @@ export const generateHighFidelityPDF = async (elementId, filename, options = {})
     return { success: true };
   } catch (error) {
     console.error('High-fidelity PDF generation error:', error);
+    if (onProgress) onProgress(`Error: ${error.message}`);
     return { success: false, error: error.message };
   }
 };

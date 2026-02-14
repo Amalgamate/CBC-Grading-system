@@ -50,23 +50,25 @@ const TransferOutPage = ({ learners = [], onTransferOut, showNotification }) => 
       return;
     }
 
-    const learner = learners.find(l => l.id === parseInt(formData.learnerId));
+    const learner = learners.find(l => l.id === formData.learnerId);
     if (!learner) {
       showNotification('Learner not found', 'error');
       return;
     }
 
-    onTransferOut(formData);
-    showNotification(`${learner.firstName} ${learner.lastName} transferred successfully`, 'success');
-
-    // Reset form
-    setFormData({
-      learnerId: '',
-      transferDate: getCurrentDate(),
-      destinationSchool: '',
-      destinationAddress: '',
-      reason: '',
-      certificateNumber: ''
+    onTransferOut(formData).then(result => {
+      if (result.success) {
+        // Success message and redirection is handled by CBCGradingSystem
+        // Reset form
+        setFormData({
+          learnerId: '',
+          transferDate: getCurrentDate(),
+          destinationSchool: '',
+          destinationAddress: '',
+          reason: '',
+          certificateNumber: ''
+        });
+      }
     });
   };
 

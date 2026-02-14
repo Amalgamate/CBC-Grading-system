@@ -48,7 +48,7 @@ export const learningAreas = [
   {
     id: 20,
     name: 'Mathematics',
-    shortName: 'Math',
+    shortName: 'Maths',
     code: 'MATH',
     gradeLevel: 'Lower Primary',
     grades: ['Grade 1', 'Grade 2', 'Grade 3'],
@@ -76,8 +76,8 @@ export const learningAreas = [
   },
   {
     id: 21,
-    name: 'English Language Activities',
-    shortName: 'English',
+    name: 'English',
+    shortName: 'ENG',
     code: 'ENG',
     gradeLevel: 'Lower Primary',
     grades: ['Grade 1', 'Grade 2', 'Grade 3'],
@@ -91,8 +91,8 @@ export const learningAreas = [
   },
   {
     id: 22,
-    name: 'Kiswahili Language Activities',
-    shortName: 'Kiswahili',
+    name: 'Kiswahili',
+    shortName: 'Kiswa',
     code: 'KIS',
     gradeLevel: 'Lower Primary',
     grades: ['Grade 1', 'Grade 2', 'Grade 3'],
@@ -100,6 +100,54 @@ export const learningAreas = [
     icon: '🗣️',
     weight: 1.0,
     strands: [{ id: 1, name: 'Kusikiliza na Kuzungumza', subStrands: [{ name: 'Maamkizi', outcomes: ['Tumia maamkizi ipasavyo'] }] }]
+  },
+  {
+    id: 23,
+    name: 'Environmental Studies',
+    shortName: 'ENV',
+    code: 'ENV',
+    gradeLevel: 'Lower Primary',
+    grades: ['Grade 1', 'Grade 2', 'Grade 3'],
+    color: '#3b82f6',
+    icon: '🌍',
+    weight: 1.0,
+    strands: []
+  },
+  {
+    id: 24,
+    name: 'Creative Activities',
+    shortName: 'CA',
+    code: 'CA',
+    gradeLevel: 'Lower Primary',
+    grades: ['Grade 1', 'Grade 2', 'Grade 3'],
+    color: '#ec4899',
+    icon: '🎨',
+    weight: 1.0,
+    strands: []
+  },
+  {
+    id: 25,
+    name: 'Religious Education',
+    shortName: 'RE',
+    code: 'RE',
+    gradeLevel: 'Lower Primary',
+    grades: ['Grade 1', 'Grade 2', 'Grade 3'],
+    color: '#8b5cf6',
+    icon: '⛪',
+    weight: 1.0,
+    strands: []
+  },
+  {
+    id: 26,
+    name: 'Information Communications Technology',
+    shortName: 'ICT',
+    code: 'ICT',
+    gradeLevel: 'Lower Primary',
+    grades: ['Grade 1', 'Grade 2', 'Grade 3'],
+    color: '#64748b',
+    icon: '💻',
+    weight: 1.0,
+    strands: []
   },
 
   // UPPER PRIMARY (Grade 4-6)

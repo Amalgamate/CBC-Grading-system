@@ -30,7 +30,7 @@ const StudentStatementsPage = () => {
     const fetchLearners = async () => {
       try {
         setLoading(true);
-        const response = await api.learners.getAll({ status: 'Active' });
+        const response = await api.learners.getAll({ status: 'ACTIVE' });
         setLearners(response.data || []);
       } catch (error) {
         showError('Failed to load students');
@@ -47,7 +47,7 @@ const StudentStatementsPage = () => {
       setLoading(true);
       const invoicesResponse = await api.fees.getLearnerInvoices(learnerId);
       setInvoices(invoicesResponse.data || []);
-      
+
       // Extract all payments from invoices
       const allPayments = [];
       invoicesResponse.data?.forEach(invoice => {
@@ -111,7 +111,7 @@ const StudentStatementsPage = () => {
     const fullName = `${learner.firstName} ${learner.lastName}`.toLowerCase();
     const admNo = (learner.admissionNumber || learner.admNo || '').toString().toLowerCase();
     const lowerTerm = searchTerm.toLowerCase();
-    
+
     const matchesSearch = fullName.includes(lowerTerm) || admNo.includes(lowerTerm);
     const matchesGrade = filterGrade === 'all' || learner.grade === filterGrade;
     return matchesSearch && matchesGrade;

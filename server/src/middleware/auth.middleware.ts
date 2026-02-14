@@ -12,15 +12,17 @@ export const authenticate = async (
   next: NextFunction
 ) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    
-    if (!token) {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new ApiError(401, 'Authentication required');
     }
 
+    const token = authHeader.split(' ')[1];
+
     const decoded = verifyAccessToken(token);
     req.user = decoded;
-    
+
     // Set tenant context if available
     if (decoded.schoolId || decoded.branchId) {
       (req as any).tenant = {
@@ -30,8 +32,15 @@ export const authenticate = async (
     }
 
     next();
-  } catch (error) {
-    next(new ApiError(401, 'Invalid or expired token'));
+  } catch (error: any) {
+    console.error('❌ Auth Error:', error.message);
+    if (error.name === 'TokenExpiredError') {
+      next(new ApiError(401, 'Token expired'));
+    } else if (error.name === 'JsonWebTokenError') {
+      next(new ApiError(401, 'Invalid token'));
+    } else {
+      next(new ApiError(401, 'Authentication failed'));
+    }
   }
 };
 

@@ -1,5 +1,6 @@
 import prisma from '../config/database';
 import bcrypt from 'bcryptjs';
+import { EmailService } from './email-resend.service';
 
 export interface SchoolProvisioningData {
   // School details
@@ -167,7 +168,7 @@ export async function provisionNewSchool(
 
   // 6. Send welcome email to admin (outside transaction)
   try {
-    await sendWelcomeEmail({
+    await EmailService.sendWelcomeEmail({
       to: data.adminEmail,
       schoolName: data.schoolName,
       adminName: `${data.adminFirstName} ${data.adminLastName}`,
@@ -252,59 +253,4 @@ async function getDefaultTrialPlanId(): Promise<string> {
   return plan.id;
 }
 
-/**
- * Send welcome email to new school admin
- */
-async function sendWelcomeEmail(data: {
-  to: string;
-  schoolName: string;
-  adminName: string;
-  tempPassword: string;
-  loginUrl: string;
-}) {
-  // TODO: Implement actual email sending with nodemailer or similar
-  // For now, just log to console
-  console.log('\n' + '='.repeat(70));
-  console.log('📧 WELCOME EMAIL');
-  console.log('='.repeat(70));
-  console.log(`To: ${data.to}`);
-  console.log(`School: ${data.schoolName}`);
-  console.log(`Admin: ${data.adminName}`);
-  console.log(`Temporary Password: ${data.tempPassword}`);
-  console.log(`Login URL: ${data.loginUrl}`);
-  console.log('='.repeat(70));
-  console.log('⚠️  Please save this password and share it securely with the admin.');
-  console.log('='.repeat(70) + '\n');
 
-  // Actual implementation would use nodemailer:
-  /*
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    }
-  });
-  
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM,
-    to: data.to,
-    subject: `Welcome to ${data.schoolName} - School Management System`,
-    html: `
-      <h1>Welcome to ${data.schoolName}!</h1>
-      <p>Dear ${data.adminName},</p>
-      <p>Your school has been successfully set up in our system.</p>
-      <p><strong>Login Details:</strong></p>
-      <ul>
-        <li>URL: <a href="${data.loginUrl}">${data.loginUrl}</a></li>
-        <li>Email: ${data.to}</li>
-        <li>Temporary Password: <code>${data.tempPassword}</code></li>
-      </ul>
-      <p>Please change your password after your first login.</p>
-      <p>Best regards,<br>School Management System Team</p>
-    `
-  });
-  */
-}

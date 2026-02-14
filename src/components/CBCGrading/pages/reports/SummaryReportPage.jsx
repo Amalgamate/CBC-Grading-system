@@ -23,7 +23,7 @@ const SummaryReportPage = () => {
         try {
           const resp = await configAPI.getStreamConfigs(user.schoolId);
           const arr = resp?.data || [];
-          setAvailableStreams(arr.filter(s => s.active));
+          setAvailableStreams(arr.filter(s => s.active !== false));
         } catch (error) {
           console.error('Failed to fetch streams:', error);
         }

@@ -4,12 +4,12 @@
  */
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Download, Loader, MessageCircle, MoreVertical, Printer, MessageSquare, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { Download, Loader, MessageCircle, Printer, MessageSquare, AlertCircle, CheckCircle, XCircle, Edit2 } from 'lucide-react';
 import VirtualizedTable from '../shared/VirtualizedTable';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useNotifications } from '../hooks/useNotifications';
 import { generateHighFidelityPDF } from '../../../utils/simplePdfGenerator';
-import api, { configAPI } from '../../../services/api';
+import api, { configAPI, communicationAPI } from '../../../services/api';
 import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { getLearningAreasByGrade, getAllLearningAreas } from '../../../constants/learningAreas';
 
@@ -38,13 +38,45 @@ const LEARNING_AREA_ABBREVIATIONS = {
   'NUTRITION': 'NUTR',
   'PRE-TECHNICAL STUDIES': 'PRE-TECH',
   'INTEGRATED SCIENCE': 'INT SCI',
-  'SOCIAL STUDIES & LIFE SKILLS': 'SST'
+  'SOCIAL STUDIES & LIFE SKILLS': 'SST',
+  'MOVEMENT AND CREATIVE ACTIVITIES': 'CREATIVE',
+  'ENVIRONMENTAL STUDIES': 'ENV'
 };
+
+const formatSubjectName = (name) => {
+  if (!name) return name;
+  const upper = name.toUpperCase().trim();
+  if (upper === 'MATHEMATICAL ACTIVITIES' || upper === 'MATHEMATICS') return 'Mathematics';
+  if (upper === 'ENGLISH LANGUAGE ACTIVITIES' || upper === 'ENGLISH') return 'English';
+  if (upper === 'KISWAHILI LANGUAGE ACTIVITIES' || upper === 'KISWAHILI') return 'Kiswahili';
+  if (upper === 'ENVIRONMENTAL ACTIVITIES') return 'Environmental Activities';
+  if (upper === 'MOVEMENT AND CREATIVE ACTIVITIES' || upper === 'CREATIVE ACTIVITIES') return 'Creative Activities';
+  return name.charAt(0) + name.slice(1).toLowerCase();
+};
+
 
 const getAbbreviatedName = (name) => {
   if (!name) return '';
   const upper = name.toUpperCase().trim();
   return LEARNING_AREA_ABBREVIATIONS[upper] || (name.length > 8 ? name.substring(0, 8).toUpperCase() : name.toUpperCase());
+};
+
+const getLearnerPhone = (learner) => {
+  if (!learner) return '';
+  return learner.primaryContactPhone ||
+    learner.guardianPhone ||
+    learner.parent?.phone ||
+    learner.fatherPhone ||
+    learner.motherPhone ||
+    learner.parentPhone ||
+    learner.parentPhoneNumber ||
+    '';
+};
+
+
+// Helper to refine learning area based on test title (fixes aggregation issues)
+const getRefinedLearningArea = (currentArea, testTitle) => {
+  return currentArea; // Disable fuzzy merging to prevent data corruption
 };
 
 const CHART_COLORS = [
@@ -152,7 +184,7 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
     }
 
     return {
-      area,
+      area: formatSubjectName(area),
       scoresByCol,
       testCount,
       totalScore,
@@ -164,6 +196,66 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
     };
   }).filter(row => row.testCount > 0);
 
+  // --- COMMENT STATE & LOGIC ---
+  const [commentData, setCommentData] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedComment, setEditedComment] = useState('');
+  const [isSavingComment, setIsSavingComment] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+
+  // Debounced auto-save useEffect
+  useEffect(() => {
+    if (!isEditing || !isTyping) return;
+
+    const timer = setTimeout(() => {
+      handleSaveComment();
+      setIsTyping(false);
+    }, 2000); // 2 second debounce
+
+    return () => clearTimeout(timer);
+  }, [editedComment]);
+
+  useEffect(() => {
+    const fetchComment = async () => {
+      if (!learner?.id) return;
+      try {
+        const res = await api.cbc.getComments(learner.id, { term, academicYear });
+        if (res.success && res.data) {
+          setCommentData(res.data);
+          setEditedComment(res.data.classTeacherComment || '');
+        }
+      } catch (err) {
+        console.error('Error fetching comments:', err);
+      }
+    };
+    fetchComment();
+  }, [learner?.id, term, academicYear]);
+
+  const handleSaveComment = async () => {
+    if (!learner?.id) return;
+    try {
+      setIsSavingComment(true);
+      const payload = {
+        learnerId: learner.id,
+        term,
+        academicYear,
+        classTeacherComment: editedComment,
+        classTeacherName: user?.firstName ? `${user.firstName} ${user.lastName}` : 'Class Teacher',
+        classTeacherDate: new Date().toISOString(),
+        nextTermOpens: commentData?.nextTermOpens || new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString()
+      };
+
+      const res = await api.cbc.saveComments(payload);
+      if (res.success) {
+        setCommentData(res.data);
+      }
+    } catch (err) {
+      console.error('Error saving comment:', err);
+    } finally {
+      setIsSavingComment(false);
+    }
+  };
+
   return (
     <div className="relative bg-white mx-auto overflow-hidden"
       style={{
@@ -171,58 +263,55 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
         lineHeight: '1.2',
         width: '210mm',
         minHeight: '297mm',
-        padding: '12mm',
+        padding: '8mm',
         boxSizing: 'border-box'
       }}
     >
-      {/* Header Section */}
-      <div className="mb-0">
-        <table style={{ width: '100%', borderBottom: '3px solid #1e3a8a', paddingBottom: '10px' }}>
-          <tbody>
-            <tr>
-              {/* Logo */}
-              <td style={{ width: 'auto', verticalAlign: 'top' }}>
-                {brandingSettings?.logoUrl ? (
-                  <img
-                    src={brandingSettings.logoUrl}
-                    alt="Logo"
-                    style={{ height: '60px', width: 'auto', objectFit: 'contain' }}
-                  />
-                ) : (
-                  <div style={{ height: '60px', width: '60px', background: '#ccc', borderRadius: '50%' }}></div>
-                )}
-              </td>
+      {/* Header Section - Centered Professional Redesign */}
+      <div className="mb-6 flex flex-col items-center text-center">
+        {/* Logo Middle */}
+        <div className="mb-4">
+          <img
+            src="/logo-zawadi.png"
+            alt="Logo"
+            style={{ height: '100px', width: 'auto', objectFit: 'contain' }}
+            onError={(e) => { e.target.src = '/logo-new.png'; }} // Fallback if zawadi logo is not found
+          />
+        </div>
 
-              {/* School Info - CENTERED & BOLD */}
-              <td style={{ textAlign: 'center', flex: 1, padding: '0 20px', verticalAlign: 'top' }}>
-                <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#1e3a8a', margin: '0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {user?.school?.name || brandingSettings?.schoolName || 'ACADEMIC SCHOOL'}
-                </h1>
-                <div style={{ fontSize: '11px', fontWeight: '600', color: '#555', marginTop: '4px' }}>
-                  MOTTO: {user?.school?.motto || 'Excellence in Education'}
-                </div>
-                <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>
-                  {user?.school?.location} | {user?.school?.phone} | {user?.school?.email}
-                </div>
-              </td>
+        {/* School Info */}
+        <h1 style={{ fontSize: '26px', fontWeight: '900', color: '#1E3A8A', margin: '0', textTransform: 'uppercase', letterSpacing: '1px', lineHeight: '1.1' }}>
+          {user?.school?.name || brandingSettings?.schoolName || 'ACADEMIC SCHOOL'}
+        </h1>
 
-              {/* Report Meta */}
-              <td style={{ textAlign: 'right', verticalAlign: 'top' }}>
-                <div style={{ fontSize: '28px', fontWeight: '900', color: '#e5e7eb', lineHeight: '0.8' }}>REPORT</div>
-                <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#1e3a8a' }}>ACADEMIC YEAR {academicYear || 2026}</div>
-                <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#666' }}>{new Date().toLocaleDateString()}</div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        {user?.school?.motto && (
+          <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginTop: '2px', textTransform: 'uppercase', fontStyle: 'italic' }}>
+            "{user.school.motto}"
+          </div>
+        )}
+
+        {/* Contact Details */}
+        <div style={{ fontSize: '11px', color: '#444', marginTop: '6px', fontWeight: '500', opacity: '0.8' }}>
+          {user?.school?.location && <span>{user.school.location}</span>}
+          {user?.school?.email && <span> • {user.school.email}</span>}
+        </div>
+
+        {/* Separator Line */}
+        <div className="w-full h-1 bg-blue-900 mt-4 mb-4"></div>
+
+        {/* Report Title */}
+        <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#000', margin: '0', textTransform: 'uppercase', letterSpacing: '2px' }}>
+          Summative Assessment Report
+        </h2>
+
+        {/* Exam Name / Termly Details */}
+        <div style={{ fontSize: '12px', fontWeight: '700', color: '#1E3A8A', marginTop: '4px', textTransform: 'uppercase', backgroundColor: '#eff6ff', padding: '4px 16px', borderRadius: '40px' }}>
+          {Array.from(testTypesFound).map(t => t.replace(/_/g, ' ')).join(', ')} | {term ? (typeof term === 'string' ? term.replace(/_/g, ' ') : (term.label || '')) : 'TERM'} | {academicYear || new Date().getFullYear()} ACADEMIC YEAR
+        </div>
       </div>
 
-      <h1 className="text-xl font-extrabold text-center uppercase tracking-wide text-blue-900 my-4" style={{ fontFamily: 'Inter, sans-serif' }}>
-        Summative Assessment Report
-      </h1>
-
       {/* Student Info Table (Compact) */}
-      <div className="mb-4 text-xs">
+      <div className="mb-10 text-xs">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '11px', border: '1px solid #e2e8f0', padding: '8px', borderRadius: '4px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 8px' }}>
             <div style={{ fontWeight: 'bold', color: '#444' }}>NAME:</div>
@@ -230,9 +319,6 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
 
             <div style={{ fontWeight: 'bold', color: '#444' }}>ADM NO:</div>
             <div style={{ fontWeight: 'bold' }}>{learner.admissionNumber || '—'}</div>
-
-            <div style={{ fontWeight: 'bold', color: '#444' }}>GENDER:</div>
-            <div style={{ textTransform: 'capitalize' }}>{learner.gender?.toLowerCase() || '—'}</div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 8px' }}>
@@ -241,19 +327,12 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
 
             <div style={{ fontWeight: 'bold', color: '#444' }}>STREAM:</div>
             <div style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{learner.stream || 'A'}</div>
-
-            <div style={{ fontWeight: 'bold', color: '#444' }}>AGE:</div>
-            <div>
-              {learner.dateOfBirth
-                ? `${new Date().getFullYear() - new Date(learner.dateOfBirth).getFullYear()} Yrs`
-                : '—'}
-            </div>
           </div>
         </div>
       </div>
 
       {/* Results Table */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', marginBottom: '15px' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', marginBottom: '20px' }}>
         <thead>
           <tr style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
             <th style={{ padding: '8px 4px', textAlign: 'left', fontWeight: 'bold' }}>SUBJECT</th>
@@ -270,15 +349,15 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
         <tbody>
           {tableRows.map((row, idx) => (
             <tr key={row.area} style={{ backgroundColor: idx % 2 === 0 ? '#f8fafc' : 'white', borderBottom: '1px solid #e2e8f0' }}>
-              <td style={{ padding: '6px 4px', fontWeight: '600', color: '#334155' }}>{row.area}</td>
+              <td style={{ padding: '6px 4px', fontWeight: '900', fontSize: '16px', color: '#1E3A8A', letterSpacing: '-0.2px' }}>{row.area}</td>
               {testColumns.map(col => (
-                <td key={col} style={{ padding: '6px 4px', textAlign: 'center', color: '#475569' }}>
+                <td key={col} style={{ padding: '6px 4px', textAlign: 'center', color: '#1e293b', fontWeight: '900', fontSize: '16px' }}>
                   {row.scoresByCol[col] !== null ? row.scoresByCol[col] : '—'}
                 </td>
               ))}
-              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 'bold', color: '#1e293b' }}>{row.percentage}%</td>
-              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: 'bold', color: row.color }}>{row.grade}</td>
-              <td style={{ padding: '6px 4px', fontSize: '9px', fontStyle: 'italic', color: '#64748b' }}>{row.remark}</td>
+              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '900', fontSize: '18px', color: '#0f172a' }}>{row.percentage}%</td>
+              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '900', fontSize: '18px', color: row.color }}>{row.grade}</td>
+              <td style={{ padding: '6px 4px', fontSize: '11px', fontStyle: 'italic', fontWeight: '700', color: '#64748b', lineHeight: '1.2' }}>{row.remark}</td>
             </tr>
           ))}
         </tbody>
@@ -302,8 +381,8 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
           else overallGrade = 'BE2';
 
           const cardStyle = { padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'center', backgroundColor: '#f8fafc' };
-          const labelStyle = { fontSize: '9px', fontWeight: 'bold', color: '#64748b', marginBottom: '2px', textTransform: 'uppercase' };
-          const valueStyle = { fontSize: '14px', fontWeight: '900', color: '#0f172a' };
+          const labelStyle = { fontSize: '10px', fontWeight: 'bold', color: '#64748b', marginBottom: '2px', textTransform: 'uppercase' };
+          const valueStyle = { fontSize: '18px', fontWeight: '900', color: '#0f172a' };
 
           return (
             <>
@@ -328,66 +407,127 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
         })()}
       </div>
 
-      {/* Performance Chart */}
-      <div className="mb-6 page-break-inside-avoid">
-        <h3 className="text-xs font-bold text-gray-800 uppercase border-b-2 border-gray-200 mb-2 pb-1">Subject Performance</h3>
-        <div style={{ height: '180px', width: '100%' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={tableRows} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="area" interval={0} height={60} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} tick={{ fontSize: 8 }} />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
-              <Bar dataKey="percentage" radius={[6, 6, 0, 0]} barSize={40}>
-                {tableRows.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} fillOpacity={0.85} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Grading Key */}
-      <div className="mb-6 page-break-inside-avoid">
-        <h3 className="text-xs font-bold text-gray-800 uppercase border-b-2 border-gray-200 mb-2 pb-1">Grading Key</h3>
-        <div className="grid grid-cols-4 gap-2 text-[9px]">
-          <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#15803d] text-white flex items-center justify-center font-bold rounded-sm">EE1</span> <span>90-100% (Outstanding)</span></div>
-          <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#166534] text-white flex items-center justify-center font-bold rounded-sm">EE2</span> <span>75-89% (Very High)</span></div>
-          <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#22c55e] text-white flex items-center justify-center font-bold rounded-sm">ME1</span> <span>58-74% (High Avg)</span></div>
-          <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#4ade80] text-gray-900 flex items-center justify-center font-bold rounded-sm">ME2</span> <span>41-57% (Average)</span></div>
-          <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#eab308] text-white flex items-center justify-center font-bold rounded-sm">AE1</span> <span>31-40% (Low Avg)</span></div>
-          <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#facc15] text-gray-900 flex items-center justify-center font-bold rounded-sm">AE2</span> <span>21-30% (Below Avg)</span></div>
-          <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#f97316] text-white flex items-center justify-center font-bold rounded-sm">BE1</span> <span>11-20% (Low)</span></div>
-          <div className="flex items-center gap-1"><span className="w-6 h-4 bg-[#dc2626] text-white flex items-center justify-center font-bold rounded-sm">BE2</span> <span>0-10% (Very Low)</span></div>
-        </div>
-      </div>
-
-      {/* Signatures Section */}
-      <div className="mt-8 pt-4 border-t-2 border-gray-100 flex justify-between items-end page-break-inside-avoid">
-        <div className="flex flex-col gap-8 w-1/2 pr-8">
-          <div className="border-b border-black border-dotted pb-1 text-sm font-medium">Class Teacher's Remarks:</div>
-        </div>
-        <div className="relative flex flex-col items-center gap-2">
-          {/* Principal's Stamp */}
-          <div className="absolute -top-12 opacity-80 pointer-events-none">
-            <img
-              src="/Zawadi-School--Stamp.png"
-              alt="School Stamp"
-              className="w-32 h-auto"
-              style={{ mixBlendMode: 'multiply' }}
-            />
+      {/* Performance Chart & Grading Key Row */}
+      <div className="flex gap-4 mb-4 page-break-inside-avoid">
+        {/* Performance Chart - 65% */}
+        <div className="w-[65%]">
+          <h3 className="text-[10px] font-bold text-gray-800 uppercase border-b border-gray-200 mb-2 pb-1">Subject Performance</h3>
+          <div style={{ height: '140px', width: '100%' }}>
+            {tableRows && tableRows.length > 0 && BarChart ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={tableRows.map(r => ({ ...r, area: getAbbreviatedName(r.area) }))} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="area" interval={0} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} tick={{ fontSize: 8, fontWeight: 'bold' }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                  <Bar dataKey="percentage" fill="#1E3A8A" barSize={30} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full bg-gray-50 text-[10px] text-gray-400 font-bold uppercase">No data for chart</div>
+            )}
           </div>
-          <div className="w-48 border-b border-black border-dotted mt-16"></div>
-          <div className="text-[10px] uppercase font-bold tracking-wider">Principal's Signature & Stamp</div>
+        </div>
+
+        {/* Grading Key - 35% */}
+        <div className="w-[35%] border-l border-gray-100 pl-4">
+          <h3 className="text-[10px] font-bold text-gray-800 uppercase border-b border-gray-200 mb-2 pb-1">Grading Key</h3>
+          <div className="flex flex-col gap-1 text-[8px]">
+            <div className="flex items-center gap-1"><span className="w-5 h-3 bg-[#15803d] text-white flex items-center justify-center font-bold rounded-sm">EE1</span> <span>90-100% (Outstanding)</span></div>
+            <div className="flex items-center gap-1"><span className="w-5 h-3 bg-[#166534] text-white flex items-center justify-center font-bold rounded-sm">EE2</span> <span>75-89% (Very High)</span></div>
+            <div className="flex items-center gap-1"><span className="w-5 h-3 bg-[#22c55e] text-white flex items-center justify-center font-bold rounded-sm">ME1</span> <span>58-74% (High Avg)</span></div>
+            <div className="flex items-center gap-1"><span className="w-5 h-3 bg-[#4ade80] text-gray-900 flex items-center justify-center font-bold rounded-sm">ME2</span> <span>41-57% (Average)</span></div>
+            <div className="flex items-center gap-1"><span className="w-5 h-3 bg-[#eab308] text-white flex items-center justify-center font-bold rounded-sm">AE1</span> <span>31-40% (Low Avg)</span></div>
+            <div className="flex items-center gap-1"><span className="w-5 h-3 bg-[#facc15] text-gray-900 flex items-center justify-center font-bold rounded-sm">AE2</span> <span>21-30% (Below Avg)</span></div>
+            <div className="flex items-center gap-1"><span className="w-5 h-3 bg-[#f97316] text-white flex items-center justify-center font-bold rounded-sm">BE1</span> <span>11-20% (Low)</span></div>
+            <div className="flex items-center gap-1"><span className="w-5 h-3 bg-[#dc2626] text-white flex items-center justify-center font-bold rounded-sm">BE2</span> <span>0-10% (Very Low)</span></div>
+          </div>
         </div>
       </div>
 
-      {/* Footer */}
-      <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid #ddd', fontSize: '9px', textAlign: 'center', color: '#777', pageBreakBefore: 'avoid', minHeight: '40px' }}>
+      {/* Signatures & Remarks Section */}
+      <div className="mt-4 pt-3 border-t-2 border-gray-100 flex justify-between items-start page-break-inside-avoid">
+        {/* Class Teacher Remarks Area */}
+        <div className="flex flex-col gap-1 w-[60%] pr-4 group relative cursor-pointer"
+          onClick={() => { if (!isEditing) { setIsEditing(true); setEditedComment(commentData?.classTeacherComment || ''); } }}>
+          <div className="text-[10px] font-extrabold text-[#1E3A8A] uppercase flex items-center gap-2 mb-1">
+            Class Teacher's Remarks:
+          </div>
+          <div className="min-h-[75px] border-b-2 border-slate-300 border-dotted pb-1 text-[12px] font-semibold text-slate-800 italic leading-snug">
+            {isEditing ? (
+              <div className="no-print w-full">
+                <textarea
+                  autoFocus
+                  className="w-full bg-blue-100/50 border-2 border-blue-400 rounded-lg p-3 outline-none focus:ring-4 focus:ring-blue-500/20 text-sm shadow-inner transition-all"
+                  value={editedComment}
+                  onChange={(e) => {
+                    setEditedComment(e.target.value);
+                    setIsTyping(true);
+                  }}
+                  onBlur={() => {
+                    handleSaveComment();
+                    setIsTyping(false);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSaveComment(); setIsTyping(false); }
+                    if (e.key === 'Escape') setIsEditing(false);
+                  }}
+                  disabled={isSavingComment}
+                  placeholder="Type student remarks here..."
+                  style={{ minHeight: '80px' }}
+                />
+                {(isSavingComment || isTyping) ? (
+                  <>
+                    <span className="text-xs text-blue-500 animate-pulse">(Saving...)</span>
+                    {isTyping ? 'Typing...' : 'Saving changes...'}
+                  </>
+                ) : (
+                  '✅ All changes saved'
+                )}
+              </div>
+            ) : (
+              <div className="relative">
+                {commentData?.classTeacherComment ? (
+                  commentData.classTeacherComment
+                ) : (
+                  <span className="text-gray-400 font-normal no-print italic">Click to add specific remarks for this learner...</span>
+                )}
+              </div>
+            )}
+          </div>
+          {!isEditing && commentData?.classTeacherDate && (
+            <div className="text-[8px] text-gray-400 font-bold uppercase no-print mt-1">
+              Updated: {new Date(commentData.classTeacherDate).toLocaleDateString()}
+            </div>
+          )}
+        </div>
+
+        {/* Principal / Head Teacher Section */}
+        <div className="w-[40%]"></div>
+      </div>
+
+      {/* Signature & Stamp Area - Bottom Anchored - Adjusted for breathing room above footer (18mm) */}
+      <div className="absolute bottom-[18mm] right-[8mm] w-[40%] flex flex-col items-center">
+        {/* Stamp Area - Reduced further (w-80 -> w-68) */}
+        <div className="mb-[-12px] z-10 flex justify-center">
+          <img
+            src="/ZawadiStamp.svg"
+            alt="School Stamp"
+            className="w-48 h-auto opacity-95"
+            style={{ mixBlendMode: 'multiply' }}
+          />
+        </div>
+
+        {/* Signature Line Area - Thin line below stamp */}
+        <div className="w-full border-b border-slate-900 mb-1"></div>
+        <div className="text-[11px] font-bold uppercase text-slate-900 tracking-wider">Principal's Signature & Stamp</div>
+      </div>
+
+      {/* Footer Disclaimer - Absolute Bottom */}
+      <div style={{ position: 'absolute', bottom: '8mm', left: '8mm', right: '8mm', paddingTop: '10px', borderTop: '2px solid #f1f5f9', fontSize: '10px', textAlign: 'center', color: '#64748b', fontWeight: '800' }}>
         <div>This is an official report generated by the Assessment System.</div>
         <div style={{ marginTop: '2px' }}>For inquiries, contact the administration office.</div>
       </div>
-    </div>
+    </div >
   );
 };
 
@@ -456,7 +596,10 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
   const [pdfProgress, setPdfProgress] = useState('');
   // Bulk Actions State
   const [isBulkPrinting, setIsBulkPrinting] = useState(false);
+  const [selectedReportRows, setSelectedReportRows] = useState([]); // Track selected rows for bulk action
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, active: false, success: 0, failed: 0 });
+  const [singleDownloadData, setSingleDownloadData] = useState(null);
+  const [isSingleDownloading, setIsSingleDownloading] = useState(false);
 
   const reportRef = useRef(null);
   const testGroupRef = useRef(null);
@@ -471,6 +614,9 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       if (testOptionsRef.current && !testOptionsRef.current.contains(event.target)) {
         setShowTestOptions(false);
       }
+      if (learnerOptionsRef.current && !learnerOptionsRef.current.contains(event.target)) {
+        setShowLearnerOptions(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -478,6 +624,24 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  const handleToggleSelectRow = (idx) => {
+    setSelectedReportRows(prev => {
+      if (prev.includes(idx)) {
+        return prev.filter(i => i !== idx);
+      } else {
+        return [...prev, idx];
+      }
+    });
+  };
+
+  const handleSelectAll = (total) => {
+    if (selectedReportRows.length === total) {
+      setSelectedReportRows([]);
+    } else {
+      setSelectedReportRows(Array.from({ length: total }, (_, i) => i));
+    }
+  };
 
 
   // Local learner fetching state
@@ -488,6 +652,12 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
   const [isSendingSMS, setIsSendingSMS] = useState(false);
   const [showSMSPreview, setShowSMSPreview] = useState(false);
   const [smsPreviewData, setSmsPreviewData] = useState(null);
+  const [editedPhoneNumber, setEditedPhoneNumber] = useState('');
+
+  // WhatsApp sending state
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+  const [whatsAppProgress, setWhatsAppProgress] = useState({ current: 0, total: 0, status: '' });
+  const [showWhatsAppConfirm, setShowWhatsAppConfirm] = useState(false);
 
   // General Notification Modal state
   const [notificationModal, setNotificationModal] = useState({ show: false, title: '', message: '', type: 'info' });
@@ -512,7 +682,9 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
   const academicYear = setup.academicYear;
 
   // Selection mappings - use local state for learner selection
-  const [selectedLearnerId, setSelectedLearnerId] = useState('');
+  const [selectedLearnerIds, setSelectedLearnerIds] = useState([]);
+  const [showLearnerOptions, setShowLearnerOptions] = useState(false);
+  const learnerOptionsRef = useRef(null);
 
   // Helper to normalize strings for comparison (e.g., "Grade 1" -> "GRADE_1")
   const normalize = (str) => {
@@ -827,145 +999,207 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     }
   };
 
-  const handleSendSMS = async () => {
-    if (!reportData || (reportData.type !== 'LEARNER_REPORT' && reportData.type !== 'LEARNER_TERMLY_REPORT')) {
-      showError('SMS can only be sent for learner reports');
-      return;
-    }
-
-    const learner = reportData.learner;
-    if (!learner) {
-      showError('Learner information not available');
-      return;
-    }
-
-    // Get parent phone from learner data
-    const parentPhone = learner.guardianPhone || learner.parentPhoneNumber || learner.parentPhone || learner.parent?.phone;
+  /**
+   * Helper to format SMS message for a row
+   */
+  const formatSmsReport = (row) => {
+    const learner = row.learner;
+    // Get parent phone from learner data (Priority: Guardian -> Parent)
     const parentName = learner.guardianName || learner.parent?.firstName || 'Parent';
     const termLabel = terms.find(t => t.value === selectedTerm)?.label || selectedTerm;
-
-    if (!parentPhone) {
-      setNotificationModal({
-        show: true,
-        title: 'Missing Information',
-        message: 'Parent phone number not available for this learner. Please update the learner record before sending SMS.',
-        type: 'warning'
-      });
-      return;
-    }
-
-    const totalMarks = reportData.results.reduce((sum, r) => sum + (r.score || 0), 0);
-    const maxPossibleMarks = reportData.results.reduce((sum, r) => sum + (r.totalMarks || 0), 0);
-    const averageScore = reportData.averageScore || (maxPossibleMarks > 0 ? ((totalMarks / maxPossibleMarks) * 100).toFixed(1) : 0);
-    const { grade: overallGrade } = getCBCGrade(parseFloat(averageScore));
-
     const schoolName = brandingSettings?.schoolName || 'YOUR SCHOOL';
 
-    const subjects = reportData.results.reduce((acc, r) => {
-      const area = r.learningArea || 'General';
-      const pct = r.totalMarks > 0 ? (r.score / r.totalMarks) * 100 : 0;
+    const results = row.results || [];
+    const totalMarks = results.reduce((sum, r) => sum + (r.score || 0), 0);
+    const maxPossibleMarks = results.reduce((sum, r) => sum + (r.totalMarks || 0), 0);
+    const averageScore = row.averageScore || row.averagePct || (maxPossibleMarks > 0 ? ((totalMarks / maxPossibleMarks) * 100).toFixed(1) : 0);
+    const { grade: overallGrade } = getCBCGrade(parseFloat(averageScore));
+
+    const subjects = results.reduce((acc, r) => {
+      const area = r.learningArea || r.test?.learningArea || 'General';
+      const pct = (r.totalMarks || r.test?.totalMarks) > 0 ? (r.score / (r.totalMarks || r.test?.totalMarks)) * 100 : 0;
       const { grade } = getCBCGrade(pct);
-      // Simplify grades for SMS (EE1 -> EE)
       const simpleGrade = grade.replace(/\d+/g, '');
       acc[area] = { score: Math.round(r.score), grade: simpleGrade };
       return acc;
     }, {});
 
-    // Generate preview message matching requested sample
-    const subjectsSummary = Object.entries(subjects).map(([name, detail]) => {
-      const code = getAbbreviatedName(name);
-      return `${code}: ${detail.score} ${detail.grade}`;
+    const subjectsList = Object.entries(subjects).map(([name, detail]) => {
+      const shortName = getAbbreviatedName(name).padEnd(12).slice(0, 12);
+      const paddedScore = String(detail.score).padStart(3);
+      const paddedGrade = detail.grade.padStart(3);
+      return `${shortName} ${paddedScore}  ${paddedGrade}`;
     }).join('\n');
 
-    const message = `FROM ${schoolName.toUpperCase()}\n\n` +
-      `${parentName ? `Dear ${parentName}` : 'Dear Parent'},\n\n` +
-      `Midterm Assessment, ${termLabel}, ${academicYear || new Date().getFullYear()}\n\n` +
-      `NAME: ${learner.firstName} ${learner.lastName}\n` +
-      `GRADE: ${learner.grade}\n\n` +
-      `GRADE:${overallGrade.replace(/\d+/g, '')}\n` +
-      `MEAN MARKS: ${averageScore}%\n` +
-      `TOTAL MARKS: ${totalMarks} / ${maxPossibleMarks}\n\n` +
-      `${subjectsSummary}`;
+    const tableHeader = `SUBJECT      SCR  GRD`;
 
+    return `${schoolName.toUpperCase()}\n` +
+      `Official Assessment Report\n\n` +
+      `Dear ${parentName},\n` +
+      `Here is the assessment summary for\n${learner.firstName} ${learner.lastName} for ${termLabel}:\n\n` +
+      `${tableHeader}\n` +
+      `${subjectsList}\n\n` +
+      `AVERAGE      ${averageScore.toString().padStart(3)}%  ${overallGrade.replace(/\d+/g, '').padStart(3)}\n\n` +
+      `Total Marks: ${totalMarks} / ${maxPossibleMarks}\n` +
+      `Overall Status: ${overallGrade.replace(/\d+/g, '')}`;
+  };
+
+  const handleSendSMS = async (directRow = null) => {
+    const row = (directRow && directRow.learner) ? directRow : (reportData?.type === 'LEARNER_REPORT' || reportData?.type === 'LEARNER_TERMLY_REPORT' ? reportData : null);
+
+    if (!row) {
+      showError('Learner information not available');
+      return;
+    }
+
+    let learner = row.learner;
+    if (!learner) {
+      showError('Learner information not available');
+      return;
+    }
+
+    // Fix stale number by fetching latest (addresses user request)
+    try {
+      const latest = await api.learners.getById(learner.id);
+      if (latest) {
+        learner = latest;
+        // Optionally update the row object if it's from the table
+        if (directRow) {
+          directRow.learner = latest;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch latest learner contact, using row data", e);
+    }
+
+    // Get parent phone from learner data (Priority: Guardian -> Parent)
+    const parentPhone = getLearnerPhone(learner);
+    const parentName = learner.guardianName || learner.parent?.firstName || 'Parent';
+    const termLabel = terms.find(t => t.value === selectedTerm)?.label || selectedTerm;
+
+    // Proceed to SMS preview even if phone is missing (user can enter it)
+    const message = formatSmsReport(row);
+
+    setEditedPhoneNumber(parentPhone); // Initialize edit field
     setSmsPreviewData({
       recipient: parentPhone,
       parentName: parentName,
       learnerName: `${learner.firstName} ${learner.lastName}`,
       message: message,
-      subjects: subjects,
       termLabel: termLabel,
-      totalMarks: totalMarks,
-      maxPossibleMarks: maxPossibleMarks,
-      averageScore: averageScore,
-      overallGrade: overallGrade.replace(/\d+/g, '')
+      learnerId: learner.id // Store learner ID for tracking
     });
     setShowSMSPreview(true);
   };
 
+
+
   /**
    * Send summary via WhatsApp - Clean Rewrite to avoid duplication
    */
-  const handleSendWhatsApp = () => {
-    if (!reportData || (reportData.type !== 'LEARNER_REPORT' && reportData.type !== 'LEARNER_TERMLY_REPORT')) {
-      showError('WhatsApp sharing is only available for learner reports');
-      return;
-    }
+  const handleSendWhatsApp = async (directRow = null) => {
+    // 0. Argument handling: if called as an onClick without params, directRow is an Event
+    const row = (directRow && directRow.learner) ? directRow : (reportData?.type === 'LEARNER_REPORT' || reportData?.type === 'LEARNER_TERMLY_REPORT' ? reportData : null);
 
-    const currentLearner = reportData.learner;
-    if (!currentLearner) {
+    if (!row) {
       showError('Learner information not available');
       return;
     }
 
-    // 1. Data Preparation
-    const parentPhone = currentLearner.guardianPhone || currentLearner.parentPhoneNumber || currentLearner.parentPhone || currentLearner.parent?.phone;
+    const currentLearner = row.learner;
+    if (!currentLearner) {
+      showError('Learner details missing');
+      return;
+    }
+
+    // 1. Data Preparation (Priority: Guardian -> Parent)
+    const parentPhone = getLearnerPhone(currentLearner);
     const parentName = currentLearner.guardianName || currentLearner.parent?.firstName || 'Parent';
     const termLabel = terms.find(t => t.value === selectedTerm)?.label || selectedTerm;
     const schoolName = brandingSettings?.schoolName || 'YOUR SCHOOL';
 
-    const results = reportData.results || [];
+    const results = row.results || [];
+
+    // Aggregate results by area (to avoid duplicates in the WhatsApp message)
+    const areaSummary = {};
+    results.forEach(r => {
+      const area = r.learningArea || 'General';
+      if (!areaSummary[area]) areaSummary[area] = { score: 0, total: 0 };
+      areaSummary[area].score += (r.score || 0);
+      areaSummary[area].total += (r.totalMarks || 0);
+    });
+
+    const tableRows = Object.keys(areaSummary).map(area => {
+      const summary = areaSummary[area];
+      const percentage = summary.total > 0 ? (summary.score / summary.total) * 100 : 0;
+      const { grade } = getCBCGrade(percentage);
+      return {
+        area,
+        score: summary.score,
+        grade
+      };
+    }).sort((a, b) => a.area.localeCompare(b.area));
+
     const totalMarks = results.reduce((sum, r) => sum + (r.score || 0), 0);
     const maxPossibleMarks = results.reduce((sum, r) => sum + (r.totalMarks || 0), 0);
-    const averageScore = reportData.averageScore || (maxPossibleMarks > 0 ? ((totalMarks / maxPossibleMarks) * 100).toFixed(1) : 0);
+    const averageScore = row.averageScore || (maxPossibleMarks > 0 ? ((totalMarks / maxPossibleMarks) * 100).toFixed(1) : 0);
     const { grade: overallGrade } = getCBCGrade(parseFloat(averageScore));
 
-    // 2. Build the Table Content
-    const tableBody = results.map(r => {
-      const area = r.learningArea || 'General';
-      const code = getAbbreviatedName(area).padEnd(8);
-      const score = Math.round(r.score).toString().padStart(3);
-      const pct = r.totalMarks > 0 ? (r.score / r.totalMarks) * 100 : 0;
-      const { grade } = getCBCGrade(pct);
-      const simpleGrade = grade.replace(/\d+/g, '').padStart(3);
-      return `${code} | ${score} | ${simpleGrade}`;
+    const tableRowsText = tableRows.map(r => {
+      const nameCol = getAbbreviatedName(r.area).padEnd(12).slice(0, 12);
+      const scoreCol = Math.round(r.score).toString().padStart(3);
+      const gradeCol = r.grade.replace(/\d+/g, '').padStart(3);
+      return `${nameCol} ${scoreCol}  ${gradeCol}`;
     }).join('\n');
 
-    // 3. Construct the Final Message (Clean & Professional)
+    const tableHeader = `SUBJECT      SCR  GRD`;
+
     // 3. Construct the Final Message (Clean & Professional)
     const waMessage =
-      `*${schoolName.toUpperCase()}*\n` +
-      `_Official Assessment Report_\n\n` +
-      `Dear *${parentName}*,\n` +
-      `Here is the assessment summary for\n*${currentLearner.firstName} ${currentLearner.lastName}* for *${termLabel}*:\n\n` +
-      `\`\`\`\n` +
-      `SUBJECT  | SCR | GRD\n` +
-      `---------|-----|----\n` +
-      `${tableBody}\n` +
-      `---------|-----|----\n` +
-      `AVERAGE  | ${averageScore.toString().padStart(3)}%| ${overallGrade.replace(/\d+/g, '').padStart(3)}\n` +
-      `\`\`\`\n\n` +
-      `*Total Marks:* ${totalMarks} / ${maxPossibleMarks}\n` +
-      `*Overall Status:* ${overallGrade.replace(/\d+/g, '')}\n\n` +
-      `_Generated on ${new Date().toLocaleDateString()}_`;
+      `${schoolName.toUpperCase()}\n` +
+      `Official Assessment Report\n\n` +
+      `Dear ${parentName},\n` +
+      `Here is the assessment summary for\n${currentLearner.firstName} ${currentLearner.lastName} for ${termLabel}:\n\n` +
+      `${tableHeader}\n` +
+      `${tableRowsText}\n\n` +
+      `AVERAGE      ${averageScore.toString().padStart(3)}%  ${overallGrade.replace(/\d+/g, '').padStart(3)}\n\n` +
+      `Total Marks: ${totalMarks} / ${maxPossibleMarks}\n` +
+      `Overall Status: ${overallGrade.replace(/\d+/g, '')}\n\n` +
+      `Generated on ${new Date().toLocaleDateString()}`;
 
-    // 4. Format Phone & Open WhatsApp
+    // 3.5 Open WhatsApp immediately (before async logs to prevent browser blocking)
     let cleanPhone = parentPhone ? parentPhone.replace(/\D/g, '') : '';
-    if (cleanPhone.startsWith('0')) {
-      cleanPhone = '254' + cleanPhone.substring(1);
+    if (cleanPhone.startsWith('0')) cleanPhone = '254' + cleanPhone.substring(1);
+
+    if (cleanPhone) {
+      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMessage)}`, '_blank');
+    } else {
+      showError('Parent phone number is unavailable or invalid');
+      return;
     }
 
-    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waMessage)}`;
-    window.open(whatsappUrl, '_blank');
+    // 4. Log communication to backend to track status
+    try {
+      await api.notifications.logCommunication({
+        learnerId: currentLearner.id,
+        channel: 'WHATSAPP',
+        term: selectedTerm,
+        academicYear: setup.academicYear,
+        assessmentType: 'SUMMATIVE'
+      });
+
+      // Update local UI state to reflect sent status
+      if (reportData?.rows) {
+        setReportData(prev => ({
+          ...prev,
+          rows: prev.rows.map(r => r.learner.id === currentLearner.id
+            ? { ...r, communication: { ...r.communication, hasSentWhatsApp: true, lastWhatsAppAt: new Date() } }
+            : r)
+        }));
+      }
+    } catch (e) {
+      console.error('Failed to log WhatsApp communication', e);
+    }
   };
 
 
@@ -979,60 +1213,53 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to send SMS results to ${reportData.rows.length} parents? This action cannot be undone.`)) {
+    // Determine target rows (selected or all)
+    const rowsToProcess = selectedReportRows.length > 0
+      ? selectedReportRows.map(idx => reportData.rows[idx])
+      : reportData.rows;
+
+    if (!window.confirm(`Are you sure you want to send SMS results to ${rowsToProcess.length} parents? This action cannot be undone.`)) {
       return;
     }
 
-    setBulkProgress({ current: 0, total: reportData.rows.length, active: true, success: 0, failed: 0 });
-    const total = reportData.rows.length;
+    setBulkProgress({ current: 0, total: rowsToProcess.length, active: true, success: 0, failed: 0 });
+    const total = rowsToProcess.length;
 
     for (let i = 0; i < total; i++) {
-      const row = reportData.rows[i];
+      const row = rowsToProcess[i];
       const learner = row.learner;
 
       try {
-        // Prepare Data
-        const parentPhone = learner.guardianPhone || learner.parentPhoneNumber || learner.parentPhone;
+        // Prepare Data (Priority: Guardian -> Parent)
+        const parentPhone = getLearnerPhone(learner);
         if (!parentPhone) {
           setBulkProgress(prev => ({ ...prev, current: i + 1, failed: prev.failed + 1 }));
           continue;
         }
 
-        const parentName = learner.guardianName || 'Parent';
-        const termLabel = terms.find(t => t.value === selectedTerm)?.label || selectedTerm;
-        const schoolName = brandingSettings?.schoolName || 'YOUR SCHOOL';
+        const message = formatSmsReport(row);
+        let formattedPhone = parentPhone.replace(/\D/g, '');
+        if (formattedPhone.startsWith('0')) formattedPhone = '254' + formattedPhone.substring(1);
 
-        // Generate Message Content
-        const results = row.results || [];
-        const totalMarks = row.totalScore;
-        const maxPossibleMarks = row.totalMax;
-        const averageScore = row.averagePct;
-        const overallGrade = row.grade;
-
-        const subjects = results.reduce((acc, r) => {
-          const area = r.learningArea || 'General';
-          const pct = r.totalMarks > 0 ? (r.score / r.totalMarks) * 100 : 0;
-          const { grade } = getCBCGrade(pct);
-          const simpleGrade = grade.replace(/\d+/g, '');
-          acc[area] = { score: Math.round(r.score), grade: simpleGrade };
-          return acc;
-        }, {});
-
-        // Send via API
-        await api.notifications.sendAssessmentReportSms({
-          learnerId: learner.id,
-          learnerName: `${learner.firstName} ${learner.lastName}`,
-          learnerGrade: learner.grade,
-          parentPhone: parentPhone,
-          parentName: parentName,
-          term: termLabel,
-          totalTests: results.length,
-          averageScore: averageScore,
-          overallGrade: overallGrade.replace(/\d+/g, ''),
-          totalMarks: totalMarks,
-          maxPossibleMarks: maxPossibleMarks,
-          subjects: subjects
+        // Send via Communication API (Direct delivery)
+        await communicationAPI.sendTestSMS({
+          phoneNumber: formattedPhone,
+          message: message,
+          schoolId: user?.schoolId || user?.school?.id || localStorage.getItem('currentSchoolId')
         });
+
+        // Log communication to backend
+        try {
+          await api.notifications.logCommunication({
+            learnerId: learner.id,
+            channel: 'SMS',
+            term: selectedTerm,
+            academicYear: setup.academicYear,
+            assessmentType: 'SUMMATIVE'
+          });
+        } catch (logErr) {
+          console.warn("Failed to log SMS communication", logErr);
+        }
 
         setBulkProgress(prev => ({ ...prev, current: i + 1, success: prev.success + 1 }));
 
@@ -1058,74 +1285,222 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     if (!reportData?.rows || reportData.rows.length === 0) return;
     if (isBulkPrinting) return;
 
+    // Determine rows to print
+    const rowsToPrint = selectedReportRows.length > 0
+      ? selectedReportRows.map(idx => reportData.rows[idx])
+      : reportData.rows;
+
+    if (rowsToPrint.length === 0) {
+      showError('No learners selected for PDF generation');
+      return;
+    }
+
     setIsBulkPrinting(true);
-    setPdfProgress('Preparing bulk reports...');
+    setPdfProgress('🚀 Initializing bulk report engine...');
 
     try {
-      // Wait for render
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 1. Give the DOM time to render the hidden content
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       const timestamp = new Date().toISOString().split('T')[0];
       const filename = `${reportData.title.replace(/[^a-zA-Z0-9]/g, '_')}_Detailed_Reports_${timestamp}.pdf`;
 
-      await generateHighFidelityPDF('bulk-print-content', filename, {
-        onProgress: setPdfProgress
+      setPdfProgress('📄 Preparing report layouts...');
+
+      const result = await generateHighFidelityPDF('bulk-print-content', filename, {
+        onProgress: (msg) => {
+          console.log(`PDF Progress: ${msg}`);
+          setPdfProgress(msg);
+        }
       });
-      showSuccess('Bulk reports downloaded successfully');
+
+      if (result.success) {
+        showSuccess('✅ Bulk reports generated and downloaded successfully');
+      } else {
+        throw new Error(result.error || 'Failed to generate PDF');
+      }
     } catch (err) {
-      console.error('Bulk print error:', err);
-      showError('Failed to generate bulk PDF');
+      console.error('❌ Bulk print error:', err);
+      showError(`PDF Generation Failed: ${err.message || 'An unexpected error occurred'}`);
     } finally {
       setIsBulkPrinting(false);
       setPdfProgress('');
     }
   };
 
+  /**
+   * Single Download Handler (Directly from list)
+   */
+
+  const handleSingleDownload = async (row) => {
+    if (isSingleDownloading || !row) return;
+
+    setSingleDownloadData(row);
+    setIsSingleDownloading(true);
+
+    try {
+      // Wait for hidden container to render
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      const filename = `${row.learner.firstName}_${row.learner.lastName}_Summative_Report.pdf`;
+      const result = await generateHighFidelityPDF('single-print-content', filename);
+
+      if (result.success) {
+        showSuccess(`Report for ${row.learner.firstName} downloaded`);
+      } else {
+        throw new Error(result.error || 'Failed to generate PDF');
+      }
+    } catch (err) {
+      console.error('❌ Individual download error:', err);
+      showError(`Failed to download: ${err.message}`);
+    } finally {
+      setIsSingleDownloading(false);
+      setSingleDownloadData(null);
+    }
+  };
+
   const executeSendSMS = async () => {
     if (!smsPreviewData) return;
 
-    setIsSendingSMS(true);
-    setShowSMSPreview(false);
+    // Use the edited number
+    if (!editedPhoneNumber) {
+      showError('Please enter a valid phone number');
+      return;
+    }
 
     try {
-      const response = await api.notifications.sendAssessmentReportSms({
-        learnerId: reportData.learner.id,
-        learnerName: smsPreviewData.learnerName,
-        learnerGrade: reportData.learner.grade,
-        parentPhone: smsPreviewData.recipient,
-        parentName: smsPreviewData.parentName,
-        term: smsPreviewData.termLabel,
-        totalTests: reportData.totalTests || 0,
-        averageScore: smsPreviewData.averageScore,
-        overallGrade: smsPreviewData.overallGrade,
-        totalMarks: smsPreviewData.totalMarks,
-        maxPossibleMarks: smsPreviewData.maxPossibleMarks,
-        subjects: smsPreviewData.subjects
+      setIsSendingSMS(true);
+      const schoolId = user?.schoolId || user?.school?.id || localStorage.getItem('currentSchoolId');
+
+      // Format number to international standard if it starts with 0
+      let formattedPhone = editedPhoneNumber;
+      if (formattedPhone.startsWith('0')) {
+        formattedPhone = '254' + formattedPhone.substring(1);
+      }
+
+      await communicationAPI.sendTestSMS({
+        phoneNumber: formattedPhone,
+        message: smsPreviewData.message,
+        schoolId: schoolId
       });
 
-      if (response.success || response.data?.success) {
-        const messageId = response.data?.messageId || response.messageId || 'N/A';
-        setNotificationModal({
-          show: true,
-          title: 'SMS Sent Successfully',
-          message: `The report summary has been sent to ${smsPreviewData.recipient}. Message ID: ${messageId}`,
-          type: 'success'
-        });
-      } else {
-        throw new Error(response.message || response.data?.message || 'Failed to send SMS');
-      }
-    } catch (err) {
-      console.error('❌ SMS Send Error:', err);
+      setNotificationModal({
+        show: true,
+        title: 'SMS Sent Successfully',
+        message: `The report summary has been sent to ${editedPhoneNumber}.`,
+        type: 'success'
+      });
+
+      setShowSMSPreview(false);
+      // Refresh to update status if needed
+      if (onFetchLearners) onFetchLearners();
+    } catch (error) {
+      console.error('SMS Error:', error);
+      showError('Failed to send SMS');
       setNotificationModal({
         show: true,
         title: 'SMS Delivery Failed',
-        message: err.message || 'An error occurred while sending the SMS. Please check your provider settings.',
+        message: error.message || 'An error occurred while sending the SMS.',
         type: 'error'
       });
     } finally {
       setIsSendingSMS(false);
-      setSmsPreviewData(null);
     }
+  };
+
+
+  /**
+   * Bulk WhatsApp Handler
+   * Sends reports to selected learners in batches with intervals
+   */
+  const handleBulkWhatsApp = async (testNumber = null) => {
+    const rowsToSend = selectedReportRows.length > 0
+      ? selectedReportRows.map(idx => reportData.rows[idx])
+      : reportData.rows;
+
+    if (rowsToSend.length === 0) {
+      showError('No learners selected for WhatsApp');
+      return;
+    }
+
+    const confirmMsg = testNumber
+      ? `Sending TEST reports for ${rowsToSend.length} learners to ${testNumber}. Continue?`
+      : `Ready to send WhatsApp reports to ${rowsToSend.length} parents. This will take approx ${Math.ceil(rowsToSend.length * 2 / 60)} minutes. Continue?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsSendingWhatsApp(true);
+    setWhatsAppProgress({ current: 0, total: rowsToSend.length, status: 'Initializing...' });
+    // setShowWhatsAppConfirm(false); // Kept open for progress display
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < rowsToSend.length; i++) {
+      const row = rowsToSend[i];
+      const learner = row.learner;
+      const progress = Math.round(((i + 1) / rowsToSend.length) * 100);
+
+      setWhatsAppProgress({
+        current: i + 1,
+        total: rowsToSend.length,
+        status: `Sending to ${learner.firstName}... (${i + 1}/${rowsToSend.length})`,
+        percent: progress
+      });
+
+      try {
+        // format subjects
+        const subjects = {};
+        if (row.results) {
+          row.results.forEach(r => {
+            const subjectName = r.learningArea || r.test?.learningArea || 'Subject';
+            subjects[subjectName] = {
+              score: r.score || 0,
+              grade: r.grade || '-'
+            };
+          });
+        }
+
+        const parentPhone = testNumber || getLearnerPhone(learner);
+
+        if (parentPhone) {
+          await api.notifications.sendAssessmentReportWhatsApp({
+            learnerId: learner.id,
+            learnerName: `${learner.firstName} ${learner.lastName}`,
+            learnerGrade: learner.grade,
+            parentPhone: parentPhone,
+            parentName: learner.guardianName || learner.parent?.firstName || 'Parent',
+            term: reportData.term?.replace(/_/g, ' ') || 'Term',
+            totalTests: row.results?.length || 0,
+            averageScore: row.averageScore,
+            overallGrade: row.grade,
+            subjects: subjects
+          });
+          successCount++;
+        } else {
+          console.warn(`Skipping ${learner.firstName}: No phone number`);
+          failCount++;
+        }
+
+      } catch (err) {
+        console.error(`Failed to send WA to ${learner.firstName}`, err);
+        failCount++;
+      }
+
+      // 2.5 second delay between messages to respect policies and avoid rate limiting
+      if (i < rowsToSend.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2500));
+      }
+    }
+
+    setIsSendingWhatsApp(false);
+    setShowWhatsAppConfirm(false); // Close progress modal
+    setNotificationModal({
+      show: true,
+      title: 'Bulk WhatsApp Complete',
+      message: `Process finished.\n✅ Sent: ${successCount}\n❌ Failed/Skipped: ${failCount}`,
+      type: successCount > 0 ? 'success' : 'warning'
+    });
   };
 
   const handleGenerate = async () => {
@@ -1146,9 +1521,9 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
         return;
       }
 
-      if (!selectedLearnerId) {
-        setStatusMessage('❌ Error: Please select a learner');
-        showError('Please select a learner');
+      if (selectedLearnerIds.length === 0) {
+        setStatusMessage('❌ Error: Please select at least one learner');
+        showError('Please select at least one learner');
         return;
       }
 
@@ -1167,6 +1542,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
 
     setLoading(true);
     setStatusMessage('⏳ Generating report...');
+    setSelectedReportRows([]); // Reset selection on new report
 
     const queryParams = {
       term: selectedTerm,
@@ -1177,110 +1553,104 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
 
     try {
       if (selectedType === 'LEARNER_REPORT' || selectedType === 'LEARNER_TERMLY_REPORT') {
-        // Fetch learner's ALL test results
-        const learner = filteredLearners?.find(l => l.id === selectedLearnerId);
-        if (!learner) {
-          showError('Learner not found');
-          setLoading(false);
-          return;
-        }
+        setStatusMessage(`📚 Loading results for ${selectedLearnerIds.length} learner(s)...`);
 
-        setStatusMessage(`📚 Loading results for ${learner.firstName} ${learner.lastName}...`);
+        const allReportRows = [];
 
-        // Fetch results for this learner
-        let processedResults = [];
+        // OPTIMIZED: Fetch all results and communication history for the whole group in one hit
+        const bulkRes = await api.assessments.getBulkResults(queryParams);
+        const allResults = bulkRes.success ? bulkRes.data : [];
+        const allCommunications = bulkRes.success ? (bulkRes.communications || []) : [];
 
-        if (selectedTestIds.length > 0) {
-          // Specific tests selected
-          for (const testId of selectedTestIds) {
-            try {
-              const res = await api.assessments.getTestResults(testId);
-              if (res.success && res.data) {
-                const myResult = res.data.find(r => r.learnerId === selectedLearnerId);
-                if (myResult) {
-                  // Attach test details
-                  const test = availableTests.find(t => t.id === testId);
-                  processedResults.push({ ...myResult, test });
-                }
-              }
-            } catch (e) {
-              console.error(`Failed to fetch results for test ${testId}`, e);
-            }
+        console.log(`[Report] Bulk fetch returned ${allResults.length} results and ${allCommunications.length} comm histories`);
+
+        for (const learnerId of selectedLearnerIds) {
+          const learner = filteredLearners?.find(l => l.id === learnerId);
+          if (!learner) continue;
+
+          // Filter this student's results and communication from the bulk payload
+          let processedResults = allResults.filter(r => r.learnerId === learnerId);
+          let communication = allCommunications.find(c => c.learnerId === learnerId) || null;
+
+          if (selectedTestIds.length > 0) {
+            // Specific tests selected
+            processedResults = processedResults.filter(r => selectedTestIds.includes(r.testId));
           }
-        } else {
-          // Fetch by learner ID directly (more efficient)
-          const res = await api.assessments.getSummativeByLearner(selectedLearnerId, queryParams);
-          if (res.success) {
-            processedResults = res.data || [];
-          }
-        }
 
-        // Filter results by selected test groups if any
-        if (selectedTestGroups.length > 0) {
-          processedResults = processedResults.filter(r => {
-            const type = r.test?.testType || r.testType;
-            return selectedTestGroups.includes(type);
+          // Filter results by selected test groups if any
+          if (selectedTestGroups.length > 0) {
+            processedResults = processedResults.filter(r => {
+              const type = r.test?.testType || r.testType;
+              return selectedTestGroups.includes(type);
+            });
+          }
+
+          // Process and format results for the UI
+          processedResults = processedResults.map(r => {
+            const test = r.test || availableTests.find(t => t.id === r.testId) || {};
+            const score = r.score !== undefined ? r.score : r.marksObtained;
+            const totalMarks = r.totalMarks || test.totalMarks || 100;
+            const percentage = totalMarks > 0 ? (score / totalMarks) * 100 : 0;
+            const { grade, remark } = getCBCGrade(percentage);
+
+            const rawArea = r.learningArea || test.learningArea || 'General';
+            const refinedArea = getRefinedLearningArea(rawArea, test.title);
+
+            return {
+              ...r,
+              test: { ...test, ...r.test },
+              learningArea: refinedArea,
+              originalLearningArea: rawArea,
+              score: Number(score || 0),
+              totalMarks: Number(totalMarks),
+              percentage: parseFloat(percentage.toFixed(1)),
+              grade,
+              remark,
+              parentPhone: learner.parent?.phone || learner.parentPhone || learner.parentPhoneNumber || learner.guardianPhone
+            };
+          });
+
+          processedResults.sort((a, b) => {
+            const dateA = new Date(a.testDate || (a.test && a.test.testDate) || 0);
+            const dateB = new Date(b.testDate || (b.test && b.test.testDate) || 0);
+            return dateB - dateA;
+          });
+
+          allReportRows.push({
+            learner,
+            results: processedResults,
+            communication,
+            averageScore: processedResults.length > 0
+              ? (processedResults.reduce((sum, r) => sum + (r.score || r.percentage || 0), 0) / processedResults.length).toFixed(1)
+              : 0
           });
         }
 
-        // Process results
-        processedResults = processedResults.map(r => {
-          const test = r.test || availableTests.find(t => t.id === r.testId) || {};
-          const score = r.score !== undefined ? r.score : r.marksObtained;
-          const totalMarks = r.totalMarks || test.totalMarks || 100;
-          const percentage = totalMarks > 0 ? (score / totalMarks) * 100 : 0;
-          const { grade, remark } = getCBCGrade(percentage);
-
-          return {
-            ...r,
-            test: { ...test, ...r.test }, // Merge
-            learningArea: r.learningArea || test.learningArea || 'General',
-            score: Number(score || 0),
-            totalMarks: Number(totalMarks),
-            percentage: parseFloat(percentage.toFixed(1)),
-            grade,
-            remark,
-            // Map CBC compliance fields
-            competency: r.test?.learningArea || r.learningArea || 'General',
-            achievementLevel: grade,
-            competencyLevel: grade,
-            assessmentType: r.test?.testType || 'SUMMATIVE',
-            status: r.test?.published ? 'PUBLISHED' : (r.status || 'DRAFT'),
-            publishedAt: r.test?.testDate || new Date(),
-            parentPhone: learner.guardianPhone || learner.parentPhoneNumber || learner.parentPhone
-          };
-        });
-
-        processedResults.sort((a, b) => {
-          const dateA = new Date(a.testDate || (a.test && a.test.testDate) || 0);
-          const dateB = new Date(b.testDate || (b.test && b.test.testDate) || 0);
-          return dateB - dateA;
-        });
-
-        if (processedResults.length === 0) {
-          setStatusMessage('⚠️ Warning: No assessment results found for this learner');
-          showSuccess('No assessment results found, but report generated');
+        if (allReportRows.length === 0) {
+          setStatusMessage('⚠️ Warning: No assessment results found for selected learner(s)');
         } else {
-          setStatusMessage(`✅ Success: Loaded ${processedResults.length} test result(s)`);
+          setStatusMessage(`✅ Success: Loaded reports for ${allReportRows.length} learner(s)`);
         }
 
         setReportData({
           type: selectedType,
-          learner: learner,
-          results: processedResults,
+          rows: allReportRows,
+          // Set primary learner/results for single student backward compatibility
+          learner: allReportRows.length === 1 ? allReportRows[0].learner : null,
+          results: allReportRows.length === 1 ? allReportRows[0].results : [],
+          averageScore: allReportRows.length === 1 ? allReportRows[0].averageScore : 0,
+          totalTests: allReportRows.length === 1 ? allReportRows[0].results.length : 0,
+          academicYear: setup.academicYear,
           term: selectedTerm,
           testGroups: selectedTestGroups.length > 0 ? selectedTestGroups : 'All Groups',
           selectedTests: selectedTestIds.length > 0 ? selectedTestIds.length : 'All Tests',
           stream: selectedStream !== 'all' ? selectedStream : 'All Streams',
           grade: selectedGrade,
-          generatedAt: new Date(),
-          totalTests: processedResults.length,
-          averageScore: processedResults.length > 0
-            ? (processedResults.reduce((sum, r) => sum + (r.score || r.percentage || 0), 0) / processedResults.length).toFixed(1)
-            : 0
+          totalLearners: allReportRows.length,
+          generatedAt: new Date()
         });
 
-        showSuccess(`Report generated for ${learner.firstName} ${learner.lastName}`);
+        showSuccess(`Generated ${allReportRows.length} report(s) successfully`);
       }
       else if (selectedType === 'GRADE_REPORT' || selectedType === 'STREAM_REPORT' || selectedType === 'STREAM_RANKING_REPORT') {
         // --- BROADSHEET GENERATION LOGIC ---
@@ -1510,7 +1880,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       {/* FILTER CONTROLS - Hidden from PDF */}
       <div className="no-print">
         {/* First Row: Type, Grade, Stream */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div>
             <label className="premium-label">Type</label>
             <select
@@ -1561,6 +1931,19 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                 <option key={s.id || s.name} value={s.value || s.name}>
                   {s.name}
                 </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="premium-label">Academic Year</label>
+            <select
+              value={setup.academicYear}
+              onChange={(e) => setup.updateAcademicYear(Number(e.target.value))}
+              className="premium-select"
+            >
+              {[2024, 2025, 2026, 2027].map(year => (
+                <option key={year} value={year}>{year}</option>
               ))}
             </select>
           </div>
@@ -1703,58 +2086,90 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             )}
           </div>
 
-          {/* Learner Selector - Shows for both Learner Report types */}
+          {/* Learner Selector - Multi-select Checkbox Dropdown */}
           {(selectedType === 'LEARNER_REPORT' || selectedType === 'LEARNER_TERMLY_REPORT') && (
-            <div>
-              <label className="premium-label">Learner<span className="text-red-500">*</span></label>
-              {console.log('🧑 Learners available:', learners?.length, 'Grade:', selectedGrade, 'Stream:', selectedStream)}
-              {learners && learners.length > 0 && console.log('   Sample learner:', {
-                id: learners[0].id,
-                name: `${learners[0].firstName} ${learners[0].lastName}`,
-                grade: learners[0].grade,
-                stream: learners[0].stream,
-                gradeKey: Object.keys(learners[0]).find(k => k.toLowerCase().includes('grade')),
-                streamKey: Object.keys(learners[0]).find(k => k.toLowerCase().includes('stream'))
-              })}
+            <div ref={learnerOptionsRef}>
+              <label className="premium-label">Learner(s)<span className="text-red-500">*</span></label>
+              <button
+                onClick={() => setShowLearnerOptions(!showLearnerOptions)}
+                className="premium-input text-left flex justify-between items-center cursor-pointer min-h-[42px] py-1"
+              >
+                <div className="flex flex-wrap gap-1 max-w-[90%] overflow-hidden">
+                  {selectedLearnerIds.length === 0 ? (
+                    <span className="text-gray-400">Select Learners</span>
+                  ) : selectedLearnerIds.length === filteredLearners.length && filteredLearners.length > 0 ? (
+                    <span className="font-bold text-brand-teal">All {filteredLearners.length} Learners Selected</span>
+                  ) : (
+                    <span className="font-bold text-brand-teal">{selectedLearnerIds.length} learner(s) selected</span>
+                  )}
+                </div>
+                <span className="text-sm">▼</span>
+              </button>
 
-              {(() => {
-                // If no results with filters and not loading, show all learners as fallback
-                const displayLearners = filteredLearners.length > 0 ? filteredLearners : (learners || []).sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`));
-
-                const showingFallback = filteredLearners.length === 0 && learners && learners.length > 0 && !loadingLearners;
-
-                return (
-                  <>
-                    <select
-                      value={selectedLearnerId}
-                      onChange={(e) => setSelectedLearnerId(e.target.value)}
-                      className="premium-select"
+              {/* Multi-select Dropdown */}
+              {showLearnerOptions && (
+                <div className="absolute z-20 mt-2 w-full md:w-96 border border-gray-300 rounded-lg bg-white shadow-xl p-3 max-h-80 overflow-y-auto">
+                  <div className="sticky top-0 bg-white z-10 mb-2 pb-2 border-b flex justify-between items-center">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedLearnerIds.length === filteredLearners.length && filteredLearners.length > 0}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedLearnerIds(filteredLearners.map(l => l.id));
+                          } else {
+                            setSelectedLearnerIds([]);
+                          }
+                        }}
+                        className="w-4 h-4 rounded text-brand-teal focus:ring-brand-teal"
+                      />
+                      <span className="font-bold text-gray-700">Select All ({filteredLearners.length})</span>
+                    </label>
+                    <button
+                      onClick={() => setShowLearnerOptions(false)}
+                      className="text-xs text-gray-400 hover:text-gray-600 font-bold uppercase"
                     >
-                      <option value="">Select Learner</option>
-                      {displayLearners.length > 0 ? (
-                        displayLearners.map(l => (
-                          <option key={l.id} value={l.id}>
-                            {l.firstName} {l.lastName} ({l.admissionNumber || 'N/A'})
-                            {l.grade && ` - ${l.grade}`}
-                            {l.stream && ` ${l.stream}`}
-                          </option>
-                        ))
-                      ) : (
-                        <option disabled>No learners available</option>
-                      )}
-                    </select>
-                    <p className="text-xs text-brand-purple mt-1 flex items-center gap-1">
-                      <Loader className="animate-spin" size={12} /> Loading matching students...
+                      Done
+                    </button>
+                  </div>
+
+                  {filteredLearners.length === 0 ? (
+                    <p className="text-sm text-gray-500 italic p-2 text-center">
+                      {loadingLearners ? 'Loading learners...' : 'No learners found for this grade/stream'}
                     </p>
-                    {showingFallback && (
-                      <p className="text-xs text-brand-purple mt-1">ℹ️ Showing all learners (no matches for selected grade/stream in current view)</p>
-                    )}
-                    {learners?.length === 0 && !loadingLearners && (
-                      <p className="text-xs text-orange-600 mt-1">⚠️ No learners loaded. Refreshing...</p>
-                    )}
-                  </>
-                );
-              })()}
+                  ) : (
+                    filteredLearners.map(l => (
+                      <label key={l.id} className="flex items-center gap-2 cursor-pointer mb-2 hover:bg-gray-50 p-1.5 rounded transition-colors border-b border-gray-50 last:border-0">
+                        <input
+                          type="checkbox"
+                          checked={selectedLearnerIds.includes(l.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedLearnerIds([...selectedLearnerIds, l.id]);
+                            } else {
+                              setSelectedLearnerIds(selectedLearnerIds.filter(id => id !== l.id));
+                            }
+                          }}
+                          className="w-4 h-4 rounded text-brand-teal focus:ring-brand-teal"
+                        />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-gray-800">{l.firstName} {l.lastName}</span>
+                          <span className="text-[10px] text-gray-500 uppercase font-semibold">{l.admissionNumber || 'ADM: N/A'} • {l.grade} {l.stream}</span>
+                        </div>
+                      </label>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {loadingLearners && (
+                <p className="text-xs text-brand-purple mt-1 flex items-center gap-1">
+                  <Loader className="animate-spin" size={12} /> Loading matching students...
+                </p>
+              )}
+              {filteredLearners.length === 0 && !loadingLearners && learners?.length > 0 && (
+                <p className="text-xs text-brand-purple mt-1 italic">ℹ️ No matches for selected grade/stream. Select filters first.</p>
+              )}
             </div>
           )}
         </div>
@@ -1795,63 +2210,219 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
 
 
       {/* LEARNER REPORT DISPLAY - COMPACT PROFESSIONAL LAYOUT */}
-      {(reportData?.type === 'LEARNER_REPORT' || reportData?.type === 'LEARNER_TERMLY_REPORT') && reportData?.learner && (
+      {(reportData?.type === 'LEARNER_REPORT' || reportData?.type === 'LEARNER_TERMLY_REPORT') && reportData?.rows?.length > 0 && (
         <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
-          <div
-            id="summative-report-content"
-            ref={reportRef}
-            className="rounded-xl overflow-hidden"
-          >
-            <LearnerReportTemplate
-              learner={reportData.learner}
-              results={reportData.results}
-              term={reportData.term}
-              academicYear={reportData.term?.academicYear}
-              brandingSettings={brandingSettings}
-              user={user}
-              streamConfigs={streamConfigs}
-            />
-          </div>
+          {reportData.rows.length === 1 ? (
+            <>
+              <div
+                id="summative-report-content"
+                ref={reportRef}
+                className="rounded-xl overflow-hidden shadow-2xl"
+              >
+                <LearnerReportTemplate
+                  learner={reportData.learner || reportData.rows[0].learner}
+                  results={reportData.results?.length > 0 ? reportData.results : reportData.rows[0].results}
+                  term={reportData.term}
+                  academicYear={reportData.academicYear}
+                  brandingSettings={brandingSettings}
+                  user={user}
+                  streamConfigs={streamConfigs}
+                />
+              </div>
 
-          {/* PRINT CONTROLS - OUTSIDE PDF CONTENT */}
-          <div className="no-print mt-8 flex gap-4 justify-center">
-            <button
-              onClick={() => setReportData(null)}
-              disabled={isExporting}
-              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              ← Back
-            </button>
-            <button
-              onClick={handleSendSMS}
-              disabled={isSendingSMS || !reportData?.learner?.guardianPhone}
-              className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
-              title={!reportData?.learner?.guardianPhone ? 'Parent phone number not available' : 'Send report summary via SMS to parent'}
-            >
-              {isSendingSMS ? '📤 Sending...' : '📱 Send SMS to Parent'}
-            </button>
-            <button
-              onClick={handleSendWhatsApp}
-              disabled={isExporting}
-              className="px-6 py-2 bg-emerald-500 text-white rounded hover:bg-emerald-600 text-sm font-semibold transition flex items-center gap-2"
-              title="Share report summary via WhatsApp"
-            >
-              <MessageCircle size={18} />
-              Send to WhatsApp
-            </button>
-            <button
-              data-export-button
-              onClick={(e) => {
-                console.log('🔘 Button clicked!', e);
-                handleExportPDF();
-              }}
-              disabled={isExporting}
-              className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isExporting ? <Loader size={18} className="animate-spin" /> : <Download size={18} />}
-              {isExporting ? '⏳ Exporting...' : '📥 Export PDF'}
-            </button>
-          </div>
+              {/* PRINT CONTROLS - SINGLE STUDENT */}
+              <div className="no-print mt-8 flex gap-4 justify-center">
+                <button
+                  onClick={() => setReportData(null)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded text-sm font-semibold transition"
+                >
+                  ← Back
+                </button>
+                <button
+                  onClick={handleSendSMS}
+                  disabled={isSendingSMS}
+                  className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-semibold transition disabled:opacity-50"
+                  title="Send report summary via SMS"
+                >
+                  {isSendingSMS ? '📤 Sending...' : '📱 Send SMS'}
+                </button>
+                <button
+                  onClick={handleSendWhatsApp}
+                  className="px-6 py-2 bg-emerald-500 text-white rounded hover:bg-emerald-600 text-sm font-semibold transition flex items-center gap-2"
+                >
+                  <MessageCircle size={18} />
+                  WhatsApp
+                </button>
+                <button
+                  onClick={handleExportPDF}
+                  disabled={isExporting}
+                  className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold transition flex items-center gap-2"
+                >
+                  {isExporting ? <Loader size={18} className="animate-spin" /> : <Download size={18} />}
+                  Export PDF
+                </button>
+              </div>
+            </>
+          ) : (
+            /* BULK VIEW SUMMARY */
+            <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl p-8 border border-gray-200">
+              <div className="text-center mb-8 pb-6 border-b">
+                <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Printer size={32} />
+                </div>
+                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Bulk Summary Reports</h2>
+                <p className="text-slate-500 font-bold mt-1 uppercase text-sm">
+                  GRADE: {selectedGrade} | STREAM: {selectedStream} | {reportData.rows.length} STUDENTS SELECTED
+                </p>
+              </div>
+
+              {/* ACTION BAR FOR BULK PREVIEW */}
+              <div className="flex justify-between items-center mb-6 bg-indigo-50 p-4 rounded-xl border border-indigo-100 no-print">
+                <div>
+                  <p className="text-sm font-bold text-indigo-900">Combined Actions</p>
+                  <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">
+                    {selectedReportRows.length > 0 ? `${selectedReportRows.length} learners selected` : `Apply to all ${reportData.rows.length} learners`}
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleBulkSMS}
+                    disabled={bulkProgress.active}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-md flex items-center gap-2 font-bold uppercase text-[10px]"
+                  >
+                    {bulkProgress.active ? <Loader className="animate-spin" size={14} /> : <MessageSquare size={14} />}
+                    {bulkProgress.active ? 'Sending SMS...' : 'Bulk Send SMS'}
+                  </button>
+                  <button
+                    onClick={() => setShowWhatsAppConfirm(true)}
+                    disabled={isSendingWhatsApp}
+                    className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition shadow-md flex items-center gap-2 font-bold uppercase text-[10px]"
+                  >
+                    {isSendingWhatsApp ? <Loader className="animate-spin" size={14} /> : <MessageCircle size={14} />}
+                    {isSendingWhatsApp ? 'Sending...' : 'Bulk WhatsApp'}
+                  </button>
+                  <button
+                    onClick={handleBulkPrint}
+                    disabled={isBulkPrinting}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-md flex items-center gap-2 font-bold uppercase text-[10px]"
+                  >
+                    {isBulkPrinting ? <Loader className="animate-spin" size={14} /> : <Printer size={14} />}
+                    {isBulkPrinting ? 'Processing...' : 'Download Combined PDF'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mb-8 border rounded-xl overflow-hidden shadow-sm bg-white">
+                <div className="bg-slate-50 border-b p-3 grid grid-cols-12 text-[10px] font-black text-slate-500 uppercase tracking-widest items-center">
+                  <div className="col-span-1 flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      checked={selectedReportRows.length === reportData.rows.length}
+                      onChange={() => handleSelectAll(reportData.rows.length)}
+                    />
+                    <span>#</span>
+                  </div>
+                  <div className="col-span-4">Learner Name</div>
+                  <div className="col-span-1 text-center">Avg</div>
+                  <div className="col-span-2 text-center">Status</div>
+                  <div className="col-span-4 text-right">Individual Actions</div>
+                </div>
+                <div className="max-h-[450px] overflow-y-auto">
+                  {reportData.rows.map((row, idx) => (
+                    <div key={idx} className={`grid grid-cols-12 items-center p-3 border-b border-slate-50 transition-colors ${selectedReportRows.includes(idx) ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}`}>
+                      <div className="col-span-1 flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                          checked={selectedReportRows.includes(idx)}
+                          onChange={() => handleToggleSelectRow(idx)}
+                        />
+                        <span className="text-[10px] font-bold text-slate-400">{idx + 1}</span>
+                      </div>
+                      <div className="col-span-4">
+                        <p className="font-bold text-slate-800 text-sm">{row.learner.firstName} {row.learner.lastName}</p>
+                        <p className="text-[10px] text-slate-500 uppercase font-semibold">{row.learner.admissionNumber || 'ADM: N/A'}</p>
+                      </div>
+                      <div className="col-span-1 text-center font-black text-blue-600 text-sm">{row.averageScore}%</div>
+
+                      {/* STATUS INDICATORS */}
+                      <div className="col-span-2 flex justify-center gap-1">
+                        {row.communication?.hasSentSms && (
+                          <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-[8px] font-black uppercase flex items-center gap-1" title="SMS Sent">
+                            <CheckCircle size={8} /> SMS
+                          </span>
+                        )}
+                        {row.communication?.hasSentWhatsApp && (
+                          <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[8px] font-black uppercase flex items-center gap-1" title="WhatsApp Sent">
+                            <CheckCircle size={8} /> WA
+                          </span>
+                        )}
+                        {!row.communication?.hasSentSms && !row.communication?.hasSentWhatsApp && (
+                          <span className="text-[8px] text-slate-300 font-bold uppercase italic">Not Sent</span>
+                        )}
+                      </div>
+
+                      <div className="col-span-4 flex justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            // Switch to single view for this learner
+                            setReportData({
+                              ...reportData,
+                              rows: [row],
+                              learner: row.learner,
+                              results: row.results,
+                              averageScore: row.averageScore,
+                              communication: row.communication
+                            });
+                          }}
+                          className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded transition shadow-sm"
+                          title="View Full Report"
+                        >
+                          <Printer size={12} />
+                        </button>
+                        <button
+                          onClick={() => handleSingleDownload(row)}
+                          className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded transition shadow-sm"
+                          title="Download PDF"
+                        >
+                          <Download size={12} />
+                        </button>
+                        <button
+                          disabled={isSendingSMS}
+                          className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded transition shadow-sm disabled:opacity-30"
+                          title="Send SMS"
+                          onClick={() => handleSendSMS(row)}
+                        >
+                          <MessageSquare size={12} />
+                        </button>
+                        <button
+                          disabled={!(row.learner.parent?.phone || row.learner.parentPhone || row.learner.parentPhoneNumber || row.learner.guardianPhone)}
+                          className={`p-2 rounded transition shadow-sm disabled:opacity-30 ${row.communication?.hasSentWhatsApp ? 'bg-green-600 text-white' : 'bg-green-50 text-green-600 hover:bg-green-600 hover:text-white'}`}
+                          title={row.communication?.hasSentWhatsApp ? "WhatsApp Sent - Click to resend" : "Send WhatsApp"}
+                          onClick={() => {
+                            const currentLearner = row.learner;
+                            handleSendWhatsApp(row); // Update this function to handle direct send
+                          }}
+                        >
+                          <MessageCircle size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center gap-4 border-t pt-6">
+                <button
+                  onClick={() => setReportData(null)}
+                  className="text-slate-500 hover:text-slate-800 font-bold uppercase text-xs transition px-4 py-2 border rounded-lg hover:bg-slate-50"
+                >
+                  ← Back to Filters
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1901,15 +2472,34 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                   {bulkProgress.active ? <Loader className="animate-spin" size={16} /> : <MessageSquare size={16} />}
                   {bulkProgress.active ? `Sending (${bulkProgress.current}/${bulkProgress.total})` : 'Send SMS to All'}
                 </button>
+                <button
+                  onClick={() => setShowWhatsAppConfirm(true)}
+                  disabled={isSendingWhatsApp}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition disabled:opacity-50"
+                  title="Send via WhatsApp (Batched)"
+                >
+                  {isSendingWhatsApp ? <Loader className="animate-spin" size={16} /> : <MessageCircle size={16} />}
+                  {isSendingWhatsApp ? 'Processing...' : 'Bulk WhatsApp'}
+                </button>
               </div>
 
-              {bulkProgress.active && (
+              {(bulkProgress.active || isSendingWhatsApp) && (
                 <div className="text-sm font-medium text-gray-700">
-                  Success: <span className="text-green-600">{bulkProgress.success}</span> |
-                  Failed: <span className="text-red-600">{bulkProgress.failed}</span>
+                  {isSendingWhatsApp ? (
+                    <span className="text-green-600 flex items-center gap-2">
+                      <Loader className="animate-spin" size={12} />
+                      WhatsApp Batch: {whatsAppProgress.current}/{whatsAppProgress.total}
+                    </span>
+                  ) : (
+                    <>
+                      Success: <span className="text-green-600">{bulkProgress.success}</span> |
+                      Failed: <span className="text-red-600">{bulkProgress.failed}</span>
+                    </>
+                  )}
                 </div>
               )}
             </div>
+
 
             {/* Broadsheet Table */}
             <div className="overflow-x-auto">
@@ -1954,7 +2544,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                         title="Share via WhatsApp"
                         onClick={() => {
                           const learner = row.learner;
-                          const parentPhone = learner.guardianPhone || learner.parentPhoneNumber;
+                          const parentPhone = getLearnerPhone(learner);
                           if (!parentPhone) {
                             alert('No parent phone number');
                             return;
@@ -1993,221 +2583,340 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             </button>
           </div>
         </div>
-      )}
+      )
+      }
 
       {/* ANALYSIS REPORT DISPLAY */}
-      {reportData?.type?.includes('ANALYSIS') && (
-        <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
-          <div
-            id="summative-report-content"
-            className="bg-white mx-auto shadow-2xl overflow-hidden"
-            style={{
-              fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-              lineHeight: '1.2',
-              width: '210mm',
-              minHeight: '297mm',
-              padding: '12mm',
-              boxSizing: 'border-box'
-            }}
-          >
-            <div className="text-center mb-8 border-b-2 border-blue-900 pb-4">
-              <h1 className="text-2xl font-bold text-blue-900 uppercase">{reportData.title}</h1>
-              <p className="text-sm text-gray-600 font-bold mt-1">
-                {setup.academicYear} | {reportData.meta?.term?.replace(/_/g, ' ')}
-              </p>
-            </div>
+      {
+        reportData?.type?.includes('ANALYSIS') && (
+          <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
+            <div
+              id="summative-report-content"
+              className="bg-white mx-auto shadow-2xl overflow-hidden"
+              style={{
+                fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+                lineHeight: '1.2',
+                width: '210mm',
+                minHeight: '297mm',
+                padding: '12mm',
+                boxSizing: 'border-box'
+              }}
+            >
+              <div className="text-center mb-8 border-b-2 border-blue-900 pb-4">
+                <h1 className="text-2xl font-bold text-blue-900 uppercase">{reportData.title}</h1>
+                <p className="text-sm text-gray-600 font-bold mt-1">
+                  {setup.academicYear} | {reportData.meta?.term?.replace(/_/g, ' ')}
+                </p>
+              </div>
 
-            {/* Subject Performance Table */}
-            <div className="mb-8">
-              <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-blue-600 pl-2">Subject Performance Analysis</h2>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f1f5f9', color: '#1e293b' }}>
-                    <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #cbd5e1' }}>SUBJECT</th>
-                    <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>LEARNERS</th>
-                    <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>MEAN SCORE</th>
-                    <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>HIGHEST</th>
-                    <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>LOWEST</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportData.subjectStats.map((stat, idx) => (
-                    <tr key={stat.subject} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                      <td style={{ padding: '8px', fontWeight: '600' }}>{stat.subject}</td>
-                      <td style={{ padding: '8px', textAlign: 'center' }}>{stat.count}</td>
-                      <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: '#2563eb' }}>{stat.mean}%</td>
-                      <td style={{ padding: '8px', textAlign: 'center', color: '#16a34a' }}>{stat.highest}%</td>
-                      <td style={{ padding: '8px', textAlign: 'center', color: '#dc2626' }}>{stat.lowest}%</td>
+              {/* Subject Performance Table */}
+              <div className="mb-8">
+                <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-blue-600 pl-2">Subject Performance Analysis</h2>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f1f5f9', color: '#1e293b' }}>
+                      <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #cbd5e1' }}>SUBJECT</th>
+                      <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>LEARNERS</th>
+                      <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>MEAN SCORE</th>
+                      <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>HIGHEST</th>
+                      <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>LOWEST</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {reportData.subjectStats.map((stat, idx) => (
+                      <tr key={stat.subject} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '8px', fontWeight: '600' }}>{stat.subject}</td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>{stat.count}</td>
+                        <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: '#2563eb' }}>{stat.mean}%</td>
+                        <td style={{ padding: '8px', textAlign: 'center', color: '#16a34a' }}>{stat.highest}%</td>
+                        <td style={{ padding: '8px', textAlign: 'center', color: '#dc2626' }}>{stat.lowest}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-            {/* Grade Distribution */}
-            <div className="mb-8">
-              <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-blue-600 pl-2">Grade Distribution</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
-                <div className="p-4 bg-green-50 rounded border border-green-200 text-center">
-                  <div className="text-2xl font-bold text-green-700">{reportData.gradeDist['EE'] || 0}</div>
-                  <div className="text-xs font-bold text-green-800 uppercase mt-1">Exceeding Exp.</div>
-                </div>
-                <div className="p-4 bg-blue-50 rounded border border-blue-200 text-center">
-                  <div className="text-2xl font-bold text-blue-700">{reportData.gradeDist['ME'] || 0}</div>
-                  <div className="text-xs font-bold text-blue-800 uppercase mt-1">Meeting Exp.</div>
-                </div>
-                <div className="p-4 bg-yellow-50 rounded border border-yellow-200 text-center">
-                  <div className="text-2xl font-bold text-yellow-700">{reportData.gradeDist['AE'] || 0}</div>
-                  <div className="text-xs font-bold text-yellow-800 uppercase mt-1">Approaching Exp.</div>
-                </div>
-                <div className="p-4 bg-red-50 rounded border border-red-200 text-center">
-                  <div className="text-2xl font-bold text-red-700">{reportData.gradeDist['BE'] || 0}</div>
-                  <div className="text-xs font-bold text-red-800 uppercase mt-1">Below Exp.</div>
+              {/* Grade Distribution */}
+              <div className="mb-8">
+                <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-blue-600 pl-2">Grade Distribution</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                  <div className="p-4 bg-green-50 rounded border border-green-200 text-center">
+                    <div className="text-2xl font-bold text-green-700">{reportData.gradeDist['EE'] || 0}</div>
+                    <div className="text-xs font-bold text-green-800 uppercase mt-1">Exceeding Exp.</div>
+                  </div>
+                  <div className="p-4 bg-blue-50 rounded border border-blue-200 text-center">
+                    <div className="text-2xl font-bold text-blue-700">{reportData.gradeDist['ME'] || 0}</div>
+                    <div className="text-xs font-bold text-blue-800 uppercase mt-1">Meeting Exp.</div>
+                  </div>
+                  <div className="p-4 bg-yellow-50 rounded border border-yellow-200 text-center">
+                    <div className="text-2xl font-bold text-yellow-700">{reportData.gradeDist['AE'] || 0}</div>
+                    <div className="text-xs font-bold text-yellow-800 uppercase mt-1">Approaching Exp.</div>
+                  </div>
+                  <div className="p-4 bg-red-50 rounded border border-red-200 text-center">
+                    <div className="text-2xl font-bold text-red-700">{reportData.gradeDist['BE'] || 0}</div>
+                    <div className="text-xs font-bold text-red-800 uppercase mt-1">Below Exp.</div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Controls */}
-          <div className="no-print mt-8 flex gap-4 justify-center">
-            <button
-              onClick={() => setReportData(null)}
-              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded text-sm font-semibold transition"
-            >
-              ← Back
-            </button>
-            <button
-              onClick={handleExportPDF}
-              disabled={isExporting}
-              className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold transition flex items-center gap-2"
-            >
-              {isExporting ? <Loader size={18} className="animate-spin" /> : <Download size={18} />}
-              {isExporting ? 'Exporting...' : 'Export Analysis PDF'}
-            </button>
+            {/* Controls */}
+            <div className="no-print mt-8 flex gap-4 justify-center">
+              <button
+                onClick={() => setReportData(null)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded text-sm font-semibold transition"
+              >
+                ← Back
+              </button>
+              <button
+                onClick={handleExportPDF}
+                disabled={isExporting}
+                className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold transition flex items-center gap-2"
+              >
+                {isExporting ? <Loader size={18} className="animate-spin" /> : <Download size={18} />}
+                {isExporting ? 'Exporting...' : 'Export Analysis PDF'}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
+      {/* HIDDEN CONTAINER FOR INDIVIDUAL PDF GENERATION (Direct Download) */}
+      <div className="fixed -left-[10000px] top-0 no-print">
+        {singleDownloadData && (
+          <div id="single-print-content">
+            <LearnerReportTemplate
+              learner={singleDownloadData.learner}
+              results={singleDownloadData.results}
+              term={reportData?.term}
+              academicYear={reportData?.academicYear}
+              brandingSettings={brandingSettings}
+              user={user}
+              streamConfigs={streamConfigs}
+            />
+          </div>
+        )}
+      </div>
+
       {/* SMS PREVIEW MODAL */}
-      {showSMSPreview && smsPreviewData && (
-        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowSMSPreview(false)}></div>
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="sm:flex sm:items-start">
-                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                    <AlertCircle className="h-6 w-6 text-blue-600" aria-hidden="true" />
-                  </div>
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                    <h3 className="text-lg leading-6 font-bold text-gray-900" id="modal-title">
-                      Confirm SMS Delivery
-                    </h3>
-                    <div className="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                      <div className="flex justify-between text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
-                        <span>Recipient: {smsPreviewData.parentName}</span>
-                        <span>{smsPreviewData.recipient}</span>
-                      </div>
-                      <div className="text-sm text-gray-700 whitespace-pre-wrap font-medium">
-                        {smsPreviewData.message}
-                      </div>
-                      <div className="mt-2 text-[10px] text-gray-400 text-right italic">
-                        Estimated: {Math.ceil(smsPreviewData.message.length / 160)} SMS Part(s)
-                      </div>
+      {
+        showSMSPreview && smsPreviewData && (
+          <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowSMSPreview(false)}></div>
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="sm:flex sm:items-start">
+                    <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                      <AlertCircle className="h-6 w-6 text-blue-600" aria-hidden="true" />
                     </div>
-                    <div className="mt-4">
-                      <p className="text-sm text-gray-500">
-                        This summary will be sent to the parent. Please verify the content before proceeding.
-                      </p>
+                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                      <h3 className="text-lg leading-6 font-bold text-gray-900" id="modal-title">
+                        Confirm SMS Delivery
+                      </h3>
+                      <div className="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        {/* Editable Phone Number Input */}
+                        <div className="mb-4">
+                          <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Recipient Phone Number</label>
+                          <input
+                            type="text"
+                            value={editedPhoneNumber}
+                            onChange={(e) => setEditedPhoneNumber(e.target.value)}
+                            className="w-full border border-gray-300 rounded p-2 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="e.g. 0712345678"
+                          />
+                        </div>
+
+                        <div className="flex justify-between text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
+                          <span>Message Preview</span>
+                        </div>
+                        <div className="text-sm text-gray-900 whitespace-pre-wrap font-mono bg-white p-3 border border-gray-200 rounded shadow-inner">
+                          {smsPreviewData.message}
+                        </div>
+                        <div className="mt-2 text-[10px] text-gray-400 text-right italic">
+                          Estimated: {Math.ceil(smsPreviewData.message.length / 160)} SMS Part(s)
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <p className="text-sm text-gray-500">
+                          This summary will be sent to the parent. Please verify the content before proceeding.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button
-                  type="button"
-                  onClick={executeSendSMS}
-                  disabled={isSendingSMS}
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
-                >
-                  {isSendingSMS ? 'Sending...' : 'Send Now'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowSMSPreview(false)}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                >
-                  Cancel
-                </button>
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="button"
+                    onClick={executeSendSMS}
+                    disabled={isSendingSMS}
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+                  >
+                    {isSendingSMS ? 'Sending...' : 'Send Now'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowSMSPreview(false)}
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* GENERAL NOTIFICATION MODAL */}
-      {notificationModal.show && (
-        <div className="fixed inset-0 z-[60] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setNotificationModal({ ...notificationModal, show: false })}></div>
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className={`p-1 h-1 ${notificationModal.type === 'success' ? 'bg-green-500' : notificationModal.type === 'error' ? 'bg-red-500' : notificationModal.type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'}`}></div>
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="sm:flex sm:items-start">
-                  <div className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full sm:mx-0 sm:h-10 sm:w-10 ${notificationModal.type === 'success' ? 'bg-green-100' : notificationModal.type === 'error' ? 'bg-red-100' : notificationModal.type === 'warning' ? 'bg-yellow-100' : 'bg-blue-100'}`}>
-                    {notificationModal.type === 'success' ? <CheckCircle className="h-6 w-6 text-green-600" /> :
-                      notificationModal.type === 'error' ? <XCircle className="h-6 w-6 text-red-600" /> :
-                        <AlertCircle className={`h-6 w-6 ${notificationModal.type === 'warning' ? 'text-yellow-600' : 'text-blue-600'}`} />}
-                  </div>
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                    <h3 className="text-lg leading-6 font-bold text-gray-900">
-                      {notificationModal.title}
-                    </h3>
-                    <div className="mt-2 text-sm text-gray-600 font-medium">
-                      {notificationModal.message}
+
+      {/* WHATSAPP PROGRESS / CONFIRMATION MODAL - GLOBAL */}
+      {(showWhatsAppConfirm || isSendingWhatsApp) && (
+        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border border-gray-100">
+
+            {!isSendingWhatsApp ? (
+              <>
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-800">
+                  <MessageCircle className="text-green-500" />
+                  Start Bulk WhatsApp?
+                </h3>
+                <p className="text-gray-600 mb-4 text-sm">
+                  You are about to send report summaries to <strong>{selectedReportRows.length > 0 ? selectedReportRows.length : reportData.rows.length}</strong> parents via WhatsApp.
+                </p>
+                <div className="bg-yellow-50 border border-yellow-200 p-3 rounded mb-4 text-xs text-yellow-800 font-medium">
+                  Messages will be sent in batches with intervals to comply with WhatsApp policies.
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-xs font-bold mb-1 text-gray-500 uppercase">Send Test Message To (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 0712345678"
+                    id="wa-test-number"
+                    className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-2 focus:ring-green-500 outline-none transition"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">If entered, ALL messages will be sent to this number for testing.</p>
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowWhatsAppConfirm(false)}
+                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded text-sm font-bold transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      const testNum = document.getElementById('wa-test-number').value;
+                      handleBulkWhatsApp(testNum || null);
+                    }}
+                    className="px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600 font-bold text-sm shadow-lg shadow-green-200 transition transform hover:scale-105"
+                  >
+                    Start Sending
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <div className="w-16 h-16 border-4 border-green-100 border-t-green-500 rounded-full animate-spin mx-auto mb-4"></div>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">Sending WhatsApp Messages...</h3>
+                <p className="text-gray-500 text-sm mb-6">Please do not close this window.</p>
+
+                <div className="w-full bg-gray-100 rounded-full h-4 mb-2 overflow-hidden">
+                  <div
+                    className="bg-green-500 h-4 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${(whatsAppProgress.current / whatsAppProgress.total) * 100}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
+                  <span>Progress</span>
+                  <span>{whatsAppProgress.current} / {whatsAppProgress.total}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* NOTIFICATION MODAL */}
+      {
+        notificationModal.show && (
+          <div className="fixed inset-0 z-[60] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setNotificationModal({ ...notificationModal, show: false })}></div>
+
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+              <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="sm:flex sm:items-start">
+                    <div className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full sm:mx-0 sm:h-10 sm:w-10 ${notificationModal.type === 'error' ? 'bg-red-100' : notificationModal.type === 'success' ? 'bg-green-100' : 'bg-blue-100'}`}>
+                      {notificationModal.type === 'error' ? (
+                        <svg className="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                      ) : notificationModal.type === 'success' ? (
+                        <CheckCircle className="h-6 w-6 text-green-600" />
+                      ) : (
+                        <svg className="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                      <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                        {notificationModal.title}
+                      </h3>
+                      <div className="mt-2">
+                        <pre className="text-sm text-gray-500 whitespace-pre-wrap font-sans">
+                          {notificationModal.message}
+                        </pre>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button
-                  type="button"
-                  onClick={() => setNotificationModal({ ...notificationModal, show: false })}
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-[#1e293b] text-base font-medium text-white hover:bg-[#334155] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 sm:ml-3 sm:w-auto sm:text-sm"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* LOADING OVERLAY FOR PDF EXPORT */}
-      {isExporting && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white bg-opacity-90 backdrop-blur-sm">
-          <div className="text-center p-8 bg-white rounded-2xl shadow-2xl border border-gray-100 max-w-sm w-full">
-            <div className="relative mb-6 flex justify-center">
-              <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg animate-pulse flex items-center justify-center">
-                  <span className="text-white text-[10px] font-bold">PDF</span>
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="button"
+                    className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm ${notificationModal.type === 'error' ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'}`}
+                    onClick={() => setNotificationModal({ ...notificationModal, show: false })}
+                  >
+                    Close
+                  </button>
                 </div>
               </div>
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Generating High-Quality Report</h3>
-            <p className="text-sm text-gray-500 mb-4">Please wait while we render your professional vector PDF. This may take a few seconds.</p>
-            <div className="flex items-center justify-center gap-2 text-blue-600 font-semibold text-sm">
-              <Loader className="animate-spin" size={14} />
-              <span>{pdfProgress || 'Initializing...'}</span>
+          </div>
+        )
+      }
+      {/* LOADING OVERLAY FOR PDF EXPORT */}
+      {
+        isExporting && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white bg-opacity-90 backdrop-blur-sm">
+            <div className="text-center p-8 bg-white rounded-2xl shadow-2xl border border-gray-100 max-w-sm w-full">
+              <div className="relative mb-6 flex justify-center">
+                <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg animate-pulse flex items-center justify-center">
+                    <span className="text-white text-[10px] font-bold">PDF</span>
+                  </div>
+                </div>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Generating High-Quality Report</h3>
+              <p className="text-sm text-gray-500 mb-4">Please wait while we render your professional vector PDF. This may take a few seconds.</p>
+              <div className="flex items-center justify-center gap-2 text-blue-600 font-semibold text-sm">
+                <Loader className="animate-spin" size={14} />
+                <span>{pdfProgress || 'Initializing...'}</span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* HIDDEN CONTAINER FOR BULK PRINTING */}
       <div id="bulk-print-content" style={{ position: 'absolute', top: -10000, left: -10000 }}>
-        {(isBulkPrinting) && reportData?.rows?.map((row, idx) => (
+        {(isBulkPrinting) && (selectedReportRows.length > 0 ? selectedReportRows.map(idx => reportData.rows[idx]) : reportData.rows).map((row, idx) => (
           <div key={idx} style={{ pageBreakAfter: 'always' }}>
             <LearnerReportTemplate
               learner={row.learner}
@@ -2222,7 +2931,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
         ))}
       </div>
 
-    </div>
+    </div >
   );
 };
 

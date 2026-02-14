@@ -22,11 +22,12 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
   // Filter teachers
   const filteredTeachers = teachers.filter(t => {
     const matchesSearch =
-      t.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.employeeNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      (t.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.staffId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.employeeNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.email?.toLowerCase().includes(searchTerm.toLowerCase())) || false;
     const matchesStatus = filterStatus === 'all' || t.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -171,7 +172,7 @@ const TeachersList = ({ teachers, onAddTeacher, onEditTeacher, onViewTeacher, on
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-2 text-sm text-gray-600">{teacher.employeeNo}</td>
+                  <td className="px-3 py-2 text-sm text-gray-600 font-mono">{teacher.staffId || teacher.employeeNo || '---'}</td>
                   <td className="px-3 py-2 text-sm font-semibold">{teacher.role}</td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1">

@@ -90,16 +90,27 @@ export const useLearners = () => {
       setLoading(true);
       setError(null);
 
+      console.log('📤 CREATING LEARNER WITH DATA:', JSON.stringify(learnerData, null, 2));
+
       const response = await api.learners.create(learnerData);
 
-      if (response.success) {
+      console.log('✅ LEARNER CREATION RESPONSE:', response);
+
+      if (response?.success) {
         await fetchLearners();
         return { success: true, data: response.data };
+      } else {
+        const errorMsg = response?.message || 'Unknown error creating learner';
+        console.error('❌ API returned error:', errorMsg);
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
       }
     } catch (err) {
-      console.error('Error creating learner:', err);
-      setError(err.message);
-      return { success: false, error: err.message };
+      const errorMsg = err?.response?.data?.message || err?.message || 'Unknown error';
+      console.error('❌ ERROR CREATING LEARNER:', errorMsg);
+      console.error('Full error:', err);
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
     } finally {
       setLoading(false);
     }
@@ -194,6 +205,54 @@ export const useLearners = () => {
     }
   }, [fetchLearners, pagination]);
 
+  const promoteLearners = useCallback(async (learnerIds, newGrade) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await api.learners.bulkPromote({ learnerIds, nextGrade: newGrade });
+
+      if (response.success) {
+        await fetchLearners({
+          page: pagination.page,
+          limit: pagination.limit
+        });
+        return { success: true };
+      }
+      return { success: false, error: response.message || 'Failed to promote learners' };
+    } catch (err) {
+      console.error('Error in bulk promote:', err);
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchLearners, pagination]);
+
+  const transferOutLearner = useCallback(async (transferData) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await api.learners.transferOut(transferData);
+
+      if (response.success) {
+        await fetchLearners({
+          page: pagination.page,
+          limit: pagination.limit
+        });
+        return { success: true };
+      }
+      return { success: false, error: response.message || 'Failed to process transfer out' };
+    } catch (err) {
+      console.error('Error in transfer out:', err);
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchLearners, pagination]);
+
   useEffect(() => {
     fetchLearners();
   }, [fetchLearners]);
@@ -210,5 +269,7 @@ export const useLearners = () => {
     updateLearner,
     deleteLearner,
     bulkDeleteLearners,
+    promoteLearners,
+    transferOutLearner,
   };
 };

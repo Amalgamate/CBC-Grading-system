@@ -296,7 +296,7 @@ export class OnboardingController {
       console.log(`   - Grading systems initialized`);
 
       // 7. Trigger Welcome Notifications (ENABLED!)
-      const frontendUrl = process.env.FRONTEND_URL || 'https://educorev1.up.railway.app';
+      const frontendUrl = process.env.FRONTEND_URL || 'https://elimcrown-v1.up.railway.app';
       const loginUrl = `${frontendUrl}/t/${result.school.id}/login`;
 
       // Send Onboarding Email (async - don't block response)

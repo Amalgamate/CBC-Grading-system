@@ -5,7 +5,7 @@
 
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/permissions.middleware';
-import { Grade, RubricRating, DetailedRubricRating, SummativeGrade, TestStatus, FormativeAssessmentType, AssessmentStatus, CurriculumType } from '@prisma/client';
+import { Grade, RubricRating, DetailedRubricRating, SummativeGrade, TestStatus, FormativeAssessmentType, AssessmentStatus, CurriculumType, Term } from '@prisma/client';
 import prisma from '../config/database';
 import * as rubricUtil from '../utils/rubric.util';
 import { gradingService } from '../services/grading.service';
@@ -276,6 +276,158 @@ export const createFormativeAssessment = async (req: AuthRequest, res: Response)
     res.status(500).json({
       success: false,
       message: 'Failed to create assessment',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Record Formative Assessments (Bulk)
+ * POST /api/assessments/formative/bulk
+ */
+export const recordFormativeResultsBulk = async (req: AuthRequest, res: Response) => {
+  try {
+    const {
+      results, // [{ learnerId, detailedRating, percentage, strengths, areasImprovement, recommendations }]
+      term,
+      academicYear,
+      learningArea,
+      strand,
+      subStrand,
+      title,
+      type = 'OPENER',
+      status = 'DRAFT',
+      date,
+      maxScore,
+      weight = 1.0
+    } = req.body;
+
+    const teacherId = req.user?.userId;
+    const schoolId = req.user?.schoolId;
+
+    if (!teacherId || !schoolId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    if (!Array.isArray(results) || results.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid results array' });
+    }
+
+    // Fetch school's grading system
+    const gradingSystem = await gradingService.getGradingSystem(schoolId, 'CBC');
+    const ranges = gradingSystem?.ranges;
+
+    const summary = {
+      created: 0,
+      updated: 0,
+      failed: 0
+    };
+
+    await prisma.$transaction(async (tx) => {
+      for (const item of results) {
+        try {
+          // Calculate ratings
+          let calculatedDetailedRating: DetailedRubricRating | undefined = item.detailedRating;
+          let calculatedPoints: number | undefined;
+          let calculatedPercentage: number | undefined = item.percentage;
+          let calculatedOverallRating: RubricRating | undefined;
+
+          if (calculatedDetailedRating) {
+            calculatedPoints = ranges
+              ? gradingService.getPointsSync(calculatedDetailedRating as DetailedRubricRating, ranges)
+              : rubricUtil.ratingToPoints(calculatedDetailedRating as DetailedRubricRating);
+            calculatedOverallRating = rubricUtil.detailedToGeneralRating(calculatedDetailedRating as DetailedRubricRating);
+            if (calculatedPercentage === undefined) {
+              calculatedPercentage = ranges
+                ? gradingService.getAveragePercentageSync(calculatedDetailedRating as DetailedRubricRating, ranges)
+                : rubricUtil.getAveragePercentage(calculatedDetailedRating as DetailedRubricRating);
+            }
+          } else if (calculatedPercentage !== undefined) {
+            calculatedDetailedRating = ranges
+              ? gradingService.calculateRatingSync(calculatedPercentage, ranges)
+              : rubricUtil.percentageToDetailedRating(calculatedPercentage);
+
+            calculatedPoints = ranges
+              ? gradingService.getPointsSync(calculatedDetailedRating, ranges)
+              : rubricUtil.ratingToPoints(calculatedDetailedRating);
+
+            calculatedOverallRating = rubricUtil.detailedToGeneralRating(calculatedDetailedRating);
+          }
+
+          const whereMatch: any = {
+            learnerId: item.learnerId,
+            term: term as Term,
+            academicYear: parseInt(academicYear),
+            learningArea,
+            type: type as FormativeAssessmentType,
+            title: title || null,
+            schoolId
+          };
+
+          const existing = await tx.formativeAssessment.findFirst({ where: whereMatch });
+
+          if (existing) {
+            await tx.formativeAssessment.update({
+              where: { id: existing.id },
+              data: {
+                strand,
+                subStrand,
+                overallRating: calculatedOverallRating,
+                detailedRating: calculatedDetailedRating,
+                points: calculatedPoints,
+                percentage: calculatedPercentage,
+                strengths: item.strengths,
+                areasImprovement: item.areasImprovement,
+                recommendations: item.recommendations,
+                teacherId,
+                status: status as AssessmentStatus,
+                date: date ? new Date(date) : undefined,
+                maxScore: maxScore ? Number(maxScore) : undefined,
+                weight: Number(weight)
+              }
+            });
+            summary.updated++;
+          } else {
+            await tx.formativeAssessment.create({
+              data: {
+                ...whereMatch,
+                strand,
+                subStrand,
+                overallRating: calculatedOverallRating,
+                detailedRating: calculatedDetailedRating,
+                points: calculatedPoints,
+                percentage: calculatedPercentage,
+                strengths: item.strengths,
+                areasImprovement: item.areasImprovement,
+                recommendations: item.recommendations,
+                teacherId,
+                status: status as AssessmentStatus,
+                date: date ? new Date(date) : new Date(),
+                maxScore: maxScore ? Number(maxScore) : undefined,
+                weight: Number(weight),
+                branchId: req.user?.branchId
+              }
+            });
+            summary.created++;
+          }
+        } catch (err) {
+          console.error(`Error processing formative result for learner ${item.learnerId}:`, err);
+          summary.failed++;
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Processed formative assessments: ${summary.created} created, ${summary.updated} updated, ${summary.failed} failed.`,
+      data: summary
+    });
+
+  } catch (error: any) {
+    console.error('Error bulk recording formative assessments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to record formative assessments',
       error: error.message
     });
   }
@@ -1009,6 +1161,17 @@ export const updateSummativeTest = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ success: false, message: 'Test is locked and cannot be updated.' });
     }
 
+    // Guardrail: Restrict modification of APPROVED or PUBLISHED tests to SUPER_ADMIN only
+    const status = existingTest.status as AssessmentStatus;
+    if ((status === AssessmentStatus.APPROVED || status === AssessmentStatus.PUBLISHED) && req.user?.role !== 'SUPER_ADMIN') {
+      // Allow only status changes or locking? No, the goal is to freeze it.
+      // If we need to allow minor edits, we'd add more granularity here.
+      return res.status(403).json({
+        success: false,
+        message: `This test is already ${status.toLowerCase()} and can only be modified by a Super Admin.`
+      });
+    }
+
     const test = await prisma.summativeTest.update({
       where: { id },
       data: {
@@ -1498,10 +1661,32 @@ export const getSummativeByLearner = async (req: Request, res: Response) => {
       ]
     });
 
+    // Fetch communication statuses for this learner, term and year
+    const communicationLogs = await prisma.assessmentSmsAudit.findMany({
+      where: {
+        learnerId,
+        term: term as string || undefined,
+        academicYear: academicYear ? parseInt(academicYear as string) : undefined,
+        assessmentType: 'SUMMATIVE',
+        smsStatus: 'SENT'
+      },
+      select: {
+        channel: true,
+        sentAt: true
+      },
+      orderBy: { sentAt: 'desc' }
+    });
+
     res.json({
       success: true,
       data: results,
-      count: results.length
+      count: results.length,
+      communication: {
+        hasSentSms: communicationLogs.some(log => log.channel === 'SMS'),
+        hasSentWhatsApp: communicationLogs.some(log => log.channel === 'WHATSAPP'),
+        lastSmsAt: communicationLogs.find(log => log.channel === 'SMS')?.sentAt,
+        lastWhatsAppAt: communicationLogs.find(log => log.channel === 'WHATSAPP')?.sentAt
+      }
     });
 
   } catch (error: any) {
@@ -1550,6 +1735,108 @@ export const getTestResults = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch results',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get Bulk Summative Results for a class/grade/stream
+ * GET /api/assessments/summative/results/bulk?grade=...&stream=...&academicYear=...&term=...
+ */
+export const getBulkSummativeResults = async (req: AuthRequest, res: Response) => {
+  try {
+    const { grade, stream, academicYear, term } = req.query;
+    const schoolId = req.user?.schoolId;
+
+    if (!grade || !academicYear || !term) {
+      return res.status(400).json({ success: false, message: 'Missing required filters: grade, academicYear, term' });
+    }
+
+    const whereClause: any = {
+      schoolId,
+      learner: {
+        grade: grade as Grade,
+        ...(stream ? { stream: stream as string } : {})
+      },
+      test: {
+        academicYear: parseInt(academicYear as string),
+        term: term as string,
+        archived: false
+      }
+    };
+
+    const results = await prisma.summativeResult.findMany({
+      where: whereClause,
+      include: {
+        learner: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            admissionNumber: true,
+            stream: true
+          }
+        },
+        test: {
+          select: {
+            id: true,
+            title: true,
+            learningArea: true,
+            totalMarks: true,
+            testType: true
+          }
+        }
+      },
+      orderBy: [
+        { learner: { firstName: 'asc' } },
+        { test: { learningArea: 'asc' } }
+      ]
+    });
+
+    // Fetch communication statuses for these learners in bulk
+    const learnerIds = Array.from(new Set(results.map(r => r.learnerId)));
+
+    const communicationLogs = await prisma.assessmentSmsAudit.findMany({
+      where: {
+        learnerId: { in: learnerIds },
+        term: term as string || undefined,
+        academicYear: parseInt(academicYear as string) || undefined,
+        assessmentType: 'SUMMATIVE',
+        smsStatus: 'SENT'
+      },
+      select: {
+        learnerId: true,
+        channel: true,
+        sentAt: true
+      },
+      orderBy: { sentAt: 'desc' }
+    });
+
+    // Group logs by learnerId for the response
+    const communications = learnerIds.map(id => {
+      const logs = communicationLogs.filter(l => l.learnerId === id);
+      return {
+        learnerId: id,
+        hasSentSms: logs.some(log => log.channel === 'SMS'),
+        hasSentWhatsApp: logs.some(log => log.channel === 'WHATSAPP'),
+        lastSmsAt: logs.find(log => log.channel === 'SMS')?.sentAt,
+        lastWhatsAppAt: logs.find(log => log.channel === 'WHATSAPP')?.sentAt
+      };
+    });
+
+    res.json({
+      success: true,
+      data: results,
+      count: results.length,
+      communications
+    });
+
+  } catch (error: any) {
+    console.error('Error fetching bulk summative results:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch bulk results',
       error: error.message
     });
   }

@@ -142,4 +142,28 @@ router.delete(
   asyncHandler(learnerController.deleteLearnerPhoto.bind(learnerController))
 );
 
+/**
+ * @route   POST /api/learners/transfer-out
+ * @desc    Process student transfer out
+ * @access  SUPER_ADMIN, ADMIN, HEAD_TEACHER
+ */
+router.post(
+  '/transfer-out',
+  requirePermission('EDIT_LEARNER'),
+  auditLog('TRANSFER_OUT_LEARNER'),
+  asyncHandler(learnerController.transferOut.bind(learnerController))
+);
+
+/**
+ * @route   POST /api/learners/bulk-promote
+ * @desc    Promote multiple learners to the next grade
+ * @access  SUPER_ADMIN, ADMIN, HEAD_TEACHER
+ */
+router.post(
+  '/bulk-promote',
+  requirePermission('EDIT_LEARNER'),
+  auditLog('BULK_PROMOTE_LEARNERS'),
+  asyncHandler(learnerController.promoteLearners.bind(learnerController))
+);
+
 export default router;

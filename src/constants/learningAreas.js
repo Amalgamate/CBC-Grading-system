@@ -22,68 +22,58 @@ export const EARLY_YEARS_LEARNING_AREAS = [
  * Pre-Primary Education (PP1, PP2)
  */
 export const PRE_PRIMARY_LEARNING_AREAS = [
-  'Literacy',
-  'English Language Activities',
+  'Language Activities',
+  'Literacy & Reading',
   'Mathematical Activities',
   'Environmental Activities',
   'Creative Activities',
-  'Christian Religious Education',
-  'Islamic Religious Education',
-  'Computer Studies (Interactive)',
-  'Kiswahili Lugha'
+  'Religious Education'
 ];
 
 /**
  * Primary Education - Grades 1-3 (Lower Primary)
  */
 export const LOWER_PRIMARY_LEARNING_AREAS = [
-  'English Language Activities',
-  'Kiswahili Language Activities',
-  'Indigenous Language Activities',
   'Mathematics',
+  'English',
+  'Kiswahili',
   'Environmental Activities',
-  'Creative Arts Activities',
-  'Christian Religious Education',
-  'Islamic Religious Education',
-  'Computer Studies',
-  'French (Optional)'
+  'Creative Activities',
+  'Religious Education',
+  'Information Communications Technology'
 ];
 
 /**
  * Primary Education - Grades 4-6 (Upper Primary)
  */
 export const UPPER_PRIMARY_LEARNING_AREAS = [
-  'English Language',
-  'Kiswahili Lugha',
+  'English',
+  'Kiswahili',
   'Mathematics',
   'Science and Technology',
+  'Agriculture and Nutrition',
   'Social Studies',
-  'Agriculture',
   'Creative Arts',
-  'Christian Religious Education',
-  'Islamic Religious Education',
-  'Computer Studies',
-  'Coding and Robotics',
-  'French'
+  'Physical and Health Education',
+  'Religious Education'
 ];
 
 /**
  * Junior School - Grades 7-9
  */
 export const JUNIOR_SCHOOL_LEARNING_AREAS = [
-  'English Language',
-  'Kiswahili Lugha',
+  'English',
+  'Kiswahili',
   'Mathematics',
   'Integrated Science',
-  'Social Studies',
+  'Health Education',
   'Pre-Technical Studies',
+  'Social Studies',
+  'Business Studies',
   'Agriculture',
-  'Creative Arts and Sports',
-  'Christian Religious Education',
-  'Islamic Religious Education',
-  'Computer Studies',
-  'Coding and Robotics',
-  'French'
+  'Life Skills Education',
+  'Sports and Physical Education',
+  'Religious Education'
 ];
 
 /**

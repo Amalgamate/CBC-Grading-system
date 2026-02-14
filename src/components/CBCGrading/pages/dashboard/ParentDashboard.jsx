@@ -104,7 +104,7 @@ const ParentDashboard = ({ user }) => {
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pageWidth = pdf.internal.pageSize.getWidth();
     pdf.setFontSize(20);
-    pdf.text('ZAWADI JRN ACADEMY', pageWidth / 2, 20, { align: 'center' });
+    pdf.text('ELIMCROWN ACADEMY', pageWidth / 2, 20, { align: 'center' });
     pdf.save(`${child.name}_Report.pdf`);
     showSuccess('✅ Official Transcript Downloaded');
   };

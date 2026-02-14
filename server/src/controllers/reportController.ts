@@ -179,8 +179,29 @@ export const getSummativeReport = async (req: AuthRequest, res: Response) => {
         admissionNumber: true,
         grade: true,
         stream: true,
-        schoolId: true, // Added to fetch grading system
-        branchId: true
+        schoolId: true,
+        branchId: true,
+        // Contact fields for SMS/WhatsApp
+        primaryContactPhone: true,
+        primaryContactName: true,
+        primaryContactType: true,
+        primaryContactEmail: true,
+        fatherPhone: true,
+        fatherName: true,
+        motherPhone: true,
+        motherName: true,
+        guardianPhone: true,
+        guardianName: true,
+        // Parent relation
+        parent: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+          }
+        }
       }
     });
 
@@ -754,9 +775,7 @@ function calculateSubjectSummary(results: any[], ranges?: any[]) {
     return {
       ...subject,
       averagePercentage: Math.round(avgPercentage),
-      averageGrade: ranges
-        ? gradingService.calculateGradeSync(avgPercentage, ranges)
-        : calculateGradeFromPercentage(avgPercentage),
+      averageGrade: calculateGradeFromPercentage(avgPercentage, ranges),
       testCount: subject.tests.length
     };
   });
@@ -830,7 +849,7 @@ function analyzeSummativePerformance(results: any[], ranges?: any[]) {
   const analysis: any[] = [];
   bySubject.forEach((results, subject) => {
     const avgPercentage = results.reduce((sum, r) => sum + r.percentage, 0) / results.length;
-    const gradeDistribution: any = { A: 0, B: 0, C: 0, D: 0, E: 0 };
+    const gradeDistribution: any = {};
 
     // Note: gradeDistribution keys are hardcoded here, which might be an issue if dynamic grades don't match A-E.
     // However, for backward compatibility we keep it. Ideally this should be dynamic too.
@@ -844,9 +863,7 @@ function analyzeSummativePerformance(results: any[], ranges?: any[]) {
       subject,
       studentCount: results.length,
       averagePercentage: Math.round(avgPercentage),
-      averageGrade: ranges
-        ? gradingService.calculateGradeSync(avgPercentage, ranges)
-        : calculateGradeFromPercentage(avgPercentage),
+      averageGrade: calculateGradeFromPercentage(avgPercentage, ranges),
       gradeDistribution,
       passRate: Math.round((results.filter(r => r.status === 'PASS').length / results.length) * 100)
     });
