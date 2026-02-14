@@ -82,7 +82,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
     try {
       // Step 1: Validate credentials
       const credentialsData = await authAPI.login({
-        email: formData.email,
+        email: formData.email.trim(),
         password: formData.password,
       });
 

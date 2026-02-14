@@ -88,8 +88,19 @@ export const authAPI = {
    * @returns {Promise} User data and token
    */
   login: async (credentials) => {
-    const response = await axiosInstance.post('/auth/login', credentials);
-    return response.data;
+    try {
+      const response = await axiosInstance.post('/auth/login', credentials);
+      return response.data;
+    } catch (error) {
+      if (error.response?.data) {
+        const data = error.response?.data;
+        let msg = data.message || data.error;
+        if (!msg) msg = `HTTP ${error.response.status}`;
+        if (typeof msg === 'object') msg = JSON.stringify(msg);
+        throw new Error(msg);
+      }
+      throw error;
+    }
   },
   /**
    * Fetch public tenant branding info.
