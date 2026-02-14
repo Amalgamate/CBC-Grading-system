@@ -15,7 +15,7 @@ export const rateLimit = (max: number, windowMs: number) => {
     entry.count += 1;
     buckets[key] = entry;
     if (entry.count > max) {
-      return res.status(429).json({ success: false, error: 'Too many requests. Please try again later.' });
+      return res.status(429).json({ success: false, message: 'Too many requests. Please try again later.' });
     }
     next();
   };

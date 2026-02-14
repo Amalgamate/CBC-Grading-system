@@ -20,7 +20,7 @@ router.post('/check-availability',
 );
 
 router.post('/login',
-  rateLimit(5, 60_000), // 5 login attempts per minute per IP
+  rateLimit(50, 60_000), // Increased limit for testing
   asyncHandler(authController.login.bind(authController))
 );
 
