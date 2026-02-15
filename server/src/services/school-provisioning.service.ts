@@ -157,9 +157,14 @@ export async function provisionNewSchool(
     await tx.communicationConfig.create({
       data: {
         schoolId: school.id,
-        smsEnabled: true,
         smsProvider: 'mobilesasa',
-        smsBaseUrl: 'https://api.mobilesasa.com',
+        smsEnabled: true,
+        smsSenderId: 'MOBILESASA',
+        emailProvider: 'resend',
+        emailEnabled: false,
+        mpesaProvider: 'intasend',
+        mpesaEnabled: false,
+        birthdayEnabled: false
       }
     });
 

@@ -246,7 +246,22 @@ export const createSchool = async (req: AuthRequest, res: Response) => {
 
       let branch = null;
 
-      // 2. Create Default Branch (if requested)
+      // 2. Create Communication Config (SMS/Email enabled by default with MobileSasa)
+      await tx.communicationConfig.create({
+        data: {
+          schoolId: school.id,
+          smsProvider: 'mobilesasa',
+          smsEnabled: true,
+          smsSenderId: 'MOBILESASA',
+          emailProvider: 'resend',
+          emailEnabled: false,
+          mpesaProvider: 'intasend',
+          mpesaEnabled: false,
+          birthdayEnabled: false
+        }
+      });
+
+      // 3. Create Default Branch (if requested)
       if (createDefaultBranch) {
         branch = await tx.branch.create({
           data: {
@@ -262,7 +277,7 @@ export const createSchool = async (req: AuthRequest, res: Response) => {
         });
       }
 
-      // 3. Create Admission Sequence
+      // 4. Create Admission Sequence
       await tx.admissionSequence.create({
         data: {
           schoolId: school.id,
@@ -271,7 +286,7 @@ export const createSchool = async (req: AuthRequest, res: Response) => {
         }
       });
 
-      // 4. Create Streams (if requested)
+      // 5. Create Streams (if requested)
       if (createStreams && Array.isArray(streamNames) && streamNames.length > 0) {
         for (const streamName of streamNames) {
           if (streamName.trim()) {

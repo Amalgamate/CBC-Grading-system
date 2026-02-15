@@ -135,23 +135,25 @@ export class OtpService {
             );
 
             if (!smsResult.success) {
-                const warnMsg = `⚠️ SMS Sending failed: ${smsResult.error}. Logic will proceed because process.env.NODE_ENV is development.\n`;
+                const warnMsg = `⚠️ SMS Sending failed: ${smsResult.error}`;
                 console.warn(warnMsg);
-                fs.appendFileSync('otp-debug.log', warnMsg);
+                fs.appendFileSync('otp-debug.log', warnMsg + '\n');
 
-                // In development, we allow the flow to continue so the user is not blocked
-                // as long as we have logged the OTP for them to see.
+                // In development, we allow the flow to continue so developers can test without valid SMS credentials
+                // In production, the user must receive SMS to proceed
                 if (process.env.NODE_ENV === 'development') {
+                    console.warn('   [DEV MODE] Bypassing SMS failure to allow testing');
                     return {
                         success: true,
-                        message: `[DEV MODE] OTP generated (SMS failed but bypassed). Check server logs/otp-debug.log`,
+                        message: `[DEV MODE] OTP generated: ${otpCode} (SMS failed but bypassed for testing). Check otp-debug.log`,
                         expiresAt
                     };
                 }
 
+                // Production: SMS is required
                 return {
                     success: false,
-                    message: `Failed to send OTP: ${smsResult.error}`
+                    message: `Failed to send OTP: ${smsResult.error}. Please try again or contact support.`
                 };
             }
 

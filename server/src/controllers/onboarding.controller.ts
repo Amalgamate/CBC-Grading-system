@@ -116,10 +116,11 @@ export class OnboardingController {
         schoolName,
         schoolType,
         password,
-        passwordConfirm
+        passwordConfirm,
+        subdomain
       } = req.body;
 
-      log(`Incoming Registration: ${JSON.stringify({ fullName, email, phone, schoolName, address, county })}`);
+      log(`Incoming Registration: ${JSON.stringify({ fullName, email, phone, schoolName, address, county, subdomain })}`);
 
       if (!fullName || fullName.length < 2 || fullName.length > 100) {
         log(`Validation Failed: Invalid Full Name: ${fullName}`);
@@ -175,10 +176,32 @@ export class OnboardingController {
         return res.status(400).json({ success: false, error: 'Email or phone already exists' });
       }
 
+      // Subdomain handling: validate and normalize
+      let finalSubdomain: string | null = null;
+      if (subdomain && subdomain.trim()) {
+        // Validate subdomain format
+        const normalizedSubdomain = subdomain.toLowerCase().trim();
+        if (!/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(normalizedSubdomain)) {
+          log(`Validation Failed: Invalid Subdomain Format: ${subdomain}`);
+          return res.status(400).json({ success: false, error: 'Invalid subdomain format' });
+        }
+        
+        // Check for subdomain uniqueness
+        const existingSchool = await prisma.school.findUnique({
+          where: { subdomain: normalizedSubdomain }
+        });
+        if (existingSchool) {
+          log(`Validation Failed: Subdomain Already Exists: ${subdomain}`);
+          return res.status(400).json({ success: false, error: 'This subdomain is already taken' });
+        }
+        
+        finalSubdomain = normalizedSubdomain;
+      }
+
       // Use transaction to ensure all data is created atomically
       const result = await prisma.$transaction(async (tx) => {
         // 1. Create School
-        const school = await tx.school.create({
+        const school = await (tx.school as any).create({
           data: {
             name: schoolName.trim(),
             address,
@@ -194,6 +217,8 @@ export class OnboardingController {
             schoolType: schoolType || null,
             admissionFormatType: 'BRANCH_PREFIX_START',
             branchSeparator: '-',
+            subdomain: finalSubdomain,
+            subdomainVerified: false
           }
         });
 
@@ -325,7 +350,14 @@ export class OnboardingController {
 
       res.status(201).json({
         success: true,
-        data: { school, user },
+        data: { 
+          school: {
+            ...school,
+            subdomain: school.subdomain,
+            domain: school.subdomain ? `${school.subdomain}.elimcrown.co.ke` : null
+          },
+          user 
+        },
         meta: {
           emailVerificationToken: process.env.NODE_ENV === 'development' ? token : undefined,
           phoneCode: process.env.NODE_ENV === 'development' ? code : undefined

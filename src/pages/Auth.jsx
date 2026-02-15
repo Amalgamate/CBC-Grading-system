@@ -42,7 +42,15 @@ function Auth({ onAuthSuccess, brandingSettings, basePath = '/auth' }) {
     navigate(`${basePath}/verify-email`, { state: { userData: user }, replace: true });
   };
 
-  const handleVerifySuccess = () => {
+  const handleVerifySuccess = (verificationResponse) => {
+    // If we have tokens from the verification response, log the user in immediately
+    if (verificationResponse && verificationResponse.token) {
+      const { user, token, refreshToken } = verificationResponse;
+      onAuthSuccess(user, token, refreshToken);
+      return;
+    }
+
+    // Fallback if no tokens (though verifyOTP returns them)
     if (!userData) {
       toLogin();
       return;

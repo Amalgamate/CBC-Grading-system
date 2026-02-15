@@ -30,7 +30,9 @@ import { issueCsrfToken } from '../middleware/csrf.middleware';
 import { authenticate } from '../middleware/auth.middleware';
 import { requireTenant } from '../middleware/tenant.middleware';
 import tenantRoutes from './tenant.routes';
+import subdomainRoutes from './subdomain.routes';
 import { enforcePortalTenantMatch } from '../middleware/portalTenant.middleware';
+import { subdomainAuth } from '../middleware/subdomain-auth.middleware';
 
 const router = Router();
 
@@ -42,11 +44,15 @@ router.use('/auth', authRoutes);
 router.use('/onboarding', onboardingRoutes); // Public onboarding endpoints
 router.use('/books', bookRoutes);
 router.use('/tenants', tenantRoutes); // Public tenant branding endpoints
+router.use('/subdomains', subdomainRoutes); // Public subdomain endpoints
 router.get('/auth/csrf', issueCsrfToken);
 
 // ============================================
 // PROTECTED ROUTES (Authenticated & Tenant-Aware)
 // ============================================
+// Subdomain authentication must run early (after extraction, before tenant check)
+router.use(subdomainAuth);
+
 // These routes require authentication and proper trial status check
 router.use(authenticate);
 router.use(enforcePortalTenantMatch);
