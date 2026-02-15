@@ -216,7 +216,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
       if (!formData.county) newErrors.county = 'County is required';
       if (!formData.address.trim()) newErrors.address = 'Physical address is required';
       if (!formData.termsAccepted) newErrors.termsAccepted = 'You must accept the terms and conditions';
-      
+
       // Subdomain validation
       const subdomain = formData.subdomain || suggestedSubdomain;
       if (!subdomain || !subdomain.trim()) {
@@ -231,7 +231,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
   // Handle subdomain suggestion when school name changes
   const handleSchoolNameBlur = async () => {
     if (!formData.schoolName.trim() || suggestedSubdomain) return;
-    
+
     try {
       const result = await suggestSubdomain(formData.schoolName);
       setSuggestedSubdomain(result.suggested);
@@ -259,7 +259,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
   const handleSubdomainChange = async (e) => {
     const value = e.target.value.toLowerCase();
     setFormData(prev => ({ ...prev, subdomain: value }));
-    
+
     if (!value.trim()) {
       setFieldStatus(prev => ({ ...prev, subdomain: null }));
       setErrors(prev => ({ ...prev, subdomain: '' }));
@@ -526,7 +526,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
         // Show success toast
         const toast = document.createElement('div');
-        toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in';
+        toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-2.5 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in';
         toast.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span>Registration successful! Redirecting...</span>';
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
@@ -546,7 +546,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
         // Show error toast
         const toast = document.createElement('div');
-        toast.className = 'fixed top-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in';
+        toast.className = 'fixed top-4 right-4 bg-red-600 text-white px-6 py-2.5 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in';
         toast.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg><span>${errorMessage}</span>`;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 5000);
@@ -581,7 +581,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
       // Show error toast
       const toastEl = document.createElement('div');
-      toastEl.className = 'fixed top-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in';
+      toastEl.className = 'fixed top-4 right-4 bg-red-600 text-white px-6 py-2.5 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-in';
       toastEl.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg><span>${errorMsg}</span>`;
       document.body.appendChild(toastEl);
       setTimeout(() => toastEl.remove(), 5000);
@@ -661,7 +661,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
         {/* Left Column - Branding Area */}
         <div
-          className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative overflow-hidden bg-[#875A7B]"
+          className="w-full lg:w-1/2 p-6 lg:p-10 flex flex-col justify-between items-center text-white relative overflow-hidden bg-[#875A7B]"
         >
           {/* Decorative Elements */}
           <div className="absolute inset-0 overflow-hidden opacity-10">
@@ -675,9 +675,9 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
             <div className="max-w-md text-center space-y-8">
               {/* Logo */}
               {/* Premium Wordmark Logo */}
-              <div className="mb-12 text-center">
-                <div className="inline-flex items-center justify-center p-4 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl mb-8 transform hover:scale-105 transition-transform duration-500">
-                  <span className="text-5xl sm:text-6xl font-black tracking-tighter flex items-center gap-1">
+              <div className="mb-8 text-center">
+                <div className="inline-flex items-center justify-center p-3 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl mb-6 transform hover:scale-105 transition-transform duration-500">
+                  <span className="text-4xl sm:text-5xl font-black tracking-tighter flex items-center gap-1">
                     <span className="text-white">Elim</span>
                     <span className="text-teal-300 font-light">crown</span>
                   </span>
@@ -738,16 +738,16 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
         </div>
 
         {/* Right Column - Registration Form */}
-        <div className="w-full lg:w-1/2 p-6 lg:p-16 flex flex-col justify-center overflow-y-auto bg-[#F9FAFB]">
+        <div className="w-full lg:w-1/2 p-4 lg:p-8 flex flex-col justify-center overflow-y-auto bg-[#F9FAFB]">
           <div className="max-w-md mx-auto w-full">
             {/* Header */}
-            <div className="mb-8">
+            <div className="mb-4">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{getStepTitle()}</h1>
               <p className="text-gray-600">{getStepSubtitle()}</p>
             </div>
 
             {/* Progress Indicator */}
-            <div className="mb-8">
+            <div className="mb-6">
               <div className="flex items-start justify-between mb-3">
                 {[1, 2, 3].map((step, index) => (
                   <React.Fragment key={step}>
@@ -774,10 +774,10 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {/* Step 1: Basic Info */}
               {currentStep === 1 && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Full Name
@@ -791,7 +791,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="fullName"
                         value={formData.fullName}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${fieldStatus.fullName === 'invalid' || (showErrors && errors.fullName) ? 'border-red-500 shadow-sm' :
+                        className={`w-full pl-10 pr-10 py-2.5 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${fieldStatus.fullName === 'invalid' || (showErrors && errors.fullName) ? 'border-red-500 shadow-sm' :
                           fieldStatus.fullName === 'valid' ? 'border-green-500' : 'border-gray-300'
                           }`}
                         placeholder="John Doe"
@@ -823,7 +823,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${fieldStatus.email === 'invalid' || (showErrors && errors.email) ? 'border-red-500 shadow-sm' :
+                        className={`w-full pl-10 pr-10 py-2.5 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${fieldStatus.email === 'invalid' || (showErrors && errors.email) ? 'border-red-500 shadow-sm' :
                           fieldStatus.email === 'valid' ? 'border-green-500' : 'border-gray-300'
                           }`}
                         placeholder="you@example.com"
@@ -851,7 +851,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         <select
                           value={countryCode}
                           onChange={handleCountryCodeChange}
-                          className="pl-3 pr-8 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition appearance-none bg-white cursor-pointer"
+                          className="pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition appearance-none bg-white cursor-pointer"
                           style={{ minWidth: '120px' }}
                         >
                           {africanCountries.map((country) => (
@@ -874,7 +874,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                           type="tel"
                           value={phoneNumber}
                           onChange={handlePhoneChange}
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${showErrors && errors.phone ? 'border-red-500 shadow-sm' : 'border-gray-300'
+                          className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${showErrors && errors.phone ? 'border-red-500 shadow-sm' : 'border-gray-300'
                             }`}
                           placeholder="712345678"
                           maxLength={africanCountries.find(c => c.code === countryCode)?.length || 10}
@@ -898,7 +898,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
               {/* Step 2: Account Details */}
               {currentStep === 2 && (
-                <div className="space-y-6">
+                <div className="space-y-4">
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -913,7 +913,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${showErrors && errors.password ? 'border-red-500 shadow-sm' : 'border-gray-300'
+                        className={`w-full pl-10 pr-12 py-2.5 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${showErrors && errors.password ? 'border-red-500 shadow-sm' : 'border-gray-300'
                           }`}
                         placeholder="Enter a strong password"
                       />
@@ -966,7 +966,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        className={`w-full pl-10 pr-20 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${fieldStatus.confirmPassword === 'valid' ? 'border-green-500' :
+                        className={`w-full pl-10 pr-20 py-2.5 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${fieldStatus.confirmPassword === 'valid' ? 'border-green-500' :
                           showErrors && errors.confirmPassword ? 'border-red-500 shadow-sm' : 'border-gray-300'
                           }`}
                         placeholder="Re-enter your password"
@@ -994,7 +994,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
               {/* Step 3: School Info */}
               {currentStep === 3 && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       School/Organization Name
@@ -1009,7 +1009,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         value={formData.schoolName}
                         onChange={handleChange}
                         onBlur={handleSchoolNameBlur}
-                        className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${fieldStatus.schoolName === 'invalid' || (showErrors && errors.schoolName) ? 'border-red-500 shadow-sm' :
+                        className={`w-full pl-10 pr-10 py-2.5 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${fieldStatus.schoolName === 'invalid' || (showErrors && errors.schoolName) ? 'border-red-500 shadow-sm' :
                           fieldStatus.schoolName === 'valid' ? 'border-green-500' : 'border-gray-300'
                           }`}
                         placeholder="Elimcrown Academy"
@@ -1045,7 +1045,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="subdomain"
                         value={formData.subdomain}
                         onChange={handleSubdomainChange}
-                        className={`w-full pl-10 pr-24 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${fieldStatus.subdomain === 'invalid' || (showErrors && errors.subdomain) ? 'border-red-500 shadow-sm' :
+                        className={`w-full pl-10 pr-24 py-2.5 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${fieldStatus.subdomain === 'invalid' || (showErrors && errors.subdomain) ? 'border-red-500 shadow-sm' :
                           fieldStatus.subdomain === 'valid' ? 'border-green-500' : 'border-gray-300'
                           }`}
                         placeholder={suggestedSubdomain || 'e.g., elimcrown'}
@@ -1081,7 +1081,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                       name="schoolType"
                       value={formData.schoolType}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${showErrors && errors.schoolType ? 'border-red-500 shadow-sm' : 'border-gray-300'}`}
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${showErrors && errors.schoolType ? 'border-red-500 shadow-sm' : 'border-gray-300'}`}
                     >
                       <option value="">Select Type</option>
                       <option>Public Primary School</option>
@@ -1128,7 +1128,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="county"
                         value={formData.county}
                         onChange={handleChange}
-                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${showErrors && errors.county ? 'border-red-500 shadow-sm' : 'border-gray-300'}`}
+                        className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${showErrors && errors.county ? 'border-red-500 shadow-sm' : 'border-gray-300'}`}
                       >
                         <option value="">Select County</option>
                         {['Baringo', 'Bomet', 'Bungoma', 'Busia', 'Elgeyo-Marakwet', 'Embu', 'Garissa', 'Homa Bay', 'Isiolo', 'Kajiado', 'Kakamega', 'Kericho', 'Kiambu', 'Kilifi', 'Kirinyaga', 'Kisii', 'Kisumu', 'Kitui', 'Kwale', 'Laikipia', 'Lamu', 'Machakos', 'Makueni', 'Mandera', 'Marsabit', 'Meru', 'Migori', 'Mombasa', 'Murang’a', 'Nairobi', 'Nakuru', 'Nandi', 'Narok', 'Nyamira', 'Nyandarua', 'Nyeri', 'Samburu', 'Siaya', 'Taita-Taveta', 'Tana River', 'Tharaka-Nithi', 'Trans Nzoia', 'Turkana', 'Uasin Gishu', 'Vihiga', 'Wajir', 'West Pokot'].map(c => <option key={c} value={c}>{c}</option>)}
@@ -1149,7 +1149,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="subCounty"
                         value={formData.subCounty}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition"
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition"
                         placeholder="e.g. Westlands"
                       />
                     </div>
@@ -1164,7 +1164,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                       name="address"
                       value={formData.address}
                       onChange={handleChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${showErrors && errors.address ? 'border-red-500 shadow-sm' : 'border-gray-300'}`}
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${showErrors && errors.address ? 'border-red-500 shadow-sm' : 'border-gray-300'}`}
                       placeholder="Street, Town"
                     />
                     {showErrors && errors.address && (
@@ -1211,7 +1211,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold"
                   >
                     <ChevronLeft size={20} />
                     Back
@@ -1222,7 +1222,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                   <button
                     type="button"
                     onClick={handleNext}
-                    className={`flex items-center justify-center gap-2 bg-[#875A7B] text-white py-3 rounded-lg font-semibold hover:bg-[#714B67] focus:ring-4 focus:ring-[#875A7B]/20 transition-all shadow-lg ${currentStep === 1 ? 'flex-1' : 'flex-1'
+                    className={`flex items-center justify-center gap-2 bg-[#875A7B] text-white py-2.5 rounded-lg font-semibold hover:bg-[#714B67] focus:ring-4 focus:ring-[#875A7B]/20 transition-all shadow-lg ${currentStep === 1 ? 'flex-1' : 'flex-1'
                       }`}
                   >
                     Next
@@ -1232,7 +1232,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="flex-1 bg-[#875A7B] text-white py-3 rounded-lg font-semibold hover:bg-[#714B67] focus:ring-4 focus:ring-[#875A7B]/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 bg-[#875A7B] text-white py-2.5 rounded-lg font-semibold hover:bg-[#714B67] focus:ring-4 focus:ring-[#875A7B]/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? (
                       <div className="flex items-center justify-center gap-2">
