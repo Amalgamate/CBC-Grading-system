@@ -375,12 +375,20 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
             ) : filtered.length === 0 ? (
               <tr><td className="px-4 py-6 text-center text-gray-500" colSpan={5}>No schools found</td></tr>
             ) : (
-              filtered.map((s) => (
+              filtered.map((s) => {
+                const isTemplateSchool = s.name === 'Template School';
+                
+                return (
                 <tr key={s.id} className="border-t">
                   <td className="px-4 py-2">
-                    <button className="text-indigo-700 hover:underline" onClick={() => onOpenSchool && onOpenSchool(s.id)}>
-                      {s.name}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button className="text-indigo-700 hover:underline" onClick={() => onOpenSchool && onOpenSchool(s.id)}>
+                        {s.name}
+                      </button>
+                      {isTemplateSchool && (
+                        <span className="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700 font-medium">REFERENCE</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-2">
                     <span className={`px-2 py-1 rounded text-xs ${s.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -391,7 +399,7 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
                   <td className="px-4 py-2">{s._count?.learners || 0}</td>
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-2">
-                      {s.active && (
+                      {s.active && !isTemplateSchool && (
                         <button
                           className="px-3 py-1.5 rounded bg-yellow-500 text-white text-xs hover:brightness-110"
                           disabled={!!actionLoading}
@@ -401,20 +409,22 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
                         </button>
                       )}
                       <button
-                        className="px-3 py-1.5 rounded bg-gray-900 text-white text-xs hover:opacity-90"
-                        disabled={!!actionLoading}
+                        className={`px-3 py-1.5 rounded text-white text-xs ${isTemplateSchool ? 'bg-gray-400 cursor-not-allowed opacity-50' : 'bg-gray-900 hover:opacity-90'}`}
+                        disabled={!!actionLoading || isTemplateSchool}
                         onClick={() => reactivate(s.id)}
+                        title={isTemplateSchool ? 'Not allowed for Template School' : ''}
                       >
                         {actionLoading === s.id ? '...' : 'Reactivate'}
                       </button>
                       <button
-                        className="px-3 py-1.5 rounded bg-gradient-to-r from-indigo-600 to-cyan-600 text-white text-xs flex items-center gap-1 hover:brightness-110"
-                        disabled={!!actionLoading}
+                        className={`px-3 py-1.5 rounded text-white text-xs flex items-center gap-1 ${isTemplateSchool ? 'bg-gray-400 cursor-not-allowed opacity-50' : 'bg-gradient-to-r from-indigo-600 to-cyan-600 hover:brightness-110'}`}
+                        disabled={!!actionLoading || isTemplateSchool}
                         onClick={() => approvePayment(s.id)}
+                        title={isTemplateSchool ? 'Not allowed for Template School' : ''}
                       >
                         <CreditCard className="w-3 h-3" /> {actionLoading === `pay-${s.id}` ? '...' : 'Approve'}
                       </button>
-                      {s.status === 'TRIAL' && (
+                      {s.status === 'TRIAL' && !isTemplateSchool && (
                         <>
                           <button
                             className="px-3 py-1.5 rounded bg-green-600 text-white text-xs hover:brightness-110"
@@ -433,16 +443,18 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
                         </>
                       )}
                       <button
-                        className={`px-3 py-1.5 rounded ${s.active ? 'bg-red-300' : 'bg-red-700'} text-white text-xs hover:brightness-110`}
-                        disabled={!!actionLoading}
+                        className={`px-3 py-1.5 rounded text-white text-xs ${isTemplateSchool ? 'bg-gray-400 cursor-not-allowed opacity-50' : s.active ? 'bg-red-300 hover:brightness-110' : 'bg-red-700 hover:brightness-110'}`}
+                        disabled={!!actionLoading || isTemplateSchool}
                         onClick={() => deleteSchool(s.id)}
+                        title={isTemplateSchool ? 'Not allowed for Template School' : ''}
                       >
                         {actionLoading === `del-${s.id}` ? '...' : s.active ? 'Delete (inactive only)' : 'Force Delete'}
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>
