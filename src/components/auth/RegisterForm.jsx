@@ -661,7 +661,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
         {/* Left Column - Branding Area */}
         <div
-          className="w-full lg:w-1/2 p-6 lg:p-10 flex flex-col justify-between items-center text-white relative overflow-hidden bg-[#875A7B]"
+          className={`w-full ${currentStep === 3 ? 'hidden' : 'lg:w-1/2'} p-6 lg:p-10 flex flex-col justify-between items-center text-white relative overflow-hidden bg-[#875A7B] transition-all duration-500`}
         >
           {/* Decorative Elements */}
           <div className="absolute inset-0 overflow-hidden opacity-10">
@@ -738,8 +738,8 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
         </div>
 
         {/* Right Column - Registration Form */}
-        <div className="w-full lg:w-1/2 p-4 lg:p-8 flex flex-col justify-center overflow-y-auto bg-[#F9FAFB]">
-          <div className="max-w-md mx-auto w-full">
+        <div className={`w-full ${currentStep === 3 ? 'w-full bg-gray-50' : 'lg:w-1/2'} p-4 lg:p-8 flex flex-col justify-center overflow-y-auto bg-[#F9FAFB] transition-all duration-500`}>
+          <div className={`${currentStep === 3 ? 'max-w-4xl' : 'max-w-md'} mx-auto w-full transition-all duration-500`}>
             {/* Header */}
             <div className="mb-4">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{getStepTitle()}</h1>
@@ -994,8 +994,8 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
               {/* Step 3: School Info */}
               {currentStep === 3 && (
-                <div className="space-y-4">
-                  <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="col-span-1">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       School/Organization Name
                     </label>
@@ -1028,8 +1028,32 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                     )}
                   </div>
 
+                  <div className="col-span-1">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      School Type
+                    </label>
+                    <select
+                      name="schoolType"
+                      value={formData.schoolType}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${showErrors && errors.schoolType ? 'border-red-500 shadow-sm' : 'border-gray-300'}`}
+                    >
+                      <option value="">Select Type</option>
+                      <option>Public Primary School</option>
+                      <option>Public Secondary School</option>
+                      <option>Private Primary School</option>
+                      <option>Private Secondary School</option>
+                    </select>
+                    {showErrors && errors.schoolType && (
+                      <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
+                        <AlertCircle size={14} />
+                        <span>{errors.schoolType}</span>
+                      </div>
+                    )}
+                  </div>
+
                   {/* School Domain/Subdomain Field */}
-                  <div>
+                  <div className="col-span-1 md:col-span-2">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       School Domain (Optional)
                       <span className="block text-xs font-normal text-gray-600 mt-1">
@@ -1073,89 +1097,66 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                     )}
                   </div>
 
-                  <div>
+                  <div className="col-span-1 md:col-span-2">
+                    <div className="flex items-center justify-between p-4 bg-brand-purple/5 border border-brand-purple/10 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${locationEnabled ? 'bg-green-100 text-green-600' : 'bg-brand-teal/10 text-brand-teal'}`}>
+                          {isDetectingLocation ? <Loader2 size={20} className="animate-spin" /> : <MapPin size={20} />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-gray-900">Auto-detect Location</p>
+                          <p className="text-xs text-gray-600">Fills County and Address automatically</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAutoLocation}
+                        disabled={isDetectingLocation}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${locationEnabled ? 'bg-brand-teal' : 'bg-gray-200'}`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${locationEnabled ? 'translate-x-6' : 'translate-x-1'}`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="col-span-1">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      School Type
+                      County
                     </label>
                     <select
-                      name="schoolType"
-                      value={formData.schoolType}
+                      name="county"
+                      value={formData.county}
                       onChange={handleChange}
-                      className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${showErrors && errors.schoolType ? 'border-red-500 shadow-sm' : 'border-gray-300'}`}
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${showErrors && errors.county ? 'border-red-500 shadow-sm' : 'border-gray-300'}`}
                     >
-                      <option value="">Select Type</option>
-                      <option>Public Primary School</option>
-                      <option>Public Secondary School</option>
-                      <option>Private Primary School</option>
-                      <option>Private Secondary School</option>
+                      <option value="">Select County</option>
+                      {['Baringo', 'Bomet', 'Bungoma', 'Busia', 'Elgeyo-Marakwet', 'Embu', 'Garissa', 'Homa Bay', 'Isiolo', 'Kajiado', 'Kakamega', 'Kericho', 'Kiambu', 'Kilifi', 'Kirinyaga', 'Kisii', 'Kisumu', 'Kitui', 'Kwale', 'Laikipia', 'Lamu', 'Machakos', 'Makueni', 'Mandera', 'Marsabit', 'Meru', 'Migori', 'Mombasa', 'Murang’a', 'Nairobi', 'Nakuru', 'Nandi', 'Narok', 'Nyamira', 'Nyandarua', 'Nyeri', 'Samburu', 'Siaya', 'Taita-Taveta', 'Tana River', 'Tharaka-Nithi', 'Trans Nzoia', 'Turkana', 'Uasin Gishu', 'Vihiga', 'Wajir', 'West Pokot'].map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    {showErrors && errors.schoolType && (
+                    {showErrors && errors.county && (
                       <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
                         <AlertCircle size={14} />
-                        <span>{errors.schoolType}</span>
+                        <span>{errors.county}</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-brand-purple/5 border border-brand-purple/10 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${locationEnabled ? 'bg-green-100 text-green-600' : 'bg-brand-teal/10 text-brand-teal'}`}>
-                        {isDetectingLocation ? <Loader2 size={20} className="animate-spin" /> : <MapPin size={20} />}
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-900">Auto-detect Location</p>
-                        <p className="text-xs text-gray-600">Fills County and Address automatically</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleAutoLocation}
-                      disabled={isDetectingLocation}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${locationEnabled ? 'bg-brand-teal' : 'bg-gray-200'}`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${locationEnabled ? 'translate-x-6' : 'translate-x-1'}`}
-                      />
-                    </button>
+                  <div className="col-span-1">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Sub-County
+                    </label>
+                    <input
+                      type="text"
+                      name="subCounty"
+                      value={formData.subCounty}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition"
+                      placeholder="e.g. Westlands"
+                    />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        County
-                      </label>
-                      <select
-                        name="county"
-                        value={formData.county}
-                        onChange={handleChange}
-                        className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${showErrors && errors.county ? 'border-red-500 shadow-sm' : 'border-gray-300'}`}
-                      >
-                        <option value="">Select County</option>
-                        {['Baringo', 'Bomet', 'Bungoma', 'Busia', 'Elgeyo-Marakwet', 'Embu', 'Garissa', 'Homa Bay', 'Isiolo', 'Kajiado', 'Kakamega', 'Kericho', 'Kiambu', 'Kilifi', 'Kirinyaga', 'Kisii', 'Kisumu', 'Kitui', 'Kwale', 'Laikipia', 'Lamu', 'Machakos', 'Makueni', 'Mandera', 'Marsabit', 'Meru', 'Migori', 'Mombasa', 'Murang’a', 'Nairobi', 'Nakuru', 'Nandi', 'Narok', 'Nyamira', 'Nyandarua', 'Nyeri', 'Samburu', 'Siaya', 'Taita-Taveta', 'Tana River', 'Tharaka-Nithi', 'Trans Nzoia', 'Turkana', 'Uasin Gishu', 'Vihiga', 'Wajir', 'West Pokot'].map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                      {showErrors && errors.county && (
-                        <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
-                          <AlertCircle size={14} />
-                          <span>{errors.county}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Sub-County
-                      </label>
-                      <input
-                        type="text"
-                        name="subCounty"
-                        value={formData.subCounty}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition"
-                        placeholder="e.g. Westlands"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
+                  <div className="col-span-1 md:col-span-2">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Physical Address
                     </label>
@@ -1175,7 +1176,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                     )}
                   </div>
 
-                  <div className="bg-brand-purple/5 border border-brand-purple/10 rounded-lg p-4">
+                  <div className="col-span-1 md:col-span-2 bg-brand-purple/5 border border-brand-purple/10 rounded-lg p-4">
                     <label className="flex items-start">
                       <input
                         type="checkbox"
