@@ -218,14 +218,20 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
   // Handle subdomain suggestion
   const handleSchoolNameBlur = async () => {
-    if (!formData.schoolName.trim() || suggestedSubdomain) return;
+    if (!formData.schoolName.trim()) return;
+
+    // Show loading indicator on subdomain field
+    setFieldStatus(prev => ({ ...prev, subdomain: 'loading' }));
 
     try {
       const result = await suggestSubdomain(formData.schoolName);
       setSuggestedSubdomain(result.suggested);
-      if (!formData.subdomain) {
+
+      // Auto-fill if empty OR if existing value matches previous suggestion (meaning user hasn't customized it)
+      if (!formData.subdomain || formData.subdomain === suggestedSubdomain) {
         setFormData(prev => ({ ...prev, subdomain: result.suggested }));
-        // Check availability of suggestion
+
+        // Check availability of the new suggestion
         const availability = await checkSubdomainAvailability(result.suggested);
         if (availability.available) {
           setFieldStatus(prev => ({ ...prev, subdomain: 'valid' }));
@@ -234,9 +240,13 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
           setFieldStatus(prev => ({ ...prev, subdomain: 'invalid' }));
           setErrors(prev => ({ ...prev, subdomain: availability.message }));
         }
+      } else {
+        // If user has customized it, just turn off loading
+        setFieldStatus(prev => ({ ...prev, subdomain: fieldStatus.subdomain === 'valid' ? 'valid' : fieldStatus.subdomain === 'invalid' ? 'invalid' : null }));
       }
     } catch (error) {
       console.error('Error suggesting subdomain:', error);
+      setFieldStatus(prev => ({ ...prev, subdomain: null }));
     }
   };
 
@@ -728,7 +738,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                   {/* Domain */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">School Domain (Optional)</label>
-                    <div className={`flex items-center border rounded-md overflow-hidden text-sm transition ${fieldStatus.subdomain === 'invalid' ? 'border-red-500' :
+                    <div className={`relative flex items-center border rounded-md overflow-hidden text-sm transition ${fieldStatus.subdomain === 'invalid' ? 'border-red-500' :
                       fieldStatus.subdomain === 'valid' ? 'border-green-500' : 'border-gray-300'
                       }`}>
                       <div className="bg-gray-50 px-3 py-2 border-r text-gray-500">
@@ -741,6 +751,11 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         className="flex-1 px-3 py-2 outline-none text-gray-600 placeholder-gray-400"
                         placeholder="your-school"
                       />
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center bg-white">
+                        {fieldStatus.subdomain === 'loading' && <Loader2 className="animate-spin h-4 w-4 text-brand-teal" />}
+                        {fieldStatus.subdomain === 'valid' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                        {fieldStatus.subdomain === 'invalid' && <XCircle className="h-4 w-4 text-red-500" />}
+                      </div>
                       <div className="bg-gray-50 px-3 py-2 border-l text-gray-500 text-xs">
                         .elimcrown.co.ke
                       </div>
