@@ -168,7 +168,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
     // Instead of auto-login, we set the email and clear password to "ask for credentials"
     setFormData(prev => ({
       ...prev,
-      email: 'superadmin@local.test',
+      email: 'superadmin@template.test',
       password: ''
     }));
     setErrors({});

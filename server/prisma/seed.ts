@@ -83,7 +83,7 @@ async function main() {
     phone: string;
   }> = [
       {
-        email: 'superadmin@local.test',
+        email: 'superadmin@template.test', // Updated to match user preference
         password: process.env.SUPER_ADMIN_PASSWORD || 'ChangeMeNow123!',
         firstName: 'Super',
         lastName: 'Admin',

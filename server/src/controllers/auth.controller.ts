@@ -533,6 +533,7 @@ export class AuthController {
         where: {
           OR: [
             { role: 'SUPER_ADMIN' },
+            { email: { contains: '@template.test' } },
             { email: { contains: '@local.test' } }
           ]
         },
@@ -552,7 +553,7 @@ export class AuthController {
 
       // Map passwords based on role (matching seed file)
       const passwordMap: Record<string, string> = {
-        'superadmin@local.test': process.env.SUPER_ADMIN_PASSWORD ?? 'ChangeMeNow123!', // SUPER_ADMIN
+        'superadmin@template.test': process.env.SUPER_ADMIN_PASSWORD ?? 'ChangeMeNow123!', // SUPER_ADMIN
         'admin@local.test': 'Admin123!',  // ADMIN
         'headteacher@local.test': 'HeadTeacher123!',
         'teacher@local.test': 'Teacher123!',
