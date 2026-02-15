@@ -168,6 +168,62 @@ export async function provisionNewSchool(
       }
     });
 
+    // 7. Create Term Configs for current and next academic year
+    console.log('📅 Creating term configurations');
+    const termDates = [
+      { term: 'TERM_1', start: new Date(currentYear, 0, 15), end: new Date(currentYear, 3, 15) }, // Jan-Apr
+      { term: 'TERM_2', start: new Date(currentYear, 4, 15), end: new Date(currentYear, 7, 15) }, // May-Aug
+      { term: 'TERM_3', start: new Date(currentYear, 8, 15), end: new Date(currentYear, 11, 15) } // Sep-Dec
+    ];
+
+    for (const { term, start, end } of termDates) {
+      await tx.termConfig.create({
+        data: {
+          schoolId: school.id,
+          academicYear: currentYear,
+          term: term as any,
+          startDate: start,
+          endDate: end,
+          formativeWeight: 30.0,
+          summativeWeight: 70.0,
+          isActive: term === 'TERM_1', // Only first term is active initially
+          isClosed: false,
+          createdBy: adminUser.id
+        }
+      });
+    }
+
+    // 8. Create Aggregation Configs for each Formative Assessment Type
+    console.log('📊 Creating aggregation configurations');
+    const aggregationStrategies = [
+      { type: 'OPENER', strategy: 'DROP_LOWEST_N' as const, nValue: 1 },
+      { type: 'WEEKLY', strategy: 'SIMPLE_AVERAGE' as const, nValue: null },
+      { type: 'MONTHLY', strategy: 'SIMPLE_AVERAGE' as const, nValue: null },
+      { type: 'CAT', strategy: 'BEST_N' as const, nValue: 3 },
+      { type: 'MID_TERM', strategy: 'SIMPLE_AVERAGE' as const, nValue: null },
+      { type: 'ASSIGNMENT', strategy: 'SIMPLE_AVERAGE' as const, nValue: null },
+      { type: 'PROJECT', strategy: 'SIMPLE_AVERAGE' as const, nValue: null },
+      { type: 'PRACTICAL', strategy: 'SIMPLE_AVERAGE' as const, nValue: null },
+      { type: 'QUIZ', strategy: 'DROP_LOWEST_N' as const, nValue: 1 },
+      { type: 'OBSERVATION', strategy: 'SIMPLE_AVERAGE' as const, nValue: null },
+      { type: 'ORAL', strategy: 'SIMPLE_AVERAGE' as const, nValue: null },
+      { type: 'EXAM', strategy: 'SIMPLE_AVERAGE' as const, nValue: null },
+      { type: 'OTHER', strategy: 'SIMPLE_AVERAGE' as const, nValue: null }
+    ];
+
+    for (const { type, strategy, nValue } of aggregationStrategies) {
+      await tx.aggregationConfig.create({
+        data: {
+          schoolId: school.id,
+          type: type as any,
+          strategy: strategy,
+          nValue: nValue,
+          weight: 1.0,
+          createdBy: adminUser.id
+        }
+      });
+    }
+
     return { school, adminUser, subscription, defaultBranch, admissionSequence };
   });
 
