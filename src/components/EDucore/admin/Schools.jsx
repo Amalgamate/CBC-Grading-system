@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { School, Search, CreditCard } from 'lucide-react';
+import { School, Search, CreditCard, Lock } from 'lucide-react';
 import { adminAPI, schoolAPI } from '../../../services/api';
 
 export default function Schools({ onOpenSchool, onApprovePayment }) {
@@ -382,6 +382,9 @@ export default function Schools({ onOpenSchool, onApprovePayment }) {
                 <tr key={s.id} className="border-t">
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-2">
+                      {isTemplateSchool && (
+                        <Lock className="w-4 h-4 text-blue-600 flex-shrink-0" title="Template School - Locked" />
+                      )}
                       <button className="text-indigo-700 hover:underline" onClick={() => onOpenSchool && onOpenSchool(s.id)}>
                         {s.name}
                       </button>
