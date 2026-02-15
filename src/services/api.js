@@ -1494,6 +1494,16 @@ export const feeAPI = {
   },
 
   /**
+   * Seed default fee structures for all grades and terms
+   * @returns {Promise} Result with created count
+   */
+  seedDefaultFeeStructures: async () => {
+    return fetchWithAuth('/fees/types/seed/structures', {
+      method: 'POST'
+    });
+  },
+
+  /**
    * Get payment statistics
    * @param {Object} params - Query parameters
    * @returns {Promise} Payment stats

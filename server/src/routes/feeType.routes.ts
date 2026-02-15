@@ -57,6 +57,18 @@ router.post(
 );
 
 /**
+ * @route   POST /api/fees/types/seed/structures
+ * @desc    Seed default fee structures for all grades and terms
+ * @access  ADMIN, SUPER_ADMIN
+ */
+router.post(
+    '/seed/structures',
+    requireRole(['ADMIN', 'SUPER_ADMIN']),
+    auditLog('SEED_FEE_STRUCTURES'),
+    asyncHandler(FeeTypeController.seedStructures)
+);
+
+/**
  * @route   DELETE /api/fees/types/:id
  * @desc    Delete fee type
  * @access  ADMIN, SUPER_ADMIN

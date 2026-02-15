@@ -25,7 +25,10 @@ const FeeStructurePage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGrade, setFilterGrade] = useState('all');
   const [filterTerm, setFilterTerm] = useState('all');
-  const [isSeeding, setIsSeeding] = useState(false);
+  const [isSeedingTypes, setIsSeedingTypes] = useState(false);
+  const [isSeedingStructures, setIsSeedingStructures] = useState(false);
+  const [seedTypesComplete, setSeedTypesComplete] = useState(false);
+  const [seedStructuresComplete, setSeedStructuresComplete] = useState(false);
   const { showSuccess, showError } = useNotifications();
 
   // Form state
@@ -52,6 +55,14 @@ const FeeStructurePage = () => {
       ]);
       setFeeStructures(structuresRes.data || []);
       setFeeTypes(typesRes || []);
+      
+      // Check if seeding is already complete
+      if (typesRes && typesRes.length > 0) {
+        setSeedTypesComplete(true);
+      }
+      if (structuresRes && structuresRes.data && structuresRes.data.length > 0) {
+        setSeedStructuresComplete(true);
+      }
     } catch (error) {
       showError('Failed to load fee data');
       console.error(error);
@@ -70,14 +81,29 @@ const FeeStructurePage = () => {
 
   const handleSeedFeeTypes = async () => {
     try {
-      setIsSeeding(true);
+      setIsSeedingTypes(true);
       const result = await api.fees.seedDefaultFeeTypes();
       showSuccess(`✅ ${result.message}`);
+      setSeedTypesComplete(true);
       fetchData(); // Refresh fee types list
     } catch (error) {
       showError(error.message || 'Failed to seed fee types');
     } finally {
-      setIsSeeding(false);
+      setIsSeedingTypes(false);
+    }
+  };
+
+  const handleSeedFeeStructures = async () => {
+    try {
+      setIsSeedingStructures(true);
+      const result = await api.fees.seedDefaultFeeStructures();
+      showSuccess(`✅ ${result.message}`);
+      setSeedStructuresComplete(true);
+      fetchData(); // Refresh fee structures list
+    } catch (error) {
+      showError(error.message || 'Failed to seed fee structures');
+    } finally {
+      setIsSeedingStructures(false);
     }
   };
 
@@ -458,17 +484,26 @@ const FeeStructurePage = () => {
   // List view
   return (
     <div className="space-y-6">
-      <div className="flex justify-end gap-3 mb-4">
+      <div className="flex justify-end gap-3 mb-4 flex-wrap">
         <button
           onClick={handleSeedFeeTypes}
-          disabled={isSeeding}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          title="Create the 9 default fee types (Tuition, Transport, etc.)"
+          disabled={isSeedingTypes || seedTypesComplete}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-medium ${
+            seedTypesComplete
+              ? 'bg-gray-300 text-gray-700 cursor-not-allowed'
+              : 'bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed'
+          }`}
+          title={seedTypesComplete ? 'Fee types have been seeded' : 'Create the 9 default fee types (Tuition, Transport, etc.)'}
         >
-          {isSeeding ? (
+          {isSeedingTypes ? (
             <>
               <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-              Seeding...
+              Seeding Types...
+            </>
+          ) : seedTypesComplete ? (
+            <>
+              <CheckCircle size={20} />
+              Fee Types Seeded
             </>
           ) : (
             <>
@@ -477,12 +512,41 @@ const FeeStructurePage = () => {
             </>
           )}
         </button>
+
+        <button
+          onClick={handleSeedFeeStructures}
+          disabled={isSeedingStructures || seedStructuresComplete}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-medium ${
+            seedStructuresComplete
+              ? 'bg-gray-300 text-gray-700 cursor-not-allowed'
+              : 'bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed'
+          }`}
+          title={seedStructuresComplete ? 'Fee structures have been seeded (18 grades × 3 terms)' : 'Create fee structures for all grades and terms'}
+        >
+          {isSeedingStructures ? (
+            <>
+              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+              Seeding Structures...
+            </>
+          ) : seedStructuresComplete ? (
+            <>
+              <CheckCircle size={20} />
+              Structures Seeded
+            </>
+          ) : (
+            <>
+              <Plus size={20} />
+              Seed Fee Structures
+            </>
+          )}
+        </button>
+
         <button
           onClick={() => {
             resetForm();
             setViewMode('add');
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
         >
           <Plus size={20} />
           Add Fee Structure
