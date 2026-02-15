@@ -1144,9 +1144,15 @@ export const recalculateClassScores = async (req: Request, res: Response) => {
  * POST /api/config/classes/seed
  * Seed default classes for a school (all grades, Stream A)
  */
+/**
+ * POST /api/config/classes/seed
+ * Seed default classes for a school (all grades, Stream A)
+ */
 export const seedClasses = async (req: AuthRequest, res: Response) => {
   try {
-    const schoolId = req.user?.schoolId;
+    // Use tenant context if available (robust) or fall back to user
+    const tenant = (req as any).tenant;
+    const schoolId = tenant?.schoolId || req.user?.schoolId;
 
     if (!schoolId) {
       return res.status(400).json({
@@ -1230,7 +1236,9 @@ export const seedClasses = async (req: AuthRequest, res: Response) => {
  */
 export const seedStreams = async (req: AuthRequest, res: Response) => {
   try {
-    const schoolId = req.user?.schoolId;
+    // Use tenant context if available
+    const tenant = (req as any).tenant;
+    const schoolId = tenant?.schoolId || req.user?.schoolId;
 
     if (!schoolId) {
       return res.status(400).json({
