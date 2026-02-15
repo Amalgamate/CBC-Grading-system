@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import { gradingService } from '../services/grading.service';
 import { EmailService } from '../services/email-resend.service';
 import { SmsService } from '../services/sms.service';
+import { encrypt } from '../utils/encryption.util';
 import fs from 'fs';
 
 export class OnboardingController {
@@ -71,6 +72,9 @@ export class OnboardingController {
             smsEnabled: true,
             smsProvider: 'mobilesasa',
             smsBaseUrl: 'https://api.mobilesasa.com',
+            smsSenderId: process.env.SMS_SENDER_ID || 'MOBILESASA',
+            smsApiKey: process.env.MOBILESASA_API_KEY ? encrypt(process.env.MOBILESASA_API_KEY) : null,
+            hasApiKey: !!process.env.MOBILESASA_API_KEY,
           }
         });
 
@@ -185,7 +189,7 @@ export class OnboardingController {
           log(`Validation Failed: Invalid Subdomain Format: ${subdomain}`);
           return res.status(400).json({ success: false, error: 'Invalid subdomain format' });
         }
-        
+
         // Check for subdomain uniqueness
         const existingSchool = await prisma.school.findUnique({
           where: { subdomain: normalizedSubdomain }
@@ -194,7 +198,7 @@ export class OnboardingController {
           log(`Validation Failed: Subdomain Already Exists: ${subdomain}`);
           return res.status(400).json({ success: false, error: 'This subdomain is already taken' });
         }
-        
+
         finalSubdomain = normalizedSubdomain;
       }
 
@@ -263,6 +267,8 @@ export class OnboardingController {
             smsEnabled: true,
             smsProvider: 'mobilesasa',
             smsBaseUrl: 'https://api.mobilesasa.com',
+            smsApiKey: process.env.MOBILESASA_API_KEY ? encrypt(process.env.MOBILESASA_API_KEY) : null,
+            hasApiKey: !!process.env.MOBILESASA_API_KEY,
           }
         });
 
@@ -271,7 +277,7 @@ export class OnboardingController {
         const lastName = rest.join(' ') || ' ';
         const hashed = await bcrypt.hash(password, 12);
         const token = randomUUID();
-        const code = String(Math.floor(100000 + Math.random() * 900000));
+
 
         const user = await tx.user.create({
           data: {
@@ -285,9 +291,7 @@ export class OnboardingController {
             schoolId: school.id,
             branchId: branch.id, // Assign to default branch
             emailVerificationToken: token,
-            emailVerificationSentAt: new Date(),
-            phoneVerificationCode: code,
-            phoneVerificationSentAt: new Date()
+            emailVerificationSentAt: new Date()
           },
           select: {
             id: true,
@@ -302,7 +306,7 @@ export class OnboardingController {
           }
         });
 
-        return { school, branch, user, token, code };
+        return { school, branch, user, token };
       });
 
       // 6. Initialize Grading Systems (outside transaction for safety)
@@ -346,21 +350,20 @@ export class OnboardingController {
         });
       }
 
-      const { school, user, token, code } = result;
+      const { school, user, token } = result;
 
       res.status(201).json({
         success: true,
-        data: { 
+        data: {
           school: {
             ...school,
             subdomain: school.subdomain,
             domain: school.subdomain ? `${school.subdomain}.elimcrown.co.ke` : null
           },
-          user 
+          user
         },
         meta: {
-          emailVerificationToken: process.env.NODE_ENV === 'development' ? token : undefined,
-          phoneCode: process.env.NODE_ENV === 'development' ? code : undefined
+          emailVerificationToken: process.env.NODE_ENV === 'development' ? token : undefined
         }
       });
     } catch (error: any) {
