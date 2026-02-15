@@ -419,18 +419,24 @@ export const configAPI = {
   /**
    * Seed default classes
    */
-  seedClasses: async () => {
+  seedClasses: async (schoolId) => {
     return fetchWithAuth('/config/classes/seed', {
       method: 'POST',
+      headers: {
+        'X-School-Id': schoolId,
+      },
     });
   },
 
   /**
    * Seed default streams
    */
-  seedStreams: async () => {
+  seedStreams: async (schoolId) => {
     return fetchWithAuth('/config/streams/seed', {
       method: 'POST',
+      headers: {
+        'X-School-Id': schoolId,
+      },
     });
   },
 };

@@ -1144,20 +1144,15 @@ export const recalculateClassScores = async (req: Request, res: Response) => {
  * POST /api/config/classes/seed
  * Seed default classes for a school (all grades, Stream A)
  */
-/**
- * POST /api/config/classes/seed
- * Seed default classes for a school (all grades, Stream A)
- */
 export const seedClasses = async (req: AuthRequest, res: Response) => {
   try {
-    // Use tenant context if available (robust) or fall back to user
-    const tenant = (req as any).tenant;
-    const schoolId = tenant?.schoolId || req.user?.schoolId;
+    // Robust tenant resolution
+    const schoolId = (req as any).tenant?.schoolId || req.user?.schoolId;
 
     if (!schoolId) {
       return res.status(400).json({
         success: false,
-        error: { message: 'School ID is required' }
+        error: { code: 'MISSING_CONTEXT', message: 'School identification required for seeding' }
       });
     }
 
@@ -1234,22 +1229,23 @@ export const seedClasses = async (req: AuthRequest, res: Response) => {
  * POST /api/config/streams/seed
  * Seed default streams for a school (A, B, C, D)
  */
+// POST /api/config/streams/seed
+// Seed default streams for a school (A, B, C, D)
 export const seedStreams = async (req: AuthRequest, res: Response) => {
   try {
-    // Use tenant context if available
-    const tenant = (req as any).tenant;
-    const schoolId = tenant?.schoolId || req.user?.schoolId;
+    // Robust tenant resolution
+    const schoolId = (req as any).tenant?.schoolId || req.user?.schoolId;
 
     if (!schoolId) {
       return res.status(400).json({
         success: false,
-        error: { message: 'School ID is required' }
+        error: { code: 'MISSING_CONTEXT', message: 'School identification required for seeding' }
       });
     }
 
     const STREAMS = ['A', 'B', 'C', 'D'];
-    let created = 0;
-    let skipped = 0;
+    let createdCount = 0;
+    let skippedCount = 0;
 
     for (const streamName of STREAMS) {
       try {
@@ -1258,7 +1254,7 @@ export const seedStreams = async (req: AuthRequest, res: Response) => {
         });
 
         if (existing) {
-          skipped++;
+          skippedCount++;
           continue;
         }
 
@@ -1269,21 +1265,20 @@ export const seedStreams = async (req: AuthRequest, res: Response) => {
             active: true
           }
         });
-
-        created++;
+        createdCount++;
       } catch (err: any) {
         if (!err.message.includes('Unique constraint')) {
           console.error(`Error creating stream ${streamName}:`, err.message);
         }
-        skipped++;
+        skippedCount++;
       }
     }
 
     res.json({
       success: true,
       message: 'Streams seeded',
-      created,
-      skipped
+      created: createdCount,
+      skipped: skippedCount
     });
   } catch (error: any) {
     console.error('Error seeding streams:', error);

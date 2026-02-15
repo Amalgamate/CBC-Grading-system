@@ -172,7 +172,8 @@ const AcademicSettings = () => {
   const handleSeedClasses = React.useCallback(async () => {
     try {
       setSeedingClasses(true);
-      const result = await configAPI.seedClasses();
+      const sid = user?.school?.id || user?.schoolId;
+      const result = await configAPI.seedClasses(sid);
       notifySuccess(`✏️ Classes seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`);
       await loadConfigs();
     } catch (error) {
@@ -187,7 +188,8 @@ const AcademicSettings = () => {
   const handleSeedStreams = React.useCallback(async () => {
     try {
       setSeedingStreams(true);
-      const result = await configAPI.seedStreams();
+      const sid = user?.school?.id || user?.schoolId;
+      const result = await configAPI.seedStreams(sid);
       notifySuccess(`🌊 Streams seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`);
       await loadConfigs();
     } catch (error) {
