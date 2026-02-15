@@ -224,6 +224,33 @@ export async function provisionNewSchool(
       });
     }
 
+    // 9. Create Default Fee Types
+    console.log('💰 Creating default fee types');
+    const defaultFeeTypes = [
+      { code: 'TUITION', name: 'Tuition', category: 'ACADEMIC', description: 'School tuition fees' },
+      { code: 'ACTIVITY', name: 'Activity Fee', category: 'EXTRA_CURRICULAR', description: 'Co-curricular activities' },
+      { code: 'TRANSPORT', name: 'Transport', category: 'TRANSPORT', description: 'School transport' },
+      { code: 'MEALS', name: 'Meals', category: 'BOARDING', description: 'School meals and catering' },
+      { code: 'EXAM', name: 'Examination Fee', category: 'ACADEMIC', description: 'Examination fees' },
+      { code: 'LIBRARY', name: 'Library', category: 'ACADEMIC', description: 'Library resources and materials' },
+      { code: 'SPORTS', name: 'Sports Fee', category: 'EXTRA_CURRICULAR', description: 'Sports programs and facilities' },
+      { code: 'TECHNOLOGY', name: 'Technology Fee', category: 'ACADEMIC', description: 'Computer lab and tech resources' },
+      { code: 'MISC', name: 'Miscellaneous', category: 'OTHER', description: 'Other school charges' }
+    ];
+
+    for (const feeType of defaultFeeTypes) {
+      await tx.feeType.create({
+        data: {
+          schoolId: school.id,
+          code: feeType.code,
+          name: feeType.name,
+          category: feeType.category as any,
+          description: feeType.description,
+          isActive: true
+        }
+      });
+    }
+
     return { school, adminUser, subscription, defaultBranch, admissionSequence };
   });
 
