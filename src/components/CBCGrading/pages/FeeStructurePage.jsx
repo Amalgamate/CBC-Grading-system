@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   DollarSign, Plus, Edit2, Trash2, Copy, BookOpen,
-  Search, AlertCircle, CheckCircle, Info
+  Search, AlertCircle, CheckCircle, Info, ChevronDown, ChevronRight
 } from 'lucide-react';
 import EmptyState from '../shared/EmptyState';
 import LoadingSpinner from '../shared/LoadingSpinner';
@@ -29,6 +29,7 @@ const FeeStructurePage = () => {
   const [isSeedingStructures, setIsSeedingStructures] = useState(false);
   const [seedTypesComplete, setSeedTypesComplete] = useState(false);
   const [seedStructuresComplete, setSeedStructuresComplete] = useState(false);
+  const [expandedStructures, setExpandedStructures] = useState({}); // Track which structures are expanded
   const { showSuccess, showError } = useNotifications();
 
   // Form state
@@ -81,6 +82,13 @@ const FeeStructurePage = () => {
 
   const calculateTotalAmount = (items) => {
     return items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+  };
+
+  const toggleExpanded = (structureId) => {
+    setExpandedStructures(prev => ({
+      ...prev,
+      [structureId]: !prev[structureId]
+    }));
   };
 
   const handleSeedFeeTypes = async () => {
@@ -614,104 +622,176 @@ const FeeStructurePage = () => {
           }}
         />
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {Object.values(groupedStructures).map((group, idx) => (
-            <div key={idx} className="bg-white rounded-xl shadow overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+            <div key={idx} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
+              {/* Group Header */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-3 border-b border-gray-200">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-white">{group.grade} - {group.term}</h3>
-                    <p className="text-blue-100 text-sm">Academic Year {group.academicYear}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <DollarSign size={20} className="text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-gray-900">{group.grade} - {group.term}</h3>
+                      <p className="text-xs text-gray-500">Academic Year {group.academicYear}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-white font-semibold">
-                      {group.structures.length} Fee Structures
-                    </p>
-                    {/* Sum of all structures' totals */}
-                    <p className="text-blue-100 text-sm">
-                      Total: KES {group.structures.reduce((acc, s) => acc + calculateTotalAmount(s.feeItems || []), 0).toLocaleString()}
+                  <div className="text-right text-xs">
+                    <p className="text-gray-600">{group.structures.length} structure(s)</p>
+                    <p className="font-semibold text-gray-900">
+                      KES {group.structures.reduce((acc, s) => acc + calculateTotalAmount(s.feeItems || []), 0).toLocaleString()}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="divide-y">
+              {/* Structures List - Collapsible */}
+              <div className="divide-y divide-gray-100">
                 {group.structures.map((structure) => {
                   const total = calculateTotalAmount(structure.feeItems || []);
+                  const isExpanded = expandedStructures[structure.id];
+
                   return (
-                    <div key={structure.id} className="p-6 hover:bg-gray-50 transition">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h4 className="text-lg font-semibold text-gray-900">{structure.name}</h4>
-                            {structure.mandatory && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
-                                <AlertCircle size={12} />
-                                Mandatory
-                              </span>
-                            )}
-                            {structure.active ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                                <CheckCircle size={12} />
-                                Active
-                              </span>
+                    <div key={structure.id} className="hover:bg-gray-50 transition">
+                      {/* Collapsed Header */}
+                      <button
+                        onClick={() => toggleExpanded(structure.id)}
+                        className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition"
+                      >
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          {/* Chevron Icon */}
+                          <div className="flex-shrink-0 text-gray-400">
+                            {isExpanded ? (
+                              <ChevronDown size={20} />
                             ) : (
-                              <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
-                                Inactive
-                              </span>
+                              <ChevronRight size={20} />
                             )}
                           </div>
+
+                          {/* Structure Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="text-sm font-semibold text-gray-900 truncate">{structure.name}</h4>
+                              {structure.mandatory && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium flex-shrink-0">
+                                  <AlertCircle size={12} />
+                                  Mandatory
+                                </span>
+                              )}
+                              {structure.active ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium flex-shrink-0">
+                                  <CheckCircle size={12} />
+                                  Active
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-medium flex-shrink-0">
+                                  Inactive
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500">{(structure.feeItems || []).length} items</p>
+                          </div>
+                        </div>
+
+                        {/* Total Amount and Actions */}
+                        <div className="flex items-center gap-4 ml-4 flex-shrink-0">
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-gray-900">KES {total.toLocaleString()}</p>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => handleDuplicate(structure)}
+                              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition"
+                              title="Duplicate"
+                            >
+                              <Copy size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleEdit(structure)}
+                              className="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-100 rounded transition"
+                              title="Edit"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setStructureToDelete(structure);
+                                setShowDeleteDialog(true);
+                              }}
+                              className="p-2 text-red-400 hover:text-red-600 hover:bg-red-100 rounded transition"
+                              title="Delete"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Expanded Content */}
+                      {isExpanded && (
+                        <div className="px-6 py-4 bg-gradient-to-b from-gray-50 to-white border-t border-gray-100 space-y-4">
                           {structure.description && (
-                            <p className="text-sm text-gray-600 mb-3">{structure.description}</p>
+                            <div>
+                              <p className="text-xs font-semibold text-gray-600 uppercase mb-1">Description</p>
+                              <p className="text-sm text-gray-700">{structure.description}</p>
+                            </div>
                           )}
 
-                          {/* Fee Items Summary */}
-                          <div className="mt-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                            <h5 className="text-xs font-semibold text-gray-500 uppercase mb-2">Breakdown</h5>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
-                              {(structure.feeItems || []).map((item, i) => (
-                                <div key={i} className="flex justify-between text-sm">
-                                  <span className="text-gray-600">
-                                    {item.feeType?.name || 'Unknown'}
-                                  </span>
-                                  <span className="font-medium">KES {parseFloat(item.amount).toLocaleString()}</span>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="mt-2 pt-2 border-t border-gray-200 flex justify-between text-sm font-bold text-gray-900">
-                              <span>Total</span>
-                              <span>KES {total.toLocaleString()}</span>
+                          {/* Fee Items Breakdown */}
+                          <div>
+                            <p className="text-xs font-semibold text-gray-600 uppercase mb-2">Fee Breakdown</p>
+                            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                              <table className="w-full text-sm">
+                                <thead className="bg-gray-50 border-b border-gray-200">
+                                  <tr>
+                                    <th className="px-3 py-2 text-left font-semibold text-gray-600">Fee Type</th>
+                                    <th className="px-3 py-2 text-right font-semibold text-gray-600">Amount</th>
+                                    <th className="px-3 py-2 text-center font-semibold text-gray-600">Mandatory</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {(structure.feeItems || []).map((item, i) => (
+                                    <tr key={i} className="border-t border-gray-100 hover:bg-gray-50 transition">
+                                      <td className="px-3 py-2 text-gray-900">{item.feeType?.name || 'Unknown'}</td>
+                                      <td className="px-3 py-2 text-right font-semibold text-gray-900">
+                                        KES {parseFloat(item.amount).toLocaleString()}
+                                      </td>
+                                      <td className="px-3 py-2 text-center">
+                                        {item.mandatory ? (
+                                          <CheckCircle size={16} className="text-green-500 mx-auto" />
+                                        ) : (
+                                          <span className="text-gray-300">—</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                  <tr className="bg-blue-50 border-t-2 border-blue-200 font-bold">
+                                    <td className="px-3 py-2 text-gray-900">Total</td>
+                                    <td className="px-3 py-2 text-right text-blue-600">
+                                      KES {total.toLocaleString()}
+                                    </td>
+                                    <td className="px-3 py-2"></td>
+                                  </tr>
+                                </tbody>
+                              </table>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-center gap-2 ml-4">
-                          <button
-                            onClick={() => handleDuplicate(structure)}
-                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
-                            title="Duplicate"
-                          >
-                            <Copy size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleEdit(structure)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                            title="Edit"
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setStructureToDelete(structure);
-                              setShowDeleteDialog(true);
-                            }}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                            title="Delete"
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                          {/* Edit Button */}
+                          <div className="pt-2">
+                            <button
+                              onClick={() => handleEdit(structure)}
+                              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm flex items-center justify-center gap-2"
+                            >
+                              <Edit2 size={16} />
+                              Edit Fee Structure
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   );
                 })}
