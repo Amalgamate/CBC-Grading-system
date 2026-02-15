@@ -16,6 +16,19 @@ export class OnboardingController {
         return res.status(400).json({ success: false, error: 'School name is required' });
       }
 
+      const existingSchool = await prisma.school.findFirst({
+        where: {
+          name: {
+            equals: name.trim(),
+            mode: 'insensitive'
+          }
+        }
+      });
+
+      if (existingSchool) {
+        return res.status(400).json({ success: false, error: 'A school with this name already exists' });
+      }
+
       // Use transaction to ensure all data is created atomically
       const result = await prisma.$transaction(async (tx) => {
         // 1. Create School
@@ -130,6 +143,21 @@ export class OnboardingController {
         log(`Validation Failed: Invalid Full Name: ${fullName}`);
         console.warn('Onboarding 400: Invalid full name', { fullName });
         return res.status(400).json({ success: false, error: 'Invalid full name' });
+      }
+
+      // Check for existing school name (case-insensitive)
+      const existingSchoolName = await prisma.school.findFirst({
+        where: {
+          name: {
+            equals: schoolName.trim(),
+            mode: 'insensitive'
+          }
+        }
+      });
+
+      if (existingSchoolName) {
+        log(`Validation Failed: School Name Exists: ${schoolName}`);
+        return res.status(400).json({ success: false, error: 'A school with this name already exists' });
       }
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!email || !emailRegex.test(email)) {
