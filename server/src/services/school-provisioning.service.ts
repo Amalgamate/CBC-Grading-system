@@ -251,6 +251,57 @@ export async function provisionNewSchool(
       });
     }
 
+    // 10. Create Default Streams (A, B, C, D)
+    console.log('🌊 Creating default streams');
+    const streamNames = ['A', 'B', 'C', 'D'];
+    for (const streamName of streamNames) {
+      await tx.streamConfig.create({
+        data: {
+          schoolId: school.id,
+          name: streamName,
+          active: true
+        }
+      });
+    }
+
+    // 11. Create Default Classes for all grades and streams
+    console.log('🎓 Creating default classes');
+    const GRADES = [
+      'CRECHE', 'RECEPTION', 'TRANSITION', 'PLAYGROUP',
+      'PP1', 'PP2', 'GRADE_1', 'GRADE_2', 'GRADE_3',
+      'GRADE_4', 'GRADE_5', 'GRADE_6', 'GRADE_7',
+      'GRADE_8', 'GRADE_9', 'GRADE_10', 'GRADE_11', 'GRADE_12'
+    ];
+
+    const GRADE_DISPLAY_NAMES: Record<string, string> = {
+      'CRECHE': 'Creche', 'RECEPTION': 'Reception', 'TRANSITION': 'Transition',
+      'PLAYGROUP': 'Playgroup', 'PP1': 'PP1', 'PP2': 'PP2', 'GRADE_1': 'Grade 1',
+      'GRADE_2': 'Grade 2', 'GRADE_3': 'Grade 3', 'GRADE_4': 'Grade 4',
+      'GRADE_5': 'Grade 5', 'GRADE_6': 'Grade 6', 'GRADE_7': 'Grade 7',
+      'GRADE_8': 'Grade 8', 'GRADE_9': 'Grade 9', 'GRADE_10': 'Grade 10',
+      'GRADE_11': 'Grade 11', 'GRADE_12': 'Grade 12'
+    };
+
+    // Use default branch if it exists, otherwise no classes
+    if (defaultBranch) {
+      for (const grade of GRADES) {
+        for (const stream of streamNames) {
+          await tx.class.create({
+            data: {
+              branchId: defaultBranch.id,
+              name: `${GRADE_DISPLAY_NAMES[grade]} - ${stream}`,
+              grade: grade as any,
+              stream: stream,
+              academicYear: currentYear,
+              term: 'TERM_1' as any,
+              capacity: 40,
+              active: true
+            }
+          });
+        }
+      }
+    }
+
     return { school, adminUser, subscription, defaultBranch, admissionSequence };
   });
 
