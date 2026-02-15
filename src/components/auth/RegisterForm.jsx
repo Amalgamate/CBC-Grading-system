@@ -417,118 +417,79 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
   const passwordStrength = getPasswordStrength(formData.password);
 
-  // Premium Split-Screen Layout
+  // Single Page Layout
   return (
-    <div className="min-h-screen flex bg-white font-sans text-gray-900">
+    <div className="min-h-screen bg-white flex flex-col items-center py-6 px-4">
+      {/* Container - Constrained Width but Flat */}
+      <div className="w-full max-w-5xl">
 
-      {/* Left Panel - Branding (Visible on large screens) */}
-      <div className="hidden lg:flex lg:w-5/12 bg-[#875A7B] text-white flex-col justify-between p-12 relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M0 100 C 20 0 50 0 100 100 Z" fill="white" />
-          </svg>
-        </div>
-
-        {/* Brand Logo Area */}
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 mb-6">
-            <div className="h-10 w-10 bg-white rounded-lg flex items-center justify-center">
-              <Building2 className="h-6 w-6 text-[#875A7B]" />
-            </div>
-            <span className="text-2xl font-black tracking-tight">Elimcrown</span>
+        {/* Header Section */}
+        <div className="pt-8 pb-4 text-center">
+          <div className="inline-flex items-center justify-center transform scale-90 mb-2">
+            <span className="text-3xl font-black tracking-tighter flex items-center gap-1">
+              <span className="text-[#875A7B]">Elim</span>
+              <span className="text-teal-500 font-light">crown</span>
+            </span>
           </div>
-          <h2 className="text-4xl font-bold leading-tight mb-4">
-            Digitalizing Education Management
-          </h2>
-          <p className="text-purple-100 text-lg opacity-90 max-w-md">
-            Join hundreds of schools streamlining their operations with Elimcrown's comprehensive platform.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
+          <p className="text-gray-600 text-sm mt-1">Join the community to get started</p>
         </div>
 
-        {/* Feature/Testimonial Area */}
-        <div className="relative z-10 space-y-6">
-          <div className="flex items-start gap-4 p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
-            <CheckCircle className="h-6 w-6 text-teal-300 mt-1 shrink-0" />
-            <div>
-              <h4 className="font-semibold text-lg">Automated Reporting</h4>
-              <p className="text-sm text-purple-100 mt-1">Generate termly reports and analytics instantly.</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-4 p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10">
-            <CheckCircle className="h-6 w-6 text-teal-300 mt-1 shrink-0" />
-            <div>
-              <h4 className="font-semibold text-lg">Seamless Communication</h4>
-              <p className="text-sm text-purple-100 mt-1">Integrated SMS and Email for parents and staff.</p>
-            </div>
-          </div>
-        </div>
+        <form onSubmit={handleSubmit} className="px-8 pb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* Footer */}
-        <div className="relative z-10 text-xs text-purple-200">
-          &copy; {new Date().getFullYear()} Elimcrown Academy. All rights reserved.
-        </div>
-      </div>
-
-      {/* Right Panel - Registration Form */}
-      <div className="w-full lg:w-7/12 flex flex-col h-full overflow-y-auto bg-white/50">
-        <div className="flex-1 flex flex-col justify-center px-4 min-h-full sm:px-8 md:px-16 py-12">
-
-          <div className="max-w-2xl w-full mx-auto">
-            {/* Mobile Header (Only visible on small screens) */}
-            <div className="lg:hidden text-center mb-10">
-              <div className="inline-flex items-center justify-center gap-2 mb-2">
-                <span className="text-3xl font-black tracking-tighter text-[#875A7B]">Elimcrown</span>
-              </div>
-              <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
-            </div>
-
-            {/* Desktop Header */}
-            <div className="hidden lg:block mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Get Started</h1>
-              <p className="text-gray-500 mt-2">Enter your details to create your school account.</p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-8">
-
-              {/* Section 1: Personal Details */}
+            {/* Left Column: Personal & Security */}
+            <div className="space-y-6">
               <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-5 flex items-center gap-2">
-                  <User className="h-4 w-4" /> Personal Information
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">
+                  Personal Details
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-4">
                   {/* Name */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
-                    <input
-                      type="text"
-                      name="fullName"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                      className={`w-full px-4 py-2.5 text-sm bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#875A7B]/20 focus:border-[#875A7B] transition-all outline-none ${fieldStatus.fullName === 'invalid' || (showErrors && errors.fullName) ? 'border-red-500 bg-red-50' :
-                        fieldStatus.fullName === 'valid' ? 'border-green-500/50 bg-green-50/10' : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      placeholder="e.g. John Doe"
-                    />
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Full Name</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <User className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <input
+                        type="text"
+                        name="fullName"
+                        value={formData.fullName}
+                        onChange={handleChange}
+                        className={`w-full pl-9 pr-9 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${fieldStatus.fullName === 'invalid' || (showErrors && errors.fullName) ? 'border-red-500' :
+                          fieldStatus.fullName === 'valid' ? 'border-green-500' : 'border-gray-300'
+                          }`}
+                        placeholder="John Doe"
+                      />
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        {fieldStatus.fullName === 'valid' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                      </div>
+                    </div>
                     {showErrors && errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
                   </div>
 
                   {/* Email */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
                     <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Mail className="h-4 w-4 text-gray-400" />
+                      </div>
                       <input
                         type="email"
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className={`w-full px-4 py-2.5 text-sm bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#875A7B]/20 focus:border-[#875A7B] transition-all outline-none ${fieldStatus.email === 'invalid' || (showErrors && errors.email) ? 'border-red-500 bg-red-50' :
-                          fieldStatus.email === 'valid' ? 'border-green-500/50 bg-green-50/10' : 'border-gray-200 hover:border-gray-300'
+                        className={`w-full pl-9 pr-9 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${fieldStatus.email === 'invalid' || (showErrors && errors.email) ? 'border-red-500' :
+                          fieldStatus.email === 'valid' ? 'border-green-500' : 'border-gray-300'
                           }`}
-                        placeholder="name@school.com"
+                        placeholder="you@school.com"
                       />
-                      <div className="absolute right-3 top-2.5">
-                        {fieldStatus.email === 'loading' && <Loader2 className="animate-spin h-5 w-5 text-gray-400" />}
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        {fieldStatus.email === 'loading' && <Loader2 className="animate-spin h-4 w-4 text-gray-400" />}
+                        {fieldStatus.email === 'valid' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                        {fieldStatus.email === 'invalid' && <XCircle className="h-4 w-4 text-red-500" />}
                       </div>
                     </div>
                     {showErrors && errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
@@ -536,12 +497,12 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
                   {/* Phone */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number</label>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Mobile Number</label>
                     <div className="flex gap-2">
                       <select
                         value={countryCode}
                         onChange={handleCountryCodeChange}
-                        className="w-24 px-2 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#875A7B]/20 focus:border-[#875A7B] outline-none"
+                        className="w-24 px-2 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent bg-gray-50"
                       >
                         {africanCountries.map(country => (
                           <option key={country.code} value={country.code}>
@@ -549,96 +510,140 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                           </option>
                         ))}
                       </select>
-                      <input
-                        type="tel"
-                        value={phoneNumber}
-                        onChange={handlePhoneChange}
-                        className={`flex-1 px-4 py-2.5 text-sm bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#875A7B]/20 focus:border-[#875A7B] transition-all outline-none ${errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        placeholder="712345678"
-                      />
+                      <div className="relative flex-1">
+                        <input
+                          type="tel"
+                          value={phoneNumber}
+                          onChange={handlePhoneChange}
+                          className={`w-full px-3 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${errors.phone ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                          placeholder="712345678"
+                        />
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                          {fieldStatus.phone === 'loading' && <Loader2 className="animate-spin h-4 w-4 text-gray-400" />}
+                          {fieldStatus.phone === 'valid' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                        </div>
+                      </div>
                     </div>
                     {showErrors && errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
                   </div>
+                </div>
+              </div>
 
+              <div>
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">
+                  Security
+                </h3>
+                <div className="space-y-4">
                   {/* Password */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Password</label>
                     <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Lock className="h-4 w-4 text-gray-400" />
+                      </div>
                       <input
                         type={showPassword ? 'text' : 'password'}
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
-                        className={`w-full px-4 py-2.5 text-sm bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#875A7B]/20 focus:border-[#875A7B] transition-all outline-none ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300'
+                        className={`w-full pl-9 pr-9 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${errors.password ? 'border-red-500' : 'border-gray-300'
                           }`}
-                        placeholder="••••••••"
+                        placeholder="Min. 8 chars"
                       />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
-                    {/* Strength indicator similar style to input border or small bar */}
-                    {formData.password && (
-                      <div className="mt-1.5 h-1 w-full bg-gray-100 rounded-full overflow-hidden">
-                        <div className={`h-full transition-all ${passwordStrength.color}`} style={{ width: `${(passwordStrength.strength / 4) * 100}%` }} />
-                      </div>
-                    )}
+                    {/* Strength meter - Fixed height to prevent layout shift & align with right column */}
+                    <div className="mt-1 min-h-[18px]">
+                      {formData.password && (
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-300 ${passwordStrength.color}`}
+                              style={{ width: `${(passwordStrength.strength / 4) * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-gray-500 font-medium">{passwordStrength.label}</span>
+                        </div>
+                      )}
+                    </div>
                     {showErrors && errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
                   </div>
 
                   {/* Confirm Password */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm Password</label>
+
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Confirm Password</label>
                     <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Lock className="h-4 w-4 text-gray-400" />
+                      </div>
                       <input
                         type={showConfirmPassword ? 'text' : 'password'}
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        className={`w-full px-4 py-2.5 text-sm bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#875A7B]/20 focus:border-[#875A7B] transition-all outline-none ${errors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300'
+                        className={`w-full pl-9 pr-9 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                           }`}
-                        placeholder="••••••••"
+                        placeholder="Confirm password"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                      >
+                        {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
                     </div>
                     {showErrors && errors.confirmPassword && <p className="text-xs text-red-500 mt-1">{errors.confirmPassword}</p>}
                   </div>
                 </div>
               </div>
+            </div>
 
-              <hr className="border-gray-100" />
-
-              {/* Section 2: School Details */}
+            {/* Right Column: School & Location */}
+            <div className="space-y-6">
               <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-5 flex items-center gap-2">
-                  <Building2 className="h-4 w-4" /> School & Location
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">
+                  School Details
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* School Name - Full Width */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">School Name</label>
-                    <input
-                      type="text"
-                      name="schoolName"
-                      value={formData.schoolName}
-                      onChange={handleChange}
-                      onBlur={handleSchoolNameBlur}
-                      className={`w-full px-4 py-2.5 text-sm bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#875A7B]/20 focus:border-[#875A7B] transition-all outline-none ${fieldStatus.schoolName === 'invalid' || (showErrors && errors.schoolName) ? 'border-red-500 bg-red-50' :
-                        fieldStatus.schoolName === 'valid' ? 'border-green-500/50 bg-green-50/10' : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      placeholder="e.g. Pioneer Academy"
-                    />
+                <div className="space-y-4">
+                  {/* School Name */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">School Name</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Building2 className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <input
+                        type="text"
+                        name="schoolName"
+                        value={formData.schoolName}
+                        onChange={handleChange}
+                        onBlur={handleSchoolNameBlur}
+                        className={`w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${fieldStatus.schoolName === 'invalid' || (showErrors && errors.schoolName) ? 'border-red-500' :
+                          fieldStatus.schoolName === 'valid' ? 'border-green-500' : 'border-gray-300'
+                          }`}
+                        placeholder="School Name"
+                      />
+                    </div>
                     {showErrors && errors.schoolName && <p className="text-xs text-red-500 mt-1">{errors.schoolName}</p>}
                   </div>
 
-                  {/* School Type */}
+                  {/* School Type - Stacked below Name */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">School Type</label>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">School Type</label>
                     <select
                       name="schoolType"
                       value={formData.schoolType}
                       onChange={handleChange}
-                      className={`w-full px-4 py-2.5 text-sm bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#875A7B]/20 focus:border-[#875A7B] outline-none ${showErrors && errors.schoolType ? 'border-red-500' : 'border-gray-200 hover:border-gray-300'
+                      className={`w-full px-3 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${showErrors && errors.schoolType ? 'border-red-500' : 'border-gray-300'
                         }`}
                     >
                       <option value="">Select Type</option>
@@ -650,111 +655,143 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                     {showErrors && errors.schoolType && <p className="text-xs text-red-500 mt-1">{errors.schoolType}</p>}
                   </div>
 
-                  {/* Subdomain */}
+                  {/* Domain */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Subdomain</label>
-                    <div className={`relative flex items-center bg-gray-50 border rounded-lg overflow-hidden transition-all ${fieldStatus.subdomain === 'invalid' ? 'border-red-500' :
-                      fieldStatus.subdomain === 'valid' ? 'border-green-500' : 'border-gray-200 hover:border-gray-300 focus-within:border-[#875A7B] focus-within:ring-2 focus-within:ring-[#875A7B]/20'
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">School Domain (Optional)</label>
+                    <div className={`relative flex items-center border rounded-md overflow-hidden text-sm transition ${fieldStatus.subdomain === 'invalid' ? 'border-red-500' :
+                      fieldStatus.subdomain === 'valid' ? 'border-green-500' : 'border-gray-300'
                       }`}>
+                      <div className="bg-gray-50 px-3 py-2 border-r text-gray-500">
+                        <Globe size={16} />
+                      </div>
                       <input
                         type="text"
                         value={formData.subdomain || suggestedSubdomain}
                         onChange={handleSubdomainChange}
-                        className="flex-1 px-4 py-2.5 text-sm bg-transparent outline-none text-gray-900 placeholder-gray-400"
-                        placeholder="school-name"
+                        className="flex-1 px-3 py-2 outline-none text-gray-600 placeholder-gray-400"
+                        placeholder="your-school"
                       />
-                      <div className="flex items-center pr-3">
-                        {fieldStatus.subdomain === 'loading' && <Loader2 className="animate-spin h-4 w-4 text-[#875A7B]" />}
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center bg-white">
+                        {fieldStatus.subdomain === 'loading' && <Loader2 className="animate-spin h-4 w-4 text-brand-teal" />}
                         {fieldStatus.subdomain === 'valid' && <CheckCircle className="h-4 w-4 text-green-500" />}
                         {fieldStatus.subdomain === 'invalid' && <XCircle className="h-4 w-4 text-red-500" />}
                       </div>
-                      <div className="px-3 py-2.5 bg-gray-100 border-l border-gray-200 text-gray-500 text-xs font-medium">
+                      <div className="bg-gray-50 px-3 py-2 border-l text-gray-500 text-xs">
                         .elimcrown.co.ke
                       </div>
                     </div>
                     {showErrors && errors.subdomain && <p className="text-xs text-red-500 mt-1">{errors.subdomain}</p>}
                   </div>
-
-                  {/* County */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">County</label>
-                    <select
-                      name="county"
-                      value={formData.county}
-                      onChange={handleChange}
-                      className={`w-full px-4 py-2.5 text-sm bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#875A7B]/20 focus:border-[#875A7B] outline-none ${showErrors && errors.county ? 'border-red-500' : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                    >
-                      <option value="">Select County</option>
-                      {Object.keys(kenyaCounties).sort().map(c => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                    {showErrors && errors.county && <p className="text-xs text-red-500 mt-1">{errors.county}</p>}
-                  </div>
-
-                  {/* Sub-County/Address */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Sub-County / Area</label>
-                    <input
-                      type="text"
-                      name="subCounty"
-                      value={formData.subCounty}
-                      onChange={handleChange}
-                      className={`w-full px-4 py-2.5 text-sm bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#875A7B]/20 focus:border-[#875A7B] transition-all outline-none ${showErrors && errors.subCounty ? 'border-red-500' : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      placeholder="e.g. Westlands"
-                    />
-                    {showErrors && errors.subCounty && <p className="text-xs text-red-500 mt-1">{errors.subCounty}</p>}
-                  </div>
-
-                  {/* Ward - Full Width */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Ward / Local Area</label>
-                    <input
-                      type="text"
-                      name="ward"
-                      value={formData.ward}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#875A7B]/20 focus:border-[#875A7B] transition-all outline-none"
-                      placeholder="e.g. Parklands"
-                    />
-                  </div>
                 </div>
               </div>
 
-              {/* Submit Button Area */}
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-[#875A7B] text-white py-3 px-4 rounded-lg font-bold text-sm hover:bg-[#724C68] focus:ring-4 focus:ring-[#875A7B]/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-purple-900/10"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="animate-spin h-5 w-5" />
-                      Creating Account...
-                    </>
-                  ) : (
-                    <>
-                      Create School Account <ChevronRight size={18} />
-                    </>
-                  )}
-                </button>
+              <div>
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">
+                  Location
+                </h3>
+                <div className="space-y-4">
+                  {/* Location Manual Entry Only */}
 
-                <div className="mt-6 text-center text-sm text-gray-500">
-                  Already have an account?{' '}
-                  <button type="button" onClick={onSwitchToLogin} className="text-[#875A7B] font-semibold hover:underline">
-                    Sign in instead
-                  </button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">County</label>
+                      <select
+                        name="county"
+                        value={formData.county}
+                        onChange={handleChange}
+                        className={`w-full px-3 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${showErrors && errors.county ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                      >
+                        <option value="">Select County</option>
+                        {Object.keys(kenyaCounties).sort().map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Sub-County</label>
+                      <input
+                        type="text"
+                        name="subCounty"
+                        value={formData.subCounty}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent"
+                        placeholder="e.g. Westlands"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Spacer to align with password strength meter on the left */}
+                  <div className="mt-1 min-h-[18px] hidden lg:block"></div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Physical Address</label>
+                    <input
+                      type="text"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      className={`w-full px-3 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${showErrors && errors.address ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      placeholder="Street, Road, or Landmark"
+                    />
+                    {showErrors && errors.address && <p className="text-xs text-red-500 mt-1">{errors.address}</p>}
+                  </div>
                 </div>
               </div>
-
-            </form>
+            </div>
           </div>
 
-        </div>
-      </div>
-    </div>
+          {/* Terms & Submit */}
+          <div className="mt-8 pt-6 border-t">
+
+            <div className="flex items-center justify-center mb-6">
+              <input
+                type="checkbox"
+                id="terms"
+                name="termsAccepted"
+                checked={formData.termsAccepted}
+                onChange={handleChange}
+                className="h-4 w-4 text-[#875A7B] focus:ring-[#875A7B] border-gray-300 rounded"
+              />
+              <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
+                I agree to the <a href="#" className="text-[#875A7B] hover:text-[#6a4661] underline">Terms of Service</a> & <a href="#" className="text-[#875A7B] hover:text-[#6a4661] underline">Privacy Policy</a>
+              </label>
+            </div>
+            {showErrors && errors.termsAccepted && <p className="text-xs text-red-500 text-center -mt-4 mb-4">{errors.termsAccepted}</p>}
+
+            <div className="flex justify-center">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-64 bg-[#875A7B] text-white py-3 rounded-lg font-bold hover:bg-[#714B67] focus:ring-4 focus:ring-[#875A7B]/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Creating Account...</span>
+                  </>
+                ) : (
+                  'Create Account'
+                )}
+              </button>
+            </div>
+
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={onSwitchToLogin}
+                  className="font-semibold text-[#875A7B] hover:text-[#714B67] transition"
+                >
+                  Sign in
+                </button>
+              </p>
+            </div>
+          </div>
+        </form>
+      </div >
+    </div >
   );
 }
