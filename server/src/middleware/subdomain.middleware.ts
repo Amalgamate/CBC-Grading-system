@@ -22,10 +22,10 @@ export interface SubdomainRequest extends Request {
 export function extractSubdomain(req: SubdomainRequest, res: Response, next: NextFunction): void {
   try {
     const host = req.get('host') || '';
-    
+
     // Remove port from host
     const hostname = host.split(':')[0].toLowerCase();
-    
+
     // Split into parts
     const parts = hostname.split('.');
 
@@ -34,7 +34,7 @@ export function extractSubdomain(req: SubdomainRequest, res: Response, next: Nex
     // - single part (localhost) has no subdomain
     // - two parts (example.com) has no subdomain  
     // - 3+ parts (sub.example.com) has subdomain
-    
+
     if (
       hostname === 'localhost' ||
       hostname.startsWith('127.') ||
@@ -55,14 +55,34 @@ export function extractSubdomain(req: SubdomainRequest, res: Response, next: Nex
 
     // Extract subdomain (first part)
     const subdomain = parts[0].toLowerCase();
-    
-    // Validate subdomain isn't a common non-tenant prefix
-    const commonPrefixes = ['www', 'mail', 'ftp', 'smtp', 'pop', 'imap'];
-    if (commonPrefixes.includes(subdomain)) {
+
+    // Validate subdomain isn't a common non-tenant prefix or platform-specific
+    const commonPrefixes = ['www', 'mail', 'ftp', 'smtp', 'pop', 'imap', 'api', 'elimcrown-api'];
+
+    // Check if the host IS the deployment domain (no subdomain)
+    const deploymentDomain = process.env.DEPLOYMENT_DOMAIN || 'elimcrown.co.ke';
+    if (hostname === deploymentDomain) {
       req.subdomain = undefined;
       req.isTenantAccess = false;
       return next();
     }
+
+    // Check if the host is a subdomain of the deployment domain
+    const isPlatformSubdomain = hostname.endsWith(`.${deploymentDomain}`);
+
+    // OnRender specific check: If we are on onrender.com, and the subdomain is the platform's app name
+    const isOnRender = hostname.endsWith('.onrender.com');
+    const isPlatformHost = hostname === 'elimcrown-api.onrender.com' || (isOnRender && subdomain === 'elimcrown-api');
+
+    if (commonPrefixes.includes(subdomain) || isPlatformHost) {
+      req.subdomain = undefined;
+      req.isTenantAccess = false;
+      return next();
+    }
+
+    // If it's a 3-part domain but not under our deployment domain OR onrender, 
+    // we should be careful. Usually, if it's on onrender.com, we treat it as tenant access
+    // UNLESS it's the platform host we identified above.
 
     // We have a valid subdomain
     req.subdomain = subdomain;
@@ -90,10 +110,10 @@ export function extractPathTenant(req: SubdomainRequest, res: Response, next: Ne
     }
 
     const pathname = req.path;
-    
+
     // Match pattern: /t/schoolid or /t/schoolid-branchid
     const match = pathname.match(/^\/t\/([a-f0-9-]+)/i);
-    
+
     if (match) {
       // Store in different property so we know it came from path
       (req as any).pathTenant = {
