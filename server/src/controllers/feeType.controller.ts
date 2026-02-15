@@ -116,7 +116,7 @@ export class FeeTypeController {
         res.json({ message: 'Fee type deleted successfully' });
     }
 
-    // Seed default fee types for a school
+    // Seed default fee types for a school (idempotent - only creates missing types)
     static async seedDefaults(req: Request, res: Response) {
         const schoolId = (req as any).user.schoolId as string;
 
@@ -133,21 +133,24 @@ export class FeeTypeController {
         ];
 
         try {
-            // Check how many fee types already exist
-            const existingCount = await prisma.feeType.count({
-                where: { schoolId }
-            });
-
-            if (existingCount > 0) {
-                throw new ApiError(400, `Fee types already exist for this school (${existingCount} found). Seed skipped to prevent duplicates.`);
-            }
-
-            // Create default fee types
             let createdCount = 0;
+            let skippedCount = 0;
             const created = [];
 
+            // Idempotent seeding - only create missing fee types
             for (const feeType of defaultFeeTypes) {
                 try {
+                    // Check if this fee type already exists
+                    const existing = await prisma.feeType.findFirst({
+                        where: { schoolId, code: feeType.code }
+                    });
+
+                    if (existing) {
+                        skippedCount++;
+                        console.log(`Fee type ${feeType.code} already exists (skipped)`);
+                        continue;
+                    }
+
                     const newType = await prisma.feeType.create({
                         data: {
                             schoolId,
@@ -163,6 +166,7 @@ export class FeeTypeController {
                 } catch (error: any) {
                     if (error.code === 'P2002') {
                         // Unique constraint violation - skip
+                        skippedCount++;
                         console.log(`Fee type ${feeType.code} already exists (skipped)`);
                     } else {
                         throw error;
@@ -170,9 +174,17 @@ export class FeeTypeController {
                 }
             }
 
+            const allMessage = skippedCount > 0 
+                ? `Created ${createdCount} new fee types (${skippedCount} already existed)`
+                : createdCount === 0 
+                ? 'All 9 default fee types already exist'
+                : `Successfully seeded ${createdCount} default fee types`;
+
             res.json({
-                message: `Successfully seeded ${createdCount} default fee types`,
-                count: createdCount,
+                message: allMessage,
+                created: createdCount,
+                skipped: skippedCount,
+                total: defaultFeeTypes.length,
                 feeTypes: created
             });
         } catch (error: any) {
