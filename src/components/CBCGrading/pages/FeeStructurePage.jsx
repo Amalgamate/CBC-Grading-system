@@ -53,19 +53,23 @@ const FeeStructurePage = () => {
         api.fees.getAllFeeStructures(),
         api.fees.getAllFeeTypes({ active: true })
       ]);
-      setFeeStructures(structuresRes.data || []);
-      setFeeTypes(typesRes || []);
       
-      // Check if seeding is already complete
-      if (typesRes && typesRes.length > 0) {
+      const structures = structuresRes?.data || [];
+      const types = typesRes || [];
+      
+      setFeeStructures(structures);
+      setFeeTypes(types);
+      
+      // Check if fee types were seeded (use a reasonable threshold)
+      if (types && types.length >= 9) {
         setSeedTypesComplete(true);
       }
-      if (structuresRes && structuresRes.data && structuresRes.data.length > 0) {
-        setSeedStructuresComplete(true);
-      }
+      
+      // Don't auto-check structures - user must click seed button
+      // Only mark complete if they click the seed button
     } catch (error) {
       showError('Failed to load fee data');
-      console.error(error);
+      console.error('Fetch error:', error);
     } finally {
       setLoading(false);
     }
@@ -99,9 +103,14 @@ const FeeStructurePage = () => {
       const result = await api.fees.seedDefaultFeeStructures();
       showSuccess(`✅ ${result.message}`);
       setSeedStructuresComplete(true);
-      fetchData(); // Refresh fee structures list
+      // Small delay to let user see success message
+      setTimeout(() => {
+        fetchData(); // Refresh fee structures list
+      }, 500);
     } catch (error) {
+      console.error('Seed structures error:', error);
       showError(error.message || 'Failed to seed fee structures');
+      setSeedStructuresComplete(false);
     } finally {
       setIsSeedingStructures(false);
     }
@@ -197,12 +206,13 @@ const FeeStructurePage = () => {
     if (!structureToDelete) return;
 
     try {
-      await api.fees.deleteFeeStructure(structureToDelete.id);
-      showSuccess('Fee structure deleted successfully!');
+      const response = await api.fees.deleteFeeStructure(structureToDelete.id);
+      showSuccess(response?.message || 'Fee structure deleted successfully!');
       setShowDeleteDialog(false);
       setStructureToDelete(null);
-      fetchData();
+      await fetchData();
     } catch (error) {
+      console.error('Delete error:', error);
       showError(error.message || 'Failed to delete fee structure');
     }
   };
@@ -596,7 +606,7 @@ const FeeStructurePage = () => {
         <EmptyState
           icon={DollarSign}
           title="No Fee Structures Found"
-          message={searchTerm ? "No fee structures match your search." : "Start by creating your first fee structure."}
+          message={searchTerm ? "No fee structures match your search." : "Use the 'Seed Fee Structures' button above to auto-create structures for all grades and terms, or manually create one."}
           actionText="Add Fee Structure"
           onAction={() => {
             resetForm();
