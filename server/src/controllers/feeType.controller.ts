@@ -115,4 +115,71 @@ export class FeeTypeController {
 
         res.json({ message: 'Fee type deleted successfully' });
     }
+
+    // Seed default fee types for a school
+    static async seedDefaults(req: Request, res: Response) {
+        const schoolId = (req as any).user.schoolId as string;
+
+        const defaultFeeTypes = [
+            { code: 'TUITION', name: 'Tuition', category: 'ACADEMIC' as const, description: 'School tuition fees' },
+            { code: 'ACTIVITY', name: 'Activity Fee', category: 'EXTRA_CURRICULAR' as const, description: 'Co-curricular activities' },
+            { code: 'TRANSPORT', name: 'Transport', category: 'TRANSPORT' as const, description: 'School transport' },
+            { code: 'MEALS', name: 'Meals', category: 'BOARDING' as const, description: 'School meals and catering' },
+            { code: 'EXAM', name: 'Examination Fee', category: 'ACADEMIC' as const, description: 'Examination fees' },
+            { code: 'LIBRARY', name: 'Library', category: 'ACADEMIC' as const, description: 'Library resources and materials' },
+            { code: 'SPORTS', name: 'Sports Fee', category: 'EXTRA_CURRICULAR' as const, description: 'Sports programs and facilities' },
+            { code: 'TECHNOLOGY', name: 'Technology Fee', category: 'ACADEMIC' as const, description: 'Computer lab and tech resources' },
+            { code: 'MISC', name: 'Miscellaneous', category: 'OTHER' as const, description: 'Other school charges' }
+        ];
+
+        try {
+            // Check how many fee types already exist
+            const existingCount = await prisma.feeType.count({
+                where: { schoolId }
+            });
+
+            if (existingCount > 0) {
+                throw new ApiError(400, `Fee types already exist for this school (${existingCount} found). Seed skipped to prevent duplicates.`);
+            }
+
+            // Create default fee types
+            let createdCount = 0;
+            const created = [];
+
+            for (const feeType of defaultFeeTypes) {
+                try {
+                    const newType = await prisma.feeType.create({
+                        data: {
+                            schoolId,
+                            code: feeType.code,
+                            name: feeType.name,
+                            category: feeType.category,
+                            description: feeType.description,
+                            isActive: true
+                        }
+                    });
+                    created.push(newType);
+                    createdCount++;
+                } catch (error: any) {
+                    if (error.code === 'P2002') {
+                        // Unique constraint violation - skip
+                        console.log(`Fee type ${feeType.code} already exists (skipped)`);
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+
+            res.json({
+                message: `Successfully seeded ${createdCount} default fee types`,
+                count: createdCount,
+                feeTypes: created
+            });
+        } catch (error: any) {
+            if (error instanceof ApiError) {
+                throw error;
+            }
+            throw new ApiError(500, `Error seeding fee types: ${error.message}`);
+        }
+    }
 }
