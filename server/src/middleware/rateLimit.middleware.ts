@@ -5,7 +5,9 @@ const buckets: Record<string, Entry> = {};
 
 export const rateLimit = (max: number, windowMs: number) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const key = `${req.ip}:${req.path}`;
+    // robust IP detection for proxy environments
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+    const key = `${ip}:${req.path}`;
     const now = Date.now();
     const entry = buckets[key] || { count: 0, resetAt: now + windowMs };
     if (now > entry.resetAt) {
