@@ -29,65 +29,65 @@ export function extractSubdomain(req: SubdomainRequest, res: Response, next: Nex
     // Split into parts
     const parts = hostname.split('.');
 
-    // Check if we have a subdomain
-    // - localhost or 127.x.x.x have no subdomains
-    // - single part (localhost) has no subdomain
-    // - two parts (example.com) has no subdomain  
-    // - 3+ parts (sub.example.com) has subdomain
-
+    // 1. Handle localhost/IPs
     if (
       hostname === 'localhost' ||
       hostname.startsWith('127.') ||
       hostname.match(/^\d+\.\d+\.\d+\.\d+$/) // IPv4
     ) {
-      // No subdomain for localhost or IP addresses
       req.subdomain = undefined;
       req.isTenantAccess = false;
       return next();
     }
 
-    if (parts.length <= 2) {
-      // No subdomain for root domain
+    // 2. Configuration
+    const deploymentDomain = (process.env.DEPLOYMENT_DOMAIN || 'elimcrown.co.ke').toLowerCase();
+    const commonPrefixes = ['www', 'mail', 'ftp', 'api', 'elimcrown-api'];
+
+    // 3. Exact match for platform domains (Root levels)
+    const isRootDomain = hostname === deploymentDomain ||
+      hostname === 'onrender.com' ||
+      hostname === 'elimcrown-api.onrender.com';
+
+    if (isRootDomain) {
       req.subdomain = undefined;
       req.isTenantAccess = false;
       return next();
     }
 
-    // Extract subdomain (first part)
-    const subdomain = parts[0].toLowerCase();
+    // 4. Detect tenant subdomain from platform domain
+    // Pattern: {subdomain}.elimcrown.co.ke
+    if (hostname.endsWith(`.${deploymentDomain}`)) {
+      const subdomain = hostname.replace(`.${deploymentDomain}`, '');
 
-    // Validate subdomain isn't a common non-tenant prefix or platform-specific
-    const commonPrefixes = ['www', 'mail', 'ftp', 'smtp', 'pop', 'imap', 'api', 'elimcrown-api'];
-
-    // Check if the host IS the deployment domain (no subdomain)
-    const deploymentDomain = process.env.DEPLOYMENT_DOMAIN || 'elimcrown.co.ke';
-    if (hostname === deploymentDomain) {
-      req.subdomain = undefined;
-      req.isTenantAccess = false;
+      if (commonPrefixes.includes(subdomain)) {
+        req.subdomain = undefined;
+        req.isTenantAccess = false;
+      } else {
+        req.subdomain = subdomain;
+        req.isTenantAccess = true;
+      }
       return next();
     }
 
-    // Check if the host is a subdomain of the deployment domain
-    const isPlatformSubdomain = hostname.endsWith(`.${deploymentDomain}`);
+    // 5. Fallback for OnRender direct URLs
+    // Patterns: elimcrown-api.onrender.com (Root), or school.onrender.com (Tenant)
+    if (hostname.endsWith('.onrender.com')) {
+      const subdomain = hostname.replace('.onrender.com', '');
 
-    // OnRender specific check: If we are on onrender.com, and the subdomain is the platform's app name
-    const isOnRender = hostname.endsWith('.onrender.com');
-    const isPlatformHost = hostname === 'elimcrown-api.onrender.com' || (isOnRender && subdomain === 'elimcrown-api');
-
-    if (commonPrefixes.includes(subdomain) || isPlatformHost) {
-      req.subdomain = undefined;
-      req.isTenantAccess = false;
+      if (subdomain === 'elimcrown-api' || commonPrefixes.includes(subdomain)) {
+        req.subdomain = undefined;
+        req.isTenantAccess = false;
+      } else {
+        req.subdomain = subdomain;
+        req.isTenantAccess = true;
+      }
       return next();
     }
 
-    // If it's a 3-part domain but not under our deployment domain OR onrender, 
-    // we should be careful. Usually, if it's on onrender.com, we treat it as tenant access
-    // UNLESS it's the platform host we identified above.
-
-    // We have a valid subdomain
-    req.subdomain = subdomain;
-    req.isTenantAccess = true;
-
+    // 6. Default: No subdomain detected
+    req.subdomain = undefined;
+    req.isTenantAccess = false;
     next();
   } catch (error) {
     // Fall through to next middleware on error
