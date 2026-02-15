@@ -34,16 +34,18 @@ app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    
+
     // Allow any localhost ports for development
     if (origin.startsWith('http://localhost:')) return callback(null, true);
+    // Allow localhost subdomains (e.g. mary.localhost:3000)
+    if (/^https?:\/\/.*\.localhost(:\d+)?$/.test(origin)) return callback(null, true);
     if (origin.startsWith('http://127.')) return callback(null, true);
-    
+
     // Check wildcard pattern for deployment domain
     if (process.env.NODE_ENV !== 'production' || process.env.SUBDOMAIN_ENABLED === 'true') {
       if (subdomainPattern.test(origin)) return callback(null, true);
     }
-    
+
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true
