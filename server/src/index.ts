@@ -29,10 +29,19 @@ async function startServer() {
 
     // Start server
     httpServer.listen(PORT, () => {
+      // Determine API URL based on environment
+      const apiUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://elimcrown-api.onrender.com/api'
+        : `http://localhost:${PORT}/api`;
+      
+      const healthUrl = process.env.NODE_ENV === 'production'
+        ? 'https://elimcrown-api.onrender.com/api/health'
+        : `http://localhost:${PORT}/api/health`;
+
       console.log('🚀 Server started successfully!');
       console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🌐 API: http://localhost:${PORT}/api`);
-      console.log(`❤️  Health: http://localhost:${PORT}/api/health`);
+      console.log(`🌐 API: ${apiUrl}`);
+      console.log(`❤️  Health: ${healthUrl}`);
       console.log('');
       console.log('Available Configured Endpoints:');
 
