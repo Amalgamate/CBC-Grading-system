@@ -419,9 +419,9 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
 
   // Single Page Layout
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center py-6 px-4">
-      {/* Container - Constrained Width like Step 3 */}
-      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl overflow-hidden">
+    <div className="min-h-screen bg-white flex flex-col items-center py-6 px-4">
+      {/* Container - Constrained Width but Flat */}
+      <div className="w-full max-w-5xl">
 
         {/* Header Section */}
         <div className="pt-8 pb-4 text-center">
