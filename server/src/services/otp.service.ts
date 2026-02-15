@@ -125,41 +125,24 @@ export class OtpService {
                 }
             });
 
-            // 4. Send SMS via MobileSasa
+            // 4. Send SMS via MobileSasa (non-blocking - background send)
             const message = SMS_MESSAGES.otp(otpCode, OTP_CONFIG.expiryMinutes);
 
-            const smsResult = await SmsService.sendSms(
+            // Send SMS in the background without blocking response
+            // This makes the API response instant while SMS sends asynchronously
+            SmsService.sendSms(
                 effectiveSchoolId,
                 user.phone,
                 message
-            );
-
-            if (!smsResult.success) {
-                const warnMsg = `⚠️ SMS Sending failed: ${smsResult.error}`;
-                console.warn(warnMsg);
-                fs.appendFileSync('otp-debug.log', warnMsg + '\n');
-
-                // In development, we allow the flow to continue so developers can test without valid SMS credentials
-                // In production, the user must receive SMS to proceed
-                if (process.env.NODE_ENV === 'development') {
-                    console.warn('   [DEV MODE] Bypassing SMS failure to allow testing');
-                    return {
-                        success: true,
-                        message: `[DEV MODE] OTP generated: ${otpCode} (SMS failed but bypassed for testing). Check otp-debug.log`,
-                        expiresAt
-                    };
-                }
-
-                // Production: SMS is required
-                return {
-                    success: false,
-                    message: `Failed to send OTP: ${smsResult.error}. Please try again or contact support.`
-                };
-            }
+            ).catch((error: any) => {
+                const errMsg = `⚠️ Background SMS failed for ${email}: ${error.message}`;
+                console.warn(errMsg);
+                fs.appendFileSync('otp-debug.log', errMsg + '\n');
+            });
 
             return {
                 success: true,
-                message: `OTP sent to ${this.maskPhoneNumber(user.phone)}`,
+                message: `OTP sent to ${this.maskPhoneNumber(user.phone)}. Check your phone for the verification code.`,
                 expiresAt
             };
 

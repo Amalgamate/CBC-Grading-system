@@ -27,6 +27,14 @@ interface AssessmentReportData {
     sentByUserId?: string;
 }
 
+// Simple in-memory cache for SMS configs (5 minute TTL)
+interface CachedConfig {
+    data: any;
+    timestamp: number;
+}
+const configCache: Map<string, CachedConfig> = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 export class SmsService {
     /**
      * Normalize phone number to 254 format
@@ -220,10 +228,24 @@ export class SmsService {
                 throw new Error('Missing required parameters for sending SMS.');
             }
 
-            // 1. Get School's Communication Configuration
-            const config = await prisma.communicationConfig.findUnique({
-                where: { schoolId }
-            });
+            // 1. Get School's Communication Configuration (cached)
+            let config = null;
+            
+            // Check cache first
+            const cached = configCache.get(schoolId);
+            if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
+                config = cached.data;
+                console.log(`[SmsService] Using cached config for school: ${schoolId}`);
+            } else {
+                // Fetch from DB and cache it
+                config = await prisma.communicationConfig.findUnique({
+                    where: { schoolId }
+                });
+                if (config) {
+                    configCache.set(schoolId, { data: config, timestamp: Date.now() });
+                    console.log(`[SmsService] Fetched and cached config for school: ${schoolId}`);
+                }
+            }
 
             if (!config) {
                 console.error(`[SmsService] Configuration Error: SMS not configured for school ${schoolId}.`);
