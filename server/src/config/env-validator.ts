@@ -13,11 +13,12 @@ const REQUIREMENTS: EnvRequirement[] = [
     { key: 'DATABASE_URL', required: true, description: 'Prisma database connection string' },
     { key: 'JWT_SECRET', required: true, description: 'Secret key for signing tokens' },
     { key: 'FRONTEND_URL', required: true, description: 'URL of the frontend application' },
-    { key: 'RESEND_API_KEY', required: true, description: 'API Key for Resend email service' },
-    { key: 'EMAIL_FROM', required: true, description: 'Default sender email address' },
+    { key: 'RESEND_API_KEY', required: false, description: 'API Key for Resend email service (Optional if SMTP is used)' },
+    { key: 'EMAIL_FROM', required: false, description: 'Default sender email address (Optional if SMTP_FROM is used)' },
     { key: 'SMTP_HOST', required: false, description: 'SMTP host (fallback for legacy services)' },
     { key: 'SMTP_USER', required: false, description: 'SMTP username' },
     { key: 'SMTP_PASS', required: false, description: 'SMTP password' },
+    { key: 'SMTP_FROM', required: false, description: 'SMTP sender address' },
 ];
 
 /**
