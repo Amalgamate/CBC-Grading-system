@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { User, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle, ChevronRight, Loader2, XCircle, Globe, MapPin, Building2 } from 'lucide-react';
+import { User, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle, ChevronRight, Loader2, XCircle, Globe, Building2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { onboardingAPI, authAPI } from '../../services/api';
 import { useSubdomainCheck } from '../../hooks/useSubdomain';
@@ -24,8 +24,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
     termsAccepted: false
   });
   const [suggestedSubdomain, setSuggestedSubdomain] = useState('');
-  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
-  const [locationEnabled, setLocationEnabled] = useState(false);
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -343,89 +342,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
     'West Pokot': { bounds: [[1.14, 34.8], [2.33, 35.96]] }
   };
 
-  const getCountyFromCoordinates = (latitude, longitude) => {
-    for (const [county, { bounds }] of Object.entries(kenyaCounties)) {
-      const [[minLat, minLon], [maxLat, maxLon]] = bounds;
-      if (latitude >= minLat && latitude <= maxLat && longitude >= minLon && longitude <= maxLon) {
-        return county;
-      }
-    }
-    return '';
-  };
 
-  const handleAutoLocation = async () => {
-    if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by your browser');
-      return;
-    }
-
-    setIsDetectingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          let detectedCounty = getCountyFromCoordinates(latitude, longitude);
-
-          try {
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
-              { signal: AbortSignal.timeout(5000) }
-            );
-
-            if (!response.ok) throw new Error('Nominatim request failed');
-            const data = await response.json();
-
-            if (data.address) {
-              const addr = data.address;
-              // Extract meaningful address components
-              const subCounty = addr.city || addr.town || addr.suburb || addr.city_district || '';
-              const address = [
-                addr.road || addr.street,
-                addr.village || addr.neighbourhood,
-                subCounty
-              ].filter(Boolean).join(', ').trim() || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-
-              const apiCounty = addr.county || addr.state;
-              const normalizedApiCounty = apiCounty ? apiCounty.replace(' County', '') : '';
-
-              if (normalizedApiCounty && kenyaCounties[normalizedApiCounty]) {
-                detectedCounty = normalizedApiCounty;
-              }
-
-              setFormData(prev => ({
-                ...prev,
-                county: detectedCounty || prev.county,
-                subCounty: subCounty,
-                address: address
-              }));
-              setErrors(prev => ({ ...prev, county: '', subCounty: '', address: '' }));
-              toast.success('Location detected successfully!');
-              setLocationEnabled(true);
-            } else {
-              setFormData(prev => ({ ...prev, county: detectedCounty, address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` }));
-              toast.success('Coordinates detected! Please enter details.');
-              setLocationEnabled(true);
-            }
-          } catch (e) {
-            if (!detectedCounty) throw new Error('Could not determine location within Kenya.');
-            setFormData(prev => ({ ...prev, county: detectedCounty, address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` }));
-            setErrors(prev => ({ ...prev, county: '', address: '' }));
-            toast.success('County detected! Please enter address details.');
-            setLocationEnabled(true);
-          }
-        } catch (error) {
-          toast.error('Failed to detect location. Please enter manually.');
-        } finally {
-          setIsDetectingLocation(false);
-        }
-      },
-      (error) => {
-        setIsDetectingLocation(false);
-        toast.error('Unable to retrieve your location.');
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -770,26 +687,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                   Location
                 </h3>
                 <div className="space-y-4">
-                  {/* Auto Detect */}
-                  <div className="bg-teal-50 border border-teal-100 rounded-md p-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="text-teal-600 h-4 w-4" />
-                      <span className="text-xs font-medium text-teal-800">Auto-detect Location</span>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={isDetectingLocation || locationEnabled}
-                        onChange={(e) => {
-                          if (e.target.checked) handleAutoLocation();
-                          else setLocationEnabled(false);
-                        }}
-                        disabled={isDetectingLocation}
-                      />
-                      <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-600"></div>
-                    </label>
-                  </div>
+                  {/* Location Manual Entry Only */}
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
