@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, CheckCircle, Building2, ChevronRight, ChevronLeft, MapPin, Loader2, XCircle } from 'lucide-react';
+import { User, Mail, Phone, Lock, Eye, EyeOff, AlertCircle, CheckCircle, Building2, ChevronRight, ChevronLeft, MapPin, Loader2, XCircle, Globe } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { onboardingAPI, authAPI } from '../../services/api';
+import { useSubdomainCheck } from '../../hooks/useSubdomain';
 import debounce from 'lodash/debounce';
 
 export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brandingSettings }) {
@@ -20,8 +21,10 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
     county: '',
     subCounty: '',
     ward: '',
+    subdomain: '',
     termsAccepted: false
   });
+  const [suggestedSubdomain, setSuggestedSubdomain] = useState('');
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -29,6 +32,9 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
+
+  // Subdomain hook
+  const { checkAvailability: checkSubdomainAvailability, suggestSubdomain } = useSubdomainCheck();
 
   // validationStatus: { [field]: 'valid' | 'invalid' | 'loading' | null }
   const [fieldStatus, setFieldStatus] = useState({});
@@ -210,10 +216,78 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
       if (!formData.county) newErrors.county = 'County is required';
       if (!formData.address.trim()) newErrors.address = 'Physical address is required';
       if (!formData.termsAccepted) newErrors.termsAccepted = 'You must accept the terms and conditions';
+      
+      // Subdomain validation
+      const subdomain = formData.subdomain || suggestedSubdomain;
+      if (!subdomain || !subdomain.trim()) {
+        // Optional - can auto-generate if not provided
+      }
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // Handle subdomain suggestion when school name changes
+  const handleSchoolNameBlur = async () => {
+    if (!formData.schoolName.trim() || suggestedSubdomain) return;
+    
+    try {
+      const result = await suggestSubdomain(formData.schoolName);
+      setSuggestedSubdomain(result.suggested);
+      // Start with suggested subdomain
+      if (!formData.subdomain) {
+        setFormData(prev => ({ ...prev, subdomain: result.suggested }));
+      }
+      // Immediately check availability of suggested subdomain
+      if (!formData.subdomain) {
+        const availability = await checkSubdomainAvailability(result.suggested);
+        if (availability.available) {
+          setFieldStatus(prev => ({ ...prev, subdomain: 'valid' }));
+          setErrors(prev => ({ ...prev, subdomain: '' }));
+        } else {
+          setFieldStatus(prev => ({ ...prev, subdomain: 'invalid' }));
+          setErrors(prev => ({ ...prev, subdomain: availability.message }));
+        }
+      }
+    } catch (error) {
+      console.error('Error suggesting subdomain:', error);
+    }
+  };
+
+  // Handle subdomain input change with real-time validation
+  const handleSubdomainChange = async (e) => {
+    const value = e.target.value.toLowerCase();
+    setFormData(prev => ({ ...prev, subdomain: value }));
+    
+    if (!value.trim()) {
+      setFieldStatus(prev => ({ ...prev, subdomain: null }));
+      setErrors(prev => ({ ...prev, subdomain: '' }));
+      return;
+    }
+
+    // Format validation
+    if (!/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(value)) {
+      setFieldStatus(prev => ({ ...prev, subdomain: 'invalid' }));
+      setErrors(prev => ({ ...prev, subdomain: 'Only lowercase letters, numbers, and hyphens allowed' }));
+      return;
+    }
+
+    // Check availability
+    setFieldStatus(prev => ({ ...prev, subdomain: 'loading' }));
+    try {
+      const result = await checkSubdomainAvailability(value);
+      if (result.available) {
+        setFieldStatus(prev => ({ ...prev, subdomain: 'valid' }));
+        setErrors(prev => ({ ...prev, subdomain: '' }));
+      } else {
+        setFieldStatus(prev => ({ ...prev, subdomain: 'invalid' }));
+        setErrors(prev => ({ ...prev, subdomain: result.message }));
+      }
+    } catch (error) {
+      setFieldStatus(prev => ({ ...prev, subdomain: 'invalid' }));
+      setErrors(prev => ({ ...prev, subdomain: 'Error checking subdomain availability' }));
+    }
   };
 
   // Kenya county coordinates for reverse lookup
@@ -437,7 +511,8 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
         address: formData.address,
         county: formData.county,
         subCounty: formData.subCounty,
-        ward: formData.ward
+        ward: formData.ward,
+        subdomain: formData.subdomain || suggestedSubdomain
       };
 
       console.log('📋 Request data:', requestBody);
@@ -933,6 +1008,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="schoolName"
                         value={formData.schoolName}
                         onChange={handleChange}
+                        onBlur={handleSchoolNameBlur}
                         className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${fieldStatus.schoolName === 'invalid' || (showErrors && errors.schoolName) ? 'border-red-500 shadow-sm' :
                           fieldStatus.schoolName === 'valid' ? 'border-green-500' : 'border-gray-300'
                           }`}
@@ -948,6 +1024,51 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                       <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
                         <AlertCircle size={14} />
                         <span>{errors.schoolName}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* School Domain/Subdomain Field */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      School Domain (Optional)
+                      <span className="block text-xs font-normal text-gray-600 mt-1">
+                        Your school will be accessible at: <strong>{formData.subdomain || suggestedSubdomain || 'subdomain'}.elimcrown.co.ke</strong>
+                      </span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Globe className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        type="text"
+                        name="subdomain"
+                        value={formData.subdomain}
+                        onChange={handleSubdomainChange}
+                        className={`w-full pl-10 pr-24 py-3 border rounded-lg focus:ring-2 focus:ring-brand-purple focus:border-transparent transition ${fieldStatus.subdomain === 'invalid' || (showErrors && errors.subdomain) ? 'border-red-500 shadow-sm' :
+                          fieldStatus.subdomain === 'valid' ? 'border-green-500' : 'border-gray-300'
+                          }`}
+                        placeholder={suggestedSubdomain || 'e.g., elimcrown'}
+                      />
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center gap-2 pointer-events-none">
+                        <span className="text-gray-500 text-sm">.elimcrown.co.ke</span>
+                        {fieldStatus.subdomain === 'loading' && <Loader2 className="animate-spin text-gray-400 h-5 w-5" />}
+                        {fieldStatus.subdomain === 'valid' && <CheckCircle className="text-green-500 h-5 w-5" />}
+                        {fieldStatus.subdomain === 'invalid' && <XCircle className="text-red-500 h-5 w-5" />}
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs text-gray-600">
+                      {suggestedSubdomain && !formData.subdomain && (
+                        <p className="text-brand-teal">💡 Suggested: <strong>{suggestedSubdomain}</strong> - Click above to edit or leave blank to accept</p>
+                      )}
+                      {formData.subdomain && fieldStatus.subdomain === 'valid' && (
+                        <p className="text-green-600">✓ Available!</p>
+                      )}
+                    </div>
+                    {showErrors && errors.subdomain && (
+                      <div className="flex items-center gap-1 mt-1 text-red-600 text-sm">
+                        <AlertCircle size={14} />
+                        <span>{errors.subdomain}</span>
                       </div>
                     )}
                   </div>

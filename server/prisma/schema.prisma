@@ -243,6 +243,15 @@ enum AdmissionFormatType {
 }
 
 // ============================================
+// DOMAIN TYPE ENUM (Multi-tenant domain strategy)
+// ============================================
+
+enum DomainType {
+  SUBDOMAIN // school-name.elimcrown.co.ke
+  CUSTOM    // optional: future feature for premium
+}
+
+// ============================================
 // SCHOOL MANAGEMENT
 // ============================================
 
@@ -265,6 +274,15 @@ model School {
   motto          String? // School motto
   vision         String? @db.Text // School vision statement
   mission        String? @db.Text // School mission statement
+
+  // Subdomain & Domain Configuration
+  subdomain             String?    @unique     // e.g., "zawadi", "kampala-high"
+  subdomainVerified     Boolean    @default(false)
+  subdomainVerifiedAt   DateTime?
+  customDomain          String?    @unique     // Future: for premium custom domains
+  customDomainVerified  Boolean    @default(false)
+  customDomainVerifiedAt DateTime?
+  domainType            DomainType @default(SUBDOMAIN)  // SUBDOMAIN or CUSTOM
 
   // Admission Format Configuration (set at setup, immutable)
   admissionFormatType AdmissionFormatType @default(BRANCH_PREFIX_START)
