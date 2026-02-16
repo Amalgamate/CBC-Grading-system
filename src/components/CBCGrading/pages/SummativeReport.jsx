@@ -383,7 +383,7 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
               ))}
               <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '700', fontSize: '16px', color: '#000000' }}>{row.percentage}%</td>
               <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '700', fontSize: '16px', color: row.color }}>{row.grade}</td>
-              <td style={{ padding: '6px 4px', fontSize: '11px', fontStyle: 'italic', fontWeight: '700', color: '#64748b', lineHeight: '1.2' }}>{row.remark}</td>
+              <td style={{ padding: '6px 4px', fontSize: '11px', fontStyle: 'italic', fontWeight: '700', color: '#000000', lineHeight: '1.2' }}>{row.remark}</td>
             </tr>
           ))}
         </tbody>
