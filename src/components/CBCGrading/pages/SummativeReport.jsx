@@ -125,14 +125,14 @@ const CHART_COLORS = [
 // GRADING UTILITIES
 // ============================================================================
 const getCBCGrade = (percentage) => {
-  if (percentage >= 90) return { grade: 'EE1', remark: 'Exceeding Expectations 1 - Outstanding', color: '#15803d' };
-  if (percentage >= 75) return { grade: 'EE2', remark: 'Exceeding Expectations 2 - Very High', color: '#166534' };
-  if (percentage >= 58) return { grade: 'ME1', remark: 'Meeting Expectations 1 - High Average', color: '#22c55e' };
-  if (percentage >= 41) return { grade: 'ME2', remark: 'Meeting Expectations 2 - Average', color: '#4ade80' };
-  if (percentage >= 31) return { grade: 'AE1', remark: 'Approaching Expectations 1 - Low Average', color: '#eab308' };
-  if (percentage >= 21) return { grade: 'AE2', remark: 'Approaching Expectations 2 - Below Average', color: '#facc15' };
-  if (percentage >= 11) return { grade: 'BE1', remark: 'Below Expectations 1 - Low', color: '#f97316' };
-  return { grade: 'BE2', remark: 'Below Expectations 2 - Very Low', color: '#dc2626' };
+  if (percentage >= 90) return { grade: 'EE1', remark: 'Exceeding Expectations 1 - Outstanding', color: '#006400' }; // Deep Green
+  if (percentage >= 75) return { grade: 'EE2', remark: 'Exceeding Expectations 2 - Very High', color: '#008000' }; // Green
+  if (percentage >= 58) return { grade: 'ME1', remark: 'Meeting Expectations 1 - High Average', color: '#000080' }; // Navy Blue
+  if (percentage >= 41) return { grade: 'ME2', remark: 'Meeting Expectations 2 - Average', color: '#0000CD' }; // Medium Blue
+  if (percentage >= 31) return { grade: 'AE1', remark: 'Approaching Expectations 1 - Low Average', color: '#B8860B' }; // Dark Goldenrod
+  if (percentage >= 21) return { grade: 'AE2', remark: 'Approaching Expectations 2 - Below Average', color: '#DAA520' }; // Goldenrod
+  if (percentage >= 11) return { grade: 'BE1', remark: 'Below Expectations 1 - Low', color: '#D2691E' }; // Chocolate
+  return { grade: 'BE2', remark: 'Below Expectations 2 - Very Low', color: '#8B0000' }; // Dark Red
 };
 
 // ============================================================================
