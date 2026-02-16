@@ -230,7 +230,7 @@ export class SmsService {
 
             // 1. Get School's Communication Configuration (cached)
             let config = null;
-            
+
             // Check cache first
             const cached = configCache.get(schoolId);
             if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
@@ -410,5 +410,22 @@ export class SmsService {
             });
             return { success: false, error: `Africa's Talking: ${errorMessage}` };
         }
+    }
+
+    /**
+     * Clear cached configuration for a school
+     * Call this when communication settings are updated
+     */
+    static clearConfigCache(schoolId: string): void {
+        configCache.delete(schoolId);
+        console.log(`[SmsService] Cleared config cache for school: ${schoolId}`);
+    }
+
+    /**
+     * Clear all cached configurations
+     */
+    static clearAllConfigCache(): void {
+        configCache.clear();
+        console.log(`[SmsService] Cleared all config cache`);
     }
 }

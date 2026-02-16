@@ -65,6 +65,7 @@ model User {
   branch                    Branch?                  @relation("BranchUsers", fields: [branchId], references: [id])
   school                    School?                  @relation("SchoolUsers", fields: [schoolId], references: [id])
   assessedValues            ValuesAssessment[]       @relation("AssessorValues")
+  createdContactGroups      ContactGroup[]           @relation("CreatedContactGroups")
 
   @@index([schoolId])
   @@index([branchId])
@@ -134,6 +135,7 @@ model School {
   supportTickets         SupportTicket[]
   termConfigs            TermConfig[]
   users                  User[]                @relation("SchoolUsers")
+  contactGroups          ContactGroup[]
 
   @@index([county])
   @@map("schools")
@@ -1198,7 +1200,30 @@ model Event {
   @@index([schoolId])
 }
 
+model ContactGroup {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  schoolId    String
+  createdById String
+  
+  // Recipients stored as JSON array
+  // Format: [{type: 'parent'|'staff', id: 'uuid', name: 'John Doe', phone: '+254...'}]
+  recipients  Json
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation("CreatedContactGroups", fields: [createdById], references: [id])
+  
+  @@index([schoolId])
+  @@index([createdById])
+  @@map("contact_groups")
+}
+
 enum UserRole {
+
   SUPER_ADMIN
   ADMIN
   HEAD_TEACHER

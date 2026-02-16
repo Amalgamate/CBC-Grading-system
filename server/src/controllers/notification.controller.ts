@@ -580,4 +580,34 @@ export class NotificationController {
       error: result.error,
     });
   }
+
+  /**
+   * Get audit logs for SMS and WhatsApp communications
+   * GET /api/notifications/audit-logs
+   * 
+   * TODO: Implement proper audit logging with assessmentSmsAudit model
+   */
+  async getAuditLogs(req: AuthRequest, res: Response) {
+    const schoolId = (req as any).tenant?.schoolId;
+
+    if (!schoolId) {
+      throw new ApiError(403, 'School context required');
+    }
+
+    // TODO: The assessmentSmsAudit model doesn't exist in the schema yet
+    // Returning empty data for now to prevent server crashes
+    res.json({
+      success: true,
+      data: {
+        logs: [],
+        total: 0,
+        summary: {
+          totalSent: 0,
+          successRate: 0,
+          failed: 0,
+          estimatedCost: 0
+        }
+      }
+    });
+  }
 }

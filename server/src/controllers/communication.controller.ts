@@ -205,6 +205,11 @@ export const saveCommunicationConfig = async (req: AuthRequest, res: Response) =
             update: data
         });
 
+        // Clear SMS config cache so changes take effect immediately
+        const { SmsService } = await import('../services/sms.service');
+        SmsService.clearConfigCache(schoolId);
+        console.log(`✅ Communication config saved and cache cleared for school: ${schoolId}`);
+
         res.status(200).json({
             message: 'Configuration saved successfully',
             data: {
@@ -227,7 +232,7 @@ export const saveCommunicationConfig = async (req: AuthRequest, res: Response) =
 export const sendTestSms = async (req: AuthRequest, res: Response) => {
     try {
         const { phoneNumber, message, schoolId: bodySchoolId } = req.body;
-        
+
         // Get schoolId from tenant middleware (preferred) or request body (fallback)
         let schoolId = (req as any).tenant?.schoolId || bodySchoolId;
 
@@ -430,7 +435,7 @@ export const sendBirthdayWishes = async (req: AuthRequest, res: Response) => {
         });
 
         const results = [];
-        
+
         const calculateAge = (dob: Date) => {
             const today = new Date();
             let age = today.getFullYear() - dob.getFullYear();
@@ -484,7 +489,7 @@ export const sendBirthdayWishes = async (req: AuthRequest, res: Response) => {
                             gradeName,
                             ageOrdinal,
                             bdayDate
-                          })
+                        })
                         : template
                             .replace(/{learnerName}/g, fullName)
                             .replace(/{firstName}/g, firstName)
@@ -513,7 +518,7 @@ export const sendBirthdayWishes = async (req: AuthRequest, res: Response) => {
                             .replace(/{ageOrdinal}/g, ageOrdinal)
                             .replace(/{birthdayDate}/g, bdayDate)
                         : SMS_MESSAGES.birthdayStandard(firstName, schoolName, gradeName);
-                        
+
                     result = await SmsService.sendSms(schoolId, phoneNumber, smsMessage);
                 }
 
@@ -691,3 +696,271 @@ export const getBroadcastRecipients = async (req: AuthRequest, res: Response) =>
         res.status(500).json({ error: error.message || 'Failed to fetch recipients' });
     }
 };
+
+/**
+ * Get Staff Contacts
+ * GET /api/communication/staff
+ */
+export const getStaffContacts = async (req: AuthRequest, res: Response) => {
+    try {
+        const schoolId = req.user?.schoolId || (req as any).tenant?.schoolId;
+
+        if (!schoolId) {
+            throw new ApiError(403, 'School context required');
+        }
+
+        // Fetch all staff/teachers with phone numbers
+        const staff = await prisma.user.findMany({
+            where: {
+                schoolId,
+                status: 'ACTIVE',
+                phone: { not: null },
+                role: {
+                    in: ['TEACHER', 'HEAD_TEACHER', 'ADMIN', 'ACCOUNTANT', 'RECEPTIONIST', 'LIBRARIAN', 'NURSE']
+                }
+            },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+                role: true,
+                email: true
+            }
+        });
+
+        // Format staff contacts
+        const contacts = staff.map(s => ({
+            id: s.id,
+            name: `${s.firstName} ${s.lastName}`,
+            phone: s.phone,
+            role: s.role,
+            email: s.email,
+            type: 'staff' as const
+        }));
+
+        res.status(200).json({
+            success: true,
+            count: contacts.length,
+            data: contacts
+        });
+
+    } catch (error: any) {
+        console.error('Get Staff Contacts Error:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch staff contacts' });
+    }
+};
+
+/**
+ * Create Contact Group
+ * POST /api/communication/groups
+ */
+export const createContactGroup = async (req: AuthRequest, res: Response) => {
+    try {
+        const { name, description, recipients } = req.body;
+        const schoolId = req.user?.schoolId || (req as any).tenant?.schoolId;
+        const createdById = req.user?.userId;
+
+        if (!schoolId || !createdById) {
+            throw new ApiError(403, 'School context and user authentication required');
+        }
+
+        if (!name || !recipients || !Array.isArray(recipients)) {
+            throw new ApiError(400, 'Name and recipients array are required');
+        }
+
+        const group = await prisma.contactGroup.create({
+            data: {
+                name,
+                description: description || null,
+                schoolId,
+                createdById,
+                recipients: recipients // JSON array
+            }
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Contact group created successfully',
+            data: group
+        });
+
+    } catch (error: any) {
+        console.error('Create Contact Group Error:', error);
+        res.status(500).json({ error: error.message || 'Failed to create contact group' });
+    }
+};
+
+/**
+ * Get All Contact Groups
+ * GET /api/communication/groups
+ */
+export const getContactGroups = async (req: AuthRequest, res: Response) => {
+    try {
+        const schoolId = req.user?.schoolId || (req as any).tenant?.schoolId;
+
+        if (!schoolId) {
+            throw new ApiError(403, 'School context required');
+        }
+
+        const groups = await prisma.contactGroup.findMany({
+            where: { schoolId },
+            include: {
+                createdBy: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        // Add recipient count to each group
+        const groupsWithCount = groups.map(g => ({
+            ...g,
+            recipientCount: Array.isArray(g.recipients) ? (g.recipients as any[]).length : 0
+        }));
+
+        res.status(200).json({
+            success: true,
+            count: groups.length,
+            data: groupsWithCount
+        });
+
+    } catch (error: any) {
+        console.error('Get Contact Groups Error:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch contact groups' });
+    }
+};
+
+/**
+ * Get Contact Group by ID
+ * GET /api/communication/groups/:id
+ */
+export const getContactGroupById = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        const schoolId = req.user?.schoolId || (req as any).tenant?.schoolId;
+
+        if (!schoolId) {
+            throw new ApiError(403, 'School context required');
+        }
+
+        const group = await prisma.contactGroup.findFirst({
+            where: {
+                id,
+                schoolId // Ensure user can only access groups from their school
+            },
+            include: {
+                createdBy: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true
+                    }
+                }
+            }
+        });
+
+        if (!group) {
+            throw new ApiError(404, 'Contact group not found');
+        }
+
+        res.status(200).json({
+            success: true,
+            data: group
+        });
+
+    } catch (error: any) {
+        console.error('Get Contact Group By ID Error:', error);
+        const status = error.statusCode || 500;
+        res.status(status).json({ error: error.message || 'Failed to fetch contact group' });
+    }
+};
+
+/**
+ * Update Contact Group
+ * PUT /api/communication/groups/:id
+ */
+export const updateContactGroup = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { name, description, recipients } = req.body;
+        const schoolId = req.user?.schoolId || (req as any).tenant?.schoolId;
+
+        if (!schoolId) {
+            throw new ApiError(403, 'School context required');
+        }
+
+        // Verify group exists and belongs to school
+        const existing = await prisma.contactGroup.findFirst({
+            where: { id, schoolId }
+        });
+
+        if (!existing) {
+            throw new ApiError(404, 'Contact group not found');
+        }
+
+        // Update group
+        const updated = await prisma.contactGroup.update({
+            where: { id },
+            data: {
+                ...(name && { name }),
+                ...(description !== undefined && { description }),
+                ...(recipients && { recipients })
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'Contact group updated successfully',
+            data: updated
+        });
+
+    } catch (error: any) {
+        console.error('Update Contact Group Error:', error);
+        const status = error.statusCode || 500;
+        res.status(status).json({ error: error.message || 'Failed to update contact group' });
+    }
+};
+
+/**
+ * Delete Contact Group
+ * DELETE /api/communication/groups/:id
+ */
+export const deleteContactGroup = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        const schoolId = req.user?.schoolId || (req as any).tenant?.schoolId;
+
+        if (!schoolId) {
+            throw new ApiError(403, 'School context required');
+        }
+
+        // Verify group exists and belongs to school
+        const existing = await prisma.contactGroup.findFirst({
+            where: { id, schoolId }
+        });
+
+        if (!existing) {
+            throw new ApiError(404, 'Contact group not found');
+        }
+
+        await prisma.contactGroup.delete({
+            where: { id }
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'Contact group deleted successfully'
+        });
+
+    } catch (error: any) {
+        console.error('Delete Contact Group Error:', error);
+        const status = error.statusCode || 500;
+        res.status(status).json({ error: error.message || 'Failed to delete contact group' });
+    }
+};
+

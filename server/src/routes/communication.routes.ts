@@ -7,7 +7,13 @@ import {
     sendTestEmail,
     getBirthdaysToday,
     sendBirthdayWishes,
-    getBroadcastRecipients
+    getBroadcastRecipients,
+    getStaffContacts,
+    createContactGroup,
+    getContactGroups,
+    getContactGroupById,
+    updateContactGroup,
+    deleteContactGroup
 } from '../controllers/communication.controller';
 import { requireRole } from '../middleware/permissions.middleware';
 import { authenticate } from '../middleware/auth.middleware';
@@ -82,6 +88,50 @@ router.get(
     '/recipients',
     requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
     getBroadcastRecipients
+);
+
+// Get Staff Contacts
+// Allowed: Admin, Super Admin, Head Teacher, Teacher
+router.get(
+    '/staff',
+    requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER']),
+    getStaffContacts
+);
+
+// Contact Groups Routes
+// Get all contact groups
+router.get(
+    '/groups',
+    requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER']),
+    getContactGroups
+);
+
+// Get contact group by ID
+router.get(
+    '/groups/:id',
+    requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER']),
+    getContactGroupById
+);
+
+// Create contact group
+router.post(
+    '/groups',
+    requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER']),
+    createContactGroup
+);
+
+// Update contact group
+router.put(
+    '/groups/:id',
+    requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER']),
+    updateContactGroup
+);
+
+// Delete contact group
+router.delete(
+    '/groups/:id',
+    requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER']),
+    deleteContactGroup
 );
 
 export default router;

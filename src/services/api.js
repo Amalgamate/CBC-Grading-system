@@ -508,6 +508,56 @@ export const communicationAPI = {
     const params = grade ? `?grade=${encodeURIComponent(grade)}` : '';
     return fetchWithAuth(`/communication/recipients${params}`);
   },
+
+  /**
+   * Get Staff Contacts
+   */
+  getStaffContacts: async () => {
+    return fetchWithAuth('/communication/staff');
+  },
+
+  /**
+   * Get all contact groups
+   */
+  getContactGroups: async () => {
+    return fetchWithAuth('/communication/groups');
+  },
+
+  /**
+   * Get contact group by ID
+   */
+  getContactGroupById: async (id) => {
+    return fetchWithAuth(`/communication/groups/${id}`);
+  },
+
+  /**
+   * Create contact group
+   */
+  createContactGroup: async (data) => {
+    return fetchWithAuth('/communication/groups', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Update contact group
+   */
+  updateContactGroup: async (id, data) => {
+    return fetchWithAuth(`/communication/groups/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete contact group
+   */
+  deleteContactGroup: async (id) => {
+    return fetchWithAuth(`/communication/groups/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 // ============================================
@@ -2106,7 +2156,12 @@ const api = {
   attendance: attendanceAPI,
   assessments: assessmentAPI,
   reports: reportAPI,
-  notifications: notificationAPI,
+  notifications: {
+    getAuditLogs: async (params) => {
+      const queryString = new URLSearchParams(params).toString();
+      return fetchWithAuth(`/notifications/audit-logs?${queryString}`);
+    },
+  },
   fees: feeAPI,
   cbc: cbcAPI,
   health: healthAPI,
