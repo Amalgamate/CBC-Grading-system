@@ -376,8 +376,8 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
                   {row.scoresByCol[col] !== null ? row.scoresByCol[col] : '—'}
                 </td>
               ))}
-              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '700', fontSize: '18px', color: '#0f172a' }}>{row.percentage}%</td>
-              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '700', fontSize: '18px', color: row.color }}>{row.grade}</td>
+              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '700', fontSize: '16px', color: '#0f172a' }}>{row.percentage}%</td>
+              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '700', fontSize: '16px', color: row.color }}>{row.grade}</td>
               <td style={{ padding: '6px 4px', fontSize: '11px', fontStyle: 'italic', fontWeight: '700', color: '#64748b', lineHeight: '1.2' }}>{row.remark}</td>
             </tr>
           ))}
