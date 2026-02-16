@@ -392,6 +392,25 @@ const Sidebar = React.memo(({
     });
   };
 
+  // Auto-expand group if one of its children is the current page
+  React.useEffect(() => {
+    // Get all Assessment section groups
+    const assessmentSection = allNavSections.find(s => s.id === 'assessment');
+    if (assessmentSection) {
+      assessmentSection.items.forEach(item => {
+        if (item.type === 'group') {
+          const isChildActive = item.items.some(subItem => subItem.path === currentPage);
+          if (isChildActive) {
+            setExpandedSubSections(prev => ({
+              ...prev,
+              [item.id]: true
+            }));
+          }
+        }
+      });
+    }
+  }, [currentPage]);
+
   // Filter navigation sections based on user permissions AND focus modules
   const navSections = useMemo(() => {
     const isItemVisible = (item) => !item.permission || can(item.permission);
@@ -827,14 +846,21 @@ const NavSection = React.memo(({
             <div className={`ml-6 space-y-0.5 mt-1 border-l border-white/10 ${isBottom ? 'mb-2' : ''}`}>
               {section.items.map((item) => {
                 if (item.type === 'group') {
+                  // Check if any child item matches current page
+                  const isGroupActive = item.items.some(subItem => subItem.path === currentPage);
+                  
                   return (
                     <div key={item.id} className="mt-2 mb-1">
                       <button
                         onClick={() => toggleSubSection(item.id)}
-                        className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-300 transition-colors"
+                        className={`w-full flex items-center justify-between px-3 py-1.5 text-xs font-medium transition-colors ${
+                          isGroupActive 
+                            ? 'text-[#0D9488] bg-white/5 rounded-md' 
+                            : 'text-gray-500 hover:text-gray-300'
+                        }`}
                       >
                         <div className="flex items-center gap-2">
-                          {item.icon && <item.icon size={12} className="opacity-70" />}
+                          {item.icon && <item.icon size={12} className={isGroupActive ? 'text-[#0D9488]' : 'opacity-70'} />}
                           <span>{item.label}</span>
                         </div>
                         <ChevronDown size={10} className={`transition-transform duration-200 opacity-50 ${expandedSubSections[item.id] ? 'rotate-180' : ''}`} />
