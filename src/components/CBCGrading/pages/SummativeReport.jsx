@@ -173,8 +173,7 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
   const formatTestName = (str) => {
     if (!str) return '';
     return str.replace(/_/g, ' ')
-      .toLowerCase()
-      .replace(/\b\w/g, c => c.toUpperCase());
+      .toUpperCase();
   };
 
   // Prepare row data
