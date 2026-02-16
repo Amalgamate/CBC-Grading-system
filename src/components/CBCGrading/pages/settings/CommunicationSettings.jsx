@@ -56,6 +56,7 @@ const CommunicationSettings = () => {
 
   const [testContact, setTestContact] = useState('');
   const [testMessage, setTestMessage] = useState(TEST_MESSAGES.sms);
+  const [schoolPhone, setSchoolPhone] = useState(''); // Store school phone for fallback
 
   // Load Configuration on Mount
 
@@ -65,6 +66,7 @@ const CommunicationSettings = () => {
         setLoading(true);
         // Load saved test contact from localStorage
         const savedTestContact = localStorage.getItem('testContactPhone');
+        console.log('Loaded from localStorage:', { savedTestContact });
         if (savedTestContact) {
           setTestContact(savedTestContact);
         }
@@ -82,14 +84,23 @@ const CommunicationSettings = () => {
         }
 
         setSchoolId(sid);
+        console.log('School ID set:', sid);
 
         const response = await communicationAPI.getConfig(sid);
         const data = response.data;
+        console.log('Config loaded from API:', data);
 
         if (data) {
-          // If no test contact was in localStorage, use school phone as default
-          if (!savedTestContact && data.schoolPhone) {
-            setTestContact(data.schoolPhone.replace('+', ''));
+          // Store school phone for fallback when switching tabs
+          if (data.schoolPhone) {
+            const cleanPhone = data.schoolPhone.replace('+', '');
+            setSchoolPhone(cleanPhone);
+            console.log('School phone stored:', cleanPhone);
+            // If no test contact was in localStorage, use school phone as default
+            if (!savedTestContact) {
+              setTestContact(cleanPhone);
+              console.log('Test contact set to school phone:', cleanPhone);
+            }
           }
           // Update Email Settings
           if (data.email) {
@@ -205,11 +216,16 @@ const CommunicationSettings = () => {
   };
 
   const handleTestSMS = async () => {
+    // Debug logging for production issues
+    console.log('handleTestSMS called', { testContact, schoolId, testMessage });
+    
     if (testContact.length < 10) {
+      console.warn('Phone validation failed:', { length: testContact.length, value: testContact });
       showError('Enter valid phone (254...)');
       return;
     }
     if (!schoolId) {
+      console.warn('School ID missing');
       showError('School Context Missing');
       return;
     }
@@ -218,11 +234,15 @@ const CommunicationSettings = () => {
     setTestResult(null);
 
     try {
-      const response = await communicationAPI.sendTestSMS({
+      const payload = {
         schoolId,
         phoneNumber: testContact,
         message: testMessage
-      });
+      };
+      console.log('Sending SMS with payload:', payload);
+      
+      const response = await communicationAPI.sendTestSMS(payload);
+      console.log('SMS sent successfully:', response);
 
       setTestResult({
         success: true,
@@ -269,7 +289,11 @@ const CommunicationSettings = () => {
                   setTestContact('');
                   setTestMessage('This is a test message from Elimcrown.');
                   const saved = localStorage.getItem('testContactPhone');
-                  if (saved) setTestContact(saved);
+                  if (saved) {
+                    setTestContact(saved);
+                  } else if (schoolPhone) {
+                    setTestContact(schoolPhone);
+                  }
                 }
               }}
               className={`flex items-center gap-2 px-6 py-4 font-semibold transition ${activeTab === tab
