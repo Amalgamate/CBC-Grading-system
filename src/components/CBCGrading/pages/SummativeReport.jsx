@@ -204,8 +204,13 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
       color = res.color;
     }
 
+    let displayArea = formatSubjectName(area).toUpperCase();
+    if (displayArea === 'IRE' || displayArea === 'ISLAMIC RELIGIOUS EDUCATION') {
+      displayArea = 'RE';
+    }
+
     return {
-      area: formatSubjectName(area),
+      area: displayArea,
       scoresByCol,
       testCount,
       totalScore,
@@ -370,13 +375,13 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
         <tbody>
           {tableRows.map((row, idx) => (
             <tr key={row.area} style={{ backgroundColor: idx % 2 === 0 ? '#f8fafc' : 'white', borderBottom: '1px solid #e2e8f0' }}>
-              <td style={{ padding: '6px 4px', fontWeight: '700', fontSize: '16px', color: '#1E3A8A', letterSpacing: '-0.2px' }}>{row.area}</td>
+              <td style={{ padding: '6px 4px', fontWeight: '700', fontSize: '16px', color: '#000000', letterSpacing: '-0.2px' }}>{row.area}</td>
               {testColumns.map(col => (
-                <td key={col} style={{ padding: '6px 4px', textAlign: 'center', color: '#1e293b', fontWeight: '700', fontSize: '16px' }}>
+                <td key={col} style={{ padding: '6px 4px', textAlign: 'center', color: '#000000', fontWeight: '700', fontSize: '16px' }}>
                   {row.scoresByCol[col] !== null ? row.scoresByCol[col] : '—'}
                 </td>
               ))}
-              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '700', fontSize: '16px', color: '#0f172a' }}>{row.percentage}%</td>
+              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '700', fontSize: '16px', color: '#000000' }}>{row.percentage}%</td>
               <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '700', fontSize: '16px', color: row.color }}>{row.grade}</td>
               <td style={{ padding: '6px 4px', fontSize: '11px', fontStyle: 'italic', fontWeight: '700', color: '#64748b', lineHeight: '1.2' }}>{row.remark}</td>
             </tr>
