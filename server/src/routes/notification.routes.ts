@@ -128,4 +128,15 @@ router.get(
   asyncHandler(whatsappStatusController.getQRCode.bind(whatsappStatusController))
 );
 
+/**
+ * @route   GET /api/notifications/audit-logs
+ * @desc    Get message history audit logs (SMS & WhatsApp)
+ * @access  Authenticated
+ */
+router.get(
+  '/audit-logs',
+  authenticate,
+  asyncHandler(notificationController.getAuditLogs.bind(notificationController))
+);
+
 export default router;

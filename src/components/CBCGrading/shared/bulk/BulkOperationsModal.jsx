@@ -77,7 +77,7 @@ const BulkOperationsModal = ({
 
       // Get token from localStorage
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         setUploadResult({
           success: false,
@@ -125,7 +125,7 @@ const BulkOperationsModal = ({
   const downloadTemplate = async () => {
     try {
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         alert('Authentication required. Please log in again.');
         return;
@@ -155,7 +155,7 @@ const BulkOperationsModal = ({
     setExporting(true);
     try {
       const token = localStorage.getItem('token');
-      
+
       if (!token) {
         alert('Authentication required. Please log in again.');
         setExporting(false);
@@ -198,123 +198,98 @@ const BulkOperationsModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-t-xl flex items-center justify-between">
+        <div className="sticky top-0 bg-[#714B67] text-white p-4 rounded-t-xl flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">{title}</h2>
-            <p className="text-blue-100 text-sm mt-1">Import and export data in bulk using CSV files</p>
+            <h2 className="text-lg font-bold">{title}</h2>
           </div>
-          <button onClick={onClose} className="text-white hover:bg-white/20 p-2 rounded-lg transition">
-            <X size={24} />
+          <button onClick={onClose} className="text-white hover:bg-white/20 p-1 rounded-lg transition">
+            <X size={20} />
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 space-y-4">
           {/* Quick Actions */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-2 gap-3">
             <button
               onClick={downloadTemplate}
-              className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-blue-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition"
+              className="flex items-center justify-center gap-2 p-3 border border-[#00A09D]/30 rounded-lg hover:border-[#00A09D] hover:bg-[#00A09D]/5 transition group"
             >
-              <FileDown size={20} className="text-blue-600" />
-              <span className="font-semibold text-blue-700">Download CSV Template</span>
+              <FileDown size={18} className="text-[#00A09D]" />
+              <span className="text-xs font-semibold text-[#00A09D]">Template</span>
             </button>
 
             <button
               onClick={handleExport}
               disabled={exporting}
-              className="flex items-center justify-center gap-2 p-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-2 p-3 border border-[#714B67]/30 rounded-lg hover:border-[#714B67] hover:bg-[#714B67]/5 transition disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
               {exporting ? (
                 <>
-                  <Loader size={20} className="animate-spin" />
-                  <span>Exporting...</span>
+                  <Loader size={18} className="animate-spin text-[#714B67]" />
+                  <span className="text-xs text-[#714B67]">Exporting...</span>
                 </>
               ) : (
                 <>
-                  <Download size={20} />
-                  <span className="font-semibold">Export Current Data</span>
+                  <Download size={18} className="text-[#714B67]" />
+                  <span className="text-xs font-semibold text-[#714B67]">Export CSV</span>
                 </>
               )}
             </button>
           </div>
 
           {/* Upload Section */}
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Upload size={20} className="text-blue-600" />
-              Upload CSV File
-            </h3>
-
+          <div className="space-y-3">
             {/* Drag and Drop Zone */}
             <div
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition ${dragActive
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-300 hover:border-blue-400'
+              className={`border-2 border-dashed rounded-lg p-6 text-center transition ${dragActive
+                ? 'border-[#00A09D] bg-[#00A09D]/5'
+                : 'border-gray-200 hover:border-[#00A09D]/50'
                 } ${!canUpload() && file ? 'opacity-50' : ''}`}
             >
               {file ? (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-center gap-2 text-green-600">
-                    <CheckCircle size={24} />
-                    <span className="font-semibold">{file.name}</span>
+                  <div className="flex items-center justify-center gap-2 text-[#00A09D]">
+                    <CheckCircle size={20} />
+                    <span className="text-sm font-semibold truncate max-w-[200px]">{file.name}</span>
                   </div>
-                  <p className="text-sm text-gray-600">
-                    Size: {(file.size / 1024).toFixed(2)} KB
-                  </p>
-                  <div className="flex gap-3 justify-center">
+                  <div className="flex gap-2 justify-center">
                     <button
                       onClick={handleUpload}
                       disabled={!canUpload() || uploading}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-4 py-1.5 bg-[#00A09D] text-white text-sm rounded-lg hover:bg-[#00908d] transition disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                      {uploading ? (
-                        <>
-                          <Loader size={16} className="animate-spin" />
-                          <span>Uploading...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Upload size={16} />
-                          <span>Upload File</span>
-                        </>
-                      )}
+                      {uploading ? <Loader size={14} className="animate-spin" /> : <Upload size={14} />}
+                      <span>{uploading ? 'Uploading...' : 'Upload'}</span>
                     </button>
                     <button
                       onClick={resetUpload}
                       disabled={uploading}
-                      className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                      className="px-4 py-1.5 border border-gray-200 text-sm rounded-lg hover:bg-gray-50 transition"
                     >
-                      Change File
+                      Change
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <Upload size={48} className="mx-auto text-gray-400" />
-                  <p className="text-lg font-semibold text-gray-700">
-                    Drag and drop your CSV file here
-                  </p>
-                  <p className="text-sm text-gray-500">or</p>
-                  <label className="inline-block">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".csv"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                    <span className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition cursor-pointer inline-block">
-                      Browse Files
-                    </span>
-                  </label>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Supported format: CSV (max 10MB)
+                <div className="space-y-2">
+                  <Upload size={32} className="mx-auto text-gray-300" />
+                  <p className="text-sm font-medium text-gray-600">
+                    Drag & drop CSV or <label className="text-[#714B67] cursor-pointer hover:underline">
+                      browse
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".csv"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
                   </p>
                 </div>
               )}
@@ -322,67 +297,46 @@ const BulkOperationsModal = ({
 
             {/* Upload Results */}
             {uploadResult && (
-              <div className={`mt-6 p-4 rounded-lg border-2 ${uploadResult.success
-                ? 'bg-green-50 border-green-300'
-                : 'bg-red-50 border-red-300'
+              <div className={`p-3 rounded-lg border ${uploadResult.success
+                ? 'bg-emerald-50 border-emerald-200'
+                : 'bg-rose-50 border-rose-200'
                 }`}>
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-2">
                   {uploadResult.success ? (
-                    <CheckCircle size={24} className="text-green-600 flex-shrink-0 mt-1" />
+                    <CheckCircle size={18} className="text-emerald-600 mt-0.5" />
                   ) : (
-                    <AlertCircle size={24} className="text-red-600 flex-shrink-0 mt-1" />
+                    <AlertCircle size={18} className="text-rose-600 mt-0.5" />
                   )}
-                  <div className="flex-1">
-                    <h4 className="font-bold text-lg mb-2">
-                      {uploadResult.success ? 'Upload Complete!' : 'Upload Failed'}
+                  <div className="flex-1 min-w-0">
+                    <h4 className={`text-sm font-bold ${uploadResult.success ? 'text-emerald-800' : 'text-rose-800'}`}>
+                      {uploadResult.success ? 'Import Successful' : 'Upload Failed'}
                     </h4>
 
                     {uploadResult.success && uploadResult.summary && (
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-600">Total:</span>
-                            <span className="ml-2 font-semibold">{uploadResult.summary.total}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Created:</span>
-                            <span className="ml-2 font-semibold text-green-600">{uploadResult.summary.created}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Failed:</span>
-                            <span className="ml-2 font-semibold text-red-600">{uploadResult.summary.failed}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Validation Errors:</span>
-                            <span className="ml-2 font-semibold text-orange-600">{uploadResult.summary.validationErrors}</span>
-                          </div>
+                      <div className="mt-1 space-y-1">
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-emerald-700">
+                          <span>Total: <b>{uploadResult.summary.total}</b></span>
+                          <span>Created: <b>{uploadResult.summary.created}</b></span>
+                          {uploadResult.summary.failed > 0 && <span className="text-rose-600">Failed: <b>{uploadResult.summary.failed}</b></span>}
                         </div>
 
                         {/* Show errors if any */}
                         {uploadResult.details && (uploadResult.details.failed.length > 0 || uploadResult.details.validationErrors.length > 0) && (
-                          <details className="mt-4">
-                            <summary className="cursor-pointer text-sm font-semibold text-red-600 hover:text-red-700">
-                              View Errors ({uploadResult.details.failed.length + uploadResult.details.validationErrors.length})
+                          <details className="mt-2 group">
+                            <summary className="cursor-pointer text-xs font-semibold text-rose-600 group-open:mb-2">
+                              View Details ({uploadResult.details.failed.length + uploadResult.details.validationErrors.length})
                             </summary>
-                            <div className="mt-2 max-h-60 overflow-y-auto bg-white p-3 rounded border">
+                            <div className="max-h-32 overflow-y-auto bg-white/50 p-2 rounded text-[11px] space-y-1">
                               {uploadResult.details.failed.map((err, idx) => (
-                                <div key={idx} className="text-sm py-1 border-b last:border-b-0">
-                                  <span className="text-gray-500">Line {err.line}:</span>
-                                  <span className="ml-2 text-red-600">{err.reason}</span>
-                                  {err.name && <span className="ml-2 text-gray-600">({err.name})</span>}
+                                <div key={idx} className="flex gap-2">
+                                  <span className="text-gray-400">L{err.line}:</span>
+                                  <span className="text-rose-600">{err.reason}</span>
                                 </div>
                               ))}
                               {uploadResult.details.validationErrors.map((err, idx) => (
-                                <div key={idx} className="text-sm py-1 border-b last:border-b-0">
-                                  <span className="text-gray-500">Line {err.line}:</span>
-                                  <span className="ml-2 text-orange-600">
-                                    {typeof err.error === 'string'
-                                      ? err.error
-                                      : Array.isArray(err.error)
-                                        ? err.error.map(e => e.message || 'Validation error').join(', ')
-                                        : 'Validation error'
-                                    }
-                                  </span>
+                                <div key={idx} className="flex gap-2">
+                                  <span className="text-gray-400">L{err.line}:</span>
+                                  <span className="text-amber-600">Validation error</span>
                                 </div>
                               ))}
                             </div>
@@ -392,29 +346,16 @@ const BulkOperationsModal = ({
                     )}
 
                     {uploadResult.error && (
-                      <p className="text-red-600">
+                      <p className="text-xs text-rose-600 mt-1">
                         {typeof uploadResult.error === 'string'
                           ? uploadResult.error
-                          : uploadResult.error?.message || 'An error occurred during upload'
-                        }
+                          : uploadResult.error?.message || 'An error occurred'}
                       </p>
                     )}
                   </div>
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Instructions */}
-          <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h4 className="font-semibold text-blue-900 mb-2">📋 Instructions</h4>
-            <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-              <li>Download the CSV template to see the required format</li>
-              <li>Fill in your data following the template structure</li>
-              <li>Save the file and upload it using the drag-and-drop zone</li>
-              <li>Review the upload results for any errors</li>
-              <li>Use Export to download current data for backup or editing</li>
-            </ul>
           </div>
         </div>
       </div>

@@ -170,6 +170,7 @@ export const PAGE_TITLES = {
   // Communications
   'comm-notices': 'Notices & Announcements',
   'comm-messages': 'Messages',
+  'comm-history': 'Message History',
 
   // Assessment
   'assess-formative': 'Formative Assessment',

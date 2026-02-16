@@ -47,6 +47,7 @@ const PerformanceScale = lazy(() => import('./pages/PerformanceScale'));
 const NoticesPage = lazy(() => import('./pages/NoticesPage'));
 const InventoryList = lazy(() => import('./pages/InventoryList'));
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
+const MessageHistoryPage = lazy(() => import('./pages/MessageHistoryPage'));
 const SupportHub = lazy(() => import('./pages/SupportHub'));
 const TimetablePage = lazy(() => import('./pages/TimetablePage'));
 const CodingPlayground = lazy(() => import('./pages/CodingPlayground'));
@@ -659,6 +660,8 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
         return <NoticesPage />;
       case 'comm-messages':
         return <MessagesPage />;
+      case 'comm-history':
+        return <MessageHistoryPage />;
 
       // Inventory Module
       case 'inventory-books':

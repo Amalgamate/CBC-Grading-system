@@ -33,7 +33,8 @@ const allNavSections = [
     permission: null, // All roles can access communications
     items: [
       { id: 'comm-notices', label: 'Notices & Announcements', path: 'comm-notices', permission: null },
-      { id: 'comm-messages', label: 'Messages', path: 'comm-messages', permission: 'VIEW_INBOX' }
+      { id: 'comm-messages', label: 'Messages', path: 'comm-messages', permission: 'VIEW_INBOX' },
+      { id: 'comm-history', label: 'Message History', path: 'comm-history', permission: null }
     ]
   },
   {
@@ -326,6 +327,7 @@ const prefetchModule = (path) => {
         'attendance-reports': 'AttendanceReports',
         'comm-notices': 'NoticesPage',
         'comm-messages': 'MessagesPage',
+        'comm-history': 'MessageHistoryPage',
         'learning-hub-materials': 'LearningHubPage',
         'learning-hub-assignments': 'LearningHubPage',
         'learning-hub-lesson-plans': 'LearningHubPage',

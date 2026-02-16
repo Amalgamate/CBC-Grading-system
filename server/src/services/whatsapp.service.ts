@@ -201,7 +201,7 @@ class WhatsAppService {
   }> {
     const { parentPhone, parentName, learnerName, learnerGrade, term, averageScore, overallGrade, subjects, schoolId } = data;
 
-    const greeting = parentName ? `Dear *${parentName}*,` : 'Dear Parent,';
+    const greeting = parentName ? `Dear *${parentName.trim()}*,` : 'Dear *Parent*,';
     const schoolNameHeader = data.schoolName ? `*${data.schoolName.toUpperCase()}*` : '*SCHOOL REPORT*';
 
     const LEARNING_AREA_MAP: Record<string, string> = {
@@ -216,31 +216,45 @@ class WhatsAppService {
 
     let subjectsSummary = '';
     if (subjects && Object.keys(subjects).length > 0) {
-      const subArray = Object.entries(subjects).map(([name, detail]) => {
+      const tableHeader = `SUBJECT   |  SCR |  GRD`;
+      const separator = `----------|-----|----`;
+
+      const subRows = Object.entries(subjects).map(([name, detail]) => {
         const upper = name.toUpperCase().trim();
-        const code = LEARNING_AREA_MAP[upper] || (name.length > 8 ? name.substring(0, 8).toUpperCase() : name.toUpperCase());
+        const code = LEARNING_AREA_MAP[upper] || (name.length > 10 ? name.substring(0, 10).toUpperCase() : name.toUpperCase());
+        const displayCode = code.padEnd(10).slice(0, 10);
+
+        let scoreStr = '';
+        let gradeStr = '';
 
         if (typeof detail === 'string') {
-          return `• *${code}:* ${detail}`;
+          scoreStr = ' - '.padStart(5);
+          gradeStr = detail.padStart(5);
         } else {
-          const gradeStr = detail.grade.includes('EE') ? `*${detail.grade}*` : detail.grade;
-          return `• *${code}:* ${detail.score}% (${gradeStr})`;
+          scoreStr = Math.round(detail.score).toString().padStart(5);
+          gradeStr = detail.grade.replace(/\d+/g, '').padStart(5);
         }
+
+        return `${displayCode}|${scoreStr} |${gradeStr}`;
       });
-      subjectsSummary = `\n\n*SUBJECT PERFORMANCE:*\n${subArray.join('\n')}`;
+
+      const avgLabel = "AVERAGE".padEnd(10);
+      const avgScore = (averageScore + "%").padStart(6);
+      const avgGrade = (overallGrade || '').replace(/\d+/g, '').padStart(4);
+      const avgRow = `${avgLabel}|${avgScore}|${avgGrade}`;
+
+      subjectsSummary = `\n\`\`\`\n${tableHeader}\n${separator}\n${subRows.join('\n')}\n${separator}\n${avgRow}\n\`\`\``;
     }
 
-    const currentYear = new Date().getFullYear();
-    const message = `${schoolNameHeader}\n\n` +
-      `${greeting}\n\n` +
-      `Here is the ${term} ${currentYear} assessment report for:\n` +
-      `👤 *${learnerName}* (${learnerGrade})\n\n` +
-      `📊 *RESULTS SUMMARY:*\n` +
-      `• Mean Score: *${averageScore || '0'}%*\n` +
-      `• Overall Grade: *${overallGrade || 'N/A'}*\n` +
-      `• Total Assessments: ${data.totalTests}` +
+    const message = `${schoolNameHeader}\n` +
+      `Official Assessment Report\n\n` +
+      `${greeting}\n` +
+      `Here is the assessment summary for\n` +
+      `*${learnerName}* for *${term}*:\n` +
       `${subjectsSummary}\n\n` +
-      `_This is an automated message. Please do not reply._`;
+      `*Total Marks:* ${data.totalMarks || 'N/A'} / ${data.maxPossibleMarks || 'N/A'}\n` +
+      `*Overall Status:* ${overallGrade?.replace(/\d+/g, '') || 'N/A'}\n\n` +
+      `_Generated on ${new Date().toLocaleDateString()}_`;
 
     return await this.sendMessage({
       to: parentPhone,
