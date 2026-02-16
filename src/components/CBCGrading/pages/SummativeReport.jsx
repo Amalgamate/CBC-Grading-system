@@ -129,8 +129,8 @@ const getCBCGrade = (percentage) => {
   if (percentage >= 75) return { grade: 'EE2', remark: 'Exceeding Expectations 2 - Very High', color: '#008000' }; // Green
   if (percentage >= 58) return { grade: 'ME1', remark: 'Meeting Expectations 1 - High Average', color: '#000080' }; // Navy Blue
   if (percentage >= 41) return { grade: 'ME2', remark: 'Meeting Expectations 2 - Average', color: '#0000CD' }; // Medium Blue
-  if (percentage >= 31) return { grade: 'AE1', remark: 'Approaching Expectations 1 - Low Average', color: '#B8860B' }; // Dark Goldenrod
-  if (percentage >= 21) return { grade: 'AE2', remark: 'Approaching Expectations 2 - Below Average', color: '#DAA520' }; // Goldenrod
+  if (percentage >= 31) return { grade: 'AE1', remark: 'Approaching Expectations 1 - Low Average', color: '#8B4513' }; // SaddleBrown (Darker than Goldenrod)
+  if (percentage >= 21) return { grade: 'AE2', remark: 'Approaching Expectations 2 - Below Average', color: '#A0522D' }; // Sienna
   if (percentage >= 11) return { grade: 'BE1', remark: 'Below Expectations 1 - Low', color: '#D2691E' }; // Chocolate
   return { grade: 'BE2', remark: 'Below Expectations 2 - Very Low', color: '#8B0000' }; // Dark Red
 };
@@ -367,7 +367,7 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
               </th>
             ))}
             <th style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 'bold', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>AVG %</th>
-            <th style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 'bold', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>GRADE</th>
+            <th style={{ padding: '8px 4px', textAlign: 'left', fontWeight: 'bold', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>GRADE</th>
             <th style={{ padding: '8px 4px', textAlign: 'left', fontWeight: 'bold', borderLeft: '1px solid rgba(255,255,255,0.2)' }}>REMARKS</th>
           </tr>
         </thead>
@@ -381,7 +381,7 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
                 </td>
               ))}
               <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '700', fontSize: '16px', color: '#000000' }}>{row.percentage}%</td>
-              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '700', fontSize: '16px', color: row.color }}>{row.grade}</td>
+              <td style={{ padding: '6px 4px', textAlign: 'left', fontWeight: '700', fontSize: '16px', color: row.color }}>{row.grade}</td>
               <td style={{ padding: '6px 4px', fontSize: '11px', fontStyle: 'italic', fontWeight: '700', color: '#000000', lineHeight: '1.2' }}>{row.remark}</td>
             </tr>
           ))}
