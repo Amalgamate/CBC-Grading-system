@@ -443,6 +443,9 @@ const Sidebar = React.memo(({
 
   // Find settings section separately
   const settingsSection = useMemo(() => {
+    // Teachers cannot access settings
+    if (role === 'TEACHER') return null;
+    
     const section = allNavSections.find(s => s.id === 'settings');
     if (!section || !can(section.permission)) return null;
 
@@ -451,24 +454,58 @@ const Sidebar = React.memo(({
       ...section,
       items: section.items.filter(isItemVisible)
     };
-  }, [can]);
+  }, [can, role]);
 
   // Group sections
-  const educationSections = useMemo(() => navSections.filter(s =>
-    ['learners', 'teachers', 'parents', 'assessment', 'learning-hub', 'timetable', 'attendance'].includes(s.id)
-  ), [navSections]);
+  const educationSections = useMemo(() => {
+    // For teachers, show only Students and Assessment
+    if (role === 'TEACHER') {
+      return navSections.filter(s => ['learners', 'assessment'].includes(s.id));
+    }
+    // For other roles, show all education sections
+    return navSections.filter(s =>
+      ['learners', 'teachers', 'parents', 'assessment', 'learning-hub', 'timetable', 'attendance'].includes(s.id)
+    );
+  }, [navSections, role]);
 
-  const sharedSections = useMemo(() => navSections.filter(s =>
-    ['docs-center', 'knowledge-base'].includes(s.id)
-  ), [navSections]);
+  const sharedSections = useMemo(() => {
+    // Teachers don't see shared utilities
+    if (role === 'TEACHER') return [];
+    return navSections.filter(s =>
+      ['docs-center', 'knowledge-base'].includes(s.id)
+    );
+  }, [navSections, role]);
 
-  const schoolSections = useMemo(() => navSections.filter(s =>
-    ['fees', 'hr', 'finance', 'accounting', 'inventory', 'library', 'transport', 'biometric'].includes(s.id)
-  ), [navSections]);
+  const schoolSections = useMemo(() => {
+    // Teachers don't see school management sections
+    if (role === 'TEACHER') return [];
+    return navSections.filter(s =>
+      ['fees', 'hr', 'finance', 'accounting', 'inventory', 'library', 'transport', 'biometric'].includes(s.id)
+    );
+  }, [navSections, role]);
 
   const dashboardSection = navSections.find(s => s.id === 'dashboard');
-  const communicationSection = navSections.find(s => s.id === 'communications');
-  const helpSection = navSections.find(s => s.id === 'help');
+  
+  // For teachers, filter communications to only show Inbox (Messages)
+  const communicationSection = useMemo(() => {
+    const section = navSections.find(s => s.id === 'communications');
+    if (!section) return null;
+    
+    if (role === 'TEACHER') {
+      return {
+        ...section,
+        items: section.items.filter(item => item.id === 'comm-messages')
+      };
+    }
+    
+    return section;
+  }, [navSections, role]);
+  
+  // Hide help section for teachers
+  const helpSection = useMemo(() => {
+    if (role === 'TEACHER') return null;
+    return navSections.find(s => s.id === 'help');
+  }, [navSections, role]);
 
   const handleSectionClick = (section) => {
     if (sidebarOpen) {
