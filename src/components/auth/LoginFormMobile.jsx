@@ -336,20 +336,18 @@ export default function LoginFormMobile({ onSwitchToRegister, onSwitchToForgotPa
                   <span className="ml-2 text-sm text-gray-700">Remember me</span>
                 </label>
 
-                {/* Skip OTP (Dev Only) */}
-                {process.env.NODE_ENV === 'development' && (
-                  <label className="flex items-center p-3 bg-orange-50 rounded-lg border border-orange-100 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="skipOTP"
-                      checked={formData.skipOTP}
-                      onChange={handleChange}
-                      className="w-4 h-4 border-gray-300 rounded pointer-events-auto"
-                      style={{ touchAction: 'manipulation' }}
-                    />
-                    <span className="ml-2 text-xs text-orange-700 font-semibold">Skip OTP (Dev)</span>
-                  </label>
-                )}
+                {/* Skip OTP */}
+                <label className="flex items-center p-3 bg-orange-50 rounded-lg border border-orange-100 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="skipOTP"
+                    checked={formData.skipOTP}
+                    onChange={handleChange}
+                    className="w-4 h-4 border-gray-300 rounded pointer-events-auto"
+                    style={{ touchAction: 'manipulation' }}
+                  />
+                  <span className="ml-2 text-xs text-orange-700 font-semibold">Skip OTP</span>
+                </label>
 
                 {/* Submit Button */}
                 <button
