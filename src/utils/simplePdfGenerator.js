@@ -310,7 +310,7 @@ export const generatePDFWithLetterhead = async (
 
           <!-- School Details Section -->
           <div style="text-align: right; flex-grow: 1; padding-left: 15px;">
-            <h1 style="margin: 0 0 2px 0; font-size: 22px; font-weight: 800; color: ${brandColor}; letter-spacing: -0.5px; text-transform: uppercase;">
+            <h1 style="margin: 0 0 2px 0; font-size: 22px; font-weight: 700; color: ${brandColor}; letter-spacing: -0.5px; text-transform: uppercase;">
               ${schoolName}
             </h1>
             <div style="font-size: 10px; line-height: 1.3; color: #555;">

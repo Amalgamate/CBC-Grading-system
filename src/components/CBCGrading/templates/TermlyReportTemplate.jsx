@@ -64,17 +64,17 @@ const TermlyReportTemplate = ({ reportData, id = "termly-report-content" }) => {
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-5 mb-6 grid grid-cols-4 gap-4 shadow-sm">
                 <div className="col-span-2">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Learner Full Name</p>
-                    <p className="text-xl font-black text-gray-800 uppercase tracking-tight border-b border-gray-300 pb-1">
+                    <p className="text-xl font-bold text-gray-800 uppercase tracking-tight border-b border-gray-300 pb-1">
                         {reportData.learner.firstName} {reportData.learner.lastName}
                     </p>
                 </div>
                 <div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Admission No</p>
-                    <p className="text-lg font-black text-gray-800">{reportData.learner.admissionNumber}</p>
+                    <p className="text-lg font-bold text-gray-800">{reportData.learner.admissionNumber}</p>
                 </div>
                 <div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Grade Level</p>
-                    <p className="text-lg font-black text-gray-800 uppercase">{reportData.learner.grade}</p>
+                    <p className="text-lg font-bold text-gray-800 uppercase">{reportData.learner.grade}</p>
                 </div>
             </div>
 
@@ -83,18 +83,18 @@ const TermlyReportTemplate = ({ reportData, id = "termly-report-content" }) => {
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="text-white" style={{ backgroundColor: brandColor }}>
-                            <th className="px-4 py-3 text-xs font-black uppercase tracking-widest border-r border-white/20">Learning Area</th>
-                            <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-widest border-r border-white/20 w-32">Points / Marks</th>
-                            <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-widest w-32">Grade</th>
+                            <th className="px-4 py-3 text-xs font-bold uppercase tracking-widest border-r border-white/20">Learning Area</th>
+                            <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-widest border-r border-white/20 w-32">Points / Marks</th>
+                            <th className="px-4 py-3 text-center text-xs font-bold uppercase tracking-widest w-32">Grade</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {(reportData.summative?.summary?.bySubject || []).map((subject, idx) => (
                             <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                                 <td className="px-4 py-2.5 text-sm font-bold text-gray-700">{subject.subject}</td>
-                                <td className="px-4 py-2.5 text-center text-sm font-black text-gray-900 border-x border-gray-100">{subject.averagePercentage}%</td>
+                                <td className="px-4 py-2.5 text-center text-sm font-bold text-gray-900 border-x border-gray-100">{subject.averagePercentage}%</td>
                                 <td className="px-4 py-2.5 text-center">
-                                    <span className="font-black text-lg" style={{ color: brandColor }}>{subject.grade}</span>
+                                    <span className="font-bold text-lg" style={{ color: brandColor }}>{subject.grade}</span>
                                 </td>
                             </tr>
                         ))}
