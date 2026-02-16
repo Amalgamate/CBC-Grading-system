@@ -73,6 +73,27 @@ const getLearnerPhone = (learner) => {
     '';
 };
 
+const getLearnerContactOptions = (learner) => {
+  if (!learner) return [];
+  const options = [];
+
+  if (learner.primaryContactPhone) options.push({ label: 'Primary', phone: learner.primaryContactPhone, name: learner.primaryContactName });
+  if (learner.guardianPhone) options.push({ label: 'Guardian', phone: learner.guardianPhone, name: learner.guardianName });
+  if (learner.fatherPhone) options.push({ label: 'Father', phone: learner.fatherPhone, name: learner.fatherName });
+  if (learner.motherPhone) options.push({ label: 'Mother', phone: learner.motherPhone, name: learner.motherName });
+  if (learner.parent?.phone) options.push({ label: 'ParentAccount', phone: learner.parent.phone, name: learner.parent.firstName });
+  if (learner.parentPhone) options.push({ label: 'Secondary', phone: learner.parentPhone });
+  if (learner.parentPhoneNumber) options.push({ label: 'Secondary', phone: learner.parentPhoneNumber });
+
+  // Filter out empty phones and duplicates
+  const uniquePhones = new Set();
+  return options.filter(opt => {
+    if (!opt.phone || uniquePhones.has(opt.phone)) return false;
+    uniquePhones.add(opt.phone);
+    return true;
+  });
+};
+
 
 // Helper to refine learning area based on test title (fixes aggregation issues)
 const getRefinedLearningArea = (currentArea, testTitle) => {
@@ -349,14 +370,14 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
         <tbody>
           {tableRows.map((row, idx) => (
             <tr key={row.area} style={{ backgroundColor: idx % 2 === 0 ? '#f8fafc' : 'white', borderBottom: '1px solid #e2e8f0' }}>
-              <td style={{ padding: '6px 4px', fontWeight: '900', fontSize: '16px', color: '#1E3A8A', letterSpacing: '-0.2px' }}>{row.area}</td>
+              <td style={{ padding: '6px 4px', fontWeight: '700', fontSize: '16px', color: '#1E3A8A', letterSpacing: '-0.2px' }}>{row.area}</td>
               {testColumns.map(col => (
-                <td key={col} style={{ padding: '6px 4px', textAlign: 'center', color: '#1e293b', fontWeight: '900', fontSize: '16px' }}>
+                <td key={col} style={{ padding: '6px 4px', textAlign: 'center', color: '#1e293b', fontWeight: '700', fontSize: '16px' }}>
                   {row.scoresByCol[col] !== null ? row.scoresByCol[col] : '—'}
                 </td>
               ))}
-              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '900', fontSize: '18px', color: '#0f172a' }}>{row.percentage}%</td>
-              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '900', fontSize: '18px', color: row.color }}>{row.grade}</td>
+              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '700', fontSize: '18px', color: '#0f172a' }}>{row.percentage}%</td>
+              <td style={{ padding: '6px 4px', textAlign: 'center', fontWeight: '700', fontSize: '18px', color: row.color }}>{row.grade}</td>
               <td style={{ padding: '6px 4px', fontSize: '11px', fontStyle: 'italic', fontWeight: '700', color: '#64748b', lineHeight: '1.2' }}>{row.remark}</td>
             </tr>
           ))}
@@ -382,7 +403,7 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
 
           const cardStyle = { padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'center', backgroundColor: '#f8fafc' };
           const labelStyle = { fontSize: '10px', fontWeight: 'bold', color: '#64748b', marginBottom: '2px', textTransform: 'uppercase' };
-          const valueStyle = { fontSize: '18px', fontWeight: '900', color: '#0f172a' };
+          const valueStyle = { fontSize: '18px', fontWeight: '700', color: '#0f172a' };
 
           return (
             <>
@@ -653,6 +674,8 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
   const [showSMSPreview, setShowSMSPreview] = useState(false);
   const [smsPreviewData, setSmsPreviewData] = useState(null);
   const [editedPhoneNumber, setEditedPhoneNumber] = useState('');
+  const [showSMSBulkConfirm, setShowSMSBulkConfirm] = useState(false);
+  const [smsProgress, setSmsProgress] = useState({ current: 0, total: 0, success: 0, failed: 0 });
 
   // WhatsApp sending state
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
@@ -1015,31 +1038,40 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     const averageScore = row.averageScore || row.averagePct || (maxPossibleMarks > 0 ? ((totalMarks / maxPossibleMarks) * 100).toFixed(1) : 0);
     const { grade: overallGrade } = getCBCGrade(parseFloat(averageScore));
 
+    const processedSmsTests = new Set();
     const subjects = results.reduce((acc, r) => {
-      const area = r.learningArea || r.test?.learningArea || 'General';
+      // Deduplicate exact results
+      const resultKey = r.id || `${r.testId}-${r.score}`;
+      if (processedSmsTests.has(resultKey)) return acc;
+      processedSmsTests.add(resultKey);
+
+      const rawArea = r.learningArea || r.test?.learningArea || 'General';
+      const area = rawArea.trim().toUpperCase();
+
       const pct = (r.totalMarks || r.test?.totalMarks) > 0 ? (r.score / (r.totalMarks || r.test?.totalMarks)) * 100 : 0;
       const { grade } = getCBCGrade(pct);
       const simpleGrade = grade.replace(/\d+/g, '');
-      acc[area] = { score: Math.round(r.score), grade: simpleGrade };
+
+      // If multiple tests for one subject, average them for the summary
+      if (acc[area]) {
+        acc[area].score = Math.round((acc[area].score + r.score) / 2);
+      } else {
+        acc[area] = { score: Math.round(r.score), grade: simpleGrade };
+      }
       return acc;
     }, {});
 
     const subjectsList = Object.entries(subjects).map(([name, detail]) => {
-      const shortName = getAbbreviatedName(name).padEnd(12).slice(0, 12);
-      const paddedScore = String(detail.score).padStart(3);
-      const paddedGrade = detail.grade.padStart(3);
-      return `${shortName} ${paddedScore}  ${paddedGrade}`;
+      const shortName = getAbbreviatedName(name);
+      return `${shortName}: ${detail.score} ${detail.grade}`;
     }).join('\n');
-
-    const tableHeader = `SUBJECT      SCR  GRD`;
 
     return `${schoolName.toUpperCase()}\n` +
       `Official Assessment Report\n\n` +
       `Dear ${parentName},\n` +
       `Here is the assessment summary for\n${learner.firstName} ${learner.lastName} for ${termLabel}:\n\n` +
-      `${tableHeader}\n` +
       `${subjectsList}\n\n` +
-      `AVERAGE      ${averageScore.toString().padStart(3)}%  ${overallGrade.replace(/\d+/g, '').padStart(3)}\n\n` +
+      `AVERAGE: ${averageScore}% ${overallGrade.replace(/\d+/g, '')}\n` +
       `Total Marks: ${totalMarks} / ${maxPossibleMarks}\n` +
       `Overall Status: ${overallGrade.replace(/\d+/g, '')}`;
   };
@@ -1061,11 +1093,12 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     // Fix stale number by fetching latest (addresses user request)
     try {
       const latest = await api.learners.getById(learner.id);
-      if (latest) {
-        learner = latest;
+      const unpackedLearner = latest?.data || latest;
+      if (unpackedLearner && unpackedLearner.id) {
+        learner = unpackedLearner;
         // Optionally update the row object if it's from the table
         if (directRow) {
-          directRow.learner = latest;
+          directRow.learner = unpackedLearner;
         }
       }
     } catch (e) {
@@ -1076,6 +1109,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     const parentPhone = getLearnerPhone(learner);
     const parentName = learner.guardianName || learner.parent?.firstName || 'Parent';
     const termLabel = terms.find(t => t.value === selectedTerm)?.label || selectedTerm;
+    const contactOptions = getLearnerContactOptions(learner);
 
     // Proceed to SMS preview even if phone is missing (user can enter it)
     const message = formatSmsReport(row);
@@ -1087,7 +1121,8 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       learnerName: `${learner.firstName} ${learner.lastName}`,
       message: message,
       termLabel: termLabel,
-      learnerId: learner.id // Store learner ID for tracking
+      learnerId: learner.id, // Store learner ID for tracking
+      contactOptions: contactOptions
     });
     setShowSMSPreview(true);
   };
@@ -1112,18 +1147,38 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       return;
     }
 
+    // Refresh contact info for WhatsApp too
+    let learnerObj = currentLearner;
+    try {
+      const latest = await api.learners.getById(currentLearner.id);
+      const unpacked = latest?.data || latest;
+      if (unpacked && unpacked.id) {
+        learnerObj = unpacked;
+      }
+    } catch (e) {
+      console.warn("Could not fetch latest learner contact for WhatsApp", e);
+    }
+
     // 1. Data Preparation (Priority: Guardian -> Parent)
-    const parentPhone = getLearnerPhone(currentLearner);
-    const parentName = currentLearner.guardianName || currentLearner.parent?.firstName || 'Parent';
+    const parentPhone = getLearnerPhone(learnerObj);
+    const parentName = learnerObj.guardianName || learnerObj.parent?.firstName || 'Parent';
     const termLabel = terms.find(t => t.value === selectedTerm)?.label || selectedTerm;
     const schoolName = brandingSettings?.schoolName || 'YOUR SCHOOL';
 
     const results = row.results || [];
 
     // Aggregate results by area (to avoid duplicates in the WhatsApp message)
+    // and normalize area names to avoid nearly-identical keys
     const areaSummary = {};
+    const processedTests = new Set();
+
     results.forEach(r => {
-      const area = r.learningArea || 'General';
+      // Deduplicate if the same result appears twice in the array
+      const resultKey = r.id || `${r.testId}-${r.score}`;
+      if (processedTests.has(resultKey)) return;
+      processedTests.add(resultKey);
+
+      const area = (r.learningArea || 'General').trim().toUpperCase();
       if (!areaSummary[area]) areaSummary[area] = { score: 0, total: 0 };
       areaSummary[area].score += (r.score || 0);
       areaSummary[area].total += (r.totalMarks || 0);
@@ -1145,27 +1200,37 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     const averageScore = row.averageScore || (maxPossibleMarks > 0 ? ((totalMarks / maxPossibleMarks) * 100).toFixed(1) : 0);
     const { grade: overallGrade } = getCBCGrade(parseFloat(averageScore));
 
-    const tableRowsText = tableRows.map(r => {
-      const nameCol = getAbbreviatedName(r.area).padEnd(12).slice(0, 12);
-      const scoreCol = Math.round(r.score).toString().padStart(3);
-      const gradeCol = r.grade.replace(/\d+/g, '').padStart(3);
-      return `${nameCol} ${scoreCol}  ${gradeCol}`;
+    const subjectsListText = tableRows.map(r => {
+      const name = getAbbreviatedName(r.area).toUpperCase().padEnd(10).slice(0, 10);
+      const score = Math.round(r.score).toString().padStart(5);
+      const grade = r.grade.replace(/\d+/g, '').padStart(5);
+      return `${name}|${score} |${grade}`;
     }).join('\n');
 
-    const tableHeader = `SUBJECT      SCR  GRD`;
+    const tableHeader = `SUBJECT   |  SCR |  GRD`;
+    const separator = `----------|-----|----`;
 
-    // 3. Construct the Final Message (Clean & Professional)
+    const avgLabel = "AVERAGE".padEnd(10);
+    const avgScore = (averageScore + "%").padStart(6);
+    const avgGrade = overallGrade.replace(/\d+/g, '').padStart(4);
+    const avgRow = `${avgLabel}|${avgScore}|${avgGrade}`;
+
+    // 3. Construct the Final Message (Matching user request)
     const waMessage =
-      `${schoolName.toUpperCase()}\n` +
-      `Official Assessment Report\n\n` +
-      `Dear ${parentName},\n` +
-      `Here is the assessment summary for\n${currentLearner.firstName} ${currentLearner.lastName} for ${termLabel}:\n\n` +
+      `*${schoolName.toUpperCase()}*\n` +
+      `_Official Assessment Report_\n\n` +
+      `Dear *${parentName}*,\n` +
+      `Here is the assessment summary for\n*${learnerObj.firstName || ''} ${learnerObj.lastName || ''}* for *${termLabel}*:\n\n` +
+      `\`\`\`\n` +
       `${tableHeader}\n` +
-      `${tableRowsText}\n\n` +
-      `AVERAGE      ${averageScore.toString().padStart(3)}%  ${overallGrade.replace(/\d+/g, '').padStart(3)}\n\n` +
-      `Total Marks: ${totalMarks} / ${maxPossibleMarks}\n` +
-      `Overall Status: ${overallGrade.replace(/\d+/g, '')}\n\n` +
-      `Generated on ${new Date().toLocaleDateString()}`;
+      `${separator}\n` +
+      `${subjectsListText}\n` +
+      `${separator}\n` +
+      `${avgRow}\n` +
+      `\`\`\`\n\n` +
+      `*Total Marks:* ${totalMarks} / ${maxPossibleMarks}\n` +
+      `*Overall Status:* ${overallGrade.replace(/\d+/g, '')}\n\n` +
+      `_Generated on ${new Date().toLocaleDateString()}_`;
 
     // 3.5 Open WhatsApp immediately (before async logs to prevent browser blocking)
     let cleanPhone = parentPhone ? parentPhone.replace(/\D/g, '') : '';
@@ -1181,7 +1246,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     // 4. Log communication to backend to track status
     try {
       await api.notifications.logCommunication({
-        learnerId: currentLearner.id,
+        learnerId: learnerObj.id,
         channel: 'WHATSAPP',
         term: selectedTerm,
         academicYear: setup.academicYear,
@@ -1192,7 +1257,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       if (reportData?.rows) {
         setReportData(prev => ({
           ...prev,
-          rows: prev.rows.map(r => r.learner.id === currentLearner.id
+          rows: prev.rows.map(r => r.learner.id === learnerObj.id
             ? { ...r, communication: { ...r.communication, hasSentWhatsApp: true, lastWhatsAppAt: new Date() } }
             : r)
         }));
@@ -1205,7 +1270,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
 
 
   /**
-   * Bulk SMS Handler
+   * Bulk SMS Handler - Shows confirmation modal
    */
   const handleBulkSMS = async () => {
     if (!reportData?.rows || reportData.rows.length === 0) {
@@ -1213,14 +1278,20 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       return;
     }
 
+    // Show confirmation modal instead of browser alert
+    setShowSMSBulkConfirm(true);
+  };
+
+  /**
+   * Execute Bulk SMS - Called after user confirms in modal
+   */
+  const executeBulkSMS = async (testNumber = null) => {
+    setShowSMSBulkConfirm(false);
+
     // Determine target rows (selected or all)
     const rowsToProcess = selectedReportRows.length > 0
       ? selectedReportRows.map(idx => reportData.rows[idx])
       : reportData.rows;
-
-    if (!window.confirm(`Are you sure you want to send SMS results to ${rowsToProcess.length} parents? This action cannot be undone.`)) {
-      return;
-    }
 
     setBulkProgress({ current: 0, total: rowsToProcess.length, active: true, success: 0, failed: 0 });
     const total = rowsToProcess.length;
@@ -1451,13 +1522,25 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       try {
         // format subjects
         const subjects = {};
+        const processedBatchTests = new Set();
         if (row.results) {
           row.results.forEach(r => {
-            const subjectName = r.learningArea || r.test?.learningArea || 'Subject';
-            subjects[subjectName] = {
-              score: r.score || 0,
-              grade: r.grade || '-'
-            };
+            const resultKey = r.id || `${r.testId}-${r.score}`;
+            if (processedBatchTests.has(resultKey)) return;
+            processedBatchTests.add(resultKey);
+
+            const rawName = r.learningArea || r.test?.learningArea || 'Subject';
+            const subjectName = rawName.trim().toUpperCase();
+
+            // If multiple tests for one subject, we average them for the bulk view payload
+            if (subjects[subjectName]) {
+              subjects[subjectName].score = (subjects[subjectName].score + (r.score || 0)) / 2;
+            } else {
+              subjects[subjectName] = {
+                score: r.score || 0,
+                grade: r.grade || '-'
+              };
+            }
           });
         }
 
@@ -2725,6 +2808,25 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                             className="w-full border border-gray-300 rounded p-2 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
                             placeholder="e.g. 0712345678"
                           />
+
+                          {/* Contact Suggestions */}
+                          {smsPreviewData.contactOptions?.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {smsPreviewData.contactOptions.map((opt, i) => (
+                                <button
+                                  key={i}
+                                  onClick={() => setEditedPhoneNumber(opt.phone)}
+                                  className={`px-2 py-1 rounded text-[10px] font-bold transition-all border ${editedPhoneNumber === opt.phone
+                                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                    : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-600'
+                                    }`}
+                                  title={`Use ${opt.label}: ${opt.phone}`}
+                                >
+                                  {opt.label}: {opt.phone}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex justify-between text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
@@ -2767,6 +2869,93 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           </div>
         )
       }
+
+      {/* SMS BULK CONFIRMATION / PROGRESS MODAL */}
+      {(showSMSBulkConfirm || bulkProgress.active) && (
+        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border border-gray-100">
+
+            {!bulkProgress.active ? (
+              <>
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-800">
+                  <MessageSquare className="text-blue-500" />
+                  Start Bulk SMS?
+                </h3>
+                <p className="text-gray-600 mb-4 text-sm">
+                  You are about to send report summaries to <strong>{selectedReportRows.length > 0 ? selectedReportRows.length : reportData.rows.length}</strong> parents via SMS.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 p-3 rounded mb-4 text-xs text-blue-800 font-medium">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+                    <div>
+                      <div className="font-bold mb-1">Cost Estimate</div>
+                      <div>Approx. {Math.ceil((selectedReportRows.length > 0 ? selectedReportRows.length : reportData.rows.length) * 2)} SMS parts will be sent.</div>
+                      <div className="text-[10px] text-blue-600 mt-1 italic">Each report is ~2-3 SMS parts (160 chars each)</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-xs font-bold mb-1 text-gray-500 uppercase">Send Test Message To (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 0712345678"
+                    id="sms-test-number"
+                    className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none transition"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">If entered, ALL messages will be sent to this number for testing.</p>
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowSMSBulkConfirm(false)}
+                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded text-sm font-bold transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      const testNum = document.getElementById('sms-test-number').value;
+                      executeBulkSMS(testNum || null);
+                    }}
+                    className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold text-sm shadow-lg shadow-blue-200 transition transform hover:scale-105"
+                  >
+                    Start Sending
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">Sending SMS Messages...</h3>
+                <p className="text-gray-500 text-sm mb-6">Please do not close this window.</p>
+
+                <div className="w-full bg-gray-100 rounded-full h-4 mb-2 overflow-hidden">
+                  <div
+                    className="bg-blue-600 h-4 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-xs font-bold text-gray-500 uppercase mb-4">
+                  <span>Progress</span>
+                  <span>{bulkProgress.current} / {bulkProgress.total}</span>
+                </div>
+
+                <div className="flex justify-center gap-4 text-sm font-medium">
+                  <div className="flex items-center gap-1">
+                    <CheckCircle size={14} className="text-green-600" />
+                    <span className="text-green-600">Success: {bulkProgress.success}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <XCircle size={14} className="text-red-600" />
+                    <span className="text-red-600">Failed: {bulkProgress.failed}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* GENERAL NOTIFICATION MODAL */}
 
