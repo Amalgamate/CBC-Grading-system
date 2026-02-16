@@ -97,9 +97,10 @@ const allNavSections = [
         label: 'Formative',
         type: 'group',
         icon: ClipboardList,
+        greyedOut: true,
         items: [
-          { id: 'assess-formative', label: 'Assessments', path: 'assess-formative', permission: 'ACCESS_ASSESSMENT_MODULE' },
-          { id: 'assess-formative-report', label: 'Reports', path: 'assess-formative-report', permission: 'ACCESS_ASSESSMENT_MODULE' },
+          { id: 'assess-formative', label: 'Assessments', path: 'assess-formative', permission: 'ACCESS_ASSESSMENT_MODULE', greyedOut: true },
+          { id: 'assess-formative-report', label: 'Reports', path: 'assess-formative-report', permission: 'ACCESS_ASSESSMENT_MODULE', greyedOut: true },
         ]
       },
       {
@@ -852,15 +853,18 @@ const NavSection = React.memo(({
                   return (
                     <div key={item.id} className="mt-2 mb-1">
                       <button
-                        onClick={() => toggleSubSection(item.id)}
+                        onClick={() => item.greyedOut ? null : toggleSubSection(item.id)}
+                        disabled={item.greyedOut}
                         className={`w-full flex items-center justify-between px-3 py-1.5 text-xs font-medium transition-colors ${
-                          isGroupActive 
-                            ? 'text-[#0D9488] bg-white/5 rounded-md' 
-                            : 'text-gray-500 hover:text-gray-300'
+                          item.greyedOut 
+                            ? 'text-gray-600 opacity-50 cursor-not-allowed' 
+                            : (isGroupActive 
+                              ? 'text-[#0D9488] bg-white/5 rounded-md' 
+                              : 'text-gray-500 hover:text-gray-300')
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          {item.icon && <item.icon size={12} className={isGroupActive ? 'text-[#0D9488]' : 'opacity-70'} />}
+                          {item.icon && <item.icon size={12} className={item.greyedOut ? 'opacity-40' : (isGroupActive ? 'text-[#0D9488]' : 'opacity-70')} />}
                           <span>{item.label}</span>
                         </div>
                         <ChevronDown size={10} className={`transition-transform duration-200 opacity-50 ${expandedSubSections[item.id] ? 'rotate-180' : ''}`} />

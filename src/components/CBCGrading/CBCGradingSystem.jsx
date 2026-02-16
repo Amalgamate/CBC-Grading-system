@@ -38,8 +38,8 @@ const TransfersInPage = lazy(() => import('./pages/TransfersInPage'));
 const ExitedLearnersPage = lazy(() => import('./pages/ExitedLearnersPage'));
 const FormativeAssessment = lazy(() => import('./pages/FormativeAssessment'));
 const FormativeReport = lazy(() => import('./pages/FormativeReport'));
-const SummativeTests = lazy(() => import('./pages/SummativeTests'));
-const SummativeAssessment = lazy(() => import('./pages/SummativeAssessment'));
+const SummativeTestsRouter = lazy(() => import('./pages/SummativeTestsRouter'));
+const SummativeAssessmentRouter = lazy(() => import('./pages/SummativeAssessmentRouter'));
 const SummativeReport = lazy(() => import('./pages/SummativeReport'));
 const TermlyReport = lazy(() => import('./pages/TermlyReport'));
 const SummaryReportPage = lazy(() => import('./pages/reports/SummaryReportPage'));
@@ -636,9 +636,9 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       case 'assess-formative-report':
         return <FormativeReport learners={learners} />;
       case 'assess-summative-tests':
-        return <SummativeTests onNavigate={handleNavigate} />;
+        return <SummativeTestsRouter onNavigate={handleNavigate} />;
       case 'assess-summative-assessment':
-        return <SummativeAssessment learners={learners} initialTestId={pageParams.initialTestId} />;
+        return <SummativeAssessmentRouter learners={learners} initialTestId={pageParams.initialTestId} />;
       case 'assess-summative-report':
         return <SummativeReport learners={learners} onFetchLearners={fetchLearners} brandingSettings={brandingSettings} user={user} />;
       case 'assess-summary-report':

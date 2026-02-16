@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import LoginForm from '../components/auth/LoginForm';
+import LoginFormRouter from '../components/auth/LoginFormRouter';
 import RegisterForm from '../components/auth/RegisterForm';
 import ForgotPasswordForm from '../components/auth/ForgotPasswordForm';
 import ResetPasswordForm from '../components/auth/ResetPasswordForm';
@@ -91,7 +91,7 @@ function Auth({ onAuthSuccess, brandingSettings, basePath = '/auth' }) {
       )}
       <div className={contentClass}>
         {view === 'login' && (
-          <LoginForm
+          <LoginFormRouter
             onSwitchToRegister={toRegister}
             onSwitchToForgotPassword={toForgotPassword}
             onLoginSuccess={handleLoginSuccess}

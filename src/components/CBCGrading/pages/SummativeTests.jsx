@@ -90,6 +90,10 @@ const SummativeTests = ({ onNavigate }) => {
     setViewMode('bulk_create');
   };
 
+  const handleAddSingleTest = () => {
+    setViewMode('create');
+  };
+
   const handleDelete = async (id) => {
     // Check if id is an object (test) or just id string
     const testId = typeof id === 'object' ? id.id : id;
@@ -549,8 +553,11 @@ const SummativeTests = ({ onNavigate }) => {
                   <CheckCircle size={20} /> <span className="hidden sm:inline">Approve All</span><span className="inline sm:hidden">Approve</span>
                 </button>
               )}
-              <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-sm font-bold">
-                <Plus size={20} /> <span className="hidden sm:inline">Create New Test</span><span className="inline sm:hidden">New</span>
+              <button onClick={handleAddSingleTest} className="flex items-center gap-2 px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-sm font-bold text-sm">
+                <Plus size={16} /> <span className="hidden sm:inline">New Test</span><span className="inline sm:hidden">+</span>
+              </button>
+              <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2 bg-brand-teal/70 text-white rounded-lg hover:bg-brand-teal/80 transition shadow-sm font-bold text-sm">
+                <Plus size={16} /> <span className="hidden sm:inline">Bulk Import</span><span className="inline sm:hidden">Import</span>
               </button>
             </div>
           </div>
