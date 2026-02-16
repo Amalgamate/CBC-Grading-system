@@ -74,6 +74,17 @@ export class OtpService {
                 };
             }
 
+            // OTP is disabled for teacher accounts
+            if (user.role === 'TEACHER') {
+                const err = `❌ OTP Error: OTP is disabled for teacher accounts: ${email}`;
+                console.error(err);
+                fs.appendFileSync('otp-debug.log', err + '\n');
+                return {
+                    success: false,
+                    message: 'OTP authentication is not available for teacher accounts. Please use your password to login.'
+                };
+            }
+
             if (!user.phone) {
                 const err = `❌ OTP Error: No phone number for user: ${email}`;
                 console.error(err);
@@ -173,6 +184,14 @@ export class OtpService {
                 return {
                     success: false,
                     message: 'User not found'
+                };
+            }
+
+            // OTP is disabled for teacher accounts
+            if (user.role === 'TEACHER') {
+                return {
+                    success: false,
+                    message: 'OTP authentication is not available for teacher accounts. Please use your password to login.'
                 };
             }
 
