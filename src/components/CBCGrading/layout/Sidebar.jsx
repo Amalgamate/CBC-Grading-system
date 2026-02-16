@@ -841,7 +841,7 @@ const NavSection = React.memo(({
                       </button>
 
                       {expandedSubSections[item.id] && (
-                        <div className="space-y-0.5 ml-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="space-y-0.5 ml-3 animate-in fade-in slide-in-from-top-1 duration-200">
                           {item.items.map(subItem => (
                             <button
                               key={subItem.id}
@@ -855,9 +855,12 @@ const NavSection = React.memo(({
                                 }`}
                               disabled={subItem.comingSoon || subItem.greyedOut}
                             >
-                              <span className="truncate">{subItem.label}</span>
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <span className="text-gray-500 flex-shrink-0">—</span>
+                                <span className="truncate">{subItem.label}</span>
+                              </div>
                               {subItem.comingSoon && (
-                                <span className="text-[8px] bg-[#F59E0B]/20 text-[#F59E0B] px-1.5 py-0.5 rounded font-medium uppercase border border-[#F59E0B]/30">
+                                <span className="text-[8px] bg-[#F59E0B]/20 text-[#F59E0B] px-1.5 py-0.5 rounded font-medium uppercase border border-[#F59E0B]/30 flex-shrink-0">
                                   Soon
                                 </span>
                               )}
