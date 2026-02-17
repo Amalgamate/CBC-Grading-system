@@ -7,15 +7,15 @@
 
 import React, { useMemo, useState } from 'react';
 import {
-  Folder, Menu, X, Home, Users, Settings,
-  BarChart3, ChevronDown, GraduationCap, ClipboardList, Megaphone, UserPlus, HelpCircle, DollarSign,
-  UserCog, BookOpen, Bus, Fingerprint, Calendar, BookMarked,
-  Briefcase, Wallet, Calculator, Box, School, Scroll
+  Home, Menu, X, Users, Settings,
+  TrendingUp, ChevronDown, GraduationCap, CheckSquare, MessageCircle, UserCheck, HelpCircle, Receipt,
+  Users2, BookOpen, Truck, Fingerprint, Calendar,
+  CreditCard, PieChart, Package, Building2, FileText, Zap, School, Boxes
 } from 'lucide-react';
 import { usePermissions } from '../../../hooks/usePermissions';
 
 // Modules to focus on - others will be hidden
-const focusModules = ['dashboard', 'communications', 'planner', 'learners', 'teachers', 'parents', 'assessment', 'learning-hub', 'timetable', 'attendance', 'fees', 'docs-center', 'knowledge-base', 'settings', 'hr', 'finance', 'accounting', 'inventory'];
+const focusModules = ['dashboard', 'communications', 'planner', 'learners', 'teachers', 'parents', 'assessment', 'learning-hub', 'timetable', 'attendance', 'fees', 'docs-center', 'knowledge-base', 'facilities', 'settings', 'hr', 'finance', 'accounting', 'inventory'];
 
 // Define all navigation sections with their required permissions
 const allNavSections = [
@@ -29,7 +29,7 @@ const allNavSections = [
   {
     id: 'communications',
     label: 'Communications',
-    icon: Megaphone,
+    icon: MessageCircle,
     permission: null, // All roles can access communications
     items: [
       { id: 'comm-notices', label: 'Notices & Announcements', path: 'comm-notices', permission: null },
@@ -70,7 +70,7 @@ const allNavSections = [
   {
     id: 'parents',
     label: 'Parents',
-    icon: UserPlus,
+    icon: UserCheck,
     permission: 'VIEW_ALL_USERS', // Teachers can view parents
     items: [
       { id: 'parents-list', label: 'Parents List', path: 'parents-list', permission: 'VIEW_ALL_USERS' }
@@ -79,14 +79,14 @@ const allNavSections = [
   {
     id: 'assessment',
     label: 'Assessment',
-    icon: BarChart3,
+    icon: TrendingUp,
     permission: 'ACCESS_ASSESSMENT_MODULE', // Only teachers, admins, head teachers
     items: [
       {
         id: 'group-summative',
         label: 'Summative',
         type: 'group',
-        icon: Calculator,
+        icon: Zap,
         items: [
           { id: 'assess-summative-assessment', label: 'Assessments', path: 'assess-summative-assessment', permission: 'ACCESS_ASSESSMENT_MODULE' },
           { id: 'assess-summative-report', label: 'Reports', path: 'assess-summative-report', permission: 'ACCESS_ASSESSMENT_MODULE' },
@@ -96,7 +96,7 @@ const allNavSections = [
         id: 'group-formative',
         label: 'Formative',
         type: 'group',
-        icon: ClipboardList,
+        icon: CheckSquare,
         greyedOut: true,
         items: [
           { id: 'assess-formative', label: 'Assessments', path: 'assess-formative', permission: 'ACCESS_ASSESSMENT_MODULE', greyedOut: true },
@@ -109,6 +109,7 @@ const allNavSections = [
         type: 'group',
         icon: Settings,
         items: [
+          { id: 'assess-learning-areas', label: 'Learning Areas', path: 'assess-learning-areas', permission: 'MANAGE_LEARNING_AREAS' },
           { id: 'assess-summative-tests', label: 'Tests', path: 'assess-summative-tests', permission: 'ACCESS_ASSESSMENT_MODULE' },
           { id: 'assess-performance-scale', label: 'Performance Scale', path: 'assess-performance-scale', permission: 'ACCESS_ASSESSMENT_MODULE' }
         ]
@@ -118,7 +119,7 @@ const allNavSections = [
   {
     id: 'learning-hub',
     label: 'Learning Hub',
-    icon: BookMarked,
+    icon: BookOpen,
     permission: null, // Teachers can create, students/parents can view
     items: [
       { id: 'learning-hub-materials', label: 'Class Materials', path: 'learning-hub-materials', permission: null },
@@ -138,7 +139,7 @@ const allNavSections = [
   {
     id: 'attendance',
     label: 'Attendance',
-    icon: ClipboardList,
+    icon: CheckSquare,
     permission: null, // Teachers can mark attendance
     items: [
       { id: 'attendance-daily', label: 'Daily Attendance', path: 'attendance-daily', permission: 'MARK_ATTENDANCE' },
@@ -148,7 +149,7 @@ const allNavSections = [
   {
     id: 'docs-center',
     label: 'Docs',
-    icon: Scroll,
+    icon: FileText,
     permission: null,
     items: []
   },
@@ -163,7 +164,7 @@ const allNavSections = [
   {
     id: 'fees',
     label: 'Fee Management',
-    icon: DollarSign,
+    icon: Receipt,
     permission: 'FEE_MANAGEMENT', // Only admins and accountants
     items: [
       { id: 'fees-structure', label: 'Fee Structure', path: 'fees-structure', permission: 'FEE_MANAGEMENT' },
@@ -175,7 +176,7 @@ const allNavSections = [
   {
     id: 'hr',
     label: 'Human Resources',
-    icon: UserCog,
+    icon: Users2,
     permission: 'HR_MANAGEMENT', // Only admins and HR personnel
     items: [
       { id: 'hr-staff-profiles', label: 'Staff Profiles & Roles', path: 'hr-staff-profiles', permission: 'HR_MANAGEMENT', comingSoon: true },
@@ -201,7 +202,7 @@ const allNavSections = [
   {
     id: 'transport',
     label: 'Transport & Hostel',
-    icon: Bus,
+    icon: Truck,
     permission: 'TRANSPORT_MANAGEMENT', // Admins and transport managers
     items: [
       { id: 'transport-routes', label: 'Bus Routes & Roster', path: 'transport-routes', permission: 'TRANSPORT_MANAGEMENT', comingSoon: true },
@@ -215,7 +216,7 @@ const allNavSections = [
   {
     id: 'finance',
     label: 'Finance',
-    icon: Wallet,
+    icon: CreditCard,
     permission: 'SCHOOL_SETTINGS',
     items: [],
     comingSoon: true,
@@ -224,7 +225,7 @@ const allNavSections = [
   {
     id: 'accounting',
     label: 'Accounting',
-    icon: Calculator,
+    icon: PieChart,
     permission: 'SCHOOL_SETTINGS',
     items: [],
     comingSoon: true,
@@ -233,7 +234,7 @@ const allNavSections = [
   {
     id: 'inventory',
     label: 'Inventory',
-    icon: Box,
+    icon: Package,
     permission: 'SCHOOL_SETTINGS',
     items: [
       { id: 'inventory-books', label: 'Books & Resources', path: 'inventory-books', permission: 'SCHOOL_SETTINGS' }
@@ -258,6 +259,15 @@ const allNavSections = [
     icon: HelpCircle,
     permission: null, // Always visible
     items: []
+  },
+  {
+    id: 'facilities',
+    label: 'Facilities',
+    icon: Building2,
+    permission: 'MANAGE_FACILITIES', // Head teachers can manage facilities
+    items: [
+      { id: 'facilities-classes', label: 'Classes & Streams', path: 'facilities-classes', permission: 'MANAGE_FACILITIES' }
+    ]
   },
   {
     id: 'settings',
@@ -316,6 +326,7 @@ const prefetchModule = (path) => {
         'assess-formative-report': 'FormativeReport',
         'assess-summative-tests': 'SummativeTests',
         'assess-performance-scale': 'PerformanceScale',
+        'assess-learning-areas': 'LearningAreasManagement',
         'fees-collection': 'FeeCollectionPage',
         'fees-structure': 'FeeStructurePage',
         'fees-reports': 'FeeReportsPage',
@@ -334,6 +345,7 @@ const prefetchModule = (path) => {
         'learning-hub-lesson-plans': 'LearningHubPage',
         'learning-hub-library': 'LearningHubPage',
         'inventory-books': 'InventoryList',
+        'facilities-classes': 'FacilityManager',
         'help': 'SupportHub'
       };
       const fileName = fileMap[path] || (path.charAt(0).toUpperCase() + path.slice(1));
@@ -504,6 +516,12 @@ const Sidebar = React.memo(({
     );
   }, [navSections, role]);
 
+  const facilitiesSections = useMemo(() => {
+    // Teachers don't see facilities
+    if (role === 'TEACHER') return [];
+    return navSections.filter(s => s.id === 'facilities');
+  }, [navSections, role]);
+
   const dashboardSection = navSections.find(s => s.id === 'dashboard');
   
   // For teachers, filter communications to only show Inbox (Messages)
@@ -557,9 +575,6 @@ const Sidebar = React.memo(({
 
   // Auto-expand category based on current page
   React.useEffect(() => {
-    const isEducation = educationSections.some(s =>
-      s.id === currentPage || s.items.some(i => i.path === currentPage || (i.type === 'group' && i.items.some(si => si.path === currentPage)))
-    );
     const isSchool = schoolSections.some(s =>
       s.id === currentPage || s.items.some(i => i.path === currentPage)
     );
@@ -567,23 +582,25 @@ const Sidebar = React.memo(({
       s.id === currentPage || s.items.some(i => i.path === currentPage)
     );
 
-    if (isEducation) setActiveCategory('learning');
-    else if (isSchool) setActiveCategory('school');
+    if (isSchool) setActiveCategory('school');
     else if (isUtilities) setActiveCategory('utilities');
     else if (currentPage === 'settings-school' || currentPage.startsWith('settings-')) setActiveCategory('settings');
-  }, [currentPage, educationSections, schoolSections, sharedSections]);
+  }, [currentPage, schoolSections, sharedSections]);
 
   return (
-    <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-[#2e1d2b] text-white transition-all duration-300 flex flex-col border-r border-gray-800`}>
-      {/* Logo/Brand */}
-      <div className="p-5 border-b border-white/10 bg-[#714B67]">
-        <div className="flex items-center gap-3 justify-center overflow-hidden">
+    <div className={`${sidebarOpen ? 'w-52' : 'w-20'} bg-blue-700 text-white transition-all duration-300 flex flex-col border-r border-white/10 shadow-lg`}>
+      {/* Logo/Brand with Premium Styling */}
+      <div className="h-20 p-5 border-b border-white/10 bg-blue-800 relative overflow-hidden">
+        {/* Decorative gradient overlay */}
+        <div className="absolute inset-0 opacity-0"></div>
+        
+        <div className="flex items-center gap-3 justify-center overflow-hidden relative z-10">
           {sidebarOpen ? (
-            <h1 className="text-xl font-bold text-white tracking-wide truncate w-full text-center">
+            <h1 className="text-xl font-bold text-white tracking-widest truncate w-full text-center hover:drop-shadow-lg transition-shadow duration-300">
               {brandingSettings?.schoolName || 'Elimcrown'}
             </h1>
           ) : (
-            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-brand-purple/20 flex items-center justify-center flex-shrink-0 border border-white/10 hover:border-brand-purple/50 transition-all duration-300 shadow-lg">
               <span className="text-lg font-bold text-white">
                 {(brandingSettings?.schoolName || 'EL').substring(0, 2).toUpperCase()}
               </span>
@@ -593,23 +610,27 @@ const Sidebar = React.memo(({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-3 bg-[#2e1d2b] custom-scrollbar">
-        <div className="space-y-4">
+      <nav className="flex-1 overflow-y-auto p-3 bg-blue-700 custom-scrollbar space-y-2">
+        <div className="space-y-3">
           {/* Dashboard */}
           {dashboardSection && (
             <div key={dashboardSection.id}>
               <button
                 onClick={() => onNavigate(dashboardSection.id)}
                 onMouseEnter={() => prefetchModule(dashboardSection.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 group ${currentPage === dashboardSection.id
-                  ? 'bg-white/5 text-[#0D9488] border-l-4 border-[#0D9488]'
-                  : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-4 border-transparent'
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-300 group relative overflow-hidden ${
+                  currentPage === dashboardSection.id
+                  ? 'bg-brand-teal/40 text-white border border-brand-teal/50 shadow-lg shadow-brand-teal/20'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10'
                   }`}
               >
-                <div className="min-w-[20px] flex justify-center">
-                  <dashboardSection.icon size={18} />
+                {currentPage === dashboardSection.id && (
+                  <div className="absolute inset-0 opacity-0"></div>
+                )}
+                <div className="min-w-[20px] flex justify-center relative z-10 group-hover:scale-110 transition-transform duration-300">
+                  <dashboardSection.icon size={20} />
                 </div>
-                {sidebarOpen && <span className="text-sm font-medium">{dashboardSection.label}</span>}
+                {sidebarOpen && <span className="text-sm font-bold tracking-tight relative z-10">{dashboardSection.label}</span>}
               </button>
             </div>
           )}
@@ -631,58 +652,40 @@ const Sidebar = React.memo(({
             </div>
           )}
 
-          {/* Learning Management */}
+          {/* Learning */}
           {educationSections.length > 0 && (
             <div className="space-y-1">
-              {sidebarOpen && (
-                <button
-                  onClick={() => toggleCategory('learning')}
-                  className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-300 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="min-w-[20px] flex justify-center">
-                      <GraduationCap size={18} className="opacity-70" />
-                    </div>
-                    <span className="uppercase text-[10px] tracking-wider font-semibold opacity-80">Learning Management</span>
-                  </div>
-                  <ChevronDown size={14} className={`transition-transform duration-200 ${activeCategory === 'learning' ? 'rotate-180' : ''}`} />
-                </button>
-              )}
-              {(!sidebarOpen || activeCategory === 'learning') && (
-                <div className={sidebarOpen ? "animate-in fade-in slide-in-from-top-1 duration-200" : ""}>
-                  {educationSections.map(section => (
-                    <NavSection
-                      key={section.id}
-                      section={section}
-                      expandedSections={expandedSections}
-                      handleSectionClick={handleSectionClick}
-                      sidebarOpen={sidebarOpen}
-                      expandedSubSections={expandedSubSections}
-                      toggleSubSection={toggleSubSection}
-                      currentPage={currentPage}
-                      onNavigate={onNavigate}
-                    />
-                  ))}
-                </div>
-              )}
+              {educationSections.map(section => (
+                <NavSection
+                  key={section.id}
+                  section={section}
+                  expandedSections={expandedSections}
+                  handleSectionClick={handleSectionClick}
+                  sidebarOpen={sidebarOpen}
+                  expandedSubSections={expandedSubSections}
+                  toggleSubSection={toggleSubSection}
+                  currentPage={currentPage}
+                  onNavigate={onNavigate}
+                />
+              ))}
             </div>
           )}
 
-          {/* School Management */}
+          {/* Back Office */}
           {schoolSections.length > 0 && (
             <div className="space-y-1">
               {sidebarOpen && (
                 <button
                   onClick={() => toggleCategory('school')}
-                  className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-300 transition-colors"
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-bold text-gray-400 hover:text-gray-200 transition-all duration-300 hover:bg-white/5 rounded-lg border border-transparent hover:border-white/10"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="min-w-[20px] flex justify-center">
-                      <School size={18} className="opacity-70" />
+                    <div className="min-w-[20px] flex justify-center group-hover:scale-110 transition-transform">
+                      <School size={18} className="opacity-70 group-hover:opacity-100" />
                     </div>
-                    <span className="uppercase text-[10px] tracking-wider font-semibold opacity-80">School Management</span>
+                    <span className="uppercase tracking-wider font-semibold">Back Office</span>
                   </div>
-                  <ChevronDown size={14} className={`transition-transform duration-200 ${activeCategory === 'school' ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={14} className={`transition-transform duration-300 ${activeCategory === 'school' ? 'rotate-180' : ''}`} />
                 </button>
               )}
               {(!sidebarOpen || activeCategory === 'school') && (
@@ -705,21 +708,40 @@ const Sidebar = React.memo(({
             </div>
           )}
 
-          {/* Institutional Utilities */}
+          {/* Facilities - Direct Items */}
+          {facilitiesSections.length > 0 && (
+            <div className="space-y-1">
+              {facilitiesSections.map(section => (
+                <NavSection
+                  key={section.id}
+                  section={section}
+                  expandedSections={expandedSections}
+                  handleSectionClick={handleSectionClick}
+                  sidebarOpen={sidebarOpen}
+                  expandedSubSections={expandedSubSections}
+                  toggleSubSection={toggleSubSection}
+                  currentPage={currentPage}
+                  onNavigate={onNavigate}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Utilities */}
           {sharedSections.length > 0 && (
             <div className="space-y-1">
               {sidebarOpen && (
                 <button
                   onClick={() => toggleCategory('utilities')}
-                  className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-300 transition-colors"
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-bold text-gray-400 hover:text-gray-200 transition-all duration-300 hover:bg-white/5 rounded-lg border border-transparent hover:border-white/10"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="min-w-[20px] flex justify-center">
-                      <Box size={18} className="opacity-70" />
+                    <div className="min-w-[20px] flex justify-center group-hover:scale-110 transition-transform">
+                      <Boxes size={18} className="opacity-70 group-hover:opacity-100" />
                     </div>
-                    <span className="uppercase text-[10px] tracking-[0.2em] font-black opacity-80">Utilities</span>
+                    <span className="uppercase tracking-wider font-semibold">Utilities</span>
                   </div>
-                  <ChevronDown size={14} className={`transition-transform duration-200 ${activeCategory === 'utilities' ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={14} className={`transition-transform duration-300 ${activeCategory === 'utilities' ? 'rotate-180' : ''}`} />
                 </button>
               )}
               {(!sidebarOpen || activeCategory === 'utilities') && (
@@ -744,19 +766,19 @@ const Sidebar = React.memo(({
 
           {/* Help & Support */}
           {helpSection && (
-            <div key={helpSection.id}>
+            <div key={helpSection.id} className="mt-4 pt-4 border-t border-white/10">
               <button
                 onClick={() => onNavigate(helpSection.id)}
                 onMouseEnter={() => prefetchModule(helpSection.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 group ${currentPage === helpSection.id
-                  ? 'bg-white/5 text-[#0D9488] border-l-4 border-[#0D9488]'
-                  : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-4 border-transparent'
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-300 group relative overflow-hidden ${currentPage === helpSection.id
+                  ? 'bg-cyan-500/30 text-white border border-cyan-500/50 shadow-lg shadow-cyan-500/10'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10'
                   }`}
               >
-                <div className="min-w-[20px] flex justify-center">
-                  <helpSection.icon size={18} />
+                <div className="min-w-[20px] flex justify-center relative z-10 group-hover:scale-110 transition-transform duration-300">
+                  <helpSection.icon size={20} />
                 </div>
-                {sidebarOpen && <span className="text-sm font-medium">{helpSection.label}</span>}
+                {sidebarOpen && <span className="text-sm font-bold tracking-tight relative z-10">{helpSection.label}</span>}
               </button>
             </div>
           )}
@@ -764,7 +786,7 @@ const Sidebar = React.memo(({
       </nav>
 
       {/* Settings (Admin Only) */}
-      <div className="p-3 border-t border-white/10">
+      <div className="p-3 border-t border-white/10 bg-blue-800">
         {settingsSection && (
           <div className="mb-2">
             <NavSection
@@ -825,21 +847,24 @@ const NavSection = React.memo(({
                 if (defaultPath) prefetchModule(defaultPath);
               }
             }}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-md transition-all duration-200 group ${section.id === 'assessment'
-              ? (expandedSections[section.id] ? 'bg-white/5 text-[#F59E0B] border-l-4 border-[#F59E0B]' : 'text-[#F59E0B] hover:bg-white/5 border-l-4 border-transparent')
-              : (expandedSections[section.id] ? 'bg-white/5 text-white border-l-4 border-white/20' : 'text-gray-400 hover:bg-white/5 hover:text-white border-l-4 border-transparent')
+            className={`w-full flex items-center justify-between px-3 py-3 rounded-lg transition-all duration-300 group relative overflow-hidden ${section.id === 'assessment'
+              ? (expandedSections[section.id] ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-lg shadow-amber-500/10' : 'text-amber-400 hover:bg-white/5 hover:text-amber-300 border border-transparent hover:border-amber-500/30')
+              : (expandedSections[section.id] ? 'bg-white/10 text-white border border-white/20 shadow-lg shadow-white/5' : 'text-gray-400 hover:bg-white/5 hover:text-white border border-transparent hover:border-white/10')
               }`}
           >
-            <div className="flex items-center gap-3 flex-1">
-              <div className="min-w-[20px] flex justify-center">
-                <section.icon size={18} className={section.id === 'assessment' ? 'text-[#F59E0B]' : ''} />
+            {expandedSections[section.id] && (
+              <div className="absolute inset-0 opacity-0"></div>
+            )}
+            <div className="flex items-center gap-3 flex-1 relative z-10">
+              <div className="min-w-[20px] flex justify-center group-hover:scale-110 transition-transform duration-300">
+                <section.icon size={20} className={section.id === 'assessment' ? 'text-amber-400' : ''} />
               </div>
-              {sidebarOpen && <span className="text-sm font-medium">{section.label}</span>}
+              {sidebarOpen && <span className="text-sm font-bold tracking-tight">{section.label}</span>}
             </div>
             {sidebarOpen && (
               <ChevronDown
-                size={14}
-                className={`transition ${expandedSections[section.id] ? 'rotate-180' : ''} opacity-50`}
+                size={16}
+                className={`transition duration-300 ${expandedSections[section.id] ? 'rotate-180' : ''} opacity-70 group-hover:opacity-100`}
               />
             )}
           </button>

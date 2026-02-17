@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { dashboardAPI } from '../../../../services/api';
+import CompactMetricBanner from './CompactMetricBanner';
 import {
   Users,
   ClipboardList,
@@ -25,35 +26,54 @@ import {
 } from 'lucide-react';
 import AnimatedDoughnutChart from '../../shared/AnimatedDoughnutChart';
 
-// Professional Components
-const MetricCard = ({ title, value, subtitle, icon: Icon, trend, trendValue }) => (
-  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:border-brand-purple/30 transition-all">
-    <div className="flex justify-between items-start mb-2">
-      <div className="p-2 bg-gray-50 rounded-md text-gray-400">
-        <Icon size={18} />
+// Professional Components with Premium Styling
+const MetricCard = ({ title, value, subtitle, icon: Icon, trend, trendValue }) => {
+  const gradients = {
+    blue: 'from-blue-500 to-blue-600',
+    purple: 'from-brand-purple to-pink-500',
+    teal: 'from-brand-teal to-cyan-500',
+    amber: 'from-amber-500 to-orange-500',
+    green: 'from-emerald-500 to-teal-600'
+  };
+  const colors = ['blue', 'purple', 'teal', 'amber', 'green'];
+  const gradient = gradients[colors[Math.floor(Math.random() * colors.length)]];
+  
+  return (
+    <div className="group relative bg-white p-4 rounded-lg border border-gray-200 shadow-md hover:shadow-xl hover:border-brand-purple/50 transition-all duration-300">
+      <div className={`absolute inset-0 opacity-0 group-hover:opacity-5 bg-gradient-to-br ${gradient} rounded-lg transition-opacity duration-300`}></div>
+      <div className="relative flex justify-between items-start mb-2">
+        <div className="p-3 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 group-hover:scale-110 transition-transform duration-300">
+          <Icon size={20} className="text-gray-600" />
+        </div>
+        {trendValue && (
+          <span className={`text-[10px] font-black px-2 py-1 rounded-full ${
+            trend === 'up' 
+              ? 'bg-emerald-50 text-emerald-600' 
+              : 'bg-rose-50 text-rose-600'
+          }`}>
+            {trendValue}
+          </span>
+        )}
       </div>
-      {trendValue && (
-        <span className={`text-[10px] font-black ${trend === 'up' ? 'text-emerald-600' : 'text-rose-600'}`}>
-          {trendValue}
-        </span>
-      )}
+      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{title}</p>
+      <h3 className="text-2xl font-black text-gray-900 mt-1">{value}</h3>
+      {subtitle && <p className="text-[10px] text-gray-500 mt-1">{subtitle}</p>}
     </div>
-    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{title}</p>
-    <h3 className="text-2xl font-black text-gray-900 mt-1">{value}</h3>
-    {subtitle && <p className="text-[10px] text-gray-500 mt-1">{subtitle}</p>}
-  </div>
-);
+  );
+};
 
 const TabButton = ({ active, label, icon: Icon, onClick }) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-2 px-6 py-3 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${active
-      ? 'border-brand-purple text-brand-purple bg-brand-purple/5'
-      : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
-      }`}
+    className={`flex items-center gap-2 px-6 py-3 text-xs font-black uppercase tracking-widest transition-all duration-300 border-b-2 relative ${
+      active
+        ? 'border-brand-purple text-brand-purple bg-gradient-to-r from-brand-purple/10 to-transparent'
+        : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-white/50'
+    }`}
   >
     <Icon size={14} />
     {label}
+    {active && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-brand-purple to-pink-500"></div>}
   </button>
 );
 
@@ -86,14 +106,51 @@ const TeacherDashboard = ({ learners, user }) => {
     attendanceRate: metrics?.stats?.analytics?.attendance || 94
   };
 
-  const renderOverview = () => (
+  const renderOverview = () => {
+    const bannerMetrics = [
+      {
+        title: 'Enrollment',
+        value: stats.myStudents,
+        subtitle: 'Assigned Learners',
+        icon: Users,
+        trend: null,
+        trendValue: null
+      },
+      {
+        title: 'Active Classes',
+        value: stats.classesToday,
+        subtitle: 'Sessions Scheduled',
+        icon: BookOpen,
+        trend: null,
+        trendValue: null
+      },
+      {
+        title: 'Pending Review',
+        value: stats.pendingGrading,
+        subtitle: 'Assessments to Grade',
+        icon: ClipboardList,
+        trend: 'down',
+        trendValue: '-3'
+      },
+      {
+        title: 'Participation',
+        value: `${stats.attendanceRate}%`,
+        subtitle: 'Avg Daily Rate',
+        icon: Activity,
+        trend: null,
+        trendValue: null
+      }
+    ];
+
+    return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard title="Enrollment" value={stats.myStudents} subtitle="Assigned Learners" icon={Users} />
-        <MetricCard title="Active Classes" value={stats.classesToday} subtitle="Sessions Scheduled" icon={BookOpen} />
-        <MetricCard title="Pending Review" value={stats.pendingGrading} subtitle="Assessments to Grade" icon={ClipboardList} trend="down" trendValue="-3" />
-        <MetricCard title="Participation" value={`${stats.attendanceRate}%`} subtitle="Avg Daily Rate" icon={Activity} />
-      </div>
+      {/* Compact Metric Banner */}
+      <CompactMetricBanner 
+        metrics={bannerMetrics}
+        gradientFrom="from-brand-teal"
+        gradientVia="via-teal-500"
+        gradientTo="to-cyan-500"
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Urgent Tasks */}
@@ -147,7 +204,8 @@ const TeacherDashboard = ({ learners, user }) => {
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   const renderInstructional = () => (
     <div className="space-y-6">
@@ -242,30 +300,37 @@ const TeacherDashboard = ({ learners, user }) => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-brand-purple text-white rounded-lg">
-            <Target size={20} />
+      {/* Premium Hero Header */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-brand-teal via-teal-500 to-cyan-500 p-8 text-white shadow-xl">
+        {/* Decorative circles */}
+        <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mr-20 -mt-20"></div>
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full -ml-16 -mb-16"></div>
+        
+        <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-4 bg-white/20 backdrop-blur-sm rounded-xl border border-white/20">
+              <Target size={28} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black text-white tracking-tight">Faculty Instruction Console</h1>
+              <p className="text-sm font-bold text-white/80 uppercase tracking-widest mt-1">
+                Tutor ID: {user?.staffId || 'T-8829'} • {new Date().toLocaleDateString()} • Term 01, 2026
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-base font-black text-gray-900 tracking-tight">Faculty Instruction Console</h1>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tutor ID: {user?.staffId || 'T-8829'} • Active Academic Term: TERM 01, 2026</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button className="px-3 py-1.5 border border-gray-200 rounded text-[10px] font-black uppercase text-gray-500 hover:bg-gray-50 transition-all flex items-center gap-2">
-            <Calendar size={14} /> View Full Calendar
+          <button className="px-4 py-2.5 border border-white/30 rounded-lg hover:bg-white/10 transition-all duration-300 text-white font-bold text-sm backdrop-blur-sm flex items-center gap-2">
+            <Calendar size={16} /> View Full Calendar
           </button>
         </div>
       </div>
 
-      <div className="bg-white border-b border-gray-200 rounded-t-lg overflow-hidden flex shadow-sm">
+      <div className="bg-white border-b border-gray-200 rounded-lg overflow-hidden flex shadow-md">
         <TabButton active={activeTab === 'overview'} label="Performance Hub" icon={Activity} onClick={() => setActiveTab('overview')} />
         <TabButton active={activeTab === 'instructional'} label="Daily Timetable" icon={Clock} onClick={() => setActiveTab('instructional')} />
         <TabButton active={activeTab === 'analytics'} label="Statistical Insight" icon={TrendingUp} onClick={() => setActiveTab('analytics')} />
       </div>
 
-      <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 rounded-lg">
         {activeTab === 'overview' && renderOverview()}
         {activeTab === 'instructional' && renderInstructional()}
         {activeTab === 'analytics' && renderAnalytics()}

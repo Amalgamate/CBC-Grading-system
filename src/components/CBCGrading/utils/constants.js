@@ -180,6 +180,7 @@ export const PAGE_TITLES = {
   'assess-summative-report': 'Summative Report',
   'assess-summary-report': 'Summary Report',
   'assess-termly-report': 'Termly Report',
+  'assess-learning-areas': 'Learning Areas',
   'assess-performance-scale': 'Performance Scale',
 
   // Learning Hub
@@ -188,6 +189,9 @@ export const PAGE_TITLES = {
   'learning-hub-lesson-plans': 'Lesson Plans',
   'learning-hub-library': 'Resource Library',
   'inventory-books': 'Inventory Management',
+
+  // Facilities
+  'facilities-classes': 'Classes & Streams',
 
   // Fees
   'fees-structure': 'Fee Structure',

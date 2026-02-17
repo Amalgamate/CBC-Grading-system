@@ -67,6 +67,8 @@ export const PERMISSIONS = {
   BACKUP_SETTINGS: ['SUPER_ADMIN'],
   USER_ROLES_SETTINGS: ['SUPER_ADMIN'],
   VIEW_ACADEMIC_SETTINGS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'],
+  MANAGE_LEARNING_AREAS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'], // Head teacher can manage learning areas
+  MANAGE_FACILITIES: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'], // Head teacher can manage classes and facilities
   
   // ============================================
   // COMMUNICATIONS

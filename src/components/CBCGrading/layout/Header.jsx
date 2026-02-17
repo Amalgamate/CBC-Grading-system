@@ -173,14 +173,14 @@ const Header = React.memo(({ user, onLogout, brandingSettings, title }) => {
   const quickActions = getQuickActions();
 
   return (
-    <div className="bg-white border-b border-gray-200 shadow-sm px-6 py-4 flex items-center justify-between">
+    <div className="h-20 border-b border-brand-purple/20 shadow-xl px-8 py-5 flex items-center justify-between">
       <div className="flex items-center gap-6">
         <div>
-          <h1 className="text-2xl font-bold text-transparent bg-gradient-to-r from-indigo-900 to-indigo-600 bg-clip-text">
+          <h1 className="text-2xl font-bold text-gray-900">
             {isSuperAdmin && selectedSchool ? selectedSchool.name : (title || brandingSettings?.schoolName || 'Elimcrown')}
           </h1>
-          <p className="text-xs text-gray-600">
-            {isSuperAdmin && selectedBranch ? `${selectedBranch.name} | CBC System` : (title ? (brandingSettings?.schoolName || 'Elimcrown') : 'CBC Assessment & Grading System')}
+          <p className="text-xs text-gray-600 font-semibold uppercase tracking-wider">
+            {isSuperAdmin && selectedBranch ? `${selectedBranch.name} • CBC System` : (title ? (brandingSettings?.schoolName || 'Elimcrown') : 'CBC Assessment & Grading System')}
           </p>
         </div>
 
@@ -189,48 +189,48 @@ const Header = React.memo(({ user, onLogout, brandingSettings, title }) => {
           <div className="relative" ref={schoolPickerRef}>
             <button
               onClick={() => setShowSchoolPicker(!showSchoolPicker)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-sm font-semibold transition"
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-200 hover:bg-slate-300 border border-gray-300 hover:border-gray-400 text-gray-900 rounded-lg text-sm font-bold transition-all duration-300 shadow-md hover:shadow-lg group"
             >
-              <Building2 size={16} />
+              <Building2 size={16} className="opacity-75 group-hover:scale-110 transition-transform duration-300" />
               <span>Switch School</span>
-              <ChevronDown size={14} className={`transition-transform ${showSchoolPicker ? 'rotate-180' : ''}`} />
+              <ChevronDown size={16} className={`transition-transform duration-300 opacity-60 ${showSchoolPicker ? 'rotate-180' : ''}`} />
             </button>
 
             {showSchoolPicker && (
-              <div className="absolute left-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-[100] max-h-[80vh] overflow-hidden flex flex-col">
-                <div className="p-3 border-b bg-gray-50">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Management Context</p>
+              <div className="absolute left-0 mt-3 w-96 bg-slate-100 rounded-xl shadow-2xl border border-gray-300 z-[100] max-h-[80vh] overflow-hidden flex flex-col">
+                <div className="p-4 border-b border-gray-300 bg-slate-50">
+                  <p className="text-xs font-bold text-brand-purple uppercase tracking-widest">Select Management Context</p>
                 </div>
 
                 <div className="overflow-y-auto flex-1">
                   {loadingSchools ? (
                     <div className="p-8 text-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-                      <p className="text-sm text-gray-500 mt-2">Loading schools...</p>
+                      <p className="text-sm text-gray-600 mt-2">Loading schools...</p>
                     </div>
                   ) : schools.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">No schools found.</div>
+                    <div className="p-8 text-center text-gray-600">No schools found.</div>
                   ) : (
                     schools.map(school => (
-                      <div key={school.id} className="border-b last:border-0">
+                      <div key={school.id} className="border-b border-slate-700 last:border-0">
                         <button
                           onClick={() => handleSchoolSwitch(school)}
-                          className={`w-full text-left px-4 py-3 hover:bg-indigo-50 transition flex items-center justify-between ${selectedSchool?.id === school.id ? 'bg-indigo-50/50 border-l-4 border-indigo-600' : ''}`}
+                          className={`w-full text-left px-4 py-3 hover:bg-slate-200/50 transition-all duration-300 flex items-center justify-between border-l-4 ${selectedSchool?.id === school.id ? 'bg-slate-200 border-brand-purple' : 'border-transparent'}`}
                         >
                           <div>
-                            <p className="font-bold text-gray-800">{school.name}</p>
-                            <p className="text-xs text-gray-500">{school.county || 'No County'} School</p>
+                            <p className="font-bold text-gray-900">{school.name}</p>
+                            <p className="text-xs text-gray-600">{school.county || 'No County'} School</p>
                           </div>
                           {selectedSchool?.id === school.id && (
-                            <div className="w-2 h-2 rounded-full bg-indigo-600"></div>
+                            <div className="w-2.5 h-2.5 rounded-full bg-brand-purple shadow-md"></div>
                           )}
                         </button>
 
                         {/* Branches if this is the active school */}
                         {selectedSchool?.id === school.id && school.branches?.length > 1 && (
-                          <div className="bg-gray-50 py-1 px-4 border-t border-gray-100 italic">
-                            <p className="text-[10px] text-gray-400 mb-1">Select Branch:</p>
-                            <div className="flex flex-wrap gap-1 pb-2">
+                          <div className="bg-slate-50 py-2 px-4 border-t border-gray-300">
+                            <p className="text-[10px] text-brand-purple/70 mb-2 font-bold uppercase tracking-wider">Select Branch:</p>
+                            <div className="flex flex-wrap gap-2">
                               {school.branches.map(branch => (
                                 <button
                                   key={branch.id}
@@ -238,7 +238,7 @@ const Header = React.memo(({ user, onLogout, brandingSettings, title }) => {
                                     e.stopPropagation();
                                     handleBranchSwitch(branch);
                                   }}
-                                  className={`px-2 py-1 rounded text-[10px] font-bold border transition ${selectedBranch?.id === branch.id ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-indigo-300'}`}
+                                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border-2 transition-all duration-300 ${selectedBranch?.id === branch.id ? 'bg-brand-purple border-brand-purple text-white' : 'bg-slate-200 border-gray-300 text-gray-800 hover:border-gray-400'}`}
                                 >
                                   {branch.name}
                                 </button>
@@ -261,15 +261,18 @@ const Header = React.memo(({ user, onLogout, brandingSettings, title }) => {
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setShowQuickActions(!showQuickActions)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-gray-900 bg-slate-200 hover:bg-slate-300 border border-gray-300 hover:border-gray-400 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg group"
           >
-            <Zap size={18} className="text-blue-600" />
+            <Zap size={18} className="text-yellow-400 group-hover:scale-110 transition-transform duration-300" />
             <span>Quick Actions</span>
-            <ChevronDown size={16} className={`transition-transform ${showQuickActions ? 'rotate-180' : ''}`} />
+            <ChevronDown size={16} className={`transition-transform duration-300 opacity-60 ${showQuickActions ? 'rotate-180' : ''}`} />
           </button>
 
           {showQuickActions && (
-            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+            <div className="absolute right-0 mt-3 w-64 bg-slate-100 rounded-lg shadow-2xl border border-gray-300 py-2 z-50">
+              <div className="px-4 py-2 border-b border-gray-300">
+                <p className="text-[10px] font-bold text-brand-purple uppercase tracking-widest">Available Actions</p>
+              </div>
               {quickActions.map((action, index) => (
                 <button
                   key={index}
@@ -277,10 +280,10 @@ const Header = React.memo(({ user, onLogout, brandingSettings, title }) => {
                     action.action();
                     setShowQuickActions(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-800 hover:bg-slate-200/50 hover:border-l-3 hover:border-brand-purple transition-all duration-300 border-l-3 border-transparent group"
                 >
-                  <action.icon size={16} className="text-gray-500" />
-                  <span>{action.label}</span>
+                  <action.icon size={18} className="text-brand-purple/70 group-hover:text-brand-purple group-hover:scale-110 transition-all duration-300" />
+                  <span className="font-semibold group-hover:text-white transition-colors">{action.label}</span>
                 </button>
               ))}
             </div>
@@ -290,44 +293,44 @@ const Header = React.memo(({ user, onLogout, brandingSettings, title }) => {
         <div className="relative" ref={notificationRef}>
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className="text-gray-600 hover:bg-gray-100 p-2 rounded-lg transition relative"
+            className="text-gray-900 hover:text-brand-purple bg-slate-200 hover:bg-slate-300 p-3 rounded-lg transition-all duration-300 border border-gray-300 hover:border-brand-purple/60 shadow-md hover:shadow-lg group relative"
           >
-            <Bell size={20} />
+            <Bell size={20} className="opacity-75 group-hover:scale-110 transition-transform duration-300" />
             {birthdays.length > 0 && (
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse border-2 border-white"></span>
+              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-gradient-to-r from-pink-500 to-red-500 rounded-full animate-pulse border-2 border-slate-900 shadow-lg"></span>
             )}
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 z-[110] overflow-hidden">
-              <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
-                <h3 className="text-sm font-bold text-gray-800">Notifications</h3>
-                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+            <div className="absolute right-0 mt-3 w-96 bg-slate-100 rounded-lg shadow-2xl border border-gray-300 z-[110] overflow-hidden">
+              <div className="p-4 border-b border-gray-300 bg-slate-50 flex justify-between items-center">
+                <h3 className="text-sm font-bold text-gray-900">Notifications</h3>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-white bg-brand-purple px-3 py-1 rounded-lg shadow-md">
                   Updates
                 </span>
               </div>
 
               <div className="max-h-[400px] overflow-y-auto">
                 {birthdays.length > 0 ? (
-                  <div className="p-2">
-                    <div className="px-3 py-2 bg-pink-50 rounded-lg mb-2 flex items-center gap-2">
-                      <Cake size={14} className="text-pink-600" />
-                      <span className="text-[10px] font-black uppercase text-pink-700">Birthday Reminders</span>
+                  <div className="p-3">
+                    <div className="px-4 py-2.5 bg-slate-200 border border-pink-300 rounded-lg mb-3 flex items-center gap-2.5">
+                      <Cake size={16} className="text-pink-400 shrink-0" />
+                      <span className="text-[10px] font-bold uppercase text-pink-700 tracking-wider">Birthday Reminders</span>
                     </div>
                     {birthdays.map((b) => (
-                      <div key={b.id} className="p-3 hover:bg-gray-50 rounded-lg transition flex items-start gap-4 border-b border-gray-50 last:border-0 group">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0 shadow-sm transition-transform group-hover:scale-110 ${b.isToday ? 'bg-pink-100 text-pink-700 border-2 border-pink-400 animate-bounce' : 'bg-indigo-50 text-indigo-700'}`}>
+                      <div key={b.id} className="p-3.5 hover:bg-slate-200 rounded-lg transition-all duration-300 flex items-start gap-4 border-b border-gray-300 last:border-0 group">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm shrink-0 shadow-md transition-all duration-300 group-hover:scale-110 border-2 ${b.isToday ? 'bg-gradient-to-r from-pink-600 to-red-600 text-white border-pink-400 animate-bounce' : 'bg-slate-200 text-gray-700 border-gray-300'}`}>
                           {b.name.split(' ').map(n => n[0]).join('')}
                         </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-bold text-gray-800">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-900 group-hover:text-brand-purple transition-colors">
                             {b.isToday ? '🎂 Today: ' : ''}{b.name}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-600 font-semibold">
                             Turns {b.turningAge} • {b.grade.replace('_', ' ')}
                           </p>
-                          <p className={`text-[10px] font-bold mt-1 uppercase ${b.isToday ? 'text-pink-600' : 'text-slate-400'}`}>
-                            {b.isToday ? 'HAPPENING TODAY' : `In ${b.daysUntil} days`}
+                          <p className={`text-[10px] font-bold mt-1.5 uppercase tracking-wider ${b.isToday ? 'text-pink-700 bg-pink-200 px-2 py-1 rounded-lg inline-block' : 'text-slate-600'}`}>
+                            {b.isToday ? 'HAPPENING TODAY 🎉' : `In ${b.daysUntil} days`}
                           </p>
                         </div>
                       </div>
@@ -335,40 +338,40 @@ const Header = React.memo(({ user, onLogout, brandingSettings, title }) => {
                   </div>
                 ) : (
                   <div className="p-8 text-center">
-                    <Bell size={24} className="text-gray-300 mx-auto mb-2" />
-                    <p className="text-xs text-gray-500 font-medium">No new notifications</p>
+                    <Bell size={24} className="text-gray-400 mx-auto mb-2 opacity-50" />
+                    <p className="text-xs text-gray-600 font-semibold">No new notifications</p>
                   </div>
                 )}
               </div>
 
-              <div className="p-3 bg-gray-50 border-t text-center">
+              <div className="p-4 bg-slate-50 border-t border-gray-300 text-center">
                 <button
                   onClick={() => setShowNotifications(false)}
-                  className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition"
+                  className="text-[10px] font-bold uppercase tracking-widest text-brand-purple hover:text-brand-purple/80 transition-colors"
                 >
-                  Clear All View
+                  Close Notifications
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-3 pl-6 border-l border-gray-300">
+        <div className="flex items-center gap-4 pl-6 border-l border-brand-purple/20">
           <div className="text-right">
-            <p className="text-sm font-semibold">{user?.name || 'Admin User'}</p>
-            <p className="text-xs text-gray-600">
+            <p className="text-sm font-bold text-gray-900">{user?.name || 'Admin User'}</p>
+            <p className="text-xs text-gray-600 font-semibold uppercase tracking-wider">
               {isSuperAdmin ? 'Global Super Admin' : (user?.role || 'System Admin')}
             </p>
           </div>
-          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
+          <div className="w-12 h-12 bg-gradient-to-br from-brand-purple to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-lg border-2 border-brand-purple/50 shadow-lg group hover:scale-110 transition-transform duration-300">
             {(user?.name || 'AU').substring(0, 2).toUpperCase()}
           </div>
           <button
             onClick={onLogout}
-            className="text-gray-600 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition"
+            className="text-gray-900 hover:text-red-600 bg-slate-200 hover:bg-red-100 border border-gray-300 hover:border-red-400 p-3 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg group"
             title="Logout"
           >
-            <LogOut size={20} />
+            <LogOut size={18} className="opacity-75 group-hover:scale-110 transition-transform duration-300" />
           </button>
         </div>
       </div>

@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { schoolAPI, dashboardAPI } from '../../../../services/api';
+import CompactMetricBanner from './CompactMetricBanner';
 import {
   Users,
   GraduationCap,
@@ -29,37 +30,55 @@ import {
   Briefcase
 } from 'lucide-react';
 
-// Professional Metric Card
-const MetricCard = ({ title, value, subtitle, icon: Icon, trend, trendValue }) => (
-  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:border-brand-purple/30 transition-all">
-    <div className="flex justify-between items-start mb-2">
-      <div className="p-2 bg-gray-50 rounded-md">
-        <Icon size={18} className="text-gray-600" />
+// Professional Metric Card with Premium Styling
+const MetricCard = ({ title, value, subtitle, icon: Icon, trend, trendValue }) => {
+  const gradients = {
+    blue: 'from-blue-500 to-blue-600',
+    purple: 'from-brand-purple to-pink-500',
+    teal: 'from-brand-teal to-cyan-500',
+    amber: 'from-amber-500 to-orange-500'
+  };
+  const colors = ['blue', 'purple', 'teal', 'amber'];
+  const gradient = gradients[colors[Math.floor(Math.random() * colors.length)]];
+  
+  return (
+    <div className="group relative bg-white p-4 rounded-lg border border-gray-200 shadow-md hover:shadow-xl hover:border-brand-purple/50 transition-all duration-300">
+      <div className={`absolute inset-0 opacity-0 group-hover:opacity-5 bg-gradient-to-br ${gradient} rounded-lg transition-opacity duration-300`}></div>
+      <div className="relative flex justify-between items-start mb-2">
+        <div className="p-3 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 group-hover:scale-110 transition-transform duration-300">
+          <Icon size={20} className="text-gray-600" />
+        </div>
+        {trendValue && (
+          <span className={`flex items-center text-[10px] font-black px-2 py-1 rounded-full ${
+            trend === 'up' 
+              ? 'bg-emerald-50 text-emerald-600' 
+              : 'bg-rose-50 text-rose-600'
+          }`}>
+            {trend === 'up' ? <ArrowUp size={10} /> : <ArrowDown size={10} />}
+            {trendValue}
+          </span>
+        )}
       </div>
-      {trendValue && (
-        <span className={`flex items-center text-[10px] font-bold ${trend === 'up' ? 'text-emerald-600' : 'text-rose-600'}`}>
-          {trend === 'up' ? <ArrowUp size={10} /> : <ArrowDown size={10} />}
-          {trendValue}
-        </span>
-      )}
+      <p className="text-xs font-bold text-gray-500 uppercase tracking-tight">{title}</p>
+      <h3 className="text-2xl font-black text-gray-900 mt-1">{value}</h3>
+      {subtitle && <p className="text-[10px] text-gray-500 mt-1">{subtitle}</p>}
     </div>
-    <p className="text-xs font-bold text-gray-500 uppercase tracking-tight">{title}</p>
-    <h3 className="text-2xl font-black text-gray-900 mt-0.5">{value}</h3>
-    {subtitle && <p className="text-[10px] text-gray-400 mt-1">{subtitle}</p>}
-  </div>
-);
+  );
+};
 
-// Tab Button
+// Tab Button with Premium Styling
 const TabButton = ({ active, label, icon: Icon, onClick }) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-2 px-6 py-3 text-sm font-bold transition-all border-b-2 ${active
-      ? 'border-brand-purple text-brand-purple bg-brand-purple/5'
-      : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-      }`}
+    className={`flex items-center gap-2 px-6 py-3 text-sm font-bold transition-all duration-300 border-b-2 relative ${
+      active
+        ? 'border-brand-purple text-brand-purple bg-gradient-to-r from-brand-purple/10 to-transparent'
+        : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/50'
+    }`}
   >
     <Icon size={16} />
     {label}
+    {active && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-brand-purple to-pink-500"></div>}
   </button>
 );
 
@@ -100,39 +119,51 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [], user, onNavi
     feePending: metrics?.stats?.feePending || 240000
   };
 
-  const renderOverview = () => (
+  const renderOverview = () => {
+    const bannerMetrics = [
+      {
+        title: 'Total Students',
+        value: stats.totalStudents,
+        subtitle: `${stats.activeStudents} active learners`,
+        icon: Users,
+        trend: 'up',
+        trendValue: '4.2%'
+      },
+      {
+        title: 'Teaching Staff',
+        value: stats.totalTeachers,
+        subtitle: `${stats.activeTeachers} verified tutors`,
+        icon: GraduationCap,
+        trend: 'up',
+        trendValue: '1.0%'
+      },
+      {
+        title: 'Daily Attendance',
+        value: `${stats.avgAttendance}%`,
+        subtitle: `${stats.presentToday} present today`,
+        icon: UserCheck,
+        trend: null,
+        trendValue: null
+      },
+      {
+        title: 'Total Classes',
+        value: stats.totalClasses,
+        subtitle: 'Across all grades',
+        icon: BookOpen,
+        trend: null,
+        trendValue: null
+      }
+    ];
+
+    return (
     <div className="space-y-6">
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          title="Total Students"
-          value={stats.totalStudents}
-          subtitle={`${stats.activeStudents} active learners`}
-          icon={Users}
-          trend="up"
-          trendValue="4.2%"
-        />
-        <MetricCard
-          title="Teaching Staff"
-          value={stats.totalTeachers}
-          subtitle={`${stats.activeTeachers} verified tutors`}
-          icon={GraduationCap}
-          trend="up"
-          trendValue="1.0%"
-        />
-        <MetricCard
-          title="Daily Attendance"
-          value={`${stats.avgAttendance}%`}
-          subtitle={`${stats.presentToday} students present today`}
-          icon={UserCheck}
-        />
-        <MetricCard
-          title="Total Classes"
-          value={stats.totalClasses}
-          subtitle="Across all grades"
-          icon={BookOpen}
-        />
-      </div>
+      {/* Compact Metric Banner */}
+      <CompactMetricBanner 
+        metrics={bannerMetrics}
+        gradientFrom="from-brand-purple"
+        gradientVia="via-purple-500"
+        gradientTo="to-pink-500"
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Recent Activity Table */}
@@ -220,7 +251,8 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [], user, onNavi
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   const renderFinancials = () => (
     <div className="space-y-6">
@@ -404,45 +436,55 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [], user, onNavi
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Upper Status Bar */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-brand-purple/10 rounded-lg">
-            <TrendingUp size={24} className="text-brand-purple" />
+      {/* Premium Hero Header */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-brand-purple via-purple-500 to-pink-500 p-8 text-white shadow-xl">
+        {/* Decorative circles */}
+        <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mr-20 -mt-20"></div>
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full -ml-16 -mb-16"></div>
+        
+        <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-4 bg-white/20 backdrop-blur-sm rounded-xl border border-white/20">
+              <TrendingUp size={28} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black text-white tracking-tight">System Performance Dashboard</h1>
+              <p className="text-sm font-bold text-white/80 uppercase tracking-widest flex items-center gap-2 mt-1">
+                <span className="inline-block w-2 h-2 bg-emerald-300 rounded-full animate-pulse" />
+                Live Server Stats • {new Date().toLocaleDateString()}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-black text-gray-900 tracking-tight">System Performance Dashboard</h1>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-              <span className="inline-block w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              Live Server Stats • {new Date().toLocaleTimeString()}
-            </p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex bg-gray-100 p-1 rounded-md border border-gray-200 shadow-inner">
-            {['today', 'term', 'year'].map(f => (
-              <button
-                key={f}
-                onClick={() => setTimeFilter(f)}
-                className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded transition-all ${timeFilter === f ? 'bg-white text-brand-purple shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                {f}
-              </button>
-            ))}
+          <div className="flex items-center gap-3">
+            <div className="flex bg-white/10 p-1 rounded-lg border border-white/20 backdrop-blur-sm">
+              {['today', 'term', 'year'].map(f => (
+                <button
+                  key={f}
+                  onClick={() => setTimeFilter(f)}
+                  className={`px-4 py-2 text-[11px] font-black uppercase tracking-widest rounded-md transition-all duration-300 ${
+                    timeFilter === f 
+                      ? 'bg-white text-brand-purple shadow-lg' 
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => loadMetrics()}
+              disabled={refreshing}
+              className="p-2.5 border border-white/20 rounded-lg hover:bg-white/10 transition-all duration-300 text-white backdrop-blur-sm"
+            >
+              <RefreshCw size={20} className={refreshing ? 'animate-spin' : ''} />
+            </button>
           </div>
-          <button
-            onClick={() => loadMetrics()}
-            disabled={refreshing}
-            className="p-2 border border-gray-200 rounded-md hover:bg-gray-50 transition-all text-gray-500"
-          >
-            <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
-          </button>
         </div>
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex items-center border-b border-gray-200 bg-white px-2 rounded-t-lg shadow-sm">
+      <div className="flex items-center border-b border-gray-200 bg-white px-2 rounded-lg shadow-md border border-gray-200">
         <TabButton id="overview" label="General Overview" icon={Activity} active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
         <TabButton id="financials" label="Financials" icon={Wallet} active={activeTab === 'financials'} onClick={() => setActiveTab('financials')} />
         <TabButton id="performance" label="Academic Performance" icon={Award} active={activeTab === 'performance'} onClick={() => setActiveTab('performance')} />
@@ -450,7 +492,7 @@ const AdminDashboard = ({ learners = [], pagination, teachers = [], user, onNavi
       </div>
 
       {/* Tab Content */}
-      <div className="animate-in slide-in-from-bottom-2 duration-300">
+      <div className="animate-in slide-in-from-bottom-2 duration-300 rounded-lg">
         {activeTab === 'overview' && renderOverview()}
         {activeTab === 'financials' && renderFinancials()}
         {activeTab === 'performance' && renderPerformance()}

@@ -44,6 +44,8 @@ const SummativeReport = lazy(() => import('./pages/SummativeReport'));
 const TermlyReport = lazy(() => import('./pages/TermlyReport'));
 const SummaryReportPage = lazy(() => import('./pages/reports/SummaryReportPage'));
 const PerformanceScale = lazy(() => import('./pages/PerformanceScale'));
+const LearningAreasManagement = lazy(() => import('./pages/LearningAreasManagement'));
+const FacilityManager = lazy(() => import('./pages/FacilityManager'));
 const NoticesPage = lazy(() => import('./pages/NoticesPage'));
 const InventoryList = lazy(() => import('./pages/InventoryList'));
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
@@ -645,8 +647,14 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
         return <SummaryReportPage />;
       case 'assess-termly-report':
         return <TermlyReport learners={learners} brandingSettings={brandingSettings} />;
+      case 'assess-learning-areas':
+        return <LearningAreasManagement />;
       case 'assess-performance-scale':
         return <PerformanceScale />;
+
+      // Facilities Module
+      case 'facilities-classes':
+        return <FacilityManager />;
 
       // Learning Hub Module (Placeholder)
       case 'learning-hub-materials':
@@ -739,7 +747,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
         />
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-6 custom-scrollbar">
           <div className="max-w-screen-2xl mx-auto">
             <Suspense fallback={<LoadingOverlay />}>
               {renderPage()}

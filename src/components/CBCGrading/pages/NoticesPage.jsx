@@ -32,11 +32,9 @@ const NoticesPage = () => {
   const [activeTab, setActiveTab] = useState(getInitialTab);
   const [showModal, setShowModal] = useState(false);
   const [loadingBirthdays, setLoadingBirthdays] = useState(false);
+  const [loadingNotices, setLoadingNotices] = useState(false);
   const [birthdays, setBirthdays] = useState([]);
-  const [notices, setNotices] = useState([
-    { id: 1, title: 'Term 1 Examination Schedule', content: 'Exams will begin on March 10, 2026...', author: 'Sarah Muthoni', date: '2026-01-10', category: 'Academic', priority: 'High', status: 'Published' },
-    { id: 2, title: 'Parent-Teacher Meeting', content: 'All parents are invited...', author: 'John Kamau', date: '2026-01-15', category: 'Event', priority: 'Medium', status: 'Published' }
-  ]);
+  const [notices, setNotices] = useState([]);
   const [formData, setFormData] = useState({ title: '', content: '', category: 'Academic', priority: 'Medium' });
 
   // Birthday features states
@@ -84,7 +82,9 @@ const NoticesPage = () => {
 
   // Refresh function that maintains current tab
   const handleRefresh = () => {
-    if (activeTab === 'birthdays') {
+    if (activeTab === 'notices') {
+      fetchNotices();
+    } else if (activeTab === 'birthdays') {
       fetchBirthdays();
     }
     showSuccess('Page refreshed!');
@@ -103,7 +103,9 @@ const NoticesPage = () => {
       loadBirthdayConfig(sid);
     }
 
-    if (activeTab === 'birthdays') {
+    if (activeTab === 'notices') {
+      fetchNotices();
+    } else if (activeTab === 'birthdays') {
       fetchBirthdays();
       if (sid) fetchBirthdaysToday(sid);
     }
@@ -144,6 +146,22 @@ const NoticesPage = () => {
       console.error('Failed to fetch birthdays:', error);
     } finally {
       setLoadingBirthdays(false);
+    }
+  };
+
+  const fetchNotices = async () => {
+    setLoadingNotices(true);
+    try {
+      // TODO: Replace with actual API call when notices endpoint is available
+      // const resp = await api.notices.getAll();
+      // setNotices(resp.data || []);
+      // For now, show empty state - notices will be created via the form
+      setNotices([]);
+    } catch (error) {
+      console.error('Failed to fetch notices:', error);
+      setNotices([]);
+    } finally {
+      setLoadingNotices(false);
     }
   };
 

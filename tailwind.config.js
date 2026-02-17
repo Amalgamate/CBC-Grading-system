@@ -7,6 +7,10 @@ export default {
   theme: {
     extend: {
       colors: {
+        'brand-purple': '#8b5cf6',
+        'brand-teal': '#14B8A6',
+        'brand-dark': '#111827',
+        'brand-light': '#F9FAFB',
         brand: {
           dark: '#111827',
           teal: '#14B8A6', // Modern Teal

@@ -8,20 +8,8 @@ import {
   Users, GraduationCap, BookOpen, Activity, Calendar, ShieldCheck, Zap, Target
 } from 'lucide-react';
 import SchoolOnboardingWizard from './onboarding/SchoolOnboardingWizard';
+import CompactMetricBanner from './dashboard/CompactMetricBanner';
 import { useState, useEffect } from 'react';
-
-const MetricCard = ({ title, value, subtitle, icon: Icon, colorClass = "text-gray-400" }) => (
-  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:border-brand-purple/30 transition-all">
-    <div className="flex justify-between items-start mb-2">
-      <div className={`p-2 bg-gray-50 rounded-md ${colorClass}`}>
-        <Icon size={18} />
-      </div>
-    </div>
-    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{title}</p>
-    <h3 className="text-xl font-black text-gray-900 mt-1">{value}</h3>
-    {subtitle && <p className="text-[10px] text-gray-500 mt-1 font-medium">{subtitle}</p>}
-  </div>
-);
 
 const Dashboard = ({ learners, teachers }) => {
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -45,13 +33,46 @@ const Dashboard = ({ learners, teachers }) => {
   return (
     <div className="space-y-6">
       {showOnboarding && <SchoolOnboardingWizard onComplete={handleOnboardingComplete} />}
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard title="Enrollment" value={activeLearners} subtitle="Active Students" icon={Users} colorClass="text-blue-500" />
-        <MetricCard title="Faculty" value={activeTeachers} subtitle="Teaching Staff" icon={GraduationCap} colorClass="text-emerald-500" />
-        <MetricCard title="Units" value="12" subtitle="Active Learning Areas" icon={BookOpen} colorClass="text-brand-purple" />
-        <MetricCard title="Performance" value="89%" subtitle="Avg Attendance" icon={Activity} colorClass="text-amber-500" />
-      </div>
+      {/* Compact Metrics Banner */}
+      <CompactMetricBanner
+        metrics={[
+          {
+            title: 'Enrollment',
+            value: activeLearners,
+            subtitle: 'Active Students',
+            icon: Users,
+            trend: 'up',
+            trendValue: '4.2%'
+          },
+          {
+            title: 'Faculty',
+            value: activeTeachers,
+            subtitle: 'Teaching Staff',
+            icon: GraduationCap,
+            trend: 'up',
+            trendValue: '1.0%'
+          },
+          {
+            title: 'Units',
+            value: '12',
+            subtitle: 'Active Learning Areas',
+            icon: BookOpen,
+            trend: null,
+            trendValue: null
+          },
+          {
+            title: 'Performance',
+            value: '89%',
+            subtitle: 'Avg Attendance',
+            icon: Activity,
+            trend: null,
+            trendValue: null
+          }
+        ]}
+        gradientFrom="from-brand-purple"
+        gradientVia="via-purple-500"
+        gradientTo="to-pink-500"
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Main Service Console */}

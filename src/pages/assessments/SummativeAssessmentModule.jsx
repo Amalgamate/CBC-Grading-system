@@ -86,6 +86,10 @@ const QuickGuide = () => {
             <div className="ml-10 space-y-2 text-gray-600">
               <p className="flex items-start gap-2">
                 <span className="text-blue-600 font-bold mt-1">→</span>
+                <span><strong>Step 0 (Optional):</strong> Set up learning areas in Configuration → Learning Areas (if available)</span>
+              </p>
+              <p className="flex items-start gap-2">
+                <span className="text-blue-600 font-bold mt-1">→</span>
                 <span><strong>Step 1:</strong> Create or manage assessment scales in the "Scales Management" tab</span>
               </p>
               <p className="flex items-start gap-2">
@@ -155,11 +159,12 @@ const QuickGuide = () => {
           {/* Tips */}
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <span className="bg-indigo-100 text-indigo-800 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">💡</span>
+              <span className="bg-indigo-100 text-indigo-800 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">5</span>
               Tips & Best Practices
             </h3>
             <div className="ml-10 space-y-2 text-gray-600">
               <ul className="list-disc list-inside space-y-2">
+                <li>Create learning areas first to organize your curriculum (in Configuration → Learning Areas)</li>
                 <li>Create scales before creating tests - tests require a scale to be selected</li>
                 <li>Use descriptive scale names (e.g., "Grade 5 Mathematics Scale" instead of "Scale 1")</li>
                 <li>Define clear level descriptions to ensure consistent grading</li>
@@ -167,6 +172,7 @@ const QuickGuide = () => {
                 <li>Include detailed marking rubrics for each question</li>
                 <li>Save frequently - data is only persisted when you click "Save"</li>
                 <li>Test forms support all CBC subjects from the dropdown</li>
+                <li>Head teachers have access to manage learning areas to structure school curriculum</li>
               </ul>
             </div>
           </div>

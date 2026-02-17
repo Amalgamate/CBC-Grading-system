@@ -15,7 +15,6 @@ import SuperAdminDashboard from './components/EDucore/SuperAdminDashboard'; // L
 import api from './services/api';
 import { clearPortalSchoolId, setPortalSchoolId } from './services/tenantContext';
 import { SocketProvider } from './contexts/SocketContext';
-import SupportWidget from './components/common/SupportWidget/SupportWidget';
 
 const parseTenantFromPath = (pathname) => {
   const parts = (pathname || '/').split('/').filter(Boolean);
@@ -175,7 +174,7 @@ function AppContent() {
             element={<Navigate to={user?.role === 'SUPER_ADMIN' ? '/superadmin' : '/app'} replace />}
           />
         </Routes>
-        <SupportWidget />
+        {/* <SupportWidget /> */}
       </>
     );
   }
@@ -208,7 +207,7 @@ function AppContent() {
         <Route path="/t/:schoolId/get-started" element={<Navigate to={`/t/${urlSchoolId}/register`} replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <SupportWidget />
+      {/* <SupportWidget /> */}
     </>
   );
 }
