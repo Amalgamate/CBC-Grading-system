@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { WebsiteLayout } from '../WebsiteLayout.enterprise';
 import MetricsBannerAlt from '../MetricsBannerAlt';
+import { EnterpriseHero } from '../components/EnterpriseHero';
+import { EnterpriseCTASection } from '../components/EnterpriseCTASection';
+import { FeatureCard } from '../components/FeatureCard';
 import {
     BarChart3,
     CheckCircle2,
@@ -20,68 +23,31 @@ const HomePageEnterprise = (props) => {
     return (
         <WebsiteLayout {...props}>
             {/* Hero Section */}
-            <section className="relative pt-20 pb-32 bg-gradient-to-br from-gray-50 to-white border-b border-gray-200">
-                <div className="max-w-7xl mx-auto px-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                        <div className="space-y-8">
-                            <div className="space-y-4">
-                                <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-full">
-                                    <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
-                                    <span className="text-xs font-semibold text-blue-900">Trusted by 500+ institutions in Kenya</span>
-                                </div>
-
-                                <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight">
-                                    Enterprise-Grade Education Management
-                                </h1>
-
-                                <p className="text-xl text-gray-600 leading-relaxed max-w-xl">
-                                    Unified platform delivering CBC excellence through evidence-based assessment, operational efficiency, and future-ready learning.
-                                </p>
-                            </div>
-
-                            <div className="flex flex-wrap gap-4">
-                                <button
-                                    onClick={props.onGetStartedClick}
-                                    className="inline-flex items-center gap-2 px-8 py-4 bg-[#520050] hover:bg-[#3D0038] text-white font-semibold rounded-lg transition-colors"
-                                >
-                                    Start Free Trial <ArrowRight size={18} />
-                                </button>
-                                <button
-                                    onClick={props.onLoginClick}
-                                    className="px-8 py-4 border-2 border-gray-300 hover:border-gray-400 text-gray-900 font-semibold rounded-lg transition-colors"
-                                >
-                                    Schedule Demo
-                                </button>
-                            </div>
-
-                            {/* Trust Indicators */}
-                            <div className="grid grid-cols-2 gap-6 pt-8 border-t border-gray-200">
-                                {[
-                                    { label: '500+', desc: 'Schools worldwide' },
-                                    { label: '50K+', desc: 'Active educators' },
-                                    { label: '2M+', desc: 'Learner assessments' },
-                                    { label: '99.9%', desc: 'Uptime guarantee' }
-                                ].map((stat, i) => (
-                                    <div key={i}>
-                                        <div className="text-2xl font-bold text-[#520050]">{stat.label}</div>
-                                        <div className="text-sm text-gray-600">{stat.desc}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Visual */}
-                        <div className="relative hidden lg:block">
-                            <div className="aspect-square bg-gradient-to-br from-[#520050]/10 to-[#017E84]/10 rounded-2xl border border-gray-200 flex items-center justify-center">
-                                <div className="text-center space-y-4">
-                                    <BarChart3 className="w-24 h-24 text-[#520050] mx-auto" strokeWidth={0.5} />
-                                    <p className="text-gray-600 font-medium">Comprehensive Assessment Platform</p>
-                                </div>
-                            </div>
+            <EnterpriseHero
+                badge="Trusted by 500+ institutions in Kenya"
+                heading="Enterprise-Grade Education Management"
+                description="Unified platform delivering CBC excellence through evidence-based assessment, operational efficiency, and future-ready learning."
+                primaryCTA={<ArrowRight size={18} />}
+                primaryCTAText="Start Free Trial"
+                secondaryCTA={<ArrowRight size={18} />}
+                secondaryCTAText="Schedule Demo"
+                stats={[
+                    { label: '500+', desc: 'Schools worldwide' },
+                    { label: '50K+', desc: 'Active educators' },
+                    { label: '2M+', desc: 'Learner assessments' },
+                    { label: '99.9%', desc: 'Uptime guarantee' }
+                ]}
+                visualContent={
+                    <div className="aspect-square bg-gradient-to-br from-[#520050]/10 to-[#017E84]/10 rounded-2xl border border-gray-200 flex items-center justify-center">
+                        <div className="text-center space-y-4">
+                            <BarChart3 className="w-24 h-24 text-[#520050] mx-auto" strokeWidth={0.5} />
+                            <p className="text-gray-600 font-medium">Comprehensive Assessment Platform</p>
                         </div>
                     </div>
-                </div>
-            </section>
+                }
+                onPrimaryCTA={props.onGetStartedClick}
+                onSecondaryCTA={props.onLoginClick}
+            />
 
             {/* Metrics Banner */}
             <section className="py-16 px-6">
@@ -139,23 +105,16 @@ const HomePageEnterprise = (props) => {
                                 title: 'Scalable Infrastructure',
                                 desc: 'Cloud-native architecture supporting unlimited schools and unlimited learners.'
                             }
-                        ].map((feature, i) => {
-                            const Icon = feature.icon;
-                            return (
-                                <div
-                                    key={i}
-                                    className="p-8 border border-gray-200 rounded-xl hover:border-[#520050] hover:shadow-lg transition-all group"
-                                >
-                                    <Icon className="w-12 h-12 text-[#520050] mb-4 group-hover:scale-110 transition-transform" strokeWidth={1.5} />
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                        {feature.title}
-                                    </h3>
-                                    <p className="text-gray-600 text-sm leading-relaxed">
-                                        {feature.desc}
-                                    </p>
-                                </div>
-                            );
-                        })}
+                        ].map((feature, i) => (
+                            <FeatureCard
+                                key={i}
+                                icon={feature.icon}
+                                title={feature.title}
+                                description={feature.desc}
+                                iconColor="text-[#520050]"
+                                iconBg="bg-purple-100"
+                            />
+                        ))}
                     </div>
                 </div>
             </section>
@@ -264,37 +223,14 @@ const HomePageEnterprise = (props) => {
             </section>
 
             {/* CTA Section */}
-            <section className="py-24 bg-[#520050] text-white">
-                <div className="max-w-4xl mx-auto px-6 text-center space-y-8">
-                    <div className="space-y-4">
-                        <h2 className="text-4xl md:text-5xl font-bold">
-                            Ready to Transform Education?
-                        </h2>
-                        <p className="text-xl text-white/80">
-                            Join hundreds of institutions delivering evidence-based CBC education with ElimCrown.
-                        </p>
-                    </div>
-
-                    <div className="flex flex-wrap justify-center gap-4">
-                        <button
-                            onClick={props.onGetStartedClick}
-                            className="px-8 py-4 bg-white hover:bg-gray-100 text-[#520050] font-semibold rounded-lg transition-colors"
-                        >
-                            Start Your Journey
-                        </button>
-                        <button
-                            onClick={props.onLoginClick}
-                            className="px-8 py-4 border-2 border-white hover:bg-white/10 text-white font-semibold rounded-lg transition-colors"
-                        >
-                            Request Demo Call
-                        </button>
-                    </div>
-
-                    <p className="text-sm text-white/70">
-                        No credit card required. 14-day free trial. Full access to all features.
-                    </p>
-                </div>
-            </section>
+            <EnterpriseCTASection
+                title="Ready to Transform Education?"
+                description="Join hundreds of institutions delivering evidence-based CBC education with ElimCrown."
+                primaryText="Start Your Journey"
+                secondaryText="Request Demo Call"
+                onPrimary={props.onGetStartedClick}
+                onSecondary={props.onLoginClick}
+            />
         </WebsiteLayout>
     );
 };
