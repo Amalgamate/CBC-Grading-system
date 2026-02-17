@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import SchoolOnboardingWizard from './onboarding/SchoolOnboardingWizard';
 import CompactMetricBanner from './dashboard/CompactMetricBanner';
+import DashboardResponsiveWrapper from '../DashboardResponsiveWrapper';
 import { useState, useEffect } from 'react';
 
 const Dashboard = ({ learners, teachers }) => {
@@ -31,48 +32,60 @@ const Dashboard = ({ learners, teachers }) => {
   };
 
   return (
-    <div className="space-y-6">
-      {showOnboarding && <SchoolOnboardingWizard onComplete={handleOnboardingComplete} />}
-      {/* Compact Metrics Banner */}
-      <CompactMetricBanner
-        metrics={[
-          {
-            title: 'Enrollment',
-            value: activeLearners,
-            subtitle: 'Active Students',
-            icon: Users,
-            trend: 'up',
-            trendValue: '4.2%'
-          },
-          {
-            title: 'Faculty',
-            value: activeTeachers,
-            subtitle: 'Teaching Staff',
-            icon: GraduationCap,
-            trend: 'up',
-            trendValue: '1.0%'
-          },
-          {
-            title: 'Units',
-            value: '12',
-            subtitle: 'Active Learning Areas',
-            icon: BookOpen,
-            trend: null,
-            trendValue: null
-          },
-          {
-            title: 'Performance',
-            value: '89%',
-            subtitle: 'Avg Attendance',
-            icon: Activity,
-            trend: null,
-            trendValue: null
-          }
-        ]}
-        gradientFrom="from-brand-purple"
-        gradientVia="via-purple-500"
-        gradientTo="to-pink-500"
-      />
+    <DashboardResponsiveWrapper 
+      onNavigate={() => {}} 
+      currentPage="dashboard"
+      metrics={{
+        activeLearnersValue: activeLearners,
+        activeLearnersChange: '+2.5%',
+        assessmentsValue: '12',
+        assessmentsChange: '+5',
+        attendanceValue: '89%',
+        attendanceChange: '+3%'
+      }}
+    >
+      <div className="space-y-6">
+        {showOnboarding && <SchoolOnboardingWizard onComplete={handleOnboardingComplete} />}
+        {/* Compact Metrics Banner */}
+        <CompactMetricBanner
+          metrics={[
+            {
+              title: 'Enrollment',
+              value: activeLearners,
+              subtitle: 'Active Students',
+              icon: Users,
+              trend: 'up',
+              trendValue: '4.2%'
+            },
+            {
+              title: 'Faculty',
+              value: activeTeachers,
+              subtitle: 'Teaching Staff',
+              icon: GraduationCap,
+              trend: 'up',
+              trendValue: '1.0%'
+            },
+            {
+              title: 'Units',
+              value: '12',
+              subtitle: 'Active Learning Areas',
+              icon: BookOpen,
+              trend: null,
+              trendValue: null
+            },
+            {
+              title: 'Performance',
+              value: '89%',
+              subtitle: 'Avg Attendance',
+              icon: Activity,
+              trend: null,
+              trendValue: null
+            }
+          ]}
+          gradientFrom="from-brand-purple"
+          gradientVia="via-purple-500"
+          gradientTo="to-pink-500"
+        />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Main Service Console */}
@@ -153,6 +166,7 @@ const Dashboard = ({ learners, teachers }) => {
         </div>
       </div>
     </div>
+    </DashboardResponsiveWrapper>
   );
 };
 

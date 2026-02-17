@@ -44,7 +44,7 @@ const allNavSections = [
     permission: null,
     items: [
       { id: 'planner-calendar', label: 'Calendar', path: 'planner-calendar', permission: null },
-      { id: 'planner-timetable', label: 'Timetable', path: 'planner-timetable', permission: null },
+      { id: 'planner-timetable', label: 'Timetable', path: 'planner-timetable', permission: 'ACCESS_TIMETABLE' },
     ]
   },
   {
@@ -120,7 +120,7 @@ const allNavSections = [
     id: 'learning-hub',
     label: 'Learning Hub',
     icon: BookOpen,
-    permission: null, // Teachers can create, students/parents can view
+    permission: 'ACCESS_LEARNING_HUB', // Accountants should not access this
     items: [
       { id: 'learning-hub-materials', label: 'Class Materials', path: 'learning-hub-materials', permission: null },
       { id: 'learning-hub-assignments', label: 'Assignments', path: 'learning-hub-assignments', permission: null },
@@ -133,7 +133,7 @@ const allNavSections = [
     id: 'timetable',
     label: 'Timetable',
     icon: Calendar,
-    permission: null, // Teachers need to see their timetable
+    permission: 'ACCESS_TIMETABLE', // Accountants should not access this
     items: []
   },
   {
@@ -493,6 +493,13 @@ const Sidebar = React.memo(({
     // For teachers, show only Students and Assessment
     if (role === 'TEACHER') {
       return navSections.filter(s => ['learners', 'assessment'].includes(s.id));
+    }
+    // For accountants, hide Learning Hub and Timetable
+    if (role === 'ACCOUNTANT') {
+      return navSections.filter(s =>
+        !['learning-hub', 'timetable'].includes(s.id) &&
+        ['learners', 'assessment', 'attendance'].includes(s.id)
+      );
     }
     // For other roles, show all education sections
     return navSections.filter(s =>

@@ -10,6 +10,8 @@ import Toast from './shared/Toast';
 import ConfirmDialog from './shared/ConfirmDialog';
 import EmptyState from './shared/EmptyState';
 import AddEditParentModal from './shared/AddEditParentModal';
+import MobileAppShell from './layout/MobileAppShell';
+import { useMediaQuery } from './hooks/useMediaQuery';
 
 // Hooks
 import { useLearners } from './hooks/useLearners';
@@ -88,6 +90,9 @@ const LoadingOverlay = () => (
 );
 
 export default function CBCGradingSystem({ user, onLogout, brandingSettings, setBrandingSettings }) {
+  // Mobile Detection
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  
   // UI State
   const [sidebarOpen, setSidebarOpen] = useState(true);
   // Initialize pageParams from localStorage to survive refreshes
@@ -724,77 +729,114 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        currentPage={currentPage}
-        onNavigate={setCurrentPage}
-        expandedSections={expandedSections}
-        toggleSection={toggleSection}
-        brandingSettings={brandingSettings}
-      />
+    <>
+      {/* Desktop Layout */}
+      {!isMobile && (
+        <div className="flex h-screen bg-gray-50">
+          {/* Sidebar */}
+          <Sidebar
+            sidebarOpen={sidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+            currentPage={currentPage}
+            onNavigate={setCurrentPage}
+            expandedSections={expandedSections}
+            toggleSection={toggleSection}
+            brandingSettings={brandingSettings}
+          />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <Header
+          {/* Main Content Area */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Header */}
+            <Header
+              user={user}
+              onLogout={handleLogout}
+              brandingSettings={brandingSettings}
+              title={PAGE_TITLES[currentPage]}
+            />
+
+            {/* Page Content */}
+            <main className="flex-1 overflow-auto p-6 custom-scrollbar">
+              <div className="max-w-screen-2xl mx-auto">
+                <Suspense fallback={<LoadingOverlay />}>
+                  {renderPage()}
+                </Suspense>
+              </div>
+            </main>
+          </div>
+
+          {/* Toast Notification */}
+          <Toast
+            show={showToast}
+            message={toastMessage}
+            type={toastType}
+            onClose={hideNotification}
+          />
+
+          {/* Add/Edit Parent Modal */}
+          <AddEditParentModal
+            show={showParentModal}
+            onClose={() => {
+              setShowParentModal(false);
+              setEditingParent(null);
+            }}
+            onSave={handleSaveParent}
+            parent={editingParent}
+            learners={learners}
+          />
+
+          {/* Confirmation Dialog */}
+          <ConfirmDialog
+            show={showConfirmDialog}
+            title="Confirm Action"
+            message={
+              currentPage === 'dashboard' && confirmAction
+                ? "Are you sure you want to logout?"
+                : "Are you sure you want to proceed with this action?"
+            }
+            confirmText="Confirm"
+            cancelText="Cancel"
+            onConfirm={() => confirmAction && confirmAction()}
+            onCancel={() => setShowConfirmDialog(false)}
+          />
+        </div>
+      )}
+
+      {/* Mobile Layout */}
+      {isMobile && (
+        <MobileAppShell
           user={user}
           onLogout={handleLogout}
-          brandingSettings={brandingSettings}
-          title={PAGE_TITLES[currentPage]}
-        />
+          onNavigate={setCurrentPage}
+          currentPage={currentPage}
+        >
+          <Suspense fallback={<LoadingOverlay />}>
+            {renderPage()}
+          </Suspense>
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-auto p-6 custom-scrollbar">
-          <div className="max-w-screen-2xl mx-auto">
-            <Suspense fallback={<LoadingOverlay />}>
-              {renderPage()}
-            </Suspense>
-          </div>
-        </main>
-      </div>
+          {/* Toast Notification */}
+          <Toast
+            show={showToast}
+            message={toastMessage}
+            type={toastType}
+            onClose={hideNotification}
+          />
 
-      {/* Toast Notification */}
-      <Toast
-        show={showToast}
-        message={toastMessage}
-        type={toastType}
-        onClose={hideNotification}
-      />
-
-      {/* Add/Edit Parent Modal */}
-      <AddEditParentModal
-        show={showParentModal}
-        onClose={() => {
-          setShowParentModal(false);
-          setEditingParent(null);
-        }}
-        onSave={handleSaveParent}
-        parent={editingParent}
-        learners={learners}
-      />
-
-      {/* Add/Edit Teacher Modal Removed - Replaced by AddEditTeacherPage */}
-
-
-
-
-      {/* Confirmation Dialog */}
-      <ConfirmDialog
-        show={showConfirmDialog}
-        title="Confirm Action"
-        message={
-          currentPage === 'dashboard' && confirmAction
-            ? "Are you sure you want to logout?"
-            : "Are you sure you want to proceed with this action?"
-        }
-        confirmText="Confirm"
-        cancelText="Cancel"
-        onConfirm={() => confirmAction && confirmAction()}
-        onCancel={() => setShowConfirmDialog(false)}
-      />
-    </div>
+          {/* Confirmation Dialog */}
+          <ConfirmDialog
+            show={showConfirmDialog}
+            title="Confirm Action"
+            message={
+              currentPage === 'dashboard' && confirmAction
+                ? "Are you sure you want to logout?"
+                : "Are you sure you want to proceed with this action?"
+            }
+            confirmText="Confirm"
+            cancelText="Cancel"
+            onConfirm={() => confirmAction && confirmAction()}
+            onCancel={() => setShowConfirmDialog(false)}
+          />
+        </MobileAppShell>
+      )}
+    </>
   );
 }
