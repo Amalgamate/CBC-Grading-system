@@ -510,6 +510,13 @@ export const communicationAPI = {
   },
 
   /**
+   * Get All Recipients (all parents across all grades)
+   */
+  getAllRecipients: async () => {
+    return fetchWithAuth('/communication/recipients');
+  },
+
+  /**
    * Get Staff Contacts
    */
   getStaffContacts: async () => {

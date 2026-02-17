@@ -15,3 +15,5 @@ export {
   DialogTitle,
   DialogDescription,
 } from './dialog'
+export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs'
+export { Badge, badgeVariants } from './badge'

@@ -1,17 +1,10 @@
-/**
- * Messages Page
- * Comprehensive Communication Module with Smart Broadcast Capabilities
- * - Selective recipient selection with checkboxes
- * - Test message before bulk sending
- * - Message templating with variable substitution
- * - Real-time delivery tracking
- */
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Reply, X, Users, Send, CheckCircle, AlertCircle, Loader2, RefreshCw, MessageSquare, Phone } from 'lucide-react';
+import { Plus, Reply, X, Users, Send, CheckCircle, AlertCircle, Loader2, RefreshCw, MessageSquare, Phone, Bell, Upload } from 'lucide-react';
+import { Card, CardHeader, CardContent, CardTitle, CardDescription, Button, Input, Label, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, Tabs, TabsList, TabsTrigger, TabsContent, Badge } from '../../../components/ui';
 import { useNotifications } from '../hooks/useNotifications';
 import api from '../../../services/api';
 import { formatPhoneNumber, isValidPhoneNumber, getDisplayPhoneNumber } from '../../../utils/phoneFormatter';
+import BroadcastMessagesPage from './BroadcastMessagesPage';
 
 const MessagesPage = () => {
   // Debug logging
@@ -23,9 +16,18 @@ const MessagesPage = () => {
   const { showSuccess, showError } = useNotifications();
   const [activeTab, setActiveTab] = useState('inbox'); // 'inbox' or 'broadcast'
 
-  // Inbox State
+  // Inbox & Compose State
   const [showCompose, setShowCompose] = useState(false);
+  const [composeInputMode, setComposeInputMode] = useState('single'); // 'single' or 'bulk'
+  const [composePhone, setComposePhone] = useState('');
+  const [composePhones, setComposePhones] = useState([]); // For bulk/CSV
+  const [composeCsvFile, setComposeCsvFile] = useState(null);
+  const [composeSubject, setComposeSubject] = useState('');
+  const [composeMessage, setComposeMessage] = useState('');
+  const [isSendingCompose, setIsSendingCompose] = useState(false);
+  const [composeSendReport, setComposeSendReport] = useState([]);
   const [inboxMessages, setInboxMessages] = useState([]);
+  const [showComposeReport, setShowComposeReport] = useState(false);
 
   // Broadcast State
   const [activeGrades, setActiveGrades] = useState([]);
@@ -328,302 +330,507 @@ const MessagesPage = () => {
     showSuccess(`Broadcast complete. Sent: ${progress.success}, Failed: ${progress.failed}`);
   };
 
+  // Parse CSV/Excel file for bulk phone numbers
+  const parseCSVFile = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = e.target.result;
+          const lines = text.split('\n');
+          const numbers = [];
+
+          lines.forEach((line, idx) => {
+            // Skip header row if it contains 'phone', 'number', etc
+            if (idx === 0 && (line.toLowerCase().includes('phone') || line.toLowerCase().includes('number'))) return;
+
+            // Extract phone numbers from the line
+            const matches = line.match(/[\d+\-\s()]+/g);
+            if (matches) {
+              let phone = matches[0].replace(/[\s\-()]/g, '');
+              // Validate that it's a number with at least 9 digits
+              if (/^\d+$/.test(phone) && phone.length >= 9) {
+                numbers.push(phone);
+              }
+            }
+          });
+
+          resolve([...new Set(numbers)]); // Remove duplicates
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.readAsText(file);
+    });
+  };
+
+  // Handle CSV file upload
+  const handleLoadCsvFile = async (file) => {
+    if (!file) return;
+
+    try {
+      const numbers = await parseCSVFile(file);
+      if (numbers.length === 0) {
+        showError('No valid phone numbers found in file');
+        return;
+      }
+      setComposePhones(numbers);
+      setComposeCsvFile(file);
+      showSuccess(`Loaded ${numbers.length} phone numbers from ${file.name}`);
+    } catch (err) {
+      console.error('CSV parsing error:', err);
+      showError('Failed to parse file');
+    }
+  };
+
+  // Send single direct message
+  const handleSendDirectMessage = async () => {
+    // Determine recipients based on mode
+    const recipients = composeInputMode === 'single' ? [composePhone] : composePhones;
+
+    if (recipients.length === 0) {
+      showError(composeInputMode === 'single' ? 'Phone number is required' : 'No phone numbers loaded');
+      return;
+    }
+
+    // Validate all recipients
+    for (const phone of recipients) {
+      if (!isValidPhoneNumber(phone)) {
+        showError(`Invalid phone format: ${phone}`);
+        return;
+      }
+    }
+
+    if (!composeMessage.trim()) {
+      showError('Message cannot be empty');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Send message to ${recipients.length} recipient${recipients.length > 1 ? 's' : ''}?\n\nMessage: "${composeMessage.substring(0, 50)}${composeMessage.length > 50 ? '...' : ''}"`
+    );
+    if (!confirmed) return;
+
+    setIsSendingCompose(true);
+
+    try {
+      let schoolId = localStorage.getItem('currentSchoolId');
+      if (!schoolId) {
+        schoolId = sessionStorage.getItem('currentSchoolId');
+      }
+
+      if (!schoolId) {
+        showError('School ID not found. Please refresh the page.');
+        setIsSendingCompose(false);
+        return;
+      }
+
+      let successCount = 0;
+      const report = [];
+
+      // Send to each recipient
+      for (let i = 0; i < recipients.length; i++) {
+        const phone = recipients[i];
+        let status = 'Sent';
+        let error = null;
+        let messageId = null;
+
+        try {
+          const formattedPhone = formatPhoneNumber(phone);
+
+          const response = await api.communication.sendTestSMS({
+            phoneNumber: formattedPhone,
+            message: composeMessage,
+            schoolId
+          });
+
+          messageId = response?.messageId || response?.id || `MSG-${Date.now()}-${i}`;
+          successCount++;
+        } catch (err) {
+          status = 'Failed';
+          error = err.message;
+          console.error(`Failed to send to ${phone}:`, err);
+        }
+
+        report.push({
+          phone,
+          displayPhone: getDisplayPhoneNumber(phone),
+          status,
+          error,
+          messageId,
+          sentAt: new Date().toLocaleTimeString()
+        });
+
+        // Small delay to prevent rate limiting
+        await new Promise(r => setTimeout(r, 100));
+      }
+
+      setComposeSendReport(report);
+      setShowComposeReport(true);
+      showSuccess(`Messages sent: ${successCount}/${recipients.length} delivered`);
+    } catch (error) {
+      console.error('Error sending messages:', error);
+      showError(`Failed to send messages: ${error.message}`);
+    } finally {
+      setIsSendingCompose(false);
+    }
+  };
+
+  // Reset compose state
+  const resetComposeState = () => {
+    setComposeInputMode('single');
+    setComposePhone('');
+    setComposePhones([]);
+    setComposeCsvFile(null);
+    setComposeSubject('');
+    setComposeMessage('');
+  };
+
   return (
-    <div className="space-y-6 h-full flex flex-col">
-      {/* Header & Tabs */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-        <div className="flex gap-4">
-          <button
-            onClick={() => setActiveTab('inbox')}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors ${activeTab === 'inbox' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-          >
-            Inbox
-          </button>
-          <button
-            onClick={() => setActiveTab('broadcast')}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors ${activeTab === 'broadcast' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-          >
-            Broadcast
-          </button>
+    <div className="h-full flex flex-col bg-white rounded-xl shadow-lg overflow-hidden">
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-brand-purple to-brand-purple/80 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-white/20 rounded-lg">
+            <MessageSquare size={24} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Messages & Inbox</h1>
+            <p className="text-white/80 text-sm">Manage communications and broadcast messages</p>
+          </div>
         </div>
-        {activeTab === 'inbox' && (
-          <button onClick={() => setShowCompose(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            <Plus size={20} /> Compose
-          </button>
-        )}
       </div>
 
-      {/* Inbox View */}
-      {activeTab === 'inbox' && (
-        <div className="bg-white rounded-xl shadow-md divide-y overflow-auto flex-1">
-          {inboxMessages.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">No messages in inbox.</div>
-          ) : (
-            inboxMessages.map(msg => (
-              <div key={msg.id} className={`p-6 hover:bg-gray-50 cursor-pointer ${!msg.read ? 'bg-blue-50' : ''}`}>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-bold text-gray-800">{msg.subject}</h3>
-                      {!msg.read && <span className="w-2 h-2 bg-blue-600 rounded-full"></span>}
-                    </div>
-                    <p className="text-sm text-gray-600">From: {msg.sender} ({msg.senderRole})</p>
-                    <p className="text-gray-600 mt-2">{msg.preview}</p>
-                    <p className="text-xs text-gray-500 mt-2">{msg.date}</p>
-                  </div>
-                  <button className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"><Reply size={18} /></button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
+      {/* Tabs Section */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+          <TabsList className="w-full rounded-none bg-white border-b border-gray-200 p-0 h-auto justify-start">
+            <TabsTrigger
+              value="inbox"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-brand-teal data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-4 flex items-center gap-2"
+            >
+              <MessageSquare size={16} />
+              <span className="font-bold">Inbox</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="broadcast"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-brand-purple data-[state=active]:bg-transparent data-[state=active]:shadow-none px-6 py-4 flex items-center gap-2"
+            >
+              <Send size={16} />
+              <span className="font-bold">Broadcast Messages</span>
+            </TabsTrigger>
+          </TabsList>
 
-      {/* Broadcast View */}
-      {activeTab === 'broadcast' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full overflow-hidden">
-          {/* Left Col: Composition */}
-          <div className="lg:col-span-1 bg-white p-6 rounded-xl shadow-md flex flex-col gap-4 overflow-auto">
-            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-              <Send size={20} className="text-purple-600" /> New Broadcast
-            </h3>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Target Audience</label>
-              <select
-                value={selectedGrade}
-                onChange={(e) => setSelectedGrade(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 bg-gray-50"
-                disabled={sending}
-              >
-                <option value="">Select Grade Level...</option>
-                <option value="All Grades">All Grades (Entire School)</option>
-                {activeGrades.map(g => (
-                  <option key={g} value={g}>{g.replace(/_/g, ' ')}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Recipient Summary */}
-            <div className={`p-4 rounded-lg border ${recipients.length > 0 ? 'bg-purple-50 border-purple-200' : 'bg-gray-50 border-gray-200'}`}>
-              {loadingRecipients ? (
-                <div className="flex items-center gap-2 text-gray-500">
-                  <Loader2 size={16} className="animate-spin" /> Fetching recipients...
-                </div>
-              ) : (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-600">Recipients Found:</span>
-                  <span className="text-lg font-bold text-purple-700">{recipients.length}</span>
-                </div>
-              )}
-              {selectedGrade && !loadingRecipients && recipients.length === 0 && (
-                <p className="text-xs text-red-500 mt-1">No parents found with phone numbers for this group.</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Message Template</label>
-              <p className="text-xs text-gray-500 mb-2">Available variables: {'{parentName}'}, {'{studentName}'}, {'{grade}'}, {'{schoolName}'}</p>
-              <textarea
-                value={messageTemplate}
-                onChange={(e) => setMessageTemplate(e.target.value)}
-                rows="6"
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 resize-none text-sm"
-                placeholder="Type your message here... Use {parentName}, {studentName}, etc. for dynamic content"
-                disabled={sending}
-              />
-              <div className="text-right text-xs text-gray-400 mt-1">
-                {messageTemplate.length} characters
-              </div>
-            </div>
-
-            {/* Test Parent Section */}
-            <div className={`p-4 border rounded-lg ${showTestMode ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
-              <button
-                onClick={() => setShowTestMode(!showTestMode)}
-                className="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-white rounded transition"
-              >
-                <span className="flex items-center gap-2">
-                  <Phone size={16} /> Test Message First
-                </span>
-                {showTestMode ? '−' : '+'}
-              </button>
-
-              {showTestMode && (
-                <div className="mt-3 space-y-3 pt-3 border-t border-blue-200">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Test Parent Phone</label>
-                    <input
-                      type="tel"
-                      value={testPhoneNumber}
-                      onChange={(e) => setTestPhoneNumber(e.target.value)}
-                      placeholder="e.g., 0712345678"
-                      className="w-full px-3 py-2 border rounded text-sm focus:ring-2 focus:ring-blue-500"
-                      disabled={isSendingTest}
-                    />
-                  </div>
-
-                  <button
-                    onClick={(e) => {
-                      console.log('🔵 Send Test button clicked!');
-                      console.log('testPhoneNumber:', testPhoneNumber);
-                      console.log('messageTemplate:', messageTemplate);
-                      console.log('Button disabled:', isSendingTest || !testPhoneNumber);
-                      handleSendTestMessage();
-                    }}
-                    disabled={isSendingTest || !testPhoneNumber}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
-                  >
-                    {isSendingTest ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                    {isSendingTest ? 'Sending...' : 'Send Test'}
-                  </button>
-
-                  {testResult && (
-                    <div className={`p-3 rounded text-xs ${testResult.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                      <p className="font-semibold mb-1">{testResult.success ? '✓ Success' : '✗ Failed'}</p>
-                      <p>{testResult.message}</p>
-                      <p className="text-xs opacity-75 mt-1">{testResult.timestamp}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-auto">
-              {sending ? (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm font-medium">
-                    <span>Sending...</span>
-                    <span>{Math.round((progress.current / progress.total) * 100)}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div className="bg-purple-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${(progress.current / progress.total) * 100}%` }}></div>
-                  </div>
-                  <p className="text-xs text-center text-gray-500">
-                    {progress.current} of {progress.total} processed
-                  </p>
-                </div>
-              ) : (
-                <button
-                  onClick={handleSendBroadcast}
-                  disabled={recipients.length === 0 || !messageTemplate.trim()}
-                  className="w-full bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-transform active:scale-95"
+          {/* Inbox Tab */}
+          <TabsContent value="inbox" className="flex-1 overflow-auto">
+            <div className="p-6 space-y-4 h-full flex flex-col">
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => setShowCompose(true)}
+                  className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold gap-2"
                 >
-                  <Send size={18} /> Send to {recipients.length} {recipients.length === 1 ? 'Recipient' : 'Recipients'}
-                </button>
+                  <Plus size={20} />
+                  Compose Message
+                </Button>
+              </div>
+
+              <div className="flex-1 overflow-auto">
+                {inboxMessages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <MessageSquare size={48} className="mx-auto text-gray-300 mb-4" />
+                      <h3 className="text-lg font-bold text-gray-600 mb-2">No Messages</h3>
+                      <p className="text-gray-400 max-w-sm">Your inbox is empty. Create a new message to get started.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {inboxMessages.map(msg => (
+                      <Card key={msg.id} className={`${!msg.read ? 'bg-blue-50 border-blue-200' : ''}`}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="font-bold text-gray-800">{msg.subject}</h3>
+                                {!msg.read && (
+                                  <Badge className="bg-blue-600">New</Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-600 mb-2">
+                                From: <span className="font-medium">{msg.sender}</span> ({msg.senderRole})
+                              </p>
+                              <p className="text-sm text-gray-600">{msg.preview}</p>
+                              <p className="text-xs text-gray-500 mt-2">{msg.date}</p>
+                            </div>
+                            <Button variant="ghost" size="sm" className="text-brand-teal hover:bg-brand-teal/10">
+                              <Reply size={18} />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Broadcast Tab */}
+          <TabsContent value="broadcast" className="flex-1 overflow-hidden">
+            <BroadcastMessagesPage />
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Compose Modal */}
+      <Dialog open={showCompose} onOpenChange={setShowCompose}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <Plus size={20} className="text-brand-teal" />
+              Send Message
+            </DialogTitle>
+            <DialogDescription>
+              Send a direct message to one or multiple recipients
+            </DialogDescription>
+          </DialogHeader>
+
+          <Tabs value={composeInputMode} onValueChange={setComposeInputMode} className="w-full">
+            <TabsList className="w-full grid grid-cols-2 mb-4">
+              <TabsTrigger value="single" className="gap-2">
+                <Phone size={16} />
+                Single Message
+              </TabsTrigger>
+              <TabsTrigger value="bulk" className="gap-2">
+                <Upload size={16} />
+                Bulk (CSV/Excel)
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Single Message Tab */}
+            <TabsContent value="single" className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="composePhone" className="font-bold">Phone Number</Label>
+                <Input
+                  id="composePhone"
+                  type="tel"
+                  value={composePhone}
+                  onChange={(e) => setComposePhone(e.target.value)}
+                  placeholder="0712345678, +254712345678, or 254712345678"
+                  disabled={isSendingCompose}
+                />
+                {composePhone.trim() && (
+                  <div className="text-sm">
+                    {isValidPhoneNumber(composePhone) ? (
+                      <p className="text-green-600 font-semibold">
+                        ✓ Will send to: {getDisplayPhoneNumber(composePhone)}
+                      </p>
+                    ) : (
+                      <p className="text-red-600 font-semibold">
+                        ✗ Invalid phone format. Try: 0712345678 or +254712345678
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* Bulk Upload Tab */}
+            <TabsContent value="bulk" className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="csvFile" className="font-bold">Upload CSV or Excel File</Label>
+                <p className="text-xs text-gray-500">File should contain phone numbers (with or without header row)</p>
+                <input
+                  id="csvFile"
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={(e) => handleLoadCsvFile(e.target.files?.[0])}
+                  disabled={isSendingCompose}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-brand-teal file:text-white file:font-bold hover:file:bg-brand-teal/90 cursor-pointer"
+                />
+              </div>
+
+              {composeCsvFile && composePhones.length > 0 && (
+                <Card className="bg-green-50 border-green-200">
+                  <CardContent className="p-4">
+                    <p className="text-sm font-bold text-green-700 mb-2">✓ File loaded successfully</p>
+                    <p className="text-sm text-green-600">{composeCsvFile.name}</p>
+                    <p className="text-lg font-bold text-green-700 mt-2">{composePhones.length} phone numbers</p>
+                    <div className="mt-3 max-h-32 overflow-y-auto">
+                      <p className="text-xs font-bold text-green-600 mb-1">First 10 numbers:</p>
+                      <div className="space-y-1">
+                        {composePhones.slice(0, 10).map((phone, idx) => (
+                          <p key={idx} className="text-xs text-green-600 font-mono">
+                            {getDisplayPhoneNumber(phone)}
+                          </p>
+                        ))}
+                        {composePhones.length > 10 && (
+                          <p className="text-xs text-green-600">+{composePhones.length - 10} more...</p>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
+            </TabsContent>
+          </Tabs>
+
+          <div className="space-y-4">
+            <Label htmlFor="composeSubject" className="font-bold">Subject (optional)</Label>
+            <Input
+              id="composeSubject"
+              type="text"
+              value={composeSubject}
+              onChange={(e) => setComposeSubject(e.target.value)}
+              placeholder="Enter message subject..."
+              disabled={isSendingCompose}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="msgContent" className="font-bold">Message</Label>
+            <textarea
+              id="msgContent"
+              rows={6}
+              value={composeMessage}
+              onChange={(e) => setComposeMessage(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-brand-teal focus:border-brand-teal resize-none"
+              placeholder="Type your message..."
+              disabled={isSendingCompose}
+            />
+            <div className="text-right text-xs text-gray-500">
+              {composeMessage.length} characters
             </div>
           </div>
 
-          {/* Right Col: Reports / Preview */}
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-md flex flex-col overflow-hidden">
-            <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
-              <h3 className="font-bold text-gray-700 flex items-center gap-2">
-                <Users size={18} /> Recipient List & Status
-              </h3>
-              <button onClick={fetchRecipients} disabled={sending} className="text-sm text-blue-600 hover:underline flex items-center gap-1">
-                <RefreshCw size={14} /> Refresh List
-              </button>
-            </div>
+          {/* Recipients summary */}
+          {composeInputMode === 'bulk' && composePhones.length > 0 && (
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-3">
+                <p className="text-sm">
+                  <span className="font-bold text-blue-700">Recipients: </span>
+                  <span className="text-blue-600">{composePhones.length} phone numbers</span>
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
-            <div className="flex-1 overflow-auto p-0">
-              {allRecipients.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-gray-400 p-8">
-                  <Users size={48} className="mb-4 opacity-20" />
-                  <p>Select a grade to load recipients</p>
-                </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowCompose(false);
+                resetComposeState();
+              }} 
+              disabled={isSendingCompose}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendDirectMessage}
+              disabled={
+                isSendingCompose || 
+                !composeMessage.trim() || 
+                (composeInputMode === 'single' && !composePhone) ||
+                (composeInputMode === 'bulk' && composePhones.length === 0)
+              }
+              className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold gap-2"
+            >
+              {isSendingCompose ? (
+                <Loader2 size={18} className="animate-spin" />
               ) : (
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-gray-50 text-gray-600 sticky top-0">
-                    <tr>
-                      <th className="px-4 py-3 font-semibold">
-                        <input
-                          type="checkbox"
-                          checked={selectedRecipientIds.size === allRecipients.length && allRecipients.length > 0}
-                          onChange={toggleSelectAll}
-                          className="w-4 h-4 cursor-pointer"
-                          title="Select all recipients"
-                        />
-                      </th>
-                      <th className="px-4 py-3 font-semibold">Parent / Guardian</th>
-                      <th className="px-4 py-3 font-semibold">Phone</th>
-                      <th className="px-4 py-3 font-semibold">Student</th>
-                      <th className="px-4 py-3 font-semibold text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {(deliveryReport.length > 0 ? deliveryReport : allRecipients).map((r) => {
-                      const isSelected = selectedRecipientIds.has(r.id);
-                      const status = deliveryReport.find(d => d.id === r.id)?.status;
-                      
-                      return (
-                        <tr key={r.id} className={`hover:bg-gray-50 ${isSelected ? 'bg-purple-50' : ''}`}>
-                          <td className="px-4 py-3">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleRecipient(r.id)}
-                              disabled={sending}
-                              className="w-4 h-4 cursor-pointer"
-                            />
-                          </td>
-                          <td className="px-4 py-3 font-medium text-gray-800">{r.name}</td>
-                          <td className="px-4 py-3 text-gray-600 font-mono text-xs">{r.displayPhone || r.phone}</td>
-                          <td className="px-4 py-3 text-gray-600 text-xs">{r.studentName} <span className="text-gray-400">({r.grade})</span></td>
-                          <td className="px-4 py-3 text-center">
-                            {status === 'Sent' && <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-full text-xs font-medium"><CheckCircle size={12} /> Sent</span>}
-                            {status === 'Failed' && <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-1 rounded-full text-xs font-medium"><AlertCircle size={12} /> Failed</span>}
-                            {!status && <span className="text-gray-300 text-xs">−</span>}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <Send size={18} />
               )}
-            </div>
+              {isSendingCompose ? 'Sending...' : `Send to ${
+                composeInputMode === 'single' ? '1' : composePhones.length || '0'
+              }`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-            {deliveryReport.length > 0 && (
-              <div className="p-4 bg-gray-50 border-t flex gap-4 text-xs font-medium">
-                <span className="text-green-600">Successful: {progress.success}</span>
-                <span className="text-red-600">Failed: {progress.failed}</span>
-                <span className="text-gray-600">Total: {progress.total}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Compose Delivery Report Modal */}
+      <Dialog open={showComposeReport} onOpenChange={setShowComposeReport}>
+        <DialogContent className="max-w-2xl max-h-96 overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle size={20} className="text-green-600" />
+              Message Delivery Report
+            </DialogTitle>
+            <DialogDescription>
+              Detailed delivery status for each recipient
+            </DialogDescription>
+          </DialogHeader>
 
-      {/* Compose Modal (Inbox Only) */}
-      {showCompose && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full">
-            <div className="bg-blue-600 px-6 py-4 rounded-t-xl flex justify-between items-center">
-              <h3 className="text-xl font-bold text-white">Compose Message</h3>
-              <button onClick={() => setShowCompose(false)} className="text-white"><X size={24} /></button>
+          {composeSendReport.length > 0 && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-2">
+                <Card className="bg-green-50">
+                  <CardContent className="p-3 text-center">
+                    <p className="text-xs text-gray-600">Total</p>
+                    <p className="text-2xl font-bold text-green-700">{composeSendReport.length}</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-green-50">
+                  <CardContent className="p-3 text-center">
+                    <p className="text-xs text-gray-600">Sent</p>
+                    <p className="text-2xl font-bold text-green-700">
+                      {composeSendReport.filter(r => r.status === 'Sent').length}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-red-50">
+                  <CardContent className="p-3 text-center">
+                    <p className="text-xs text-gray-600">Failed</p>
+                    <p className="text-2xl font-bold text-red-700">
+                      {composeSendReport.filter(r => r.status === 'Failed').length}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <table className="w-full text-xs border">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-bold">Phone</th>
+                    <th className="px-3 py-2 text-left font-bold">Status</th>
+                    <th className="px-3 py-2 text-left font-bold">Message ID</th>
+                    <th className="px-3 py-2 text-left font-bold">Time</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y max-h-48 overflow-y-auto">
+                  {composeSendReport.map((r, i) => (
+                    <tr key={i} className={r.status === 'Sent' ? 'bg-green-50' : 'bg-red-50'}>
+                      <td className="px-3 py-2 font-mono">{r.displayPhone}</td>
+                      <td className="px-3 py-2">
+                        <Badge className={r.status === 'Sent' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}>
+                          {r.status === 'Sent' ? <CheckCircle size={12} className="mr-1" /> : <AlertCircle size={12} className="mr-1" />}
+                          {r.status}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2 font-mono text-xs text-gray-600">{r.messageId}</td>
+                      <td className="px-3 py-2 text-gray-600">{r.sentAt}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2">Recipient</label>
-                <select className="w-full px-4 py-2 border rounded-lg">
-                  <option>Select recipient</option>
-                  <option>Hassan Mohamed (Parent)</option>
-                  <option>Mary Wanjiru (Parent)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">Subject</label>
-                <input type="text" className="w-full px-4 py-2 border rounded-lg" placeholder="Enter subject" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-2">Message</label>
-                <textarea rows="6" className="w-full px-4 py-2 border rounded-lg" placeholder="Type your message..." />
-              </div>
-              <button onClick={() => { showSuccess('Message sent!'); setShowCompose(false); }} className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold">Send Message</button>
-            </div>
-          </div>
-        </div>
-      )}
+          )}
+
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setShowComposeReport(false);
+                setShowCompose(false);
+                resetComposeState();
+              }}
+              className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
