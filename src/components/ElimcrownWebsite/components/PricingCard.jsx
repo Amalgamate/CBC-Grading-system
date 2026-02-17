@@ -65,7 +65,7 @@ export const PricingCard = ({
                 <X className="w-5 h-5 text-gray-300 flex-shrink-0" strokeWidth={3} />
               )}
               <span className={isIncluded ? 'text-gray-700' : 'text-gray-400'}>
-                {typeof feature === 'string' ? feature : feature.text}
+                {typeof feature === 'string' ? feature : (feature.name || feature.text)}
               </span>
             </div>
           );
