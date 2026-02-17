@@ -17,7 +17,7 @@ const ContactPage = (props) => {
 
                             <div className="space-y-8">
                                 <div className="flex gap-4">
-                                    <div className="w-12 h-12 bg-[#f0f4f7] rounded flex items-center justify-center text-[#714B67] shrink-0">
+                                    <div className="w-12 h-12 bg-[#f0f4f7] rounded flex items-center justify-center text-[#520050] shrink-0">
                                         <MessageCircle />
                                     </div>
                                     <div>
@@ -27,7 +27,7 @@ const ContactPage = (props) => {
                                     </div>
                                 </div>
                                 <div className="flex gap-4">
-                                    <div className="w-12 h-12 bg-[#f0f4f7] rounded flex items-center justify-center text-[#714B67] shrink-0">
+                                    <div className="w-12 h-12 bg-[#f0f4f7] rounded flex items-center justify-center text-[#520050] shrink-0">
                                         <MapPin />
                                     </div>
                                     <div>
@@ -37,7 +37,7 @@ const ContactPage = (props) => {
                                     </div>
                                 </div>
                                 <div className="flex gap-4">
-                                    <div className="w-12 h-12 bg-[#f0f4f7] rounded flex items-center justify-center text-[#714B67] shrink-0">
+                                    <div className="w-12 h-12 bg-[#f0f4f7] rounded flex items-center justify-center text-[#520050] shrink-0">
                                         <Phone />
                                     </div>
                                     <div>
@@ -54,22 +54,22 @@ const ContactPage = (props) => {
                                 <div className="grid grid-cols-2 gap-6">
                                     <div>
                                         <label className="block text-sm font-semibold text-[#1a1a1a] mb-2">First name</label>
-                                        <input className="w-full px-4 py-3 rounded border border-gray-300 focus:border-[#714B67] focus:ring-1 focus:ring-[#714B67] outline-none transition" placeholder="John" />
+                                        <input className="w-full px-4 py-3 rounded border border-gray-300 focus:border-[#520050] focus:ring-1 focus:ring-[#520050] outline-none transition" placeholder="John" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-semibold text-[#1a1a1a] mb-2">Last name</label>
-                                        <input className="w-full px-4 py-3 rounded border border-gray-300 focus:border-[#714B67] focus:ring-1 focus:ring-[#714B67] outline-none transition" placeholder="Doe" />
+                                        <input className="w-full px-4 py-3 rounded border border-gray-300 focus:border-[#520050] focus:ring-1 focus:ring-[#520050] outline-none transition" placeholder="Doe" />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-[#1a1a1a] mb-2">Email</label>
-                                    <input className="w-full px-4 py-3 rounded border border-gray-300 focus:border-[#714B67] focus:ring-1 focus:ring-[#714B67] outline-none transition" type="email" placeholder="john@school.org" />
+                                    <input className="w-full px-4 py-3 rounded border border-gray-300 focus:border-[#520050] focus:ring-1 focus:ring-[#520050] outline-none transition" type="email" placeholder="john@school.org" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-[#1a1a1a] mb-2">Message</label>
-                                    <textarea className="w-full px-4 py-3 rounded border border-gray-300 focus:border-[#714B67] focus:ring-1 focus:ring-[#714B67] outline-none h-32 resize-none transition" placeholder="Tell us about your school needs..." />
+                                    <textarea className="w-full px-4 py-3 rounded border border-gray-300 focus:border-[#520050] focus:ring-1 focus:ring-[#520050] outline-none h-32 resize-none transition" placeholder="Tell us about your school needs..." />
                                 </div>
-                                <button className="w-full py-3 bg-[#714B67] text-white font-bold rounded hover:bg-[#5d3d54] transition shadow-sm">Send Message</button>
+                                <button className="w-full py-3 bg-[#520050] text-white font-bold rounded hover:bg-[#3D0038] transition shadow-sm">Send Message</button>
                             </form>
                         </div>
                     </div>

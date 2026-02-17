@@ -40,7 +40,7 @@ function AppContent() {
     return {
       logoUrl: localStorage.getItem('schoolLogo') || '/logo-new.png',
       faviconUrl: localStorage.getItem('schoolFavicon') || '/favicon.png',
-      brandColor: localStorage.getItem('brandColor') || '#875A7B',
+      brandColor: localStorage.getItem('brandColor') || '#520050',
       welcomeTitle: localStorage.getItem('welcomeTitle') || 'Welcome to Elimcrown',
       welcomeMessage: localStorage.getItem('welcomeMessage') || 'Unified education management for schools and institutions.',
       onboardingTitle: localStorage.getItem('onboardingTitle') || 'Create Your Elimcrown Account',

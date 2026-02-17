@@ -14,7 +14,7 @@ const SolutionsPage = (props) => {
         <WebsiteLayout {...props}>
             <section className="bg-white pt-24 pb-16">
                 <div className="max-w-6xl mx-auto px-6 text-center">
-                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded bg-[#f0f4f7] text-[#714B67] text-xs font-bold uppercase tracking-wider mb-6 transition-all duration-700 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded bg-[#f0f4f7] text-[#520050] text-xs font-bold uppercase tracking-wider mb-6 transition-all duration-700 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
                         Solutions for Everyone
                     </div>
                     <h1 className={`text-4xl md:text-6xl font-bold mb-6 text-[#1a1a1a] tracking-tight transition-all duration-700 delay-100 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
@@ -49,7 +49,7 @@ const SolutionsPage = (props) => {
                                     <Check size={18} className="text-[#017E84]" /> Automated Compliance Reports
                                 </li>
                             </ul>
-                            <Link to="/get-started" className="inline-flex items-center gap-2 text-[#714B67] font-bold hover:gap-3 transition-all">
+                            <Link to="/get-started" className="inline-flex items-center gap-2 text-[#520050] font-bold hover:gap-3 transition-all">
                                 Start your trial <ArrowRight size={18} />
                             </Link>
                         </div>
@@ -78,7 +78,7 @@ const SolutionsPage = (props) => {
                                     <Check size={18} className="text-[#017E84]" /> Expense Tracking & Budgeting
                                 </li>
                             </ul>
-                            <Link to="/get-started" className="inline-flex items-center gap-2 text-[#714B67] font-bold hover:gap-3 transition-all">
+                            <Link to="/get-started" className="inline-flex items-center gap-2 text-[#520050] font-bold hover:gap-3 transition-all">
                                 Explore Finance <ArrowRight size={18} />
                             </Link>
                         </div>
@@ -107,7 +107,7 @@ const SolutionsPage = (props) => {
                                     <Check size={18} className="text-[#017E84]" /> Instant Class Performance Analysis
                                 </li>
                             </ul>
-                            <Link to="/get-started" className="inline-flex items-center gap-2 text-[#714B67] font-bold hover:gap-3 transition-all">
+                            <Link to="/get-started" className="inline-flex items-center gap-2 text-[#520050] font-bold hover:gap-3 transition-all">
                                 See Grading <ArrowRight size={18} />
                             </Link>
                         </div>
@@ -141,7 +141,7 @@ const SolutionsPage = (props) => {
                             { icon: Users, title: "HR & Payroll", desc: "Manage staff contracts, leave, and salaries." },
                         ].map((mod, i) => (
                             <div key={i} className="bg-[#f9fafb] p-6 rounded hover:bg-white hover:shadow-md transition-all cursor-default border border-transparent hover:border-gray-200">
-                                <div className="text-[#714B67] mb-3">
+                                <div className="text-[#520050] mb-3">
                                     <mod.icon size={28} />
                                 </div>
                                 <h3 className="font-bold text-[#1a1a1a] mb-2 text-md">{mod.title}</h3>

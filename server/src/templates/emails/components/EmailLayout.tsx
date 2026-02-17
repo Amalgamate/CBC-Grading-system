@@ -25,7 +25,7 @@ interface EmailLayoutProps {
 }
 
 const baseUrl = process.env.FRONTEND_URL || 'https://elimcrown.netlify.app';
-const brandColor = '#714B67'; // Elimcrown Purple
+const brandColor = '#520050'; // Elimcrown Purple
 const tealColor = '#017E84'; // Elimcrown Teal
 
 // For testing purposes, we use a public icon that won't break in Gmail
@@ -127,7 +127,7 @@ const logo = {
 };
 
 const brandName = {
-    color: '#714B67',
+    color: '#520050',
     fontSize: '26px',
     fontWeight: '800' as const,
     margin: '0',

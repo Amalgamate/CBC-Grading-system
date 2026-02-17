@@ -93,11 +93,11 @@ code {
 
 @layer utilities {
   .odoo-purple {
-    @apply text-[#714B67];
+    @apply text-[#520050];
   }
 
   .bg-odoo-purple {
-    @apply bg-[#714B67];
+    @apply bg-[#520050];
   }
 
 

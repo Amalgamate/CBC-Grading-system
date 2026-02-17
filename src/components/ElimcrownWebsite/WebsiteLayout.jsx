@@ -25,7 +25,7 @@ export const WebsiteLayout = ({ children, onLoginClick, onGetStartedClick, isAut
         {
             title: "Assessment & Academics",
             description: "Evidence-based CBC assessment and academic management.",
-            icon: <Brain className="text-[#875A7B]" size={20} />,
+            icon: <Brain className="text-[#520050]" size={20} />,
             items: [
                 { name: "CBC Assessment", path: "/solutions/cbc-assessment", icon: <BookOpen size={16} /> },
                 { name: "Academic Management", path: "/solutions/academics", icon: <LayoutDashboard size={16} /> },
@@ -71,7 +71,7 @@ export const WebsiteLayout = ({ children, onLoginClick, onGetStartedClick, isAut
                 <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
                     <Link to="/" className="flex items-center group">
                         <h1 className="text-2xl tracking-tight">
-                            <span className="font-black text-[#875A7B]">Elim</span>
+                            <span className="font-black text-[#520050]">Elim</span>
                             <span className="font-normal text-teal-900">crown</span>
                         </h1>
                     </Link>
@@ -87,7 +87,7 @@ export const WebsiteLayout = ({ children, onLoginClick, onGetStartedClick, isAut
                             >
                                 {link.dropdown ? (
                                     <button
-                                        className={`px-5 py-2.5 rounded-full text-base font-medium flex items-center gap-1 transition-all text-slate-600 hover:text-brand-dark hover:bg-slate-100 ${activeDropdown === link.name ? 'text-[#875A7B] bg-slate-100' : ''
+                                        className={`px-5 py-2.5 rounded-full text-base font-medium flex items-center gap-1 transition-all text-slate-600 hover:text-brand-dark hover:bg-slate-100 ${activeDropdown === link.name ? 'text-[#520050] bg-slate-100' : ''
                                             }`}
                                     >
                                         {link.name} <ChevronDown size={16} className={`transition-transform duration-300 ${activeDropdown === link.name ? 'rotate-180' : ''}`} />
@@ -96,7 +96,7 @@ export const WebsiteLayout = ({ children, onLoginClick, onGetStartedClick, isAut
                                     <Link
                                         to={link.path}
                                         className={`px-5 py-2.5 rounded-full text-base font-medium transition-all ${location.pathname === link.path
-                                            ? 'text-[#875A7B] bg-[#f4f0f2]'
+                                            ? 'text-[#520050] bg-[#f4f0f2]'
                                             : 'text-slate-600 hover:text-brand-dark hover:bg-slate-100'
                                             }`}
                                     >
@@ -126,7 +126,7 @@ export const WebsiteLayout = ({ children, onLoginClick, onGetStartedClick, isAut
                                                                 to={item.path}
                                                                 className="flex items-center gap-3 group/item p-2 rounded-lg hover:bg-slate-50 transition-colors"
                                                             >
-                                                                <div className="text-slate-400 group-hover/item:text-[#875A7B] transition-colors">
+                                                                <div className="text-slate-400 group-hover/item:text-[#520050] transition-colors">
                                                                     {item.icon}
                                                                 </div>
                                                                 <span className="text-sm font-semibold text-slate-600 group-hover/item:text-brand-dark">
@@ -148,12 +148,12 @@ export const WebsiteLayout = ({ children, onLoginClick, onGetStartedClick, isAut
                     <div className="hidden md:flex items-center gap-4">
                         {!isAuthenticated ? (
                             <>
-                                <button onClick={onLoginClick} className="text-base font-semibold text-slate-600 hover:text-[#875A7B] transition-colors">
+                                <button onClick={onLoginClick} className="text-base font-semibold text-slate-600 hover:text-[#520050] transition-colors">
                                     Log in
                                 </button>
                                 <button
                                     onClick={onGetStartedClick}
-                                    className="bg-[#875A7B] hover:bg-[#714B67] text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl text-sm font-bold transition-all hover:-translate-y-0.5 flex items-center gap-2"
+                                    className="bg-[#520050] hover:bg-[#3D0038] text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl text-sm font-bold transition-all hover:-translate-y-0.5 flex items-center gap-2"
                                 >
                                     Get Started <ChevronRight size={16} />
                                 </button>
@@ -195,7 +195,7 @@ export const WebsiteLayout = ({ children, onLoginClick, onGetStartedClick, isAut
                                                         <Link
                                                             key={item.name}
                                                             to={item.path}
-                                                            className="text-base font-medium text-slate-600 hover:text-[#875A7B]"
+                                                            className="text-base font-medium text-slate-600 hover:text-[#520050]"
                                                         >
                                                             {item.name}
                                                         </Link>
@@ -220,7 +220,7 @@ export const WebsiteLayout = ({ children, onLoginClick, onGetStartedClick, isAut
                                     <button onClick={onLoginClick} className="w-full py-4 rounded bg-slate-100 font-bold text-slate-700">
                                         Log in
                                     </button>
-                                    <button onClick={onGetStartedClick} className="w-full py-4 rounded bg-[#875A7B] text-white font-bold shadow-md">
+                                    <button onClick={onGetStartedClick} className="w-full py-4 rounded bg-[#520050] text-white font-bold shadow-md">
                                         Get Started
                                     </button>
                                 </>
@@ -240,7 +240,7 @@ export const WebsiteLayout = ({ children, onLoginClick, onGetStartedClick, isAut
             </main>
 
             {/* Footer - Mature Professional Design */}
-            <footer className="bg-[#875A7B] text-white pt-16 pb-8">
+            <footer className="bg-[#520050] text-white pt-16 pb-8">
                 <div className="max-w-7xl mx-auto px-6">
                     {/* Main Footer Content */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">

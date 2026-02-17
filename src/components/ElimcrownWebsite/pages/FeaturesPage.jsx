@@ -21,7 +21,7 @@ const FeaturesPage = (props) => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-24">
                         <div>
                             <div className="p-2 bg-[#f4f0f2] rounded w-fit mb-6">
-                                <Star className="text-[#875A7B]" />
+                                <Star className="text-[#520050]" />
                             </div>
                             <h2 className="text-3xl font-bold text-[#1a1a1a] mb-4">CBC Assessment Engine</h2>
                             <p className="text-lg text-slate-500 mb-6 leading-relaxed">

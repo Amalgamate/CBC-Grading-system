@@ -228,7 +228,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
 
         {/* Left Column - Branding Area */}
         <div
-          className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative overflow-hidden bg-[#875A7B]"
+          className="w-full lg:w-1/2 p-8 lg:p-16 flex flex-col justify-between items-center text-white relative overflow-hidden bg-[#520050]"
         >
           {/* Decorative Elements */}
           <div className="absolute inset-0 overflow-hidden opacity-10">
@@ -309,7 +309,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
           <div className="max-w-md mx-auto w-full">
             {/* Header */}
             <div className="mb-8 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-[#875A7B] rounded-2xl mb-4 shadow-lg">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-[#520050] rounded-2xl mb-4 shadow-lg">
                 {getVerificationIcon()}
               </div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -319,7 +319,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                 {isOtpSent ? "We've sent a 6-digit code to" : "Select your preferred method below"}
               </p>
               {isOtpSent && (
-                <p className="text-[#875A7B] font-semibold text-lg">{getVerificationDestination()}</p>
+                <p className="text-[#520050] font-semibold text-lg">{getVerificationDestination()}</p>
               )}
             </div>
 
@@ -334,7 +334,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                   disabled={isTriggering}
                   onClick={() => handleMethodSelect('email')}
                   className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${verificationMethod === 'email'
-                    ? 'border-[#875A7B] bg-[#f4f0f2] text-[#875A7B]'
+                    ? 'border-[#520050] bg-[#f4f0f2] text-[#520050]'
                     : 'border-gray-200 hover:border-gray-300 text-gray-600'
                     } ${isTriggering && verificationMethod === 'email' ? 'animate-pulse' : ''}`}
                 >
@@ -347,7 +347,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                   disabled={isTriggering}
                   onClick={() => handleMethodSelect('sms')}
                   className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${verificationMethod === 'sms'
-                    ? 'border-[#875A7B] bg-[#f4f0f2] text-[#875A7B]'
+                    ? 'border-[#520050] bg-[#f4f0f2] text-[#520050]'
                     : 'border-gray-200 hover:border-gray-300 text-gray-600'
                     } ${isTriggering && verificationMethod === 'sms' ? 'animate-pulse' : ''}`}
                 >
@@ -360,7 +360,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                   disabled={isTriggering}
                   onClick={() => handleMethodSelect('whatsapp')}
                   className={`p-4 rounded-lg border-2 transition flex flex-col items-center gap-2 ${verificationMethod === 'whatsapp'
-                    ? 'border-[#875A7B] bg-[#f4f0f2] text-[#875A7B]'
+                    ? 'border-[#520050] bg-[#f4f0f2] text-[#520050]'
                     : 'border-gray-200 hover:border-gray-300 text-gray-600'
                     } ${isTriggering && verificationMethod === 'whatsapp' ? 'animate-pulse' : ''}`}
                 >
@@ -389,7 +389,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                           onChange={(e) => handleChange(index, e.target.value)}
                           onKeyDown={(e) => handleKeyDown(index, e)}
                           onPaste={handlePaste}
-                          className={`w-12 h-14 text-center text-xl font-bold border-2 rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${error ? 'border-red-500' : 'border-gray-300'
+                          className={`w-12 h-14 text-center text-xl font-bold border-2 rounded-lg focus:ring-2 focus:ring-[#520050] focus:border-transparent transition ${error ? 'border-red-500' : 'border-gray-300'
                             }`}
                           autoFocus={index === 0}
                         />
@@ -407,7 +407,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                   <button
                     type="submit"
                     disabled={isLoading || otp.join('').length !== 6}
-                    className="w-full bg-[#875A7B] text-white py-3 rounded-lg font-semibold hover:bg-[#714B67] focus:ring-4 focus:ring-[#875A7B]/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[#520050] text-white py-3 rounded-lg font-semibold hover:bg-[#3D0038] focus:ring-4 focus:ring-[#520050]/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? (
                       <div className="flex items-center justify-center gap-2">
@@ -427,7 +427,7 @@ export default function EmailVerificationForm({ email, phone, onVerifySuccess, b
                     onClick={handleResend}
                     disabled={!canResend || isTriggering}
                     className={`inline-flex items-center gap-2 font-semibold transition ${canResend && !isTriggering
-                      ? 'text-[#875A7B] hover:text-[#714B67]'
+                      ? 'text-[#520050] hover:text-[#3D0038]'
                       : 'text-gray-400 cursor-not-allowed'
                       }`}
                   >

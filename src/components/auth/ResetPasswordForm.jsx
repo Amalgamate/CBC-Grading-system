@@ -79,7 +79,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
       <div className="text-center mb-8">
         <div className="inline-flex items-center justify-center p-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl mb-4 transform hover:scale-105 transition-transform duration-500">
           <span className="text-3xl font-black tracking-tighter flex items-center gap-1">
-            <span className="text-[#875A7B]">Elim</span>
+            <span className="text-[#520050]">Elim</span>
             <span className="text-teal-600 font-light">crown</span>
           </span>
         </div>
@@ -102,7 +102,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${errors.password ? 'border-red-500' : 'border-gray-300'
+                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-[#520050] focus:border-transparent transition ${errors.password ? 'border-red-500' : 'border-gray-300'
                   }`}
                 placeholder="Enter new password"
               />
@@ -172,7 +172,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-[#520050] focus:border-transparent transition ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                   }`}
                 placeholder="Re-enter new password"
               />
@@ -201,7 +201,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-[#875A7B] text-white py-3 rounded-lg font-semibold hover:bg-[#714B67] focus:ring-4 focus:ring-[#875A7B]/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[#520050] text-white py-3 rounded-lg font-semibold hover:bg-[#3D0038] focus:ring-4 focus:ring-[#520050]/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <div className="flex items-center justify-center gap-2">

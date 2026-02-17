@@ -32,16 +32,16 @@ const PricingPage = (props) => {
                         </div>
 
                         {/* Growth - Highlighted */}
-                        <div className="bg-white p-8 rounded-2xl shadow-2xl border border-[#875A7B] relative transform md:-translate-y-4">
-                            <div className="absolute top-0 inset-x-0 h-1.5 bg-[#875A7B] rounded-t-2xl"></div>
-                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-white text-[10px] font-black px-4 py-1.5 bg-[#875A7B] rounded-full uppercase tracking-tighter ring-4 ring-white">Most Popular</div>
+                        <div className="bg-white p-8 rounded-2xl shadow-2xl border border-[#520050] relative transform md:-translate-y-4">
+                            <div className="absolute top-0 inset-x-0 h-1.5 bg-[#520050] rounded-t-2xl"></div>
+                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-white text-[10px] font-black px-4 py-1.5 bg-[#520050] rounded-full uppercase tracking-tighter ring-4 ring-white">Most Popular</div>
                             <h3 className="text-xl font-bold text-[#1a1a1a] mb-2">Growth</h3>
                             <p className="text-sm text-slate-500 mb-6">Complete management for growing institutions.</p>
                             <div className="mb-6">
-                                <span className="text-4xl font-bold text-[#875A7B]">KES 12,500</span>
+                                <span className="text-4xl font-bold text-[#520050]">KES 12,500</span>
                                 <span className="text-slate-500">/mo</span>
                             </div>
-                            <button className="w-full py-4 bg-[#875A7B] text-white font-bold rounded-xl hover:bg-[#714B67] transition mb-6 shadow-lg shadow-[#875A7B]/20">Get Growth Plus</button>
+                            <button className="w-full py-4 bg-[#520050] text-white font-bold rounded-xl hover:bg-[#3D0038] transition mb-6 shadow-lg shadow-[#520050]/20">Get Growth Plus</button>
                             <ul className="space-y-4 text-sm">
                                 <li className="flex gap-3 text-slate-600 font-medium"><Check size={18} className="text-teal-600" /> Up to 500 Learners</li>
                                 <li className="flex gap-3 text-slate-600 font-medium"><Check size={18} className="text-teal-600" /> Biometric Integration Ready</li>
@@ -92,7 +92,7 @@ const PricingPage = (props) => {
 
                         <div className="bg-[#f9fafb] p-8 rounded-2xl border border-gray-200 text-left">
                             <h3 className="text-xl font-bold text-[#1a1a1a] mb-4 flex items-center gap-2">
-                                <span className="p-2 bg-[#875A7B]/10 rounded-lg text-[#875A7B]">
+                                <span className="p-2 bg-[#520050]/10 rounded-lg text-[#520050]">
                                     <Folder size={24} />
                                 </span>
                                 Storage & Media

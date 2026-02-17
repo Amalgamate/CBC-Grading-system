@@ -19,12 +19,12 @@ const HomePage = (props) => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                         <div className="space-y-10 text-left">
                             <div className={`inline-flex items-center gap-2 px-4 py-2 bg-[#f4f0f2] border border-[#d9ccd5] rounded-full transition-all duration-700 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-                                <Sparkles className="w-4 h-4 text-[#875A7B]" strokeWidth={2} />
-                                <span className="text-xs font-bold text-[#875A7B] uppercase tracking-wider">A Practical Way to Deliver CBC</span>
+                                <Sparkles className="w-4 h-4 text-[#520050]" strokeWidth={2} />
+                                <span className="text-xs font-bold text-[#520050] uppercase tracking-wider">A Practical Way to Deliver CBC</span>
                             </div>
 
                             <h1 className={`text-5xl md:text-7xl font-bold text-brand-dark leading-[1.1] tracking-tight transition-all duration-700 delay-100 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-                                Where <span className="text-[#875A7B]">Play</span> Becomes <span className="text-teal-600 font-light">Learning</span>.
+                                Where <span className="text-[#520050]">Play</span> Becomes <span className="text-teal-600 font-light">Learning</span>.
                             </h1>
 
                             <p className={`text-xl text-slate-600 leading-relaxed max-w-xl font-light transition-all duration-700 delay-200 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
@@ -32,7 +32,7 @@ const HomePage = (props) => {
                             </p>
 
                             <div className={`flex flex-wrap gap-4 pt-4 transition-all duration-700 delay-400 transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-                                <button onClick={props.onGetStartedClick} className="bg-[#875A7B] hover:bg-[#714B67] text-white px-8 py-4 rounded-xl font-bold shadow-xl transition-all hover:-translate-y-1 flex items-center gap-2">
+                                <button onClick={props.onGetStartedClick} className="bg-[#520050] hover:bg-[#3D0038] text-white px-8 py-4 rounded-xl font-bold shadow-xl transition-all hover:-translate-y-1 flex items-center gap-2">
                                     Explore the Playroom <ArrowRight size={20} />
                                 </button>
                                 <button onClick={props.onLoginClick} className="bg-white border-2 border-teal-600 hover:bg-teal-50 text-teal-600 px-8 py-4 rounded-xl font-bold transition-all flex items-center gap-2">
@@ -77,7 +77,7 @@ const HomePage = (props) => {
                             <div key={i} className="bg-white p-6 border-l-4 border-[#a07c95] shadow-sm hover:shadow-md transition-all group">
                                 <div className="flex items-start gap-4">
                                     <div className="w-12 h-12 bg-[#f4f0f2] flex items-center justify-center flex-shrink-0">
-                                        <item.icon className="text-[#875A7B]" size={24} strokeWidth={2} />
+                                        <item.icon className="text-[#520050]" size={24} strokeWidth={2} />
                                     </div>
                                     <div className="flex-1">
                                         <p className="text-gray-700 font-medium leading-relaxed">{item.text}</p>
@@ -91,7 +91,7 @@ const HomePage = (props) => {
 
             {/* Parallax Section Break */}
             <section className="relative h-96 overflow-hidden bg-fixed bg-center bg-cover" style={{ backgroundImage: 'url(/playroom-bg.jpg)', backgroundAttachment: 'fixed' }}>
-                <div className="absolute inset-0 bg-[#714B67] bg-opacity-80"></div>
+                <div className="absolute inset-0 bg-[#520050] bg-opacity-80"></div>
                 <div className="relative z-10 h-full flex items-center justify-center text-center px-6">
                     <div className="max-w-3xl">
                         <h2 className="text-4xl md:text-5xl font-bold text-white mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
@@ -109,14 +109,14 @@ const HomePage = (props) => {
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="flex flex-col lg:flex-row gap-20 items-center mb-16">
                         <div className="flex-1 space-y-8">
-                            <h2 className="text-4xl md:text-5xl font-bold text-brand-dark tracking-tight">The <span className="text-[#875A7B]">Digital Playroom</span> Experience</h2>
+                            <h2 className="text-4xl md:text-5xl font-bold text-brand-dark tracking-tight">The <span className="text-[#520050]">Digital Playroom</span> Experience</h2>
                             <p className="text-xl text-slate-600 leading-relaxed font-light">
                                 ElimCrown introduces a digital Playroom where learners code, experiment, and explore real-world challenges. Every interaction becomes observable CBC assessment evidence captured automatically and organized in the <span className="font-semibold text-teal-600">Learning Hub</span>.
                             </p>
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="bg-[#f4f0f2] rounded-3xl p-8 aspect-square flex flex-col justify-between hover:shadow-lg transition-all">
                                     <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                                        <Code className="text-[#875A7B]" />
+                                        <Code className="text-[#520050]" />
                                     </div>
                                     <p className="font-semibold text-brand-dark">Practical Coding</p>
                                 </div>
@@ -131,7 +131,7 @@ const HomePage = (props) => {
                         <div className="flex-1">
                             <div className="relative">
                                 <img src="/coding_class_kids_1_1770263631919.png" alt="Coding Class" className="rounded-3xl shadow-2xl relative z-10" />
-                                <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-[#875A7B]/10 rounded-full blur-3xl"></div>
+                                <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-[#520050]/10 rounded-full blur-3xl"></div>
                             </div>
                         </div>
                     </div>
@@ -173,7 +173,7 @@ const HomePage = (props) => {
                             The ElimCrown Playroom is a guided digital environment where learners develop skills through experimentation and problem-solving. Students can now <strong>submit their projects directly to teachers</strong> for assessment.
                         </p>
                         <div className="inline-block bg-[#f4f0f2] border border-[#d9ccd5] px-5 py-2 rounded-xl">
-                            <p className="text-[#714B67] font-semibold">
+                            <p className="text-[#520050] font-semibold">
                                 No pressure. No memorisation. Just meaningful learning.
                             </p>
                         </div>
@@ -187,7 +187,7 @@ const HomePage = (props) => {
                         ].map((module, i) => (
                             <div key={i} className="bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all rounded-3xl overflow-hidden group">
                                 <div className={`h-48 ${module.color === 'purple' ? 'bg-[#f4f0f2]' : 'bg-teal-50'} flex items-center justify-center border-b border-gray-200`}>
-                                    <module.icon className={module.color === 'purple' ? 'text-[#875A7B]' : 'text-teal-600'} size={80} strokeWidth={1.5} />
+                                    <module.icon className={module.color === 'purple' ? 'text-[#520050]' : 'text-teal-600'} size={80} strokeWidth={1.5} />
                                 </div>
                                 <div className="p-8">
                                     <h3 className="text-xl font-bold text-gray-900 mb-3">{module.title}</h3>
@@ -216,9 +216,9 @@ const HomePage = (props) => {
                             { num: "4", title: "Teacher Validation", desc: "Teachers validate learning and generate CBC reports", icon: CheckCircle2 }
                         ].map((step, i) => (
                             <div key={i} className="relative">
-                                <div className="bg-white p-8 border-2 border-gray-100 hover:border-[#875A7B] hover:shadow-xl transition-all rounded-3xl">
+                                <div className="bg-white p-8 border-2 border-gray-100 hover:border-[#520050] hover:shadow-xl transition-all rounded-3xl">
                                     <div className="flex items-center gap-4 mb-6">
-                                        <div className="w-12 h-12 bg-[#875A7B] text-white flex items-center justify-center font-bold text-xl rounded-xl">
+                                        <div className="w-12 h-12 bg-[#520050] text-white flex items-center justify-center font-bold text-xl rounded-xl">
                                             {step.num}
                                         </div>
                                         <step.icon className="text-teal-600" size={28} strokeWidth={2} />
@@ -254,12 +254,12 @@ const HomePage = (props) => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                        <div className="bg-white p-10 border-l-4 border-[#875A7B] shadow-sm rounded-r-3xl">
+                        <div className="bg-white p-10 border-l-4 border-[#520050] shadow-sm rounded-r-3xl">
                             <h3 className="text-2xl font-bold text-gray-900 mb-8">Learning Areas Supported</h3>
                             <ul className="space-y-4">
                                 {["Digital Literacy", "Computer Science", "Science and Technology", "Mathematics (Applied Thinking)", "Environmental Studies", "Life Skills"].map((area, i) => (
                                     <li key={i} className="flex items-center gap-4">
-                                        <CheckCircle2 className="text-[#875A7B] flex-shrink-0" size={24} strokeWidth={2} />
+                                        <CheckCircle2 className="text-[#520050] flex-shrink-0" size={24} strokeWidth={2} />
                                         <span className="text-gray-700 text-lg font-light">{area}</span>
                                     </li>
                                 ))}
@@ -305,12 +305,12 @@ const HomePage = (props) => {
                         ))}
                     </div>
 
-                    <div className="text-center bg-gray-50 border-2 border-[#875A7B]/30 p-12 rounded-[3rem]">
+                    <div className="text-center bg-gray-50 border-2 border-[#520050]/30 p-12 rounded-[3rem]">
                         <p className="text-2xl font-bold text-gray-900 mb-8">
                             ElimCrown helps schools deliver CBC confidently and consistently.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                            <button className="px-10 py-4 bg-[#875A7B] hover:bg-[#714B67] text-white font-bold transition-all rounded-2xl shadow-lg">
+                            <button className="px-10 py-4 bg-[#520050] hover:bg-[#3D0038] text-white font-bold transition-all rounded-2xl shadow-lg">
                                 View Pricing
                             </button>
                             <button onClick={props.onLoginClick} className="px-10 py-4 bg-white hover:bg-teal-50 text-teal-600 border-2 border-teal-600 font-bold transition-all rounded-2xl">
@@ -322,7 +322,7 @@ const HomePage = (props) => {
             </section>
 
             {/* About Section */}
-            <section className="py-32 bg-[#875A7B] text-white">
+            <section className="py-32 bg-[#520050] text-white">
                 <div className="max-w-5xl mx-auto px-6 text-center">
                     <h2 className="text-4xl md:text-5xl font-bold mb-16 tracking-tight">
                         About <span className="font-light italic">ElimCrown</span>
@@ -350,12 +350,12 @@ const HomePage = (props) => {
             <section className="py-32 bg-white">
                 <div className="max-w-5xl mx-auto px-6 text-center">
                     <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-8 tracking-tight">
-                        Ready to <span className="text-[#875A7B]">Get Started</span>?
+                        Ready to <span className="text-[#520050]">Get Started</span>?
                     </h2>
                     <p className="text-2xl text-gray-500 mb-16 font-light">Ready to bring ElimCrown to your school?</p>
 
                     <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
-                        <button onClick={props.onGetStartedClick} className="px-12 py-5 bg-[#875A7B] hover:bg-[#714B67] text-white font-bold shadow-2xl transition-all rounded-2xl text-xl hover:-translate-y-1">
+                        <button onClick={props.onGetStartedClick} className="px-12 py-5 bg-[#520050] hover:bg-[#3D0038] text-white font-bold shadow-2xl transition-all rounded-2xl text-xl hover:-translate-y-1">
                             Request a Demo
                         </button>
                         <button onClick={props.onLoginClick} className="px-12 py-5 bg-white hover:bg-teal-50 text-teal-600 border-2 border-teal-600 font-bold shadow-lg transition-all rounded-2xl text-xl">

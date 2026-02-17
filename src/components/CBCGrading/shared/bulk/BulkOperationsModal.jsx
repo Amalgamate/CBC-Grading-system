@@ -200,7 +200,7 @@ const BulkOperationsModal = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-[#714B67] text-white p-4 rounded-t-xl flex items-center justify-between">
+        <div className="sticky top-0 bg-[#520050] text-white p-4 rounded-t-xl flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold">{title}</h2>
           </div>
@@ -223,17 +223,17 @@ const BulkOperationsModal = ({
             <button
               onClick={handleExport}
               disabled={exporting}
-              className="flex items-center justify-center gap-2 p-3 border border-[#714B67]/30 rounded-lg hover:border-[#714B67] hover:bg-[#714B67]/5 transition disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-2 p-3 border border-[#520050]/30 rounded-lg hover:border-[#520050] hover:bg-[#520050]/5 transition disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
               {exporting ? (
                 <>
-                  <Loader size={18} className="animate-spin text-[#714B67]" />
-                  <span className="text-xs text-[#714B67]">Exporting...</span>
+                  <Loader size={18} className="animate-spin text-[#520050]" />
+                  <span className="text-xs text-[#520050]">Exporting...</span>
                 </>
               ) : (
                 <>
-                  <Download size={18} className="text-[#714B67]" />
-                  <span className="text-xs font-semibold text-[#714B67]">Export CSV</span>
+                  <Download size={18} className="text-[#520050]" />
+                  <span className="text-xs font-semibold text-[#520050]">Export CSV</span>
                 </>
               )}
             </button>
@@ -280,7 +280,7 @@ const BulkOperationsModal = ({
                 <div className="space-y-2">
                   <Upload size={32} className="mx-auto text-gray-300" />
                   <p className="text-sm font-medium text-gray-600">
-                    Drag & drop CSV or <label className="text-[#714B67] cursor-pointer hover:underline">
+                    Drag & drop CSV or <label className="text-[#520050] cursor-pointer hover:underline">
                       browse
                       <input
                         ref={fileInputRef}

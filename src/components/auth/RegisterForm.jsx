@@ -427,7 +427,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
         <div className="pt-8 pb-4 text-center">
           <div className="inline-flex items-center justify-center transform scale-90 mb-2">
             <span className="text-3xl font-black tracking-tighter flex items-center gap-1">
-              <span className="text-[#875A7B]">Elim</span>
+              <span className="text-[#520050]">Elim</span>
               <span className="text-teal-500 font-light">crown</span>
             </span>
           </div>
@@ -457,7 +457,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="fullName"
                         value={formData.fullName}
                         onChange={handleChange}
-                        className={`w-full pl-9 pr-9 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${fieldStatus.fullName === 'invalid' || (showErrors && errors.fullName) ? 'border-red-500' :
+                        className={`w-full pl-9 pr-9 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#520050] focus:border-transparent transition ${fieldStatus.fullName === 'invalid' || (showErrors && errors.fullName) ? 'border-red-500' :
                           fieldStatus.fullName === 'valid' ? 'border-green-500' : 'border-gray-300'
                           }`}
                         placeholder="John Doe"
@@ -481,7 +481,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className={`w-full pl-9 pr-9 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${fieldStatus.email === 'invalid' || (showErrors && errors.email) ? 'border-red-500' :
+                        className={`w-full pl-9 pr-9 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#520050] focus:border-transparent transition ${fieldStatus.email === 'invalid' || (showErrors && errors.email) ? 'border-red-500' :
                           fieldStatus.email === 'valid' ? 'border-green-500' : 'border-gray-300'
                           }`}
                         placeholder="you@school.com"
@@ -502,7 +502,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                       <select
                         value={countryCode}
                         onChange={handleCountryCodeChange}
-                        className="w-24 px-2 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent bg-gray-50"
+                        className="w-24 px-2 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-[#520050] focus:border-transparent bg-gray-50"
                       >
                         {africanCountries.map(country => (
                           <option key={country.code} value={country.code}>
@@ -515,7 +515,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                           type="tel"
                           value={phoneNumber}
                           onChange={handlePhoneChange}
-                          className={`w-full px-3 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${errors.phone ? 'border-red-500' : 'border-gray-300'
+                          className={`w-full px-3 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#520050] focus:border-transparent transition ${errors.phone ? 'border-red-500' : 'border-gray-300'
                             }`}
                           placeholder="712345678"
                         />
@@ -547,7 +547,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
-                        className={`w-full pl-9 pr-9 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${errors.password ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full pl-9 pr-9 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#520050] focus:border-transparent transition ${errors.password ? 'border-red-500' : 'border-gray-300'
                           }`}
                         placeholder="Min. 8 chars"
                       />
@@ -589,7 +589,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        className={`w-full pl-9 pr-9 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full pl-9 pr-9 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#520050] focus:border-transparent transition ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                           }`}
                         placeholder="Confirm password"
                       />
@@ -627,7 +627,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         value={formData.schoolName}
                         onChange={handleChange}
                         onBlur={handleSchoolNameBlur}
-                        className={`w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${fieldStatus.schoolName === 'invalid' || (showErrors && errors.schoolName) ? 'border-red-500' :
+                        className={`w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#520050] focus:border-transparent transition ${fieldStatus.schoolName === 'invalid' || (showErrors && errors.schoolName) ? 'border-red-500' :
                           fieldStatus.schoolName === 'valid' ? 'border-green-500' : 'border-gray-300'
                           }`}
                         placeholder="School Name"
@@ -643,7 +643,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                       name="schoolType"
                       value={formData.schoolType}
                       onChange={handleChange}
-                      className={`w-full px-3 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${showErrors && errors.schoolType ? 'border-red-500' : 'border-gray-300'
+                      className={`w-full px-3 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#520050] focus:border-transparent transition ${showErrors && errors.schoolType ? 'border-red-500' : 'border-gray-300'
                         }`}
                     >
                       <option value="">Select Type</option>
@@ -699,7 +699,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="county"
                         value={formData.county}
                         onChange={handleChange}
-                        className={`w-full px-3 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${showErrors && errors.county ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full px-3 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#520050] focus:border-transparent transition ${showErrors && errors.county ? 'border-red-500' : 'border-gray-300'
                           }`}
                       >
                         <option value="">Select County</option>
@@ -715,7 +715,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                         name="subCounty"
                         value={formData.subCounty}
                         onChange={handleChange}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-[#520050] focus:border-transparent"
                         placeholder="e.g. Westlands"
                       />
                     </div>
@@ -731,7 +731,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                       name="address"
                       value={formData.address}
                       onChange={handleChange}
-                      className={`w-full px-3 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#875A7B] focus:border-transparent transition ${showErrors && errors.address ? 'border-red-500' : 'border-gray-300'
+                      className={`w-full px-3 py-2 text-sm border rounded-md focus:ring-1 focus:ring-[#520050] focus:border-transparent transition ${showErrors && errors.address ? 'border-red-500' : 'border-gray-300'
                         }`}
                       placeholder="Street, Road, or Landmark"
                     />
@@ -752,10 +752,10 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                 name="termsAccepted"
                 checked={formData.termsAccepted}
                 onChange={handleChange}
-                className="h-4 w-4 text-[#875A7B] focus:ring-[#875A7B] border-gray-300 rounded"
+                className="h-4 w-4 text-[#520050] focus:ring-[#520050] border-gray-300 rounded"
               />
               <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
-                I agree to the <a href="#" className="text-[#875A7B] hover:text-[#6a4661] underline">Terms of Service</a> & <a href="#" className="text-[#875A7B] hover:text-[#6a4661] underline">Privacy Policy</a>
+                I agree to the <a href="#" className="text-[#520050] hover:text-[#3D0038] underline">Terms of Service</a> & <a href="#" className="text-[#520050] hover:text-[#3D0038] underline">Privacy Policy</a>
               </label>
             </div>
             {showErrors && errors.termsAccepted && <p className="text-xs text-red-500 text-center -mt-4 mb-4">{errors.termsAccepted}</p>}
@@ -764,7 +764,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-64 bg-[#875A7B] text-white py-3 rounded-lg font-bold hover:bg-[#714B67] focus:ring-4 focus:ring-[#875A7B]/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-64 bg-[#520050] text-white py-3 rounded-lg font-bold hover:bg-[#3D0038] focus:ring-4 focus:ring-[#520050]/20 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <>
@@ -783,7 +783,7 @@ export default function RegisterForm({ onSwitchToLogin, onRegisterSuccess, brand
                 <button
                   type="button"
                   onClick={onSwitchToLogin}
-                  className="font-semibold text-[#875A7B] hover:text-[#714B67] transition"
+                  className="font-semibold text-[#520050] hover:text-[#3D0038] transition"
                 >
                   Sign in
                 </button>

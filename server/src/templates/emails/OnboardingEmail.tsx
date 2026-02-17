@@ -132,7 +132,7 @@ const credentialsContainer = {
 };
 
 const credentialsTitle = {
-    color: '#714B67', // Purple
+    color: '#520050', // Purple
     fontSize: '16px',
     fontWeight: '700',
     marginTop: '0',
@@ -219,7 +219,7 @@ const btnContainer = {
 };
 
 const button = {
-    backgroundColor: '#714B67', // Purple
+    backgroundColor: '#520050', // Purple
     borderRadius: '6px',
     color: '#fff',
     fontSize: '16px',

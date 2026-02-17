@@ -226,7 +226,7 @@ export default function LoginFormMobile({ onSwitchToRegister, onSwitchToForgotPa
   };
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-gradient-to-br from-[#875A7B] to-[#714B67] overflow-hidden">
+    <div className="fixed inset-0 flex flex-col bg-gradient-to-br from-[#520050] to-[#3D0038] overflow-hidden">
       {/* Header with Logo */}
       <div className="pt-8 px-4 text-center">
         <div className="inline-flex items-center justify-center mb-6">
@@ -276,7 +276,7 @@ export default function LoginFormMobile({ onSwitchToRegister, onSwitchToForgotPa
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className={`w-full pl-10 pr-4 py-3 text-base border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent pointer-events-auto ${
+                      className={`w-full pl-10 pr-4 py-3 text-base border rounded-lg focus:ring-2 focus:ring-[#520050] focus:border-transparent pointer-events-auto ${
                         errors.email ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-gray-50'
                       }`}
                       style={{ touchAction: 'manipulation' }}
@@ -301,7 +301,7 @@ export default function LoginFormMobile({ onSwitchToRegister, onSwitchToForgotPa
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
-                      className={`w-full pl-10 pr-12 py-3 text-base border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent pointer-events-auto ${
+                      className={`w-full pl-10 pr-12 py-3 text-base border rounded-lg focus:ring-2 focus:ring-[#520050] focus:border-transparent pointer-events-auto ${
                         errors.password ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-gray-50'
                       }`}
                       style={{ touchAction: 'manipulation' }}
@@ -353,7 +353,7 @@ export default function LoginFormMobile({ onSwitchToRegister, onSwitchToForgotPa
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-[#875A7B] text-white py-3.5 rounded-lg font-bold text-base hover:bg-[#714B67] focus:ring-4 focus:ring-[#875A7B]/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-6 pointer-events-auto"
+                  className="w-full bg-[#520050] text-white py-3.5 rounded-lg font-bold text-base hover:bg-[#3D0038] focus:ring-4 focus:ring-[#520050]/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-6 pointer-events-auto"
                   style={{ touchAction: 'manipulation' }}
                 >
                   {isLoading ? (
@@ -372,7 +372,7 @@ export default function LoginFormMobile({ onSwitchToRegister, onSwitchToForgotPa
                 <button
                   type="button"
                   onClick={onSwitchToForgotPassword}
-                  className="block w-full text-sm text-[#875A7B] font-semibold hover:underline pointer-events-auto"
+                  className="block w-full text-sm text-[#520050] font-semibold hover:underline pointer-events-auto"
                 >
                   Forgot Password?
                 </button>

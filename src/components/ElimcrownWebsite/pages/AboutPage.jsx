@@ -35,7 +35,7 @@ const AboutPage = (props) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {[
                             { icon: Heart, title: "Simplicity First", desc: "If it requires a manual to use, we redesign it.", color: "text-red-500" },
-                            { icon: Shield, title: "Data Integrity", desc: "We treat school records with the same security as banking data.", color: "text-[#714B67]" },
+                            { icon: Shield, title: "Data Integrity", desc: "We treat school records with the same security as banking data.", color: "text-[#520050]" },
                             { icon: Globe, title: "Local Context", desc: "Built for Kenya, complying with KICD and MOE guidelines.", color: "text-[#017E84]" },
                             { icon: Zap, title: "Constant Innovation", desc: "We ship updates weekly, not yearly.", color: "text-orange-500" }
                         ].map((value, i) => (

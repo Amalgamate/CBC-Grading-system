@@ -246,14 +246,14 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
       <div className="bg-white h-full flex flex-col lg:flex-row items-stretch">
 
         <div
-          className="w-full lg:w-1/2 h-full p-8 lg:p-16 flex flex-col justify-between items-center text-white relative bg-[#875A7B]"
+          className="w-full lg:w-1/2 h-full p-8 lg:p-16 flex flex-col justify-between items-center text-white relative bg-[#520050]"
         >
           {/* Decorative Elements - Restored Blobs */}
           <div className="absolute inset-0 overflow-hidden">
             {/* Top Right Blob - Teal Tint */}
             <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#14B8A6] rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
             {/* Bottom Left Blob - Darker Purple Tint */}
-            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-[#714B67] rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
+            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-[#3D0038] rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
             {/* Center Blob - Light Accent */}
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-[#a07c95] rounded-full mix-blend-overlay filter blur-3xl opacity-10 animate-blob animation-delay-4000"></div>
           </div>
@@ -325,7 +325,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className={`w-full pl-11 pr-4 py-3 bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition-all outline-none text-gray-900 ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-[#875A7B]/50'
+                      className={`w-full pl-11 pr-4 py-3 bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#520050] focus:border-transparent transition-all outline-none text-gray-900 ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-[#520050]/50'
                         }`}
                       placeholder="name@school.com"
                     />
@@ -347,7 +347,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                     <button
                       type="button"
                       onClick={onSwitchToForgotPassword}
-                      className="text-sm font-bold text-[#875A7B] hover:text-[#714B67] hover:underline transition-all"
+                      className="text-sm font-bold text-[#520050] hover:text-[#3D0038] hover:underline transition-all"
                     >
                       Forgot password?
                     </button>
@@ -362,14 +362,14 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
-                      className={`w-full pl-11 pr-12 py-3 bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#875A7B] focus:border-transparent transition-all outline-none text-gray-900 ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-[#875A7B]/50'
+                      className={`w-full pl-11 pr-12 py-3 bg-gray-50 border rounded-lg focus:ring-2 focus:ring-[#520050] focus:border-transparent transition-all outline-none text-gray-900 ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-[#520050]/50'
                         }`}
                       placeholder="••••••••••••"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-[#714B67] transition-colors"
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-[#3D0038] transition-colors"
                     >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
@@ -413,7 +413,7 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-[#875A7B] text-white py-4 rounded-lg font-bold hover:bg-[#714B67] focus:ring-4 focus:ring-[#875A7B]/20 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none text-lg flex items-center justify-center transform active:scale-95"
+                  className="w-full bg-[#520050] text-white py-4 rounded-lg font-bold hover:bg-[#3D0038] focus:ring-4 focus:ring-[#520050]/20 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none text-lg flex items-center justify-center transform active:scale-95"
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center gap-3">

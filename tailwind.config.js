@@ -14,7 +14,7 @@ export default {
         brand: {
           dark: '#111827',
           teal: '#14B8A6', // Modern Teal
-          purple: '#875A7B', // Official Odoo Purple
+          purple: '#520050', // Official Odoo Purple
           yellow: '#F59E0B',
           light: '#F9FAFB',
         }
