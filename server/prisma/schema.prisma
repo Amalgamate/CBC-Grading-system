@@ -919,6 +919,73 @@ model MessageReceipt {
   @@map("message_receipts")
 }
 
+model BroadcastCampaign {
+  id              String                  @id @default(uuid())
+  schoolId        String
+  senderId        String
+  messagePreview  String
+  messageTemplate String
+  totalRecipients Int
+  successCount    Int                     @default(0)
+  failedCount     Int                     @default(0)
+  recipientSource String                  // 'manual', 'csv', 'group', 'all'
+  messageChannel  String                  @default("SMS")
+  status          MessageStatus           @default(SENT)
+  sentAt          DateTime
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  recipients      BroadcastRecipient[]
+  deliveryLogs    SmsDeliveryLog[]
+
+  @@index([schoolId])
+  @@index([senderId])
+  @@index([status])
+  @@index([sentAt])
+  @@map("broadcast_campaigns")
+}
+
+model BroadcastRecipient {
+  id              String               @id @default(uuid())
+  campaignId      String
+  recipientPhone  String
+  recipientName   String?
+  status          MessageStatus        @default(SENT)
+  messageId       String?              // From SMS provider
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  failureReason   String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  campaign        BroadcastCampaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([status])
+  @@index([recipientPhone])
+  @@map("broadcast_recipients")
+}
+
+model SmsDeliveryLog {
+  id              String              @id @default(uuid())
+  campaignId      String
+  recipientPhone  String
+  message         String
+  messageLength   Int
+  provider        String              // 'africastalking', 'mobilesasa'
+  providerId      String?             // Message ID from provider
+  status          DeliveryStatus
+  statusCode      String?
+  errorDetails    String?
+  sentAt          DateTime
+  deliveredAt     DateTime?
+  createdAt       DateTime            @default(now())
+  campaign        BroadcastCampaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([status])
+  @@index([sentAt])
+  @@map("sms_delivery_logs")
+}
+
 model ScaleGroup {
   id             String          @id @default(uuid())
   name           String
@@ -1440,6 +1507,14 @@ enum MessageStatus {
   DELIVERED
   READ
   FAILED
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  BOUNCED
 }
 
 enum RecipientType {

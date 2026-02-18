@@ -365,7 +365,7 @@ const BroadcastMessagesPage = () => {
     setSending(false);
     setFailedRecipients(failed);
 
-    // Save to history
+    // Save to history (both localStorage and database)
     const historyItem = {
       id: `BROADCAST-${Date.now()}`,
       timestamp: new Date().toLocaleString(),
@@ -376,6 +376,9 @@ const BroadcastMessagesPage = () => {
       report
     };
     saveToHistory(historyItem);
+    
+    // Save to database
+    saveBroadcastToDatabase(historyItem, recipients.length);
 
     showSuccess(`Broadcast complete! ✓ ${successCount}/${recipients.length} sent${failed.length > 0 ? `, ${failed.length} failed` : ''}`);
     setStep('send');
@@ -435,6 +438,73 @@ const BroadcastMessagesPage = () => {
     }
   };
 
+  // Save broadcast to database for audit trail
+  const saveBroadcastToDatabase = async (historyItem, totalRecipients) => {
+    try {
+      // Build delivery report from report state  
+      const deliveryData = deliveryReport.map(item => ({
+        recipientPhone: item.phone || item.displayPhone || item.phoneNumber,
+        recipientName: item.name || item.displayName || '',
+        status: item.status === 'Sent' ? 'SENT' : item.status === 'Failed' ? 'FAILED' : 'PENDING',
+        messageId: item.messageId,
+        failureReason: item.error || null,
+        sentAt: new Date().toISOString()
+      }));
+
+      const campaignData = {
+        messagePreview: messageTemplate.substring(0, 150),
+        messageTemplate: messageTemplate,
+        totalRecipients: totalRecipients,
+        successCount: deliveryReport.filter(r => r.status === 'Sent').length,
+        failedCount: failedRecipients.length,
+        recipientSource: recipientSource,
+        status: failedRecipients.length === 0 ? 'COMPLETED' : 'PARTIAL',
+        recipients: deliveryData
+      };
+
+      const response = await api.broadcasts.saveCampaign(campaignData);
+      console.log('✅ Campaign saved to database:', response.id);
+    } catch (err) {
+      console.error('❌ Failed to save campaign to database:', err);
+      // Continue - localStorage already has the data as fallback
+      // Don't show error to user - broadcast already sent
+    }
+  };
+
+  // Load history from database and merge with localStorage
+  const loadHistoryFromDatabase = async () => {
+    try {
+      const response = await api.broadcasts.getHistory(100, 0); // Get last 100
+      if (response?.campaigns) {
+        // Convert database format to display format and merge with localStorage
+        const dbItems = response.campaigns.map(campaign => ({
+          id: campaign.id,
+          timestamp: new Date(campaign.sentAt).toLocaleString(),
+          totalRecipients: campaign.totalRecipients,
+          successCount: campaign.successCount,
+          failedCount: campaign.failedCount,
+          messagePreview: campaign.messagePreview,
+          source: 'database',
+          databaseId: campaign.id
+        }));
+        
+        // Merge database items with localStorage items (database first, then localStorage)
+        const merged = [...dbItems, ...messageHistory.filter(h => h.source !== 'database')];
+        setMessageHistory(merged);
+        console.log('✅ Loaded', dbItems.length, 'campaigns from database');
+      }
+    } catch (err) {
+      console.error('Failed to load from database:', err);
+      // Gracefully fall back to localStorage
+    }
+  };
+
+  // Open history modal and load from database
+  const handleOpenHistory = async () => {
+    setShowDeliveryLog(true);
+    await loadHistoryFromDatabase();
+  };
+
   return (
     <div className="h-full flex flex-col bg-white rounded-xl shadow-lg overflow-hidden">
       {/* Header */}
@@ -451,7 +521,7 @@ const BroadcastMessagesPage = () => {
           </div>
           {messageHistory.length > 0 && (
             <Button
-              onClick={() => setShowDeliveryLog(true)}
+              onClick={handleOpenHistory}
               className="bg-white/20 hover:bg-white/30 text-white font-bold gap-2"
             >
               <Download size={16} />

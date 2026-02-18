@@ -568,6 +568,63 @@ export const communicationAPI = {
 };
 
 // ============================================
+// BROADCAST API
+// ============================================
+
+export const broadcastAPI = {
+  /**
+   * Save broadcast campaign after sending
+   */
+  saveCampaign: async (data) => {
+    return fetchWithAuth('/broadcasts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Get broadcast history
+   */
+  getHistory: async (limit = 50, offset = 0) => {
+    const params = `?limit=${limit}&offset=${offset}`;
+    return fetchWithAuth(`/broadcasts${params}`);
+  },
+
+  /**
+   * Get broadcast details
+   */
+  getDetails: async (campaignId) => {
+    return fetchWithAuth(`/broadcasts/${campaignId}`);
+  },
+
+  /**
+   * Get broadcast statistics
+   */
+  getStats: async (schoolId) => {
+    return fetchWithAuth(`/broadcasts/stats/${schoolId}`);
+  },
+
+  /**
+   * Save SMS delivery log entry
+   */
+  saveDeliveryLog: async (campaignId, data) => {
+    return fetchWithAuth(`/broadcasts/${campaignId}/delivery-logs`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete broadcast campaign
+   */
+  deleteCampaign: async (campaignId) => {
+    return fetchWithAuth(`/broadcasts/${campaignId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============================================
 // USER MANAGEMENT ENDPOINTS
 // ============================================
 
@@ -2177,6 +2234,7 @@ const api = {
   admin: adminAPI,
   documents: documentsAPI,
   communication: communicationAPI,
+  broadcasts: broadcastAPI,
   books: bookAPI,
   sharing: sharingAPI,
   planner: {
