@@ -892,14 +892,27 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     }
   }, [learners, onFetchLearners]);
 
-  // Fetch tests when grade or term changes
+  // Fetch tests when grade, term or year changes - use local state
   useEffect(() => {
     const fetchTests = async () => {
       try {
-        const params = { term: setup.selectedTerm, academicYear: setup.academicYear };
-        if (setup.selectedGrade && setup.selectedGrade !== 'all') params.grade = setup.selectedGrade;
+        const params = {
+          term: selectedTerm,
+          academicYear: academicYear // from setup hook or local
+        };
+
+        if (selectedGrade && selectedGrade !== 'all') {
+          params.grade = selectedGrade;
+        }
+
+        console.log('🔄 Fetching available tests for reports...', params);
         const res = await api.assessments.getTests(params);
+
         if (res.success) {
+          // Reset selections when available tests change significantly
+          setSelectedTestGroups([]);
+          setSelectedTestIds([]);
+
           setAvailableTests(res.data || []);
           console.log('✅ Tests loaded:', res.data?.length || 0);
         }
@@ -908,34 +921,37 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       }
     };
     fetchTests();
-  }, [setup.selectedGrade, setup.selectedTerm, setup.academicYear]);
+  }, [selectedGrade, selectedTerm, academicYear]);
 
   // Derive unique test groups (testType) from available tests
   const availableTestGroups = useMemo(() => {
     if (!availableTests || availableTests.length === 0) {
-      console.log('⏳ No tests available to group');
       return [];
     }
 
-    // Get unique test types/groups (e.g., "tt", "ca", "End of Term", etc.)
+    // Filter to only show tests that HAVE assessments (scores recorded)
+    const assessedTests = availableTests.filter(t => (t._count?.results || 0) > 0);
+
+    // Get unique test types/groups
     const groups = Array.from(
-      new Set(availableTests.map(t => t.testType).filter(Boolean))
+      new Set(assessedTests.map(t => t.testType).filter(Boolean))
     );
 
-    console.log('📊 Available test groups:', groups, 'from', availableTests.length, 'tests');
+    console.log('📊 Available test groups (assessed):', groups);
     return groups.sort();
   }, [availableTests]);
 
   // Derive tests within the selected test group(s)
   const testsInGroups = useMemo(() => {
+    // Always filter by assessed status first
+    const assessedTests = availableTests.filter(t => (t._count?.results || 0) > 0);
+
     if (!selectedTestGroups || selectedTestGroups.length === 0) {
-      // If no groups selected, show all tests
-      console.log('📌 No test groups selected, showing all tests');
-      return availableTests;
+      // If no groups selected, show all assessed tests
+      return assessedTests;
     }
 
-    const filtered = availableTests.filter(t => selectedTestGroups.includes(t.testType));
-    console.log(`📌 Tests in groups [${selectedTestGroups.join(', ')}]:`, filtered.length);
+    const filtered = assessedTests.filter(t => selectedTestGroups.includes(t.testType));
     return filtered;
   }, [availableTests, selectedTestGroups]);
 
@@ -1988,7 +2004,10 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             <label className="premium-label">Grade</label>
             <select
               value={selectedGrade}
-              onChange={(e) => setSelectedGrade(e.target.value)}
+              onChange={(e) => {
+                setSelectedGrade(e.target.value);
+                setSelectedStream('all');
+              }}
               className="premium-select"
             >
               <option value="">Select Grade</option>

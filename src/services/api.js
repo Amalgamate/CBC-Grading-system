@@ -241,7 +241,7 @@ export const configAPI = {
    * Get Term Configurations for a school
    */
   getTermConfigs: async (schoolId) => {
-    return fetchWithAuth(`/config/term/${schoolId}`);
+    return fetchCached(`/config/term/${schoolId}`);
   },
 
   /**
@@ -258,7 +258,7 @@ export const configAPI = {
    * Get Aggregation Configurations
    */
   getAggregationConfigs: async (schoolId) => {
-    return fetchWithAuth(`/config/aggregation/${schoolId}`);
+    return fetchCached(`/config/aggregation/${schoolId}`);
   },
 
   /**
@@ -294,7 +294,7 @@ export const configAPI = {
    * Get Stream Configurations
    */
   getStreamConfigs: async (schoolId) => {
-    return fetchWithAuth(`/config/streams/${schoolId}`, {
+    return fetchCached(`/config/streams/${schoolId}`, {
       headers: {
         'X-School-Id': schoolId,
       },
@@ -328,7 +328,7 @@ export const configAPI = {
    * Get all available grades (Enum)
    */
   getGrades: async () => {
-    return fetchWithAuth('/config/grades');
+    return fetchCached('/config/grades');
   },
 
   /**
@@ -342,7 +342,7 @@ export const configAPI = {
    * Get Classes for a school
    */
   getClasses: async (schoolId) => {
-    return fetchWithAuth(`/config/classes/${schoolId}`);
+    return fetchCached(`/config/classes/${schoolId}`);
   },
 
   /**
@@ -368,7 +368,7 @@ export const configAPI = {
    * Get Learning Areas for a school
    */
   getLearningAreas: async (schoolId) => {
-    return fetchWithAuth(`/learning-areas?schoolId=${schoolId}`);
+    return fetchCached(`/learning-areas?schoolId=${schoolId}`);
   },
 
   /**

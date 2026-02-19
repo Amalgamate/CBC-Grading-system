@@ -40,6 +40,7 @@ export const useLearners = () => {
           dateOfBirth: learner.dateOfBirth,
           age: calculateAge(learner.dateOfBirth),
           gender: learner.gender,
+          avatar: learner.gender === 'MALE' ? '👦' : '👧',
           grade: learner.grade,
           stream: learner.stream,
 
