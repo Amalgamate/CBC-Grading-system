@@ -18,7 +18,7 @@ import { useLearners } from './hooks/useLearners';
 import { useTeachers } from './hooks/useTeachers';
 import { useParents } from './hooks/useParents';
 import { useNotifications } from './hooks/useNotifications';
-import { API_BASE_URL } from '../../services/api';
+import { API_BASE_URL, feeAPI, configAPI } from '../../services/api';
 
 // Utils
 import { PAGE_TITLES } from './utils/constants';
@@ -55,6 +55,9 @@ const MessageHistoryPage = lazy(() => import('./pages/MessageHistoryPage'));
 const SupportHub = lazy(() => import('./pages/SupportHub'));
 const TimetablePage = lazy(() => import('./pages/TimetablePage'));
 const CodingPlayground = lazy(() => import('./pages/CodingPlayground'));
+const ClassList = lazy(() => import('./pages/ClassList'));
+const CreateClassForm = lazy(() => import('./pages/CreateClassForm'));
+const ClassDetailPage = lazy(() => import('./pages/ClassDetailPage'));
 const SchoolSettings = lazy(() => import('./pages/settings/SchoolSettings'));
 const AcademicSettings = lazy(() => import('./pages/settings/AcademicSettings'));
 const UserManagement = lazy(() => import('./pages/settings/UserManagement'));
@@ -92,7 +95,7 @@ const LoadingOverlay = () => (
 export default function CBCGradingSystem({ user, onLogout, brandingSettings, setBrandingSettings }) {
   // Mobile Detection
   const isMobile = useMediaQuery('(max-width: 767px)');
-  
+
   // UI State
   const [sidebarOpen, setSidebarOpen] = useState(true);
   // Initialize pageParams from localStorage to survive refreshes
@@ -203,6 +206,18 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
     }
   }, [expandedSections]);
 
+  // Handle page navigation from child components
+  React.useEffect(() => {
+    const handlePageNavigate = (event) => {
+      const { page, params } = event.detail;
+      setCurrentPage(page);
+      setPageParams(params);
+    };
+
+    window.addEventListener('pageNavigate', handlePageNavigate);
+    return () => window.removeEventListener('pageNavigate', handlePageNavigate);
+  }, []);
+
   // Confirmation Dialog State
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -299,6 +314,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   };
 
   const handleAddLearner = () => {
+    localStorage.removeItem('admission-form-draft'); // Ensure fresh form
     setEditingLearner(null);
     setCurrentPage('learners-admissions');
   };
@@ -313,8 +329,11 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
   };
 
   const handleSaveLearner = async (learnerData) => {
+    // Extract custom flags
+    const { generateInvoice, ...dataToSave } = learnerData;
+
     if (editingLearner) {
-      const result = await updateLearner(editingLearner.id, learnerData);
+      const result = await updateLearner(editingLearner.id, dataToSave);
       if (result.success) {
         showSuccess('Student updated successfully!');
         setEditingLearner(null);
@@ -323,9 +342,87 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       }
       return result;
     } else {
-      const result = await createLearner(learnerData);
+      const result = await createLearner(dataToSave);
+
       if (result.success) {
         showSuccess('Student added successfully!');
+
+        // Handle Automatic Invoice Generation
+        if (generateInvoice) {
+          try {
+            console.log('🔄 Starting automatic invoice generation for new learner...');
+            const newLearner = result.data;
+
+            // 1. Get Term Config to find current academic period
+            // In a real app, this should be robust. Here we pick the first active term config or default.
+            let term = 'TERM_1';
+            let academicYear = new Date().getFullYear();
+
+            try {
+              if (user?.schoolId) {
+                const termResp = await configAPI.getTermConfigs(user.schoolId);
+                const activeConfig = termResp.data?.find(t => t.isCurrent) || termResp.data?.[0];
+                if (activeConfig) {
+                  term = activeConfig.term;
+                  academicYear = activeConfig.year;
+                }
+              }
+            } catch (err) {
+              console.warn('Failed to fetch term config, using defaults', err);
+            }
+
+            // 2. Find or Seed Fee Structure
+            const grade = newLearner.grade;
+            // Fetch fee structures for this grade/term
+            const feeStructsResp = await feeAPI.getAllFeeStructures({
+              grade,
+              term,
+              academicYear
+            });
+
+            let targetFeeStructureId = null;
+
+            if (feeStructsResp.success && feeStructsResp.data && feeStructsResp.data.length > 0) {
+              targetFeeStructureId = feeStructsResp.data[0].id; // Use the first matching structure
+            } else {
+              // 3. Seed Default Fee Structures if missing
+              console.log('🌱 No fee structure found. Seeding defaults...');
+              showSuccess(`Seeding default fee structures for ${grade}...`);
+
+              // This is a special helper to seed defaults if missing
+              await feeAPI.seedDefaultFeeStructures();
+
+              // Retry fetching
+              const retryResp = await feeAPI.getAllFeeStructures({ grade, term, academicYear });
+              if (retryResp.success && retryResp.data?.length > 0) {
+                targetFeeStructureId = retryResp.data[0].id;
+              }
+            }
+
+            // 4. Create Invoice
+            if (targetFeeStructureId) {
+              // Calculate due date (e.g., 30 days from now)
+              const dueDate = new Date();
+              dueDate.setDate(dueDate.getDate() + 30);
+
+              await feeAPI.createInvoice({
+                learnerId: newLearner.id,
+                feeStructureId: targetFeeStructureId,
+                term,
+                academicYear,
+                dueDate: dueDate.toISOString()
+              });
+
+              showSuccess('✅ Invoice generated automatically!');
+            } else {
+              console.warn('Could not find or create a valid Fee Structure for auto-invoicing.');
+              // Don't show error to user as the student IS created, just log it.
+            }
+          } catch (invoiceError) {
+            console.error('Failed to auto-generate invoice:', invoiceError);
+            // Non-blocking error
+          }
+        }
       } else {
         const errorMsg = typeof result.error === 'object' ? JSON.stringify(result.error) : result.error;
         showSuccess('Error creating student: ' + errorMsg);
@@ -540,6 +637,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
               setCurrentPage('learners-list');
               setEditingLearner(null);
             }}
+            onDelete={editingLearner ? () => handleDeleteLearner(editingLearner.id) : null}
             learner={editingLearner}
           />
         );
@@ -657,6 +755,14 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       case 'assess-performance-scale':
         return <PerformanceScale />;
 
+      // Classes Module
+      case 'classes':
+        return <ClassList />;
+      case 'create-class':
+        return <CreateClassForm />;
+      case 'class-detail':
+        return <ClassDetailPage pageParams={pageParams} />;
+
       // Facilities Module
       case 'facilities-classes':
         return <FacilityManager />;
@@ -670,7 +776,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
 
       // Communications Module
       case 'comm-notices':
-        return <NoticesPage />;
+        return <NoticesPage initialTab={pageParams.activeTab} />;
       case 'comm-messages':
         return <MessagesPage />;
       case 'comm-history':
@@ -752,6 +858,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
               onLogout={handleLogout}
               brandingSettings={brandingSettings}
               title={PAGE_TITLES[currentPage]}
+              onNavigate={handleNavigate}
             />
 
             {/* Page Content */}

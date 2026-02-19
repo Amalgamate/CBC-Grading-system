@@ -6,8 +6,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   Plus, Eye,
-  CheckCircle, AlertCircle, Clock, FileText
+  CheckCircle, AlertCircle, Clock, FileText, Download
 } from 'lucide-react';
+import jsPDF from 'jspdf';
 import EmptyState from '../shared/EmptyState';
 import LoadingSpinner from '../shared/LoadingSpinner';
 import { useNotifications } from '../hooks/useNotifications';
@@ -80,6 +81,91 @@ const FeeCollectionPage = ({ learnerId }) => {
     } catch (error) {
       showError(error.message || 'Failed to record payment');
     }
+  };
+
+  const handleDownloadPdf = (invoice) => {
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFillColor(41, 128, 185); // Blue header
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.text("INVOICE / RECEIPT", 105, 15, null, null, "center");
+    doc.setFontSize(12);
+    doc.text("School Management System", 105, 25, null, null, "center"); // Replace with actual school name if available
+
+    // Invoice Details
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+
+    let y = 50;
+
+    // Left Column
+    doc.setFont(undefined, 'bold');
+    doc.text("Invoice To:", 14, y);
+    doc.setFont(undefined, 'normal');
+    y += 7;
+    doc.text(`Student: ${invoice.learner?.firstName} ${invoice.learner?.lastName}`, 14, y);
+    y += 5;
+    doc.text(`Adm No: ${invoice.learner?.admissionNumber}`, 14, y);
+    y += 5;
+    doc.text(`Grade: ${invoice.learner?.grade} ${invoice.learner?.stream}`, 14, y);
+
+    // Right Column
+    y = 50;
+    doc.setFont(undefined, 'bold');
+    doc.text("Invoice Details:", 140, y);
+    doc.setFont(undefined, 'normal');
+    y += 7;
+    doc.text(`Invoice #: ${invoice.invoiceNumber}`, 140, y);
+    y += 5;
+    doc.text(`Date: ${new Date(invoice.createdAt || Date.now()).toLocaleDateString()}`, 140, y);
+    y += 5;
+    doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, 140, y);
+    y += 5;
+    doc.text(`Status: ${invoice.status}`, 140, y);
+
+    // Table Header
+    y += 20;
+    doc.setFillColor(240, 240, 240);
+    doc.rect(14, y - 5, 182, 10, 'F');
+    doc.setFont(undefined, 'bold');
+    doc.text("Description", 16, y);
+    doc.text("Amount (KES)", 160, y);
+
+    // Table content
+    y += 10;
+    doc.setFont(undefined, 'normal');
+    doc.text(`${invoice.feeStructure?.name} (${invoice.term} ${invoice.academicYear})`, 16, y);
+    doc.text(Number(invoice.totalAmount).toLocaleString(), 160, y);
+
+    // Totals
+    y += 20;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, y - 5, 196, y - 5);
+
+    doc.setFont(undefined, 'bold');
+    doc.text("Total Amount:", 120, y);
+    doc.text(`KES ${Number(invoice.totalAmount).toLocaleString()}`, 160, y);
+
+    y += 10;
+    doc.setTextColor(0, 128, 0); // Green for paid
+    doc.text("Amount Paid:", 120, y);
+    doc.text(`KES ${Number(invoice.paidAmount).toLocaleString()}`, 160, y);
+
+    y += 10;
+    doc.setTextColor(255, 0, 0); // Red for balance
+    doc.text("Balance Due:", 120, y);
+    doc.text(`KES ${Number(invoice.balance).toLocaleString()}`, 160, y);
+
+    // Footer
+    doc.setTextColor(150, 150, 150);
+    doc.setFontSize(8);
+    doc.text("Thank you for your business.", 105, 280, null, null, "center");
+
+    // Save
+    doc.save(`Invoice_${invoice.invoiceNumber}.pdf`);
   };
 
   const getStatusBadge = (status) => {
@@ -345,6 +431,14 @@ const FeeCollectionPage = ({ learnerId }) => {
                           <Plus size={18} />
                         </button>
                       )}
+
+                      <button
+                        onClick={() => handleDownloadPdf(invoice)}
+                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                        title="Download PDF"
+                      >
+                        <Download size={18} />
+                      </button>
                     </div>
                   </td>
                 </tr>

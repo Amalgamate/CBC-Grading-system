@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Save, AlertCircle } from 'lucide-react';
+import { DatePicker } from '../../components/ui/date-picker';
 
 const ValuesAssessmentForm = () => {
   const [formData, setFormData] = useState({
@@ -167,7 +168,7 @@ const ValuesAssessmentForm = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.studentId) newErrors.studentId = 'Student ID is required';
     if (!formData.studentName) newErrors.studentName = 'Student name is required';
     if (!formData.grade) newErrors.grade = 'Grade is required';
@@ -186,7 +187,7 @@ const ValuesAssessmentForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       setSaveStatus('error');
       return;
@@ -195,9 +196,9 @@ const ValuesAssessmentForm = () => {
     try {
       setSaveStatus('saving');
       console.log('Saving values assessment:', formData);
-      
+
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       setSaveStatus('success');
       setTimeout(() => setSaveStatus(''), 3000);
     } catch (error) {
@@ -230,9 +231,8 @@ const ValuesAssessmentForm = () => {
                   type="text"
                   value={formData.studentId}
                   onChange={(e) => handleInputChange('studentId', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                    errors.studentId ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${errors.studentId ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="Enter student ID"
                 />
                 {errors.studentId && <p className="mt-1 text-sm text-red-600">{errors.studentId}</p>}
@@ -244,9 +244,8 @@ const ValuesAssessmentForm = () => {
                   type="text"
                   value={formData.studentName}
                   onChange={(e) => handleInputChange('studentName', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                    errors.studentName ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${errors.studentName ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="Enter student name"
                 />
                 {errors.studentName && <p className="mt-1 text-sm text-red-600">{errors.studentName}</p>}
@@ -257,9 +256,8 @@ const ValuesAssessmentForm = () => {
                 <select
                   value={formData.grade}
                   onChange={(e) => handleInputChange('grade', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                    errors.grade ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${errors.grade ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 >
                   <option value="">Select grade</option>
                   {grades.map(grade => <option key={grade} value={grade}>{grade}</option>)}
@@ -272,9 +270,8 @@ const ValuesAssessmentForm = () => {
                 <select
                   value={formData.term}
                   onChange={(e) => handleInputChange('term', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                    errors.term ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${errors.term ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 >
                   <option value="">Select term</option>
                   {terms.map(term => <option key={term} value={term}>{term}</option>)}
@@ -288,9 +285,8 @@ const ValuesAssessmentForm = () => {
                   type="text"
                   value={formData.academicYear}
                   onChange={(e) => handleInputChange('academicYear', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                    errors.academicYear ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${errors.academicYear ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="e.g., 2024-2025"
                 />
                 {errors.academicYear && <p className="mt-1 text-sm text-red-600">{errors.academicYear}</p>}
@@ -298,11 +294,10 @@ const ValuesAssessmentForm = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Assessment Date</label>
-                <input
-                  type="date"
+                <DatePicker
                   value={formData.assessmentDate}
-                  onChange={(e) => handleInputChange('assessmentDate', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  onChange={(date) => handleInputChange('assessmentDate', date ? new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0] : '')}
+                  className="w-full"
                 />
               </div>
             </div>
@@ -364,11 +359,10 @@ const ValuesAssessmentForm = () => {
                           key={rating.value}
                           type="button"
                           onClick={() => handleValueChange(value.id, 'rating', rating.value)}
-                          className={`px-4 py-2 border-2 rounded-lg font-medium transition-all ${
-                            value.rating === rating.value
+                          className={`px-4 py-2 border-2 rounded-lg font-medium transition-all ${value.rating === rating.value
                               ? rating.color + ' ring-2 ring-blue-500'
                               : 'bg-white border-gray-300 hover:border-gray-400'
-                          }`}
+                            }`}
                         >
                           <div className="text-sm">{rating.value}</div>
                         </button>
@@ -478,9 +472,8 @@ const ValuesAssessmentForm = () => {
                     type="text"
                     value={formData.teacherName}
                     onChange={(e) => handleInputChange('teacherName', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                      errors.teacherName ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${errors.teacherName ? 'border-red-500' : 'border-gray-300'
+                      }`}
                     placeholder="Enter teacher name"
                   />
                   {errors.teacherName && <p className="mt-1 text-sm text-red-600">{errors.teacherName}</p>}
@@ -511,11 +504,10 @@ const ValuesAssessmentForm = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={formData.parentDate}
-                    onChange={(e) => handleInputChange('parentDate', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    onChange={(date) => handleInputChange('parentDate', date ? new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0] : '')}
+                    className="w-full"
                   />
                 </div>
               </div>
@@ -533,7 +525,7 @@ const ValuesAssessmentForm = () => {
                   <div className="text-red-600 font-medium">✗ Please fix errors and try again</div>
                 )}
               </div>
-              
+
               <div className="flex gap-3">
                 <button
                   type="button"

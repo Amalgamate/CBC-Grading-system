@@ -188,6 +188,7 @@ model Branch {
   updatedAt            DateTime              @updatedAt
   school               School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   classes              Class[]
+  streams              Stream[]
   feeStructures        FeeStructure[]        @relation("BranchFeeStructures")
   formativeAssessments FormativeAssessment[]
   learners             Learner[]
@@ -234,8 +235,27 @@ model StaffSequence {
   @@map("staff_sequences")
 }
 
+model Stream {
+  id        String   @id @default(uuid())
+  branchId  String
+  name      String   // A, B, C, D
+  active    Boolean  @default(true)
+  archived  Boolean  @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, name])
+  @@index([branchId])
+  @@index([name])
+  @@map("streams")
+}
+
 model Class {
   id           String            @id @default(uuid())
+  classCode    String            @unique
   branchId     String
   name         String
   grade        Grade
@@ -255,12 +275,90 @@ model Class {
   enrollments  ClassEnrollment[]
   branch       Branch            @relation(fields: [branchId], references: [id], onDelete: Cascade)
   teacher      User?             @relation("ClassTeacher", fields: [teacherId], references: [id])
+  inventory    ClassInventory[]
+  schedules    ClassSchedule[]
+  facilities   ClassFacility[]
 
   @@unique([branchId, grade, stream, academicYear, term])
   @@index([branchId])
   @@index([teacherId])
   @@index([grade, stream])
   @@map("classes")
+}
+
+model ClassInventory {
+  id            String    @id @default(uuid())
+  classId       String
+  name          String    // e.g., "Science Books", "Whiteboard Markers"
+  category      String    // e.g., "Books", "Stationery", "Equipment", "Furniture"
+  description   String?
+  quantity      Int       @default(0)
+  condition     String    @default("GOOD")  // GOOD, FAIR, POOR, DAMAGED
+  acquisitionDate DateTime?
+  location      String?   // e.g., "Shelf A1", "Storage Room"
+  cost          Float?
+  active        Boolean   @default(true)
+  archived      Boolean   @default(false)
+  archivedAt    DateTime?
+  archivedBy    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  class         Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([classId])
+  @@index([category])
+  @@index([condition])
+  @@map("class_inventory")
+}
+
+model ClassSchedule {
+  id             String    @id @default(uuid())
+  classId        String
+  subject        String
+  day            String    // Monday, Tuesday, etc.
+  startTime      String    // HH:mm format
+  endTime        String    // HH:mm format
+  room           String?
+  teacherId      String?
+  semester       String?   // Term information
+  academicYear   Int       @default(2025)
+  notes          String?
+  active         Boolean   @default(true)
+  archived       Boolean   @default(false)
+  archivedAt     DateTime?
+  archivedBy     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  class          Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([classId])
+  @@index([day])
+  @@index([subject])
+  @@map("class_schedules")
+}
+
+model ClassFacility {
+  id            String    @id @default(uuid())
+  classId       String
+  facilityName  String    // e.g., "Projector", "Whiteboard", "Computer Lab"
+  facilityType  String    // e.g., "Electronic", "Furniture", "Learning Aid"
+  quantity      Int       @default(1)
+  condition     String    @default("FUNCTIONAL")  // FUNCTIONAL, NEEDS_REPAIR, NON_FUNCTIONAL
+  maintenanceRequired Boolean @default(false)
+  lastMaintenance DateTime?
+  notes         String?
+  active        Boolean   @default(true)
+  archived      Boolean   @default(false)
+  archivedAt    DateTime?
+  archivedBy    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  class         Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([classId])
+  @@index([facilityType])
+  @@index([condition])
+  @@map("class_facilities")
 }
 
 model ClassEnrollment {

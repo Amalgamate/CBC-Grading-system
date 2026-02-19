@@ -29,7 +29,8 @@ export const STATUS_COLORS = {
   'Absent': 'bg-red-100 text-red-800',
   'Late': 'bg-orange-100 text-orange-800',
   'Unread': 'bg-blue-100 text-blue-800',
-  'Read': 'bg-gray-100 text-gray-800'
+  'Read': 'bg-gray-100 text-gray-800',
+  'DROPPED_OUT': 'bg-gray-100 text-gray-800'
 };
 
 // Attendance Statuses

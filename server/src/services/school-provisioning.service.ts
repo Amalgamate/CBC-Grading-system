@@ -288,6 +288,7 @@ export async function provisionNewSchool(
         for (const stream of streamNames) {
           await tx.class.create({
             data: {
+              classCode: `CLS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
               branchId: defaultBranch.id,
               name: `${GRADE_DISPLAY_NAMES[grade]} - ${stream}`,
               grade: grade as any,

@@ -14,7 +14,7 @@ import { useLearners } from '../hooks/useLearners';
 const ExitedLearnersPage = () => {
   const { showSuccess, showError } = useNotifications();
   const { learners, loading, error, updateLearner } = useLearners();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [reasonFilter, setReasonFilter] = useState('all');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -22,7 +22,7 @@ const ExitedLearnersPage = () => {
   const [showQuickActions, setShowQuickActions] = useState(false);
 
   // Filter only exited learners (status not ACTIVE)
-  const exitedLearners = React.useMemo(() => learners?.filter(l => 
+  const exitedLearners = React.useMemo(() => learners?.filter(l =>
     l.status && l.status !== 'ACTIVE'
   ) || [], [learners]);
 
@@ -31,7 +31,7 @@ const ExitedLearnersPage = () => {
     const statusMap = {
       'TRANSFERRED_OUT': 'Transferred',
       'GRADUATED': 'Graduated',
-      'DROPPED_OUT': 'Dropped Out',
+      'DROPPED_OUT': 'Archived',
       'SUSPENDED': 'Suspended'
     };
     return statusMap[status] || status;
@@ -40,16 +40,16 @@ const ExitedLearnersPage = () => {
   // Apply search and filter
   const filteredLearners = exitedLearners.filter(learner => {
     const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = 
+    const matchesSearch =
       learner.firstName?.toLowerCase().includes(searchLower) ||
       learner.lastName?.toLowerCase().includes(searchLower) ||
       learner.admissionNumber?.toLowerCase().includes(searchLower) ||
       learner.admNo?.toLowerCase().includes(searchLower);
-    
+
     // Map database status to exit reasons
     const exitReason = getExitReason(learner.status);
     const matchesReason = reasonFilter === 'all' || exitReason === reasonFilter;
-    
+
     return matchesSearch && matchesReason;
   });
 
@@ -70,7 +70,7 @@ const ExitedLearnersPage = () => {
         exitDate: null,
         exitReason: null
       });
-      
+
       showSuccess(`${learner.firstName} ${learner.lastName} has been re-admitted successfully!`);
       setShowDetailsModal(false);
     } catch (err) {
@@ -127,7 +127,7 @@ const ExitedLearnersPage = () => {
       {/* Compact Quick Actions Toolbar */}
       <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
         <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
-          
+
           {/* Search and Filters */}
           <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto flex-1">
             <div className="relative flex-grow md:max-w-md">
@@ -150,7 +150,7 @@ const ExitedLearnersPage = () => {
                 <option value="all">All Exit Reasons</option>
                 <option value="Transferred">Transferred</option>
                 <option value="Graduated">Graduated</option>
-                <option value="Dropped Out">Dropped Out</option>
+                <option value="Archived">Archived</option>
                 <option value="Suspended">Suspended</option>
               </select>
             </div>
@@ -158,24 +158,24 @@ const ExitedLearnersPage = () => {
 
           {/* Metrics & Actions */}
           <div className="flex gap-3 w-full xl:w-auto justify-end items-center">
-             {/* Compact Metrics */}
-             <div className="hidden lg:flex items-center gap-4 mr-2 border-r pr-4 border-gray-200 h-10">
-                <div className="text-right">
-                  <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total</p>
-                  <p className="text-xl font-bold text-gray-800 leading-none">{stats.total}</p>
-                </div>
-                <div className="text-right border-l pl-4 border-gray-100">
-                  <p className="text-[10px] text-blue-600 uppercase font-bold tracking-wider">Transferred</p>
-                  <p className="text-xl font-bold text-blue-700 leading-none">{stats.transferred}</p>
-                </div>
-                <div className="text-right border-l pl-4 border-gray-100">
-                  <p className="text-[10px] text-green-600 uppercase font-bold tracking-wider">Graduated</p>
-                  <p className="text-xl font-bold text-green-700 leading-none">{stats.graduated}</p>
-                </div>
-             </div>
+            {/* Compact Metrics */}
+            <div className="hidden lg:flex items-center gap-4 mr-2 border-r pr-4 border-gray-200 h-10">
+              <div className="text-right">
+                <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total</p>
+                <p className="text-xl font-bold text-gray-800 leading-none">{stats.total}</p>
+              </div>
+              <div className="text-right border-l pl-4 border-gray-100">
+                <p className="text-[10px] text-blue-600 uppercase font-bold tracking-wider">Transferred</p>
+                <p className="text-xl font-bold text-blue-700 leading-none">{stats.transferred}</p>
+              </div>
+              <div className="text-right border-l pl-4 border-gray-100">
+                <p className="text-[10px] text-green-600 uppercase font-bold tracking-wider">Graduated</p>
+                <p className="text-xl font-bold text-green-700 leading-none">{stats.graduated}</p>
+              </div>
+            </div>
 
-             <div className="relative">
-              <button 
+            <div className="relative">
+              <button
                 onClick={() => setShowQuickActions(!showQuickActions)}
                 className="p-2 bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 rounded-lg transition"
                 title="Quick Actions"
@@ -184,8 +184,8 @@ const ExitedLearnersPage = () => {
               </button>
               {showQuickActions && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-10" 
+                  <div
+                    className="fixed inset-0 z-10"
                     onClick={() => setShowQuickActions(false)}
                   />
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 z-20 py-1">
@@ -215,8 +215,8 @@ const ExitedLearnersPage = () => {
             <EmptyState
               icon={UserX}
               title="No Exited Learners Found"
-              message={exitedLearners.length === 0 
-                ? "No learners have exited the school yet" 
+              message={exitedLearners.length === 0
+                ? "No learners have exited the school yet"
                 : "No learners match your search criteria"}
             />
           ) : (
@@ -238,7 +238,7 @@ const ExitedLearnersPage = () => {
                   const statusColor = {
                     'Transferred': 'bg-blue-100 text-blue-800',
                     'Graduated': 'bg-green-100 text-green-800',
-                    'Dropped Out': 'bg-orange-100 text-orange-800',
+                    'Archived': 'bg-gray-100 text-gray-800',
                     'Suspended': 'bg-purple-100 text-purple-800'
                   }[exitReason] || 'bg-gray-100 text-gray-800';
 
@@ -247,8 +247,8 @@ const ExitedLearnersPage = () => {
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-2">
                           {learner.photoUrl ? (
-                            <img 
-                              src={learner.photoUrl} 
+                            <img
+                              src={learner.photoUrl}
                               alt={`${learner.firstName} ${learner.lastName}`}
                               className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
                             />
@@ -272,7 +272,7 @@ const ExitedLearnersPage = () => {
                         {learner.grade}{learner.stream ? ` - ${learner.stream}` : ''}
                       </td>
                       <td className="px-3 py-2 text-sm text-gray-600">
-                        {learner.exitDate 
+                        {learner.exitDate
                           ? new Date(learner.exitDate).toLocaleDateString()
                           : 'N/A'}
                       </td>
@@ -310,8 +310,8 @@ const ExitedLearnersPage = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {selectedLearner.photoUrl ? (
-                    <img 
-                      src={selectedLearner.photoUrl} 
+                    <img
+                      src={selectedLearner.photoUrl}
                       alt={`${selectedLearner.firstName} ${selectedLearner.lastName}`}
                       className="w-16 h-16 rounded-full object-cover border-4 border-white"
                     />
@@ -327,8 +327,8 @@ const ExitedLearnersPage = () => {
                     <p className="text-red-100">{selectedLearner.admissionNumber || selectedLearner.admNo}</p>
                   </div>
                 </div>
-                <button 
-                  onClick={() => setShowDetailsModal(false)} 
+                <button
+                  onClick={() => setShowDetailsModal(false)}
                   className="text-white hover:text-red-100"
                   type="button"
                 >
@@ -348,19 +348,18 @@ const ExitedLearnersPage = () => {
                 <div>
                   <p className="text-sm font-semibold text-gray-600">Exit Date</p>
                   <p className="text-lg font-bold text-gray-900">
-                    {selectedLearner.exitDate 
+                    {selectedLearner.exitDate
                       ? new Date(selectedLearner.exitDate).toLocaleDateString()
                       : 'N/A'}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-600">Exit Reason</p>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
-                    selectedLearner.status === 'TRANSFERRED_OUT' ? 'bg-blue-100 text-blue-800' :
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${selectedLearner.status === 'TRANSFERRED_OUT' ? 'bg-blue-100 text-blue-800' :
                     selectedLearner.status === 'GRADUATED' ? 'bg-green-100 text-green-800' :
-                    selectedLearner.status === 'DROPPED_OUT' ? 'bg-orange-100 text-orange-800' :
-                    'bg-purple-100 text-purple-800'
-                  }`}>
+                      selectedLearner.status === 'DROPPED_OUT' ? 'bg-gray-100 text-gray-800' :
+                        'bg-purple-100 text-purple-800'
+                    }`}>
                     {selectedLearner.exitReason || getExitReason(selectedLearner.status)}
                   </span>
                 </div>

@@ -602,6 +602,14 @@ export const getBroadcastRecipients = async (req: AuthRequest, res: Response) =>
                 grade: true,
                 guardianName: true,
                 guardianPhone: true,
+                fatherName: true,
+                fatherPhone: true,
+                fatherDeceased: true,
+                motherName: true,
+                motherPhone: true,
+                motherDeceased: true,
+                primaryContactName: true,
+                primaryContactPhone: true,
                 parent: {
                     select: {
                         id: true,
@@ -626,6 +634,14 @@ export const getBroadcastRecipients = async (req: AuthRequest, res: Response) =>
                     grade: true,
                     guardianName: true,
                     guardianPhone: true,
+                    fatherName: true,
+                    fatherPhone: true,
+                    fatherDeceased: true,
+                    motherName: true,
+                    motherPhone: true,
+                    motherDeceased: true,
+                    primaryContactName: true,
+                    primaryContactPhone: true,
                     parent: {
                         select: {
                             id: true,
@@ -647,13 +663,32 @@ export const getBroadcastRecipients = async (req: AuthRequest, res: Response) =>
         const uniqueContacts = new Map();
 
         learners.forEach(learner => {
-            // Prioritize Guardian -> Parent
-            let phone = learner.guardianPhone;
-            let name = learner.guardianName;
+            // Priority: Primary -> Father -> Mother -> Guardian -> Parent Account
+            let phone = learner.primaryContactPhone;
+            let name = learner.primaryContactName;
 
-            if (!phone && learner.parent?.phone) {
-                phone = learner.parent.phone;
-                name = `${learner.parent.firstName} ${learner.parent.lastName}`;
+            // If no explicit primary contact, check hierarchy
+            if (!phone) {
+                // 1. Father (if not deceased and has phone)
+                if (learner.fatherPhone && !learner.fatherDeceased) {
+                    phone = learner.fatherPhone;
+                    name = learner.fatherName || 'Father';
+                }
+                // 2. Mother (if father deceased/no-phone and mother not deceased)
+                else if (learner.motherPhone && !learner.motherDeceased) {
+                    phone = learner.motherPhone;
+                    name = learner.motherName || 'Mother';
+                }
+                // 3. Guardian (fallback)
+                else if (learner.guardianPhone) {
+                    phone = learner.guardianPhone;
+                    name = learner.guardianName || 'Guardian';
+                }
+                // 4. Linked Parent Account (Last resort)
+                else if (learner.parent?.phone) {
+                    phone = learner.parent.phone;
+                    name = `${learner.parent.firstName} ${learner.parent.lastName}`;
+                }
             }
 
             if (phone) {

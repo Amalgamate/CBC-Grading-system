@@ -33,7 +33,7 @@ export const WebsiteLayout = ({ children, onLoginClick, onGetStartedClick, isAut
             items: [
                 { name: "Academic Management", path: "/solutions", desc: "Holistic excellence" },
                 { name: "Financial Control", path: "/solutions", desc: "Fee management" },
-                { name: "Human Resources", path: "/solutions", desc: "Staff management" }
+                { name: "HR", path: "/solutions", desc: "Staff management" }
             ]
         },
         {
@@ -56,11 +56,10 @@ export const WebsiteLayout = ({ children, onLoginClick, onGetStartedClick, isAut
         <div className="min-h-screen bg-white font-sans text-gray-900">
             {/* Professional Navigation */}
             <header
-                className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
-                    scrolled
+                className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${scrolled
                         ? 'bg-white border-b border-gray-200 shadow-sm'
                         : 'bg-white/80 backdrop-blur-md border-b border-gray-100'
-                }`}
+                    }`}
             >
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     {/* Logo */}
@@ -96,11 +95,10 @@ export const WebsiteLayout = ({ children, onLoginClick, onGetStartedClick, isAut
                                 ) : (
                                     <Link
                                         to={link.path}
-                                        className={`px-4 py-2 text-sm font-medium transition-colors ${
-                                            location.pathname === link.path
+                                        className={`px-4 py-2 text-sm font-medium transition-colors ${location.pathname === link.path
                                                 ? 'text-[#520050] font-semibold'
                                                 : 'text-gray-700 hover:text-[#520050]'
-                                        }`}
+                                            }`}
                                     >
                                         {link.label}
                                     </Link>

@@ -9,6 +9,7 @@ import { X, Save, User, Calendar, MapPin, Users, Heart, Camera, AlertCircle } fr
 import PhotoUploadComponent from './PhotoUploadComponent';
 import { useAuth } from '../../../hooks/useAuth';
 import { configAPI } from '../../../services/api';
+import { DatePicker } from '../../ui/date-picker';
 
 const AddEditLearnerModal = ({ show, onClose, onSave, learner = null }) => {
   const { user } = useAuth();
@@ -239,14 +240,16 @@ const AddEditLearnerModal = ({ show, onClose, onSave, learner = null }) => {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Date of Birth <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="date"
-                    name="dateOfBirth"
+                  <DatePicker
                     value={formData.dateOfBirth}
-                    onChange={handleChange}
-                    max={new Date().toISOString().split('T')[0]}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                    onChange={(date) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        dateOfBirth: date ? new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0] : ''
+                      }));
+                      if (errors.dateOfBirth) setErrors(prev => ({ ...prev, dateOfBirth: '' }));
+                    }}
+                    className={errors.dateOfBirth ? "border-red-500" : ""}
                   />
                   {errors.dateOfBirth && <p className="text-red-500 text-xs mt-1">{errors.dateOfBirth}</p>}
                 </div>

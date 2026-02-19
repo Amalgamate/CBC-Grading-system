@@ -40,6 +40,7 @@ const TENANT_SCOPED_MODELS = [
     'CoCurricularActivity',
     'TermlyReportComment',
     'Branch',
+    'Stream',
     'StreamConfig',
     'TermConfig',
     'AggregationConfig',

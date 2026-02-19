@@ -1,5 +1,6 @@
 import React from 'react';
 import { Save, AlertCircle, Loader } from 'lucide-react';
+import { DatePicker } from '../../components/ui/date-picker';
 import { useCoreCompetencies } from '../../hooks/useCoreCompetencies';
 
 const CoreCompetenciesFormDesktop = ({ onBack, onSuccess }) => {
@@ -67,7 +68,7 @@ const CoreCompetenciesFormDesktop = ({ onBack, onSuccess }) => {
         {/* Student Information - 2 columns */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Student Information</h2>
-          
+
           <div className="grid grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -77,9 +78,8 @@ const CoreCompetenciesFormDesktop = ({ onBack, onSuccess }) => {
                 type="text"
                 value={formData.studentId}
                 onChange={(e) => handleInputChange('studentId', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 transition ${
-                  errors.studentId ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 transition ${errors.studentId ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
                 placeholder="STU001"
               />
               {errors.studentId && (
@@ -95,9 +95,8 @@ const CoreCompetenciesFormDesktop = ({ onBack, onSuccess }) => {
                 type="text"
                 value={formData.studentName}
                 onChange={(e) => handleInputChange('studentName', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 transition ${
-                  errors.studentName ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 transition ${errors.studentName ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
                 placeholder="Full name"
               />
               {errors.studentName && (
@@ -109,11 +108,10 @@ const CoreCompetenciesFormDesktop = ({ onBack, onSuccess }) => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Assessment Date
               </label>
-              <input
-                type="date"
+              <DatePicker
                 value={formData.assessmentDate}
-                onChange={(e) => handleInputChange('assessmentDate', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 transition"
+                onChange={(date) => handleInputChange('assessmentDate', date ? new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0] : '')}
+                className="w-full"
               />
             </div>
           </div>
@@ -126,9 +124,8 @@ const CoreCompetenciesFormDesktop = ({ onBack, onSuccess }) => {
               <select
                 value={formData.grade}
                 onChange={(e) => handleInputChange('grade', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 transition ${
-                  errors.grade ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 transition ${errors.grade ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
               >
                 <option value="">Select Grade</option>
                 {grades.map(g => (
@@ -147,9 +144,8 @@ const CoreCompetenciesFormDesktop = ({ onBack, onSuccess }) => {
               <select
                 value={formData.term}
                 onChange={(e) => handleInputChange('term', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 transition ${
-                  errors.term ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 transition ${errors.term ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
               >
                 <option value="">Select Term</option>
                 {terms.map(t => (
@@ -168,9 +164,8 @@ const CoreCompetenciesFormDesktop = ({ onBack, onSuccess }) => {
               <select
                 value={formData.academicYear}
                 onChange={(e) => handleInputChange('academicYear', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 transition ${
-                  errors.academicYear ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 transition ${errors.academicYear ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
               >
                 <option value="">Select Year</option>
                 {academicYears.map(y => (
@@ -187,7 +182,7 @@ const CoreCompetenciesFormDesktop = ({ onBack, onSuccess }) => {
         {/* Competencies - Table View */}
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Core Competencies</h2>
-          
+
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
             <table className="w-full">
               <thead>
@@ -209,9 +204,8 @@ const CoreCompetenciesFormDesktop = ({ onBack, onSuccess }) => {
                       <select
                         value={competency.rating}
                         onChange={(e) => handleCompetencyChange(competency.id, 'rating', e.target.value)}
-                        className={`px-2 py-1 border rounded text-xs focus:ring-2 focus:ring-teal-500 transition ${
-                          errors[`competency_${competency.id}_rating`] ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                        }`}
+                        className={`px-2 py-1 border rounded text-xs focus:ring-2 focus:ring-teal-500 transition ${errors[`competency_${competency.id}_rating`] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
                       >
                         <option value="">Select</option>
                         {ratingScale.map(r => (
@@ -226,9 +220,8 @@ const CoreCompetenciesFormDesktop = ({ onBack, onSuccess }) => {
                       <textarea
                         value={competency.evidence}
                         onChange={(e) => handleCompetencyChange(competency.id, 'evidence', e.target.value)}
-                        className={`w-full px-2 py-1 border rounded text-xs h-20 resize-none focus:ring-2 focus:ring-teal-500 transition ${
-                          errors[`competency_${competency.id}_evidence`] ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                        }`}
+                        className={`w-full px-2 py-1 border rounded text-xs h-20 resize-none focus:ring-2 focus:ring-teal-500 transition ${errors[`competency_${competency.id}_evidence`] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
                         placeholder="Evidence..."
                       />
                       {errors[`competency_${competency.id}_evidence`] && (
@@ -253,7 +246,7 @@ const CoreCompetenciesFormDesktop = ({ onBack, onSuccess }) => {
         {/* Overall Assessment */}
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Overall Assessment</h2>
-          
+
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -263,9 +256,8 @@ const CoreCompetenciesFormDesktop = ({ onBack, onSuccess }) => {
                 value={formData.overallComment}
                 onChange={(e) => handleInputChange('overallComment', e.target.value)}
                 placeholder="Provide overall assessment summary..."
-                className={`w-full px-3 py-2 border rounded-lg text-sm resize-none h-32 focus:ring-2 focus:ring-teal-500 transition ${
-                  errors.overallComment ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg text-sm resize-none h-32 focus:ring-2 focus:ring-teal-500 transition ${errors.overallComment ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
               />
               {errors.overallComment && (
                 <p className="text-red-600 text-xs mt-1">{errors.overallComment}</p>

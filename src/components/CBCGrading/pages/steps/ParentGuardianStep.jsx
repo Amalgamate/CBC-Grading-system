@@ -79,26 +79,108 @@ const ParentGuardianStep = ({ formData = {}, onChange }) => {
   // Check if either parent is marked as deceased
   const isEitherParentDeceased = formData.fatherDeceased || formData.motherDeceased;
 
-  // Handle guardian type change
+  // Sync primary contact details when selected guardian changes or fields update
+  const updatePrimaryContact = (type, currentFormData) => {
+    const config = GUARDIAN_CONFIG[type];
+    if (!config) return currentFormData;
+
+    return {
+      ...currentFormData,
+      primaryContactType: type,
+      primaryContactName: currentFormData[config.nameField],
+      primaryContactPhone: currentFormData[config.phoneField],
+      primaryContactEmail: currentFormData[config.emailField]
+    };
+  };
+
+  // Handle guardian type change (Tab Switching)
   const handleGuardianChange = (guardianType) => {
     setSelectedGuardian(guardianType);
+    // REMOVED: Do not auto-set primary contact just by switching tabs. 
+    // User must explicitly check the box.
   };
 
   // Handle form field changes
   const handleFieldChange = (fieldName, value) => {
-    onChange({
+    const updatedFormData = {
       ...formData,
       [fieldName]: value
-    });
+    };
+
+    // If we're editing the currently selected guardian's fields,
+    // AND they are the designated primary contact, sync the changes to primaryContact* fields.
+    const config = GUARDIAN_CONFIG[selectedGuardian];
+
+    // Check if the current tab matches the designated primary contact
+    const isEditingPrimary = formData.primaryContactType === selectedGuardian;
+
+    if (
+      isEditingPrimary &&
+      (fieldName === config.nameField ||
+        fieldName === config.phoneField ||
+        fieldName === config.emailField)
+    ) {
+      // Sync keeping the SAME primary type
+      const syncedData = updatePrimaryContact(selectedGuardian, updatedFormData);
+      onChange(syncedData);
+    } else {
+      // Just update the field directly without syncing to primary
+      onChange(updatedFormData);
+    }
   };
 
   // Handle deceased checkbox
   const handleDeceasedChange = (deceasedField, isDeceased) => {
-    onChange({
+
+    // First, update the dead status
+    const updatedFormData = {
       ...formData,
       [deceasedField]: isDeceased
-    });
+    };
+
+    // Now check if we need to switch PRIMARY CONTACT
+    // Only switch if the person being marked deceased IS currently the primary contact
+    // Determine who is being marked deceased based on field name
+    const personBeingMarked = deceasedField === 'fatherDeceased' ? 'FATHER' : 'MOTHER';
+
+    // If the person being marked deceased is the current primary contact, we must switch
+    let newPrimaryType = formData.primaryContactType;
+
+    if (isDeceased && formData.primaryContactType === personBeingMarked) {
+      if (personBeingMarked === 'FATHER') {
+        // Father died, switch to Mother if alive, else Guardian
+        newPrimaryType = !formData.motherDeceased ? 'MOTHER' : 'GUARDIAN';
+      } else if (personBeingMarked === 'MOTHER') {
+        // Mother died, switch to Father (if alive) else Guardian
+        // But wait, if Mother was Primary, Father might already be deceased or not selected.
+        // Hierarchy: Father -> Mother -> Guardian.
+        // If Mother was Primary, implies Father wasn't available.
+        // So default to Guardian.
+        newPrimaryType = !formData.fatherDeceased ? 'FATHER' : 'GUARDIAN';
+      }
+    }
+
+    // Determine if we should also switch the VIEW (tab)
+    // If I am looking at Father and mark him deceased, it makes sense to switch view to Mother who is now Primary.
+    if (selectedGuardian === personBeingMarked && isDeceased) {
+      setSelectedGuardian(newPrimaryType);
+    }
+
+    // Update state
+    if (newPrimaryType !== formData.primaryContactType) {
+      const finalData = updatePrimaryContact(newPrimaryType, updatedFormData);
+      onChange(finalData);
+    } else {
+      onChange(updatedFormData);
+    }
   };
+
+  // Initialize selected guardian based on existing primaryContactType if available
+  React.useEffect(() => {
+    if (formData.primaryContactType && GUARDIAN_CONFIG[formData.primaryContactType]) {
+      setSelectedGuardian(formData.primaryContactType);
+    }
+  }, []);
 
   return (
     <div className="space-y-3 max-w-2xl mx-auto">
@@ -112,17 +194,16 @@ const ParentGuardianStep = ({ formData = {}, onChange }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
         {Object.entries(GUARDIAN_CONFIG).map(([type, cfg]) => {
           const isGuardianDisabled = type === 'GUARDIAN' && !isEitherParentDeceased;
-          
+
           return (
             <label
               key={type}
-              className={`flex items-start gap-2 p-3 border-2 rounded-lg transition-all ${
-                isGuardianDisabled
-                  ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50'
-                  : selectedGuardian === type
+              className={`flex items-start gap-2 p-3 border-2 rounded-lg transition-all ${isGuardianDisabled
+                ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50'
+                : selectedGuardian === type
                   ? `border-${cfg.color}-500 ${cfg.bgColor} cursor-pointer`
                   : 'border-gray-200 hover:border-gray-300 bg-white cursor-pointer'
-              }`}
+                }`}
             >
               <input
                 type="radio"
@@ -190,6 +271,64 @@ const ParentGuardianStep = ({ formData = {}, onChange }) => {
           <p className="text-xs text-gray-500 mt-0.5">Used for SMS & broadcasts</p>
         </div>
 
+        {/* Primary Contact Checkbox */}
+        <div className="pt-2">
+          <label className={`flex items-center gap-2 p-2 rounded-lg border border-transparent transition-colors ${formData.primaryContactType && formData.primaryContactType !== selectedGuardian
+            ? 'opacity-50 cursor-not-allowed'
+            : 'cursor-pointer hover:bg-white/50 hover:border-gray-200'
+            }`}>
+            <input
+              type="checkbox"
+              checked={formData.primaryContactType === selectedGuardian}
+              disabled={formData.primaryContactType && formData.primaryContactType !== selectedGuardian}
+              onChange={() => {
+                let newPrimaryType = null;
+
+                // If currently checked, we are unchecking it (setting to null)
+                if (formData.primaryContactType === selectedGuardian) {
+                  newPrimaryType = null;
+                } else {
+                  // If unchecked, we are checking it (setting to current guardian)
+                  newPrimaryType = selectedGuardian;
+                }
+
+                // Update formData with new primary type (or null)
+                // We use updatePrimaryContact which handles syncing fields
+                // If type is null, we just clear primary fields manually or handle in updatePrimaryContact?
+                // updatePrimaryContact expects a valid type string for config lookup.
+
+                if (newPrimaryType) {
+                  const updated = updatePrimaryContact(newPrimaryType, formData);
+                  onChange(updated);
+                } else {
+                  // Clearing primary contact
+                  onChange({
+                    ...formData,
+                    primaryContactType: null,
+                    primaryContactName: '',
+                    primaryContactPhone: '',
+                    primaryContactEmail: ''
+                  });
+                }
+              }}
+              className={`w-4 h-4 text-${config.color}-600 border-gray-300 rounded focus:ring-2 focus:ring-${config.color}-500 disabled:opacity-50`}
+            />
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <p className={`text-sm font-bold ${formData.primaryContactType && formData.primaryContactType !== selectedGuardian ? 'text-gray-400' : 'text-gray-800'}`}>Primary Contact</p>
+                {formData.primaryContactType && formData.primaryContactType !== selectedGuardian && (
+                  <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
+                    {GUARDIAN_CONFIG[formData.primaryContactType]?.label} is selected
+                  </span>
+                )}
+              </div>
+              <p className={`text-xs ${formData.primaryContactType && formData.primaryContactType !== selectedGuardian ? 'text-gray-400' : 'text-gray-600'}`}>
+                Receive all SMS & Broadcasts
+              </p>
+            </div>
+          </label>
+        </div>
+
         {/* Email Field (if applicable) */}
         {config.showEmail && (
           <div>
@@ -252,6 +391,16 @@ const ParentGuardianStep = ({ formData = {}, onChange }) => {
           <strong>ℹ️</strong> Phone is used for SMS & broadcasts. System auto-switches to next contact if parent is deceased.
         </p>
       </div>
+
+      {/* Primary Contact Validation Message */}
+      {!formData.primaryContactPhone && (
+        <div className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle size={16} className="text-red-600 flex-shrink-0" />
+          <p className="text-xs text-red-800 font-bold">
+            A primary contact phone number is mandatory. Please provide a phone number for the selected primary contact.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

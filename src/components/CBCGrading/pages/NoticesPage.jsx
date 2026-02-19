@@ -11,18 +11,22 @@ const confettiEmoji = String.fromCodePoint(0x1F38A);
 const sparkleEmoji = String.fromCodePoint(0x2728);
 const defaultBirthdayTemplate = `*Happy Birthday {firstName}!* ${cakeEmoji}${balloonEmoji}\n\n{schoolName} is thrilled to celebrate you on your *{ageOrdinal} birthday* today, {birthdayDate}! ${confettiEmoji} \n\nWe are so proud of your progress in *{grade}*. May your day be filled with joy, laughter, and wonderful memories. Keep shining bright! ${sparkleEmoji}\n\nBest wishes,\n*The {schoolName} Family*`;
 
-const NoticesPage = () => {
+const NoticesPage = ({ initialTab }) => {
   const { showSuccess, showError } = useNotifications();
 
-  // Get initial tab from localStorage or URL, default to 'notices'
+  // Get initial tab from prop, localStorage or URL, default to 'notices'
   const getInitialTab = () => {
-    // First check URL params
+    // 0. Check prop first
+    if (initialTab && ['notices', 'birthdays'].includes(initialTab)) {
+      return initialTab;
+    }
+    // 1. Check URL params
     const params = new URLSearchParams(window.location.search);
     const urlTab = params.get('tab');
     if (urlTab && ['notices', 'birthdays'].includes(urlTab)) {
       return urlTab;
     }
-    // Then check localStorage
+    // 2. Check localStorage
     const savedTab = localStorage.getItem('noticesPage_activeTab');
     if (savedTab && ['notices', 'birthdays'].includes(savedTab)) {
       return savedTab;
@@ -30,7 +34,7 @@ const NoticesPage = () => {
     return 'notices';
   };
 
-  const [activeTab, setActiveTab] = useState(getInitialTab);
+  const [activeTab, setActiveTab] = useState(getInitialTab());
   const [showModal, setShowModal] = useState(false);
   const [loadingBirthdays, setLoadingBirthdays] = useState(false);
   const [loadingNotices, setLoadingNotices] = useState(false);

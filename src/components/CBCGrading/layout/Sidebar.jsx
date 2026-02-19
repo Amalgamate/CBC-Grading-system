@@ -133,6 +133,8 @@ const allNavSections = [
     id: 'timetable',
     label: 'Timetable',
     icon: Calendar,
+    comingSoon: true,
+    greyedOut: true,
     permission: 'ACCESS_TIMETABLE', // Accountants should not access this
     items: []
   },
@@ -140,6 +142,8 @@ const allNavSections = [
     id: 'attendance',
     label: 'Attendance',
     icon: CheckSquare,
+    comingSoon: true,
+    greyedOut: true,
     permission: null, // Teachers can mark attendance
     items: [
       { id: 'attendance-daily', label: 'Daily Attendance', path: 'attendance-daily', permission: 'MARK_ATTENDANCE' },
@@ -175,8 +179,10 @@ const allNavSections = [
   },
   {
     id: 'hr',
-    label: 'Human Resources',
+    label: 'HR',
     icon: Users2,
+    comingSoon: true,
+    greyedOut: true,
     permission: 'HR_MANAGEMENT', // Only admins and HR personnel
     items: [
       { id: 'hr-staff-profiles', label: 'Staff Profiles & Roles', path: 'hr-staff-profiles', permission: 'HR_MANAGEMENT', comingSoon: true },
@@ -477,7 +483,7 @@ const Sidebar = React.memo(({
   const settingsSection = useMemo(() => {
     // Teachers cannot access settings
     if (role === 'TEACHER') return null;
-    
+
     const section = allNavSections.find(s => s.id === 'settings');
     if (!section || !can(section.permission)) return null;
 
@@ -530,22 +536,22 @@ const Sidebar = React.memo(({
   }, [navSections, role]);
 
   const dashboardSection = navSections.find(s => s.id === 'dashboard');
-  
+
   // For teachers, filter communications to only show Inbox (Messages)
   const communicationSection = useMemo(() => {
     const section = navSections.find(s => s.id === 'communications');
     if (!section) return null;
-    
+
     if (role === 'TEACHER') {
       return {
         ...section,
         items: section.items.filter(item => item.id === 'comm-messages')
       };
     }
-    
+
     return section;
   }, [navSections, role]);
-  
+
   // Hide help section for teachers
   const helpSection = useMemo(() => {
     if (role === 'TEACHER') return null;
@@ -600,7 +606,7 @@ const Sidebar = React.memo(({
       <div className="h-20 p-5 border-b border-white/10 bg-[#520050] relative overflow-hidden">
         {/* Decorative gradient overlay */}
         <div className="absolute inset-0 opacity-0"></div>
-        
+
         <div className="flex items-center gap-3 justify-center overflow-hidden relative z-10">
           {sidebarOpen ? (
             <h1 className="text-xl font-bold text-white tracking-widest truncate w-full text-center hover:drop-shadow-lg transition-shadow duration-300">
@@ -625,8 +631,7 @@ const Sidebar = React.memo(({
               <button
                 onClick={() => onNavigate(dashboardSection.id)}
                 onMouseEnter={() => prefetchModule(dashboardSection.id)}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-300 group relative overflow-hidden ${
-                  currentPage === dashboardSection.id
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-300 group relative overflow-hidden ${currentPage === dashboardSection.id
                   ? 'bg-brand-teal/40 text-white border border-brand-teal/50 shadow-lg shadow-brand-teal/20'
                   : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent hover:border-white/10'
                   }`}
@@ -690,7 +695,7 @@ const Sidebar = React.memo(({
                     <div className="min-w-[20px] flex justify-center group-hover:scale-110 transition-transform">
                       <School size={18} className="opacity-70 group-hover:opacity-100" />
                     </div>
-                    <span className="uppercase tracking-wider font-semibold">Back Office</span>
+                    <span className="uppercase tracking-wider font-bold text-brand-teal">Back Office</span>
                   </div>
                   <ChevronDown size={14} className={`transition-transform duration-300 ${activeCategory === 'school' ? 'rotate-180' : ''}`} />
                 </button>
@@ -881,19 +886,18 @@ const NavSection = React.memo(({
                 if (item.type === 'group') {
                   // Check if any child item matches current page
                   const isGroupActive = item.items.some(subItem => subItem.path === currentPage);
-                  
+
                   return (
                     <div key={item.id} className="mt-2 mb-1">
                       <button
                         onClick={() => item.greyedOut ? null : toggleSubSection(item.id)}
                         disabled={item.greyedOut}
-                        className={`w-full flex items-center justify-between px-3 py-1.5 text-xs font-medium transition-colors ${
-                          item.greyedOut 
-                            ? 'text-gray-600 opacity-50 cursor-not-allowed' 
-                            : (isGroupActive 
-                              ? 'text-[#0D9488] bg-white/5 rounded-md' 
-                              : 'text-gray-500 hover:text-gray-300')
-                        }`}
+                        className={`w-full flex items-center justify-between px-3 py-1.5 text-xs font-medium transition-colors ${item.greyedOut
+                          ? 'text-gray-600 opacity-50 cursor-not-allowed'
+                          : (isGroupActive
+                            ? 'text-[#0D9488] bg-white/5 rounded-md'
+                            : 'text-gray-500 hover:text-gray-300')
+                          }`}
                       >
                         <div className="flex items-center gap-2">
                           {item.icon && <item.icon size={12} className={item.greyedOut ? 'opacity-40' : (isGroupActive ? 'text-[#0D9488]' : 'opacity-70')} />}

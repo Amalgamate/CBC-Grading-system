@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Check, AlertCircle, Loader, ChevronUp, ChevronDown } from 'lucide-react';
+import { DatePicker } from '../../components/ui/date-picker';
 import { useCoreCompetencies } from '../../hooks/useCoreCompetencies';
 
 const CoreCompetenciesFormMobile = ({ onBack, onSuccess }) => {
@@ -80,7 +81,7 @@ const CoreCompetenciesFormMobile = ({ onBack, onSuccess }) => {
           {/* Student Info Section */}
           <div className="bg-white rounded-lg p-4 space-y-3 border border-gray-200">
             <h2 className="text-sm font-semibold text-gray-900">Student Information</h2>
-            
+
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
                 Student ID<span className="text-red-500">*</span>
@@ -89,9 +90,8 @@ const CoreCompetenciesFormMobile = ({ onBack, onSuccess }) => {
                 type="text"
                 value={formData.studentId}
                 onChange={(e) => handleInputChange('studentId', e.target.value)}
-                className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
-                  errors.studentId ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${errors.studentId ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
                 placeholder="e.g., STU001"
               />
               {errors.studentId && (
@@ -107,9 +107,8 @@ const CoreCompetenciesFormMobile = ({ onBack, onSuccess }) => {
                 type="text"
                 value={formData.studentName}
                 onChange={(e) => handleInputChange('studentName', e.target.value)}
-                className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
-                  errors.studentName ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${errors.studentName ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
                 placeholder="Full name"
               />
               {errors.studentName && (
@@ -125,9 +124,8 @@ const CoreCompetenciesFormMobile = ({ onBack, onSuccess }) => {
                 <select
                   value={formData.grade}
                   onChange={(e) => handleInputChange('grade', e.target.value)}
-                  className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 transition ${
-                    errors.grade ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 transition ${errors.grade ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
                 >
                   <option value="">Select</option>
                   {grades.map(g => (
@@ -146,9 +144,8 @@ const CoreCompetenciesFormMobile = ({ onBack, onSuccess }) => {
                 <select
                   value={formData.term}
                   onChange={(e) => handleInputChange('term', e.target.value)}
-                  className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 transition ${
-                    errors.term ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 transition ${errors.term ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
                 >
                   <option value="">Select</option>
                   {terms.map(t => (
@@ -168,9 +165,8 @@ const CoreCompetenciesFormMobile = ({ onBack, onSuccess }) => {
               <select
                 value={formData.academicYear}
                 onChange={(e) => handleInputChange('academicYear', e.target.value)}
-                className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 transition ${
-                  errors.academicYear ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 transition ${errors.academicYear ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
               >
                 <option value="">Select</option>
                 {academicYears.map(y => (
@@ -186,11 +182,10 @@ const CoreCompetenciesFormMobile = ({ onBack, onSuccess }) => {
               <label className="block text-xs font-medium text-gray-700 mb-1">
                 Assessment Date
               </label>
-              <input
-                type="date"
+              <DatePicker
                 value={formData.assessmentDate}
-                onChange={(e) => handleInputChange('assessmentDate', e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-blue-500 transition"
+                onChange={(date) => handleInputChange('assessmentDate', date ? new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0] : '')}
+                className="w-full"
               />
             </div>
           </div>
@@ -199,7 +194,7 @@ const CoreCompetenciesFormMobile = ({ onBack, onSuccess }) => {
           <div className="space-y-2">
             <h2 className="text-sm font-semibold text-gray-900 px-4">Core Competencies</h2>
             <p className="text-xs text-gray-600 px-4 mb-2">Tap to expand and rate each competency</p>
-            
+
             {formData.competencies.map((competency) => (
               <div key={competency.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                 {/* Competency Header - Clickable to expand */}
@@ -211,22 +206,21 @@ const CoreCompetenciesFormMobile = ({ onBack, onSuccess }) => {
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold text-gray-900">{competency.name}</h3>
                     <p className="text-xs text-gray-600 mt-1">{competency.descriptor}</p>
-                    
+
                     {/* Show selected rating */}
                     {competency.rating && (
                       <div className="mt-2">
-                        <span className={`text-xs font-medium px-2 py-1 rounded inline-block ${
-                          competency.rating === 'EE' ? 'bg-green-100 text-green-800' :
-                          competency.rating === 'ME' ? 'bg-blue-100 text-blue-800' :
-                          competency.rating === 'AP' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
+                        <span className={`text-xs font-medium px-2 py-1 rounded inline-block ${competency.rating === 'EE' ? 'bg-green-100 text-green-800' :
+                            competency.rating === 'ME' ? 'bg-blue-100 text-blue-800' :
+                              competency.rating === 'AP' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'
+                          }`}>
                           {ratingScale.find(r => r.value === competency.rating)?.label}
                         </span>
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="flex-shrink-0 ml-2 mt-0.5">
                     {expandedCompetency === competency.id ? (
                       <ChevronUp size={18} className="text-gray-400" />
@@ -250,11 +244,10 @@ const CoreCompetenciesFormMobile = ({ onBack, onSuccess }) => {
                             key={rating.value}
                             type="button"
                             onClick={() => handleCompetencyChange(competency.id, 'rating', rating.value)}
-                            className={`p-2.5 rounded-lg text-xs font-medium text-center border-2 transition ${
-                              competency.rating === rating.value
+                            className={`p-2.5 rounded-lg text-xs font-medium text-center border-2 transition ${competency.rating === rating.value
                                 ? `${rating.color} border-current shadow-sm`
                                 : 'border-gray-300 hover:border-gray-400 bg-white'
-                            }`}
+                              }`}
                           >
                             <div className="font-semibold">{rating.value}</div>
                             <div className="text-xs">{rating.label.split(' ')[0]}</div>
@@ -275,9 +268,8 @@ const CoreCompetenciesFormMobile = ({ onBack, onSuccess }) => {
                         value={competency.evidence}
                         onChange={(e) => handleCompetencyChange(competency.id, 'evidence', e.target.value)}
                         placeholder="Describe evidence supporting this rating..."
-                        className={`w-full px-3 py-2.5 border rounded-lg text-base resize-none h-24 focus:ring-2 focus:ring-blue-500 transition ${
-                          errors[`competency_${competency.id}_evidence`] ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                        }`}
+                        className={`w-full px-3 py-2.5 border rounded-lg text-base resize-none h-24 focus:ring-2 focus:ring-blue-500 transition ${errors[`competency_${competency.id}_evidence`] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                          }`}
                       />
                       {errors[`competency_${competency.id}_evidence`] && (
                         <p className="text-red-600 text-xs mt-1">{errors[`competency_${competency.id}_evidence`]}</p>
@@ -305,7 +297,7 @@ const CoreCompetenciesFormMobile = ({ onBack, onSuccess }) => {
           {/* Overall Comments */}
           <div className="bg-white rounded-lg p-4 space-y-3 border border-gray-200">
             <h2 className="text-sm font-semibold text-gray-900">Overall Assessment</h2>
-            
+
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
                 Overall Comment<span className="text-red-500">*</span>
@@ -314,9 +306,8 @@ const CoreCompetenciesFormMobile = ({ onBack, onSuccess }) => {
                 value={formData.overallComment}
                 onChange={(e) => handleInputChange('overallComment', e.target.value)}
                 placeholder="Provide overall assessment summary..."
-                className={`w-full px-3 py-2.5 border rounded-lg text-base resize-none h-24 focus:ring-2 focus:ring-blue-500 transition ${
-                  errors.overallComment ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2.5 border rounded-lg text-base resize-none h-24 focus:ring-2 focus:ring-blue-500 transition ${errors.overallComment ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
               />
               {errors.overallComment && (
                 <p className="text-red-600 text-xs mt-1">{errors.overallComment}</p>

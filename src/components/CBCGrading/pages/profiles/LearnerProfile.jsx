@@ -10,6 +10,7 @@ import ProfileHeader from '../../shared/ProfileHeader';
 import ProfileLayout from '../../shared/ProfileLayout';
 import { useNotifications } from '../../hooks/useNotifications';
 import ProfilePhotoModal from '../../shared/ProfilePhotoModal';
+import AddEditLearnerModal from '../../shared/AddEditLearnerModal';
 
 const LearnerProfile = ({ learner: initialLearner, onBack, brandingSettings, onNavigate }) => {
     const { showSuccess, showError } = useNotifications();
@@ -18,7 +19,9 @@ const LearnerProfile = ({ learner: initialLearner, onBack, brandingSettings, onN
     const [loading, setLoading] = useState(false);
     const [invoices, setInvoices] = useState([]);
     const [assessments, setAssessments] = useState([]);
+
     const [showPhotoModal, setShowPhotoModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
 
     useEffect(() => {
         if (initialLearner && initialLearner.id !== currentLearner?.id) {
@@ -90,6 +93,24 @@ const LearnerProfile = ({ learner: initialLearner, onBack, brandingSettings, onN
         }
     };
 
+    const handleUpdateLearner = async (updatedData) => {
+        try {
+            const response = await api.learners.update(currentLearner.id, updatedData);
+            if (response.success) {
+                showSuccess('Learner profile updated successfully');
+                setCurrentLearner(prev => ({
+                    ...prev,
+                    ...updatedData,
+                    ...response.data
+                }));
+                setShowEditModal(false);
+            }
+        } catch (error) {
+            console.error('Failed to update learner:', error);
+            showError('Failed to update learner profile');
+        }
+    };
+
     const calculateAge = (dateOfBirth) => {
         if (!dateOfBirth) return 'N/A';
         const today = new Date();
@@ -119,7 +140,7 @@ const LearnerProfile = ({ learner: initialLearner, onBack, brandingSettings, onN
             primaryAction={{
                 label: "Edit Profile",
                 icon: FileText,
-                onClick: () => onNavigate('learners-admissions', { learner: currentLearner })
+                onClick: () => setShowEditModal(true)
             }}
         >
             <ProfileHeader
@@ -128,6 +149,7 @@ const LearnerProfile = ({ learner: initialLearner, onBack, brandingSettings, onN
                 avatarFallback={`${currentLearner.firstName?.[0]}${currentLearner.lastName?.[0]}`}
                 status={currentLearner.status}
                 bannerColor="brand-purple"
+                compact={true} // Use compact mode for header
                 badges={[
                     { text: currentLearner.admissionNumber || currentLearner.admNo, icon: GraduationCap, className: "bg-gray-100 border border-gray-200 px-2.5 py-0.5 rounded-md" },
                     { text: `${currentLearner.grade} ${currentLearner.stream || ''}`, className: "font-medium text-gray-700" }
@@ -156,99 +178,93 @@ const LearnerProfile = ({ learner: initialLearner, onBack, brandingSettings, onN
                     <>
                         {/* OVERVIEW TAB */}
                         {activeTab === 'overview' && (
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
-                                <div className="lg:col-span-2 space-y-6">
-                                    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                                        <div className="flex items-center gap-2 mb-6 pb-2 border-b border-gray-100">
-                                            <User className="text-brand-purple" size={20} />
-                                            <h3 className="text-lg font-bold text-gray-800">Personal Information</h3>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
-                                            <div>
-                                                <label className="premium-label">Date of Birth</label>
-                                                <p className="text-gray-800 font-medium">
-                                                    {currentLearner.dateOfBirth ? new Date(currentLearner.dateOfBirth).toLocaleDateString() : 'N/A'}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <label className="premium-label">Gender</label>
-                                                <p className="text-gray-800 font-medium">{currentLearner.gender}</p>
-                                            </div>
-                                            <div>
-                                                <label className="premium-label">Nationality</label>
-                                                <p className="text-gray-800 font-medium">{currentLearner.nationality || 'Kenyan'}</p>
-                                            </div>
-                                            <div>
-                                                <label className="premium-label">Religion</label>
-                                                <p className="text-gray-800 font-medium">{currentLearner.religion || 'Christian'}</p>
-                                            </div>
-                                        </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
+                                {/* Personal Info Card */}
+                                <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+                                    <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100">
+                                        <User className="text-brand-purple" size={18} />
+                                        <h3 className="text-base font-bold text-gray-800">Personal Data</h3>
                                     </div>
+                                    <div className="space-y-3">
+                                        <InfoRow label="Date of Birth" value={currentLearner.dateOfBirth ? new Date(currentLearner.dateOfBirth).toLocaleDateString() : 'N/A'} />
+                                        <InfoRow label="Gender" value={currentLearner.gender} />
+                                        <InfoRow label="Nationality" value={currentLearner.nationality || 'Kenyan'} />
+                                        <InfoRow label="Religion" value={currentLearner.religion || 'Christian'} />
+                                    </div>
+                                </div>
 
-                                    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                                        <div className="flex items-center gap-2 mb-6 pb-2 border-b border-gray-100">
-                                            <Calendar className="text-brand-teal" size={20} />
-                                            <h3 className="text-lg font-bold text-gray-800">Academic & Admission</h3>
+                                {/* Academic Info Card */}
+                                <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+                                    <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100">
+                                        <Calendar className="text-brand-teal" size={18} />
+                                        <h3 className="text-base font-bold text-gray-800">Academic</h3>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <InfoRow label="Adm Number" value={currentLearner.admissionNumber || currentLearner.admNo} />
+                                        <InfoRow label="Date of Adm" value={currentLearner.dateOfAdmission ? new Date(currentLearner.dateOfAdmission).toLocaleDateString() : 'N/A'} />
+                                        <InfoRow label="Current Grade" value={currentLearner.grade} />
+                                        <InfoRow label="Stream" value={currentLearner.stream} />
+                                    </div>
+                                </div>
+
+                                {/* Contacts Info Card */}
+                                <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+                                    <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100">
+                                        <Users className="text-blue-500" size={18} />
+                                        <h3 className="text-base font-bold text-gray-800">Contacts</h3>
+                                    </div>
+                                    <div className="space-y-4">
+                                        {/* Father Section */}
+                                        <div className="pb-3 border-b border-dashed border-gray-100 last:border-0 last:pb-0">
+                                            <p className="text-[10px] font-black uppercase text-blue-500 mb-1 tracking-wider">👨 Father</p>
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-bold text-gray-800">{currentLearner.fatherName || 'N/A'}</p>
+                                                {currentLearner.fatherPhone && (
+                                                    <p className="text-xs text-gray-600 flex items-center gap-1.5 font-medium">
+                                                        <span className="opacity-50">📱</span> {currentLearner.fatherPhone}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
-                                            <div>
-                                                <label className="premium-label">Admission Number</label>
-                                                <p className="text-gray-800 font-medium">{currentLearner.admissionNumber || currentLearner.admNo}</p>
+
+                                        {/* Mother Section */}
+                                        <div className="pb-3 border-b border-dashed border-gray-100 last:border-0 last:pb-0">
+                                            <p className="text-[10px] font-black uppercase text-amber-500 mb-1 tracking-wider">👩 Mother</p>
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-bold text-gray-800">{currentLearner.motherName || 'N/A'}</p>
+                                                {currentLearner.motherPhone && (
+                                                    <p className="text-xs text-gray-600 flex items-center gap-1.5 font-medium">
+                                                        <span className="opacity-50">📱</span> {currentLearner.motherPhone}
+                                                    </p>
+                                                )}
                                             </div>
-                                            <div>
-                                                <label className="premium-label">Date of Admission</label>
-                                                <p className="text-gray-800 font-medium">
-                                                    {currentLearner.dateOfAdmission ? new Date(currentLearner.dateOfAdmission).toLocaleDateString() : 'N/A'}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <label className="premium-label">Current Grade</label>
-                                                <p className="text-gray-800 font-medium">{currentLearner.grade}</p>
-                                            </div>
-                                            <div>
-                                                <label className="premium-label">Current Stream</label>
-                                                <p className="text-gray-800 font-medium">{currentLearner.stream}</p>
+                                        </div>
+
+                                        {/* Guardian Section */}
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase text-rose-500 mb-1 tracking-wider">👤 Guardian</p>
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-bold text-gray-800">{currentLearner.guardianName || 'N/A'} {currentLearner.guardianRelation && `(${currentLearner.guardianRelation})`}</p>
+                                                {currentLearner.guardianPhone && (
+                                                    <p className="text-xs text-gray-600 flex items-center gap-1.5 font-medium">
+                                                        <span className="opacity-50">📱</span> {currentLearner.guardianPhone}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="space-y-6">
-                                    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                                        <div className="flex items-center gap-2 mb-6 pb-2 border-b border-gray-100">
-                                            <Users className="text-blue-500" size={20} />
-                                            <h3 className="text-lg font-bold text-gray-800">Guardian Info</h3>
+                                {/* Additional Info - Spanning Full Width if needed, currently reusing Location card style */}
+                                <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+                                        <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-100">
+                                            <MapPin className="text-orange-500" size={18} />
+                                            <h3 className="text-base font-bold text-gray-800">Location Details</h3>
                                         </div>
-                                        <div className="space-y-4">
-                                            <div>
-                                                <label className="premium-label">Name</label>
-                                                <p className="text-gray-800 font-medium">{currentLearner.guardianName || currentLearner.guardian1Name || 'N/A'}</p>
-                                            </div>
-                                            <div>
-                                                <label className="premium-label">Phone</label>
-                                                <p className="text-gray-800 font-medium">{currentLearner.guardianPhone || currentLearner.guardian1Phone || 'N/A'}</p>
-                                            </div>
-                                            <div>
-                                                <label className="premium-label">Email</label>
-                                                <p className="text-gray-800 font-medium">{currentLearner.guardianEmail || 'N/A'}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                                        <div className="flex items-center gap-2 mb-6 pb-2 border-b border-gray-100">
-                                            <MapPin className="text-orange-500" size={20} />
-                                            <h3 className="text-lg font-bold text-gray-800">Location</h3>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <div>
-                                                <label className="premium-label">County</label>
-                                                <p className="text-gray-800 font-medium">{currentLearner.county || 'N/A'}</p>
-                                            </div>
-                                            <div>
-                                                <label className="premium-label">Residential Address</label>
-                                                <p className="text-gray-800 font-medium">{currentLearner.address || 'N/A'}</p>
-                                            </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <InfoRow label="County" value={currentLearner.county || 'N/A'} />
+                                            <InfoRow label="Address" value={currentLearner.address || 'N/A'} />
                                         </div>
                                     </div>
                                 </div>
@@ -433,8 +449,24 @@ const LearnerProfile = ({ learner: initialLearner, onBack, brandingSettings, onN
                 onSave={handleSavePhoto}
                 currentPhoto={currentLearner.photoUrl || currentLearner.photo || currentLearner.avatar}
             />
+
+            <AddEditLearnerModal
+                show={showEditModal}
+                onClose={() => setShowEditModal(false)}
+                onSave={handleUpdateLearner}
+                learner={currentLearner}
+            />
         </ProfileLayout>
     );
 };
 
+const InfoRow = ({ label, value }) => (
+    <div>
+        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</label>
+        <p className="text-sm font-bold text-gray-900">{value}</p>
+    </div>
+);
+
 export default LearnerProfile;
+
+

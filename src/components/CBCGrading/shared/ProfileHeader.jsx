@@ -14,12 +14,13 @@ const ProfileHeader = ({
     onPhotoClick,
     bannerPattern = 'pattern-grid-lg',
     bannerColor = 'brand-teal',
-    quickStats = []
+    quickStats = [],
+    compact = false
 }) => {
     return (
         <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 mb-6">
             {/* Elegant Banner Area */}
-            <div className={`h-32 bg-gray-50 border-b border-gray-100 relative overflow-hidden`}>
+            <div className={`${compact ? 'h-24' : 'h-32'} bg-gray-50 border-b border-gray-100 relative overflow-hidden transition-all`}>
                 <div className={`absolute inset-0 opacity-10 ${bannerPattern} text-${bannerColor}`}></div>
                 <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent"></div>
             </div>
@@ -29,7 +30,7 @@ const ProfileHeader = ({
                 <div className="relative flex flex-col md:flex-row justify-between items-end -mt-12 mb-6">
                     <div className="flex items-end gap-6 w-full md:w-auto">
                         {/* Avatar */}
-                        <div className="group relative w-28 h-28 bg-white p-1 rounded-full shadow-lg">
+                        <div className={`group relative ${compact ? 'w-24 h-24' : 'w-28 h-28'} bg-white p-1 rounded-full shadow-lg transition-all`}>
                             <div className="w-full h-full bg-gray-50 rounded-full flex items-center justify-center text-3xl font-bold text-gray-400 overflow-hidden border-2 border-white ring-1 ring-gray-100">
                                 {avatar ? (
                                     <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
@@ -53,7 +54,7 @@ const ProfileHeader = ({
                         {/* Identity Details */}
                         <div className="mb-1 flex-1">
                             <div className="flex items-center gap-3">
-                                <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
+                                <h2 className={`${compact ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900 tracking-tight transition-all`}>
                                     {name}
                                 </h2>
                                 {status && <StatusBadge status={status} />}

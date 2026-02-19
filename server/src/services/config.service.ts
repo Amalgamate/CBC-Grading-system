@@ -701,6 +701,7 @@ export class ConfigService {
       console.log('Creating new class record...');
       return await prisma.class.create({
         data: {
+          classCode: `CLS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           ...normalizedData,
           branchId: branchId as string
         },

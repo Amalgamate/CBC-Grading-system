@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Save, FileText, Lightbulb } from 'lucide-react';
+import { DatePicker } from '../../components/ui/date-picker';
 
 const TermlyReportCommentsForm = () => {
   const [formData, setFormData] = useState({
@@ -9,7 +10,7 @@ const TermlyReportCommentsForm = () => {
     term: '',
     academicYear: '',
     reportDate: new Date().toISOString().split('T')[0],
-    
+
     // Subject-specific comments
     subjectComments: {
       english: { strengths: '', areasForDevelopment: '', generalComment: '' },
@@ -21,22 +22,22 @@ const TermlyReportCommentsForm = () => {
       creative: { strengths: '', areasForDevelopment: '', generalComment: '' },
       physical: { strengths: '', areasForDevelopment: '', generalComment: '' }
     },
-    
+
     // Overall comments
     classTeacherComment: '',
     headTeacherComment: '',
-    
+
     // Performance summary
     academicStrengths: '',
     academicWeaknesses: '',
     behaviorConduct: '',
     attendance: '',
     punctuality: '',
-    
+
     // Recommendations
     parentsAdvice: '',
     nextTermGoals: '',
-    
+
     // Signatures
     classTeacherName: '',
     classTeacherSignature: '',
@@ -112,15 +113,15 @@ const TermlyReportCommentsForm = () => {
 
   const insertSuggestion = (subject, field, suggestion) => {
     const currentValue = formData.subjectComments[subject][field];
-    const newValue = currentValue 
-      ? currentValue + ' ' + suggestion 
+    const newValue = currentValue
+      ? currentValue + ' ' + suggestion
       : suggestion;
     handleSubjectCommentChange(subject, field, newValue);
   };
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.studentId) newErrors.studentId = 'Student ID is required';
     if (!formData.studentName) newErrors.studentName = 'Student name is required';
     if (!formData.grade) newErrors.grade = 'Grade is required';
@@ -135,7 +136,7 @@ const TermlyReportCommentsForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       setSaveStatus('error');
       return;
@@ -144,9 +145,9 @@ const TermlyReportCommentsForm = () => {
     try {
       setSaveStatus('saving');
       console.log('Saving report comments:', formData);
-      
+
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       setSaveStatus('success');
       setTimeout(() => setSaveStatus(''), 3000);
     } catch (error) {
@@ -182,9 +183,8 @@ const TermlyReportCommentsForm = () => {
                   type="text"
                   value={formData.studentId}
                   onChange={(e) => handleInputChange('studentId', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                    errors.studentId ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${errors.studentId ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="Enter student ID"
                 />
                 {errors.studentId && <p className="mt-1 text-sm text-red-600">{errors.studentId}</p>}
@@ -196,9 +196,8 @@ const TermlyReportCommentsForm = () => {
                   type="text"
                   value={formData.studentName}
                   onChange={(e) => handleInputChange('studentName', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                    errors.studentName ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${errors.studentName ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="Enter student name"
                 />
                 {errors.studentName && <p className="mt-1 text-sm text-red-600">{errors.studentName}</p>}
@@ -209,9 +208,8 @@ const TermlyReportCommentsForm = () => {
                 <select
                   value={formData.grade}
                   onChange={(e) => handleInputChange('grade', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                    errors.grade ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${errors.grade ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 >
                   <option value="">Select grade</option>
                   {grades.map(grade => <option key={grade} value={grade}>{grade}</option>)}
@@ -224,9 +222,8 @@ const TermlyReportCommentsForm = () => {
                 <select
                   value={formData.term}
                   onChange={(e) => handleInputChange('term', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                    errors.term ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${errors.term ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 >
                   <option value="">Select term</option>
                   {terms.map(term => <option key={term} value={term}>{term}</option>)}
@@ -240,9 +237,8 @@ const TermlyReportCommentsForm = () => {
                   type="text"
                   value={formData.academicYear}
                   onChange={(e) => handleInputChange('academicYear', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                    errors.academicYear ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${errors.academicYear ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="e.g., 2024-2025"
                 />
                 {errors.academicYear && <p className="mt-1 text-sm text-red-600">{errors.academicYear}</p>}
@@ -250,11 +246,10 @@ const TermlyReportCommentsForm = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Report Date</label>
-                <input
-                  type="date"
+                <DatePicker
                   value={formData.reportDate}
-                  onChange={(e) => handleInputChange('reportDate', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  onChange={(date) => handleInputChange('reportDate', date ? new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0] : '')}
+                  className="w-full"
                 />
               </div>
             </div>
@@ -263,7 +258,7 @@ const TermlyReportCommentsForm = () => {
           {/* Subject-Specific Comments */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Subject-Specific Comments</h2>
-            
+
             {/* Subject Tabs */}
             <div className="mb-6 border-b border-gray-200">
               <div className="flex flex-wrap gap-2">
@@ -272,11 +267,10 @@ const TermlyReportCommentsForm = () => {
                     key={subject.key}
                     type="button"
                     onClick={() => setSelectedSubject(subject.key)}
-                    className={`px-4 py-2 border-b-2 font-medium transition-colors ${
-                      selectedSubject === subject.key
+                    className={`px-4 py-2 border-b-2 font-medium transition-colors ${selectedSubject === subject.key
                         ? 'border-blue-600 text-blue-600'
                         : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     {subject.name}
                   </button>
@@ -442,9 +436,8 @@ const TermlyReportCommentsForm = () => {
                   value={formData.classTeacherComment}
                   onChange={(e) => handleInputChange('classTeacherComment', e.target.value)}
                   rows="4"
-                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                    errors.classTeacherComment ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${errors.classTeacherComment ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="Provide comprehensive comment on student's overall performance, behavior, and development..."
                 />
                 {errors.classTeacherComment && (
@@ -511,9 +504,8 @@ const TermlyReportCommentsForm = () => {
                     type="text"
                     value={formData.classTeacherName}
                     onChange={(e) => handleInputChange('classTeacherName', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                      errors.classTeacherName ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${errors.classTeacherName ? 'border-red-500' : 'border-gray-300'
+                      }`}
                     placeholder="Enter teacher name"
                   />
                   {errors.classTeacherName && (
@@ -570,11 +562,10 @@ const TermlyReportCommentsForm = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={formData.parentDate}
-                    onChange={(e) => handleInputChange('parentDate', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    onChange={(date) => handleInputChange('parentDate', date ? new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0] : '')}
+                    className="w-full"
                   />
                 </div>
               </div>
@@ -592,7 +583,7 @@ const TermlyReportCommentsForm = () => {
                   <div className="text-red-600 font-medium">✗ Please fix errors and try again</div>
                 )}
               </div>
-              
+
               <div className="flex gap-3">
                 <button
                   type="button"

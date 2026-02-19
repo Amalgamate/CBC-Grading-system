@@ -42,12 +42,44 @@ export const useLearners = () => {
           gender: learner.gender,
           grade: learner.grade,
           stream: learner.stream,
+
+          // Profiling
+          photoUrl: learner.photoUrl,
+          photo: learner.photoUrl,
           status: learner.status,
+          admissionDate: learner.admissionDate ? new Date(learner.admissionDate).toLocaleDateString() : 'N/A',
+          exitDate: learner.exitDate ? new Date(learner.exitDate).toLocaleDateString() : null,
+          exitReason: learner.exitReason,
+
+          // Contact & Parents
           parentId: learner.parentId,
           parent: learner.parent,
+
+          // Primary Contact (explicit)
+          primaryContactName: learner.primaryContactName,
+          primaryContactPhone: learner.primaryContactPhone,
+          primaryContactEmail: learner.primaryContactEmail,
+          primaryContactType: learner.primaryContactType,
+
+          // Guardian
           guardianName: learner.guardianName || (learner.parent ? `${learner.parent.firstName} ${learner.parent.lastName}` : undefined),
           guardianPhone: learner.guardianPhone || learner.parent?.phone,
           guardianEmail: learner.guardianEmail || learner.parent?.email,
+          guardianRelation: learner.guardianRelation,
+
+          // Father
+          fatherName: learner.fatherName,
+          fatherPhone: learner.fatherPhone,
+          fatherEmail: learner.fatherEmail,
+          fatherDeceased: learner.fatherDeceased,
+
+          // Mother
+          motherName: learner.motherName,
+          motherPhone: learner.motherPhone,
+          motherEmail: learner.motherEmail,
+          motherDeceased: learner.motherDeceased,
+
+          // Health & other
           medicalConditions: learner.medicalConditions,
           allergies: learner.allergies,
           emergencyContact: learner.emergencyContact,
@@ -56,10 +88,12 @@ export const useLearners = () => {
           specialNeeds: learner.specialNeeds,
           previousSchool: learner.previousSchool,
           religion: learner.religion,
+
+          // Address
           address: learner.address,
           county: learner.county,
           subCounty: learner.subCounty,
-          admissionDate: new Date(learner.admissionDate).toLocaleDateString(),
+
           createdAt: learner.createdAt,
         }));
 

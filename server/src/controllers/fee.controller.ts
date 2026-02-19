@@ -8,6 +8,8 @@ import { PaymentStatus } from '@prisma/client';
 import prisma from '../config/database';
 import { ApiError } from '../utils/error.util';
 import { AuthRequest } from '../middleware/permissions.middleware';
+import { SmsService } from '../services/sms.service';
+import { whatsappService } from '../services/whatsapp.service';
 
 export class FeeController {
   /**
@@ -437,6 +439,49 @@ export class FeeController {
       }
     });
 
+
+
+    // Send Notifications (Async - don't block response)
+    (async () => {
+      try {
+        const contactName = learner.primaryContactName || `${learner.firstName} Parent`;
+        const contactPhone = learner.primaryContactPhone || learner.guardianPhone || (learner as any).parent?.phone;
+
+        if (contactPhone) {
+          // 1. Send SMS
+          await SmsService.sendFeeInvoiceNotification({
+            schoolId: learner.schoolId,
+            parentPhone: contactPhone,
+            parentName: contactName,
+            learnerName: `${learner.firstName} ${learner.lastName}`,
+            invoiceNumber: invoice.invoiceNumber,
+            term: invoice.term,
+            amount: Number(invoice.totalAmount),
+            dueDate: new Date(invoice.dueDate).toLocaleDateString()
+          });
+
+          // 2. Send WhatsApp
+          const waMessage = `*INVOICE GENERATED*\n\n` +
+            `Dear *${contactName}*,\n` +
+            `A new invoice has been generated for *${learner.firstName} ${learner.lastName}*.\n\n` +
+            `📄 *Invoice No:* ${invoice.invoiceNumber}\n` +
+            `📅 *Term:* ${invoice.term} ${invoice.academicYear}\n` +
+            `💰 *Amount:* KES ${invoice.totalAmount.toLocaleString()}\n` +
+            `🗓️ *Due Date:* ${new Date(invoice.dueDate).toLocaleDateString()}\n\n` +
+            `Please ensure timely payment via our provided channels.\n` +
+            `_This is an automated message._`;
+
+          await whatsappService.sendMessage({
+            to: contactPhone,
+            message: waMessage,
+            schoolId: learner.schoolId
+          });
+        }
+      } catch (notifyError) {
+        console.error('Failed to send invoice notifications:', notifyError);
+      }
+    })();
+
     res.status(201).json({
       success: true,
       data: invoice,
@@ -463,7 +508,17 @@ export class FeeController {
     const invoice = await prisma.feeInvoice.findUnique({
       where: { id: invoiceId },
       include: {
-        learner: { select: { schoolId: true } }
+        learner: {
+          select: {
+            schoolId: true,
+            firstName: true,
+            lastName: true,
+            primaryContactName: true,
+            primaryContactPhone: true,
+            guardianPhone: true,
+            parent: { select: { phone: true } }
+          }
+        }
       }
     });
 
@@ -490,7 +545,7 @@ export class FeeController {
     }
 
     // Process payment in a transaction to prevent race conditions
-    const result = await prisma.$transaction(async (tx) => {
+    const result: any = await prisma.$transaction(async (tx) => {
       // 1. Generate receipt number (atomic within transaction)
       const count = await tx.feePayment.count();
       const receiptNumber = `RCP-${new Date().getFullYear()}-${String(count + 1).padStart(6, '0')}`;
@@ -542,15 +597,18 @@ export class FeeController {
 
       // 5. Update status if changed
       if (newStatus !== updatedInvoice.status) {
-        return await tx.feeInvoice.update({
+        const finalInvoice = await tx.feeInvoice.update({
           where: { id: invoiceId },
           data: { status: newStatus },
           include: {
             learner: { include: { parent: true } },
             feeStructure: true,
-            payments: true
+            payments: {
+              orderBy: { paymentDate: 'asc' }
+            }
           }
         });
+        return { payment, invoice: finalInvoice };
       }
 
       return { payment, invoice: updatedInvoice };
@@ -561,6 +619,43 @@ export class FeeController {
       data: result,
       message: 'Payment recorded successfully'
     });
+
+    // Send Receipt Notifications (Async)
+    (async () => {
+      try {
+        const updatedInvoice = result.invoice;
+        const learner = updatedInvoice.learner;
+        const contactName = learner.primaryContactName || `${learner.firstName.split(' ')[0]}'s Parent`;
+        const contactPhone = learner.primaryContactPhone || learner.guardianPhone || (learner as any).parent?.phone;
+        const paidAmount = Number(result.payment.amount);
+        const balance = Number(updatedInvoice.balance);
+
+        if (contactPhone) {
+          // 1. Send SMS
+          const smsMessage = `Payment Received: KES ${paidAmount.toLocaleString()} for ${learner.firstName}. Ref: ${referenceNumber}. Bal: KES ${balance.toLocaleString()}. Thank you!`;
+          await SmsService.sendSms(learner.schoolId, contactPhone, smsMessage);
+
+          // 2. Send WhatsApp
+          const waMessage = `*PAYMENT RECEIPT*\n\n` +
+            `Dear *${contactName}*,\n` +
+            `We have received your payment for *${learner.firstName} ${learner.lastName}*.\n\n` +
+            `💵 *Amount Paid:* KES ${paidAmount.toLocaleString()}\n` +
+            `🔢 *Receipt Ref:* ${referenceNumber}\n` +
+            `💳 *Method:* ${paymentMethod}\n` +
+            `📉 *New Balance:* KES ${balance.toLocaleString()}\n\n` +
+            `Thank you for your continued support.\n` +
+            `_This is an automated receipt._`;
+
+          await whatsappService.sendMessage({
+            to: contactPhone,
+            message: waMessage,
+            schoolId: learner.schoolId
+          });
+        }
+      } catch (notifyError) {
+        console.error('Failed to send receipt notifications:', notifyError);
+      }
+    })();
   }
 
   /**

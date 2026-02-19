@@ -1192,6 +1192,7 @@ export const seedClasses = async (req: AuthRequest, res: Response) => {
 
         await prisma.class.create({
           data: {
+            classCode: `CLS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             grade,
             stream: 'A',
             branchId,

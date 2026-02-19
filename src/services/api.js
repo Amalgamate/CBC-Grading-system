@@ -831,6 +831,69 @@ export const schoolAPI = {
 };
 
 // ============================================
+// FACILITY MANAGEMENT API
+// ============================================
+
+export const facilityAPI = {
+  /**
+   * Get streams by branch
+   * @param {string} branchId
+   */
+  getStreamsByBranch: async (branchId) => {
+    return fetchWithAuth(`/facility/streams?branchId=${branchId}`);
+  },
+
+  /**
+   * Get single stream by ID
+   * @param {string} streamId
+   */
+  getStream: async (streamId) => {
+    return fetchWithAuth(`/facility/streams/${streamId}`);
+  },
+
+  /**
+   * Create stream
+   * @param {Object} data - { branchId, name }
+   */
+  createStream: async (data) => {
+    return fetchWithAuth('/facility/streams', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Update stream
+   * @param {string} id
+   * @param {Object} data - { name, active }
+   */
+  updateStream: async (id, data) => {
+    return fetchWithAuth(`/facility/streams/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete stream (archive)
+   * @param {string} id
+   */
+  deleteStream: async (id) => {
+    return fetchWithAuth(`/facility/streams/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Get available stream names for a branch
+   * @param {string} branchId
+   */
+  getAvailableStreamNames: async (branchId) => {
+    return fetchWithAuth(`/facility/streams/branch/${branchId}/available`);
+  },
+};
+
+// ============================================
 // TEACHERS API (alias to userAPI.getByRole)
 // ============================================
 

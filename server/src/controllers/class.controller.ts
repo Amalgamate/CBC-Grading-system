@@ -17,6 +17,31 @@ const configService = new ConfigService();
 export class ClassController {
 
   /**
+   * Helper to generate unique incremental class code
+   */
+  private async generateClassCode(): Promise<string> {
+    // Get the count of existing classes to generate next number
+    const totalClasses = await prisma.class.count();
+    const nextNumber = totalClasses + 1;
+    const classCode = `CLS-${String(nextNumber).padStart(5, '0')}`;
+    
+    // Verify it's unique (shouldn't be needed but for safety)
+    const existing = await prisma.class.findUnique({ where: { classCode } });
+    if (existing) {
+      // If somehow exists, find next available
+      let counter = nextNumber + 1;
+      while (true) {
+        const code = `CLS-${String(counter).padStart(5, '0')}`;
+        const exists = await prisma.class.findUnique({ where: { classCode: code } });
+        if (!exists) return code;
+        counter++;
+      }
+    }
+    
+    return classCode;
+  }
+
+  /**
    * Helper to get active term context
    */
   private async getActiveContext(schoolId: string) {
@@ -253,8 +278,12 @@ export class ClassController {
     const finalStream = stream || 'A';
     const finalName = name || `${grade} ${finalStream}`;
 
+    // Generate unique incremental class code
+    const classCode = await this.generateClassCode();
+
     const newClass = await prisma.class.create({
       data: {
+        classCode,
         name: finalName,
         grade: grade as Grade,
         stream: finalStream as any,

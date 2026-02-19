@@ -301,7 +301,7 @@ const LearnersList = ({
               >
                 <option value="all">All Status</option>
                 <option value="ACTIVE">Active</option>
-                <option value="DROPPED_OUT">Exited (Dropped Out)</option>
+                <option value="DROPPED_OUT">Archived</option>
                 <option value="TRANSFERRED_OUT">Transferred Out</option>
                 <option value="GRADUATED">Graduated</option>
                 <option value="SUSPENDED">Suspended</option>
@@ -484,14 +484,13 @@ const LearnersList = ({
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-2">
                     {learner.primaryContactType && (
-                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                        learner.primaryContactType === 'FATHER' ? 'bg-blue-100 text-blue-800' :
-                        learner.primaryContactType === 'MOTHER' ? 'bg-amber-100 text-amber-800' :
-                        'bg-rose-100 text-rose-800'
-                      }`}>
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${learner.primaryContactType === 'FATHER' ? 'bg-blue-100 text-blue-800' :
+                          learner.primaryContactType === 'MOTHER' ? 'bg-amber-100 text-amber-800' :
+                            'bg-rose-100 text-rose-800'
+                        }`}>
                         {learner.primaryContactType === 'FATHER' ? '👨 Father' :
-                         learner.primaryContactType === 'MOTHER' ? '👩 Mother' :
-                         '👤 Guardian'}
+                          learner.primaryContactType === 'MOTHER' ? '👩 Mother' :
+                            '👤 Guardian'}
                       </span>
                     )}
                     <div className="flex-1">
@@ -628,22 +627,20 @@ const LearnersList = ({
               <div className="flex gap-2 border-b border-gray-200">
                 <button
                   onClick={() => setContactType('sms')}
-                  className={`flex items-center gap-2 px-4 py-2 pb-3 font-semibold border-b-2 transition ${
-                    contactType === 'sms'
+                  className={`flex items-center gap-2 px-4 py-2 pb-3 font-semibold border-b-2 transition ${contactType === 'sms'
                       ? 'border-emerald-500 text-emerald-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
+                    }`}
                 >
                   <MessageCircle size={16} />
                   SMS
                 </button>
                 <button
                   onClick={() => setContactType('whatsapp')}
-                  className={`flex items-center gap-2 px-4 py-2 pb-3 font-semibold border-b-2 transition ${
-                    contactType === 'whatsapp'
+                  className={`flex items-center gap-2 px-4 py-2 pb-3 font-semibold border-b-2 transition ${contactType === 'whatsapp'
                       ? 'border-green-500 text-green-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
+                    }`}
                 >
                   <MessageSquare size={16} />
                   WhatsApp

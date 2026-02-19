@@ -63,6 +63,11 @@ export class LearnerController {
       ];
     }
 
+    // Special handling: If filtering by DROPPED_OUT, include archived (soft-deleted) records
+    if (status === 'DROPPED_OUT') {
+      delete whereClause.archived;
+    }
+
     const [learners, total] = await Promise.all([
       prisma.learner.findMany({
         where: whereClause,
@@ -73,6 +78,7 @@ export class LearnerController {
           lastName: true,
           middleName: true,
           admissionNumber: true,
+          admissionDate: true,
           grade: true,
           stream: true,
           dateOfBirth: true,
@@ -81,6 +87,23 @@ export class LearnerController {
           branchId: true,
           parentId: true,
           status: true,
+          // photoUrl: true, // Too large for list view
+          medicalConditions: true,
+          allergies: true,
+          emergencyContact: true,
+          emergencyPhone: true,
+          bloodGroup: true,
+          address: true,
+          county: true,
+          subCounty: true,
+          previousSchool: true,
+          religion: true,
+          specialNeeds: true,
+          guardianRelation: true,
+          fatherDeceased: true,
+          motherDeceased: true,
+          exitDate: true,
+          exitReason: true,
           archived: true,
           createdAt: true,
           updatedAt: true,
@@ -219,8 +242,28 @@ export class LearnerController {
         gender: true,
         schoolId: true,
         branchId: true,
+
         parentId: true,
         status: true,
+        admissionDate: true,
+        photoUrl: true,
+        medicalConditions: true,
+        allergies: true,
+        emergencyContact: true,
+        emergencyPhone: true,
+        bloodGroup: true,
+        address: true,
+        county: true,
+        subCounty: true,
+        previousSchool: true,
+        religion: true,
+
+        specialNeeds: true,
+        guardianRelation: true,
+        fatherDeceased: true,
+        motherDeceased: true,
+        exitDate: true,
+        exitReason: true,
         archived: true,
         createdAt: true,
         updatedAt: true,

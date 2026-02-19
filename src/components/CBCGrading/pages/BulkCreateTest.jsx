@@ -3,6 +3,7 @@ import {
     ArrowLeft, CheckCircle, Loader, Calendar, BookOpen,
     Layers, Clock, ClipboardList, ListChecks, Database
 } from 'lucide-react';
+import { DatePicker } from '../../ui/date-picker';
 import { assessmentAPI, gradingAPI } from '../../../services/api';
 import { useNotifications } from '../hooks/useNotifications';
 
@@ -227,13 +228,11 @@ const BulkCreateTest = ({ onBack, onSuccess }) => {
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1">Test Date</label>
                                 <div className="relative">
-                                    <input
-                                        type="date"
+                                    <DatePicker
                                         value={formData.testDate}
-                                        onChange={(e) => setFormData({ ...formData, testDate: e.target.value })}
-                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                        onChange={(date) => setFormData({ ...formData, testDate: date ? new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0] : '' })}
+                                        className="w-full"
                                     />
-                                    <Calendar className="absolute left-3 top-2.5 text-gray-400" size={18} />
                                 </div>
                             </div>
 
@@ -282,10 +281,10 @@ const BulkCreateTest = ({ onBack, onSuccess }) => {
                             type="button"
                             onClick={handleSelectAllGrades}
                             className={`flex items-center gap-2 px-4 py-2 mb-4 rounded-lg border-2 transition font-semibold ${allSelected
-                                    ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
-                                    : someSelected
-                                        ? 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100'
-                                        : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
+                                ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
+                                : someSelected
+                                    ? 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100'
+                                    : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
                                 }`}
                         >
                             <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${allSelected ? 'bg-white border-white' : someSelected ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-400'
@@ -303,8 +302,8 @@ const BulkCreateTest = ({ onBack, onSuccess }) => {
                                     <label
                                         key={grade}
                                         className={`flex items-center gap-3 px-4 py-3 rounded-lg border-2 cursor-pointer transition ${isSelected
-                                                ? 'bg-blue-50 border-blue-500 hover:bg-blue-100'
-                                                : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                            ? 'bg-blue-50 border-blue-500 hover:bg-blue-100'
+                                            : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                             }`}
                                     >
                                         <input

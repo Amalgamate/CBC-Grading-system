@@ -3,7 +3,7 @@ import { Bell, LogOut, Zap, ChevronDown, ClipboardList, BarChart3, MessageSquare
 import { usePermissions } from '../../../hooks/usePermissions';
 import api, { schoolAPI } from '../../../services/api';
 
-const Header = React.memo(({ user, onLogout, brandingSettings, title }) => {
+const Header = React.memo(({ user, onLogout, brandingSettings, title, onNavigate }) => {
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [showSchoolPicker, setShowSchoolPicker] = useState(false);
   const [schools, setSchools] = useState([]);
@@ -21,6 +21,17 @@ const Header = React.memo(({ user, onLogout, brandingSettings, title }) => {
   const { role } = usePermissions();
 
   const isSuperAdmin = role === 'SUPER_ADMIN';
+
+  const handleNotificationClick = (type, params = {}) => {
+    setShowNotifications(false);
+    if (onNavigate) {
+      if (type === 'birthday') {
+        onNavigate('comm-notices', { activeTab: 'birthdays' });
+      } else {
+        onNavigate(type, params);
+      }
+    }
+  };
 
   // Fetch schools for Super Admin
   useEffect(() => {
@@ -313,12 +324,19 @@ const Header = React.memo(({ user, onLogout, brandingSettings, title }) => {
               <div className="max-h-[400px] overflow-y-auto">
                 {birthdays.length > 0 ? (
                   <div className="p-3">
-                    <div className="px-4 py-2.5 bg-slate-200 border border-pink-300 rounded-lg mb-3 flex items-center gap-2.5">
+                    <div
+                      onClick={() => handleNotificationClick('birthday')}
+                      className="px-4 py-2.5 bg-slate-200 border border-pink-300 rounded-lg mb-3 flex items-center gap-2.5 cursor-pointer hover:bg-slate-300 transition-colors"
+                    >
                       <Cake size={16} className="text-pink-400 shrink-0" />
                       <span className="text-[10px] font-bold uppercase text-pink-700 tracking-wider">Birthday Reminders</span>
                     </div>
                     {birthdays.map((b) => (
-                      <div key={b.id} className="p-3.5 hover:bg-slate-200 rounded-lg transition-all duration-300 flex items-start gap-4 border-b border-gray-300 last:border-0 group">
+                      <div
+                        key={b.id}
+                        onClick={() => handleNotificationClick('birthday')}
+                        className="p-3.5 hover:bg-slate-200 rounded-lg transition-all duration-300 flex items-start gap-4 border-b border-gray-300 last:border-0 group cursor-pointer"
+                      >
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm shrink-0 shadow-md transition-all duration-300 group-hover:scale-110 border-2 ${b.isToday ? 'bg-gradient-to-r from-pink-600 to-red-600 text-white border-pink-400 animate-bounce' : 'bg-slate-200 text-gray-700 border-gray-300'}`}>
                           {b.name.split(' ').map(n => n[0]).join('')}
                         </div>
