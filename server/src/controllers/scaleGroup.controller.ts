@@ -17,7 +17,7 @@ const prisma = new PrismaClient();
 const LEARNING_AREAS = [
   'MATHEMATICAL ACTIVITIES',
   'ENGLISH LANGUAGE ACTIVITIES',
-  'SHUGHULI ZA KISWAHILI LUGHA',
+  'KISWAHILI',
   'ENVIRONMENTAL ACTIVITIES',
   'CREATIVE ACTIVITIES',
   'RELIGIOUS EDUCATION',
@@ -522,7 +522,19 @@ export const generateGradesForScaleGroup = async (req: AuthRequest, res: Respons
 
     // 2. Prepare systems for bulk creation
     for (const grade of grades) {
-      for (const learningArea of LEARNING_AREAS) {
+      // Junior School specific learning areas
+      const gradeStr = String(grade).toUpperCase();
+      const isJuniorSchool = gradeStr.includes('7') || gradeStr.includes('8') || gradeStr.includes('9');
+
+      const areasToUse = isJuniorSchool
+        ? LEARNING_AREAS.filter(area => ![
+          'ABACUS', 'ART & CRAFT', 'ENVIRONMENTAL ACTIVITIES',
+          'INSHA', 'MUSIC', 'PHYSICAL EDUCATION',
+          'READING', 'SCIENCE & TECHNOLOGY'
+        ].includes(area))
+        : LEARNING_AREAS;
+
+      for (const learningArea of areasToUse) {
         if (!existingSet.has(`${grade}|${learningArea}`)) {
           systemsToCreate.push({
             name: `${grade.replace('_', ' ')} - ${learningArea}`,

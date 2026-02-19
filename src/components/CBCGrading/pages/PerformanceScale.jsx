@@ -28,7 +28,7 @@ const EIGHT_POINT_TEMPLATE = [
 const LEARNING_AREAS = [
   'MATHEMATICAL ACTIVITIES',
   'ENGLISH LANGUAGE ACTIVITIES',
-  'SHUGHULI ZA KISWAHILI LUGHA',
+  'KISWAHILI',
   'ENVIRONMENTAL ACTIVITIES',
   'CREATIVE ACTIVITIES',
   'RELIGIOUS EDUCATION',
@@ -42,6 +42,20 @@ const LEARNING_AREAS = [
   'ABACUS',
   'AGRICULTURE'
 ];
+
+const getLearningAreasForGrade = (grade) => {
+  const gradeStr = String(grade).toUpperCase();
+  const isJuniorSchool = gradeStr.includes('7') || gradeStr.includes('8') || gradeStr.includes('9');
+
+  if (isJuniorSchool) {
+    return LEARNING_AREAS.filter(area => ![
+      'ABACUS', 'ART & CRAFT', 'ENVIRONMENTAL ACTIVITIES',
+      'INSHA', 'MUSIC', 'PHYSICAL EDUCATION',
+      'READING', 'SCIENCE & TECHNOLOGY'
+    ].includes(area));
+  }
+  return LEARNING_AREAS;
+};
 
 const GRADES = [
   'PLAYGROUP', 'PP1', 'PP2',
@@ -162,7 +176,7 @@ const PerformanceScale = () => {
         ranges: apiRanges
       });
 
-      const totalSystems = selectedGrades.length * LEARNING_AREAS.length;
+      const totalSystems = selectedGrades.reduce((acc, grade) => acc + getLearningAreasForGrade(grade).length, 0);
       showSuccess(`✓ Created "${scaleName}" with ${totalSystems} grading systems across ${selectedGrades.length} grade(s)!`);
 
       setScaleName('');
@@ -351,18 +365,22 @@ const PerformanceScale = () => {
                 <h3 className="font-bold text-blue-900 mb-1">Auto-Generation Preview</h3>
                 <p className="text-sm text-blue-800 mb-3">This will automatically create grading scales for:</p>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="font-bold text-blue-900">{LEARNING_AREAS.length}</span>
-                    <span className="text-blue-800">learning areas per grade</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="font-bold text-blue-900">{selectedGrades.length}</span>
-                    <span className="text-blue-800">grade level(s) selected</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm pt-2 border-t border-blue-200">
-                    <span className="font-bold text-lg text-blue-900">{LEARNING_AREAS.length * selectedGrades.length}</span>
-                    <span className="text-blue-800">total grading systems will be created!</span>
-                  </div>
+                  {selectedGrades.length === 0 ? (
+                    <p className="text-sm text-blue-800">Select grades to see preview</p>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="font-bold text-blue-900">{selectedGrades.length}</span>
+                        <span className="text-blue-800">grade level(s) selected</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm pt-2 border-t border-blue-200">
+                        <span className="font-bold text-lg text-blue-900">
+                          {selectedGrades.reduce((acc, grade) => acc + getLearningAreasForGrade(grade).length, 0)}
+                        </span>
+                        <span className="text-blue-800">total grading systems will be created!</span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {selectedGrades.length > 0 && (

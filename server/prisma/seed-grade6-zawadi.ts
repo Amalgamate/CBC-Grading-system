@@ -12,7 +12,7 @@ const GRADE = Grade.GRADE_6;
 const SUBJECTS = [
     { code: 'MATH', name: 'MATHEMATICAL ACTIVITIES' },
     { code: 'ENG', name: 'ENGLISH LANGUAGE ACTIVITIES' },
-    { code: 'KIS', name: 'SHUGHULI ZA KISWAHILI LUGHA' },
+    { code: 'KIS', name: 'KISWAHILI' },
     { code: 'SCI', name: 'SCIENCE & TECHNOLOGY' },
     { code: 'SIS', name: 'SOCIAL STUDIES' },
     { code: 'C/A', name: 'CREATIVE ACTIVITIES' },

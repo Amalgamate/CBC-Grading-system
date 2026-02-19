@@ -832,26 +832,46 @@ export const generateTestsBulk = async (req: AuthRequest, res: Response) => {
     const skipped = [];
 
     // CBC Learning Areas (Consistent with scaleGroup.controller.ts)
-    const LEARNING_AREAS = [
-      'MATHEMATICAL ACTIVITIES',
-      'ENGLISH LANGUAGE ACTIVITIES',
-      'SHUGHULI ZA KISWAHILI LUGHA',
-      'ENVIRONMENTAL ACTIVITIES',
-      'CREATIVE ACTIVITIES',
-      'RELIGIOUS EDUCATION',
-      'SCIENCE & TECHNOLOGY',
-      'SOCIAL STUDIES',
-      'MUSIC',
-      'ART & CRAFT',
-      'PHYSICAL EDUCATION',
-      'INSHA',
-      'READING',
-      'ABACUS',
-      'AGRICULTURE'
-    ];
+    const getLearningAreasForGrade = (gradeValue: string) => {
+      const standardAreas = [
+        'MATHEMATICAL ACTIVITIES',
+        'ENGLISH LANGUAGE ACTIVITIES',
+        'KISWAHILI',
+        'ENVIRONMENTAL ACTIVITIES',
+        'CREATIVE ACTIVITIES',
+        'RELIGIOUS EDUCATION',
+        'SCIENCE & TECHNOLOGY',
+        'SOCIAL STUDIES',
+        'MUSIC',
+        'ART & CRAFT',
+        'PHYSICAL EDUCATION',
+        'INSHA',
+        'READING',
+        'ABACUS',
+        'AGRICULTURE'
+      ];
+
+      const gradeStr = String(gradeValue).toUpperCase();
+      if (gradeStr.includes('GRADE_7') || gradeStr.includes('GRADE_8') || gradeStr.includes('GRADE_9') ||
+        gradeStr === '7' || gradeStr === '8' || gradeStr === '9') {
+        // Remove: Abbacus, Art & CR, ENV, Insha, music, Physical, reading, sci & Tech
+        return [
+          'MATHEMATICAL ACTIVITIES',
+          'ENGLISH LANGUAGE ACTIVITIES',
+          'KISWAHILI',
+          'RELIGIOUS EDUCATION',
+          'SOCIAL STUDIES',
+          'AGRICULTURE',
+          'CREATIVE ACTIVITIES'
+        ];
+      }
+
+      return standardAreas;
+    };
 
     for (const grade of grades) {
-      for (const learningArea of LEARNING_AREAS) {
+      const AREAS_TO_GENERATE = getLearningAreasForGrade(grade);
+      for (const learningArea of AREAS_TO_GENERATE) {
         // Check if a test with same unique properties already exists
         const existing = await prisma.summativeTest.findFirst({
           where: {

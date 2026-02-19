@@ -228,19 +228,19 @@ export const seedLearningAreas = async (req: AuthRequest, res: Response) => {
       'Pre-Primary': [
         'Literacy', 'English Language Activities', 'Mathematical Activities',
         'Environmental Activities', 'Creative Activities', 'Christian Religious Education',
-        'Islamic Religious Education', 'Computer Studies (Interactive)', 'Kiswahili Lugha'
+        'Islamic Religious Education', 'Computer Studies (Interactive)', 'Kiswahili'
       ],
       'Lower Primary': [
         'Mathematics', 'English', 'Kiswahili', 'Environmental Studies',
         'Creative Activities', 'Religious Education', 'Information Communications Technology'
       ],
       'Upper Primary': [
-        'English Language', 'Kiswahili Lugha', 'Mathematics', 'Science and Technology',
+        'English Language', 'Kiswahili', 'Mathematics', 'Science and Technology',
         'Social Studies', 'Agriculture', 'Creative Arts', 'Christian Religious Education',
         'Islamic Religious Education', 'Computer Studies', 'Coding and Robotics', 'French'
       ],
       'Junior School': [
-        'English Language', 'Kiswahili Lugha', 'Mathematics', 'Integrated Science',
+        'English Language', 'Kiswahili', 'Mathematics', 'Integrated Science',
         'Social Studies', 'Pre-Technical Studies', 'Agriculture', 'Creative Arts and Sports',
         'Christian Religious Education', 'Islamic Religious Education', 'Computer Studies',
         'Coding and Robotics', 'French'
