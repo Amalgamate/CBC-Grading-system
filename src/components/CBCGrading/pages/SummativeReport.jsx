@@ -297,7 +297,7 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
         {/* Logo Middle */}
         <div className="mb-4">
           <img
-            src="/logo-elimcrown.png"
+            src={user?.school?.logo || brandingSettings?.logoUrl || "/logo-new.png"}
             alt="Logo"
             style={{ height: '100px', width: 'auto', objectFit: 'contain' }}
             onError={(e) => { e.target.src = '/logo-new.png'; }} // Fallback if logo is not found
@@ -305,7 +305,7 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
         </div>
 
         {/* School Info */}
-        <h1 style={{ fontSize: '26px', fontWeight: '900', color: '#1E3A8A', margin: '0', textTransform: 'uppercase', letterSpacing: '1px', lineHeight: '1.1' }}>
+        <h1 style={{ fontSize: '26px', fontWeight: '900', color: brandingSettings?.brandColor || '#1E3A8A', margin: '0', textTransform: 'uppercase', letterSpacing: '1px', lineHeight: '1.1' }}>
           {user?.school?.name || brandingSettings?.schoolName || 'ACADEMIC SCHOOL'}
         </h1>
 
@@ -322,7 +322,7 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
         </div>
 
         {/* Separator Line */}
-        <div className="w-full h-1 bg-blue-900 mt-4 mb-4"></div>
+        <div className="w-full h-1 mt-4 mb-4" style={{ backgroundColor: brandingSettings?.brandColor || '#1e3a8a' }}></div>
 
         {/* Report Title */}
         <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#000', margin: '0', textTransform: 'uppercase', letterSpacing: '2px' }}>
@@ -490,10 +490,19 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
         {/* Stamp Area - Reduced further (w-80 -> w-68) */}
         <div className="mb-[-12px] z-10 flex justify-center">
           <img
-            src="/stamp.svg"
+            src={user?.school?.stampUrl || brandingSettings?.stampUrl || "/stamp.svg"}
             alt="School Stamp"
             className="w-48 h-auto opacity-95"
             style={{ mixBlendMode: 'multiply' }}
+            onError={(e) => {
+              if (e.target.src.includes('/stamp.svg')) {
+                e.target.src = '/ZawadiStamp.svg';
+              } else if (e.target.src.includes('/ZawadiStamp.svg')) {
+                e.target.style.display = 'none';
+              } else {
+                e.target.src = '/stamp.svg';
+              }
+            }}
           />
         </div>
 
@@ -2510,7 +2519,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
               {/* Logo Middle */}
               <div className="mb-4">
                 <img
-                  src="/logo-elimcrown.png"
+                  src={user?.school?.logo || brandingSettings?.logoUrl || "/logo-new.png"}
                   alt="Logo"
                   style={{ height: '100px', width: 'auto', objectFit: 'contain' }}
                   onError={(e) => { e.target.src = '/logo-new.png'; }}
@@ -2518,7 +2527,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
               </div>
 
               {/* School Info */}
-              <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#1E3A8A', margin: '0', textTransform: 'uppercase', letterSpacing: '1px', lineHeight: '1.1' }}>
+              <h1 style={{ fontSize: '28px', fontWeight: '900', color: brandingSettings?.brandColor || '#1E3A8A', margin: '0', textTransform: 'uppercase', letterSpacing: '1px', lineHeight: '1.1' }}>
                 {user?.school?.name || brandingSettings?.schoolName || 'ACADEMIC SCHOOL'}
               </h1>
 
@@ -2535,7 +2544,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
               </div>
 
               {/* Separator Line */}
-              <div className="w-full h-1 bg-blue-900 mt-4 mb-4"></div>
+              <div className="w-full h-1 mt-4 mb-4" style={{ backgroundColor: brandingSettings?.brandColor || '#1e3a8a' }}></div>
 
               {/* Bold Report Title */}
               <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#000', margin: '0', textTransform: 'uppercase', letterSpacing: '2px' }}>
@@ -2707,7 +2716,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
               {/* Logo Middle */}
               <div className="mb-4">
                 <img
-                  src="/logo-elimcrown.png"
+                  src={user?.school?.logo || brandingSettings?.logoUrl || "/logo-new.png"}
                   alt="Logo"
                   style={{ height: '80px', width: 'auto', objectFit: 'contain' }}
                   onError={(e) => { e.target.src = '/logo-new.png'; }}
@@ -2715,7 +2724,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
               </div>
 
               {/* School Info */}
-              <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#1E3A8A', margin: '0', textTransform: 'uppercase', letterSpacing: '1px', lineHeight: '1.2' }}>
+              <h1 style={{ fontSize: '24px', fontWeight: '900', color: brandingSettings?.brandColor || '#1E3A8A', margin: '0', textTransform: 'uppercase', letterSpacing: '1px', lineHeight: '1.2' }}>
                 {user?.school?.name || brandingSettings?.schoolName || 'ACADEMIC SCHOOL'}
               </h1>
 
@@ -2726,7 +2735,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
               )}
 
               {/* Separator Line */}
-              <div className="w-full h-0.5 bg-blue-900 mt-3 mb-3"></div>
+              <div className="w-full h-0.5 mt-3 mb-3" style={{ backgroundColor: brandingSettings?.brandColor || '#1e3a8a' }}></div>
 
               {/* Bold Report Title */}
               <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#000', margin: '0', textTransform: 'uppercase', letterSpacing: '1px' }}>

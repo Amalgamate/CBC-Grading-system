@@ -14,7 +14,7 @@ import SmartLearnerSearch from '../shared/SmartLearnerSearch';
 import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { useLearnerSelection } from '../hooks/useLearnerSelection';
 
-const FormativeReport = ({ learners, brandingSettings }) => {
+const FormativeReport = ({ learners, brandingSettings, user }) => {
   const { showSuccess, showError } = useNotifications();
 
   // Use centralized hooks for assessment state management
@@ -71,12 +71,12 @@ const FormativeReport = ({ learners, brandingSettings }) => {
       const filename = `${reportData.learner.firstName}_${reportData.learner.lastName}_Formative_${setup.selectedTerm}_Report.pdf`;
 
       const schoolInfo = {
-        schoolName: brandingSettings?.schoolName || 'Elimcrown Academy',
-        address: 'P.O. Box 1234, Nairobi, Kenya',
-        phone: '+254 700 000000',
-        email: 'info@elimcrown.ac.ke',
-        website: 'www.elimcrown.ac.ke',
-        logoUrl: brandingSettings?.logoUrl || '/logo-elimcrown.png',
+        schoolName: user?.school?.name || brandingSettings?.schoolName || '',
+        address: user?.school?.location || brandingSettings?.address || 'P.O. Box 1234, Nairobi, Kenya',
+        phone: user?.school?.phone || brandingSettings?.phone || '+254 700 000000',
+        email: user?.school?.email || brandingSettings?.email || 'info@school.ac.ke',
+        website: user?.school?.website || brandingSettings?.website || 'www.school.ac.ke',
+        logoUrl: user?.school?.logo || brandingSettings?.logoUrl || '/logo-new.png',
         brandColor: brandingSettings?.brandColor || '#1e3a8a'
       };
 
@@ -416,9 +416,20 @@ const FormativeReport = ({ learners, brandingSettings }) => {
               )}
 
               {/* Report Footer */}
-              <div className="mt-8 pt-4 border-t border-gray-200 text-center text-[10px] text-gray-400">
+              <div className="mt-8 pt-4 border-t border-gray-200 text-center text-[10px] text-gray-400 relative">
+                {brandingSettings?.stampUrl && (
+                  <div className="absolute right-0 bottom-full mb-[-10px] opacity-60">
+                    <img
+                      src={brandingSettings.stampUrl}
+                      alt="Stamp"
+                      className="w-20 h-20 object-contain"
+                      style={{ mixBlendMode: 'multiply' }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  </div>
+                )}
                 <p>Generated on: {new Date(reportData.generatedDate).toLocaleString('en-GB')}</p>
-                <p className="mt-1">This is an official document from {brandingSettings?.schoolName || 'Elimcrown Academy'}</p>
+                <p className="mt-1">This is an official document from {brandingSettings?.schoolName || 'ACADEMIC SCHOOL'}</p>
               </div>
             </div>
           </div>

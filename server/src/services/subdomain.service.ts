@@ -46,6 +46,7 @@ interface SchoolData {
   subdomainVerifiedAt?: Date | null;
   logoUrl: string | null;
   faviconUrl: string | null;
+  stampUrl: string | null;
 }
 
 interface SubdomainValidationResult {
@@ -65,7 +66,7 @@ export class SubdomainService {
   constructor() {
     this.cacheTTL = parseInt(process.env.SUBDOMAIN_CACHE_TTL || '600', 10); // 10 minutes default
     this.cache = new SimpleCache<SchoolData>();
-    
+
     // Parse reserved words from env
     const reserved = process.env.SUBDOMAIN_RESERVED_WORDS || 'www,api,mail,admin,support,blog,contact,help,docs,status';
     this.reservedWords = new Set(reserved.split(',').map(w => w.trim().toLowerCase()));
@@ -160,7 +161,8 @@ export class SubdomainService {
           subdomainVerified: true,
           subdomainVerifiedAt: true,
           logoUrl: true,
-          faviconUrl: true
+          faviconUrl: true,
+          stampUrl: true
         }
       })) as any;
 
@@ -314,7 +316,7 @@ export class SubdomainService {
     const domain = process.env.DEPLOYMENT_DOMAIN || 'elimcrown.co.ke';
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
     const port = process.env.NODE_ENV === 'development' ? `:${process.env.PORT || 5000}` : '';
-    
+
     return `${protocol}://${subdomain}.${domain}${port}${path}`;
   }
 }

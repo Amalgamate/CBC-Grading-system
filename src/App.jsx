@@ -40,6 +40,7 @@ function AppContent() {
     return {
       logoUrl: localStorage.getItem('schoolLogo') || '/logo-new.png',
       faviconUrl: localStorage.getItem('schoolFavicon') || '/favicon.png',
+      stampUrl: localStorage.getItem('schoolStamp') || '/stamp.svg',
       brandColor: localStorage.getItem('brandColor') || '#520050',
       welcomeTitle: localStorage.getItem('welcomeTitle') || 'Welcome to Elimcrown',
       welcomeMessage: localStorage.getItem('welcomeMessage') || 'Unified education management for schools and institutions.',
@@ -63,6 +64,7 @@ function AppContent() {
           ...prev,
           logoUrl: t.logoUrl || prev.logoUrl,
           faviconUrl: t.faviconUrl || prev.faviconUrl,
+          stampUrl: t.stampUrl || prev.stampUrl,
           schoolName: t.schoolName || prev.schoolName,
         }));
       } catch {
@@ -79,6 +81,8 @@ function AppContent() {
     if (brandingSettings.schoolName) localStorage.setItem('schoolName', brandingSettings.schoolName);
     if (brandingSettings.faviconUrl && brandingSettings.faviconUrl !== '/favicon.png')
       localStorage.setItem('schoolFavicon', brandingSettings.faviconUrl);
+    if (brandingSettings.stampUrl && brandingSettings.stampUrl !== '/stamp.svg')
+      localStorage.setItem('schoolStamp', brandingSettings.stampUrl);
   }, [brandingSettings]);
 
   useEffect(() => {

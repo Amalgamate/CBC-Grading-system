@@ -87,6 +87,7 @@ model School {
   principalPhone         String?
   logoUrl                String?
   faviconUrl             String?
+  stampUrl               String?
   schoolType             String?
   motto                  String?
   vision                 String?

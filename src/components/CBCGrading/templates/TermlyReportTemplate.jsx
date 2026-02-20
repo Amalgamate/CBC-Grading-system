@@ -28,17 +28,15 @@ const TermlyReportTemplate = ({ reportData, id = "termly-report-content" }) => {
             <div className="flex justify-between items-start mb-6 border-b-2 pb-6" style={{ borderColor: brandColor }}>
                 <div className="flex items-center gap-5">
                     <div className="w-24 h-24 flex items-center justify-center rounded bg-white shadow-sm border border-gray-100 overflow-hidden">
-                        {reportData.logoUrl ? (
+                        {reportData.logoUrl && reportData.logoUrl !== '/logo-elimcrown.png' ? (
                             <img src={reportData.logoUrl} alt="Logo" className="max-w-full max-h-full object-contain" />
                         ) : (
-                            <div className="bg-gray-100 w-full h-full flex items-center justify-center text-[10px] font-black text-gray-300 uppercase text-center p-2">
-                                Official<br />School<br />Logo
-                            </div>
+                            <img src="/logo-new.png" alt="Logo" className="max-w-full max-h-full object-contain" />
                         )}
                     </div>
                     <div className="text-left">
                         <h1 className="text-3xl font-black uppercase tracking-tight leading-none mb-1">
-                            {reportData.schoolName || 'AMALGAMATE ACADEMY'}
+                            {reportData.schoolName || 'ACADEMIC SCHOOL'}
                         </h1>
                         <p className="text-sm font-bold text-gray-500 uppercase tracking-[0.1em]">
                             {reportData.schoolAddress || 'P.O. Box 1234, Nairobi, Kenya'}
@@ -46,7 +44,7 @@ const TermlyReportTemplate = ({ reportData, id = "termly-report-content" }) => {
                         <div className="flex gap-4 mt-1 text-[10px] font-bold text-gray-400 uppercase">
                             <span>TEL: {reportData.schoolPhone || '+254 700 000000'}</span>
                             <span>•</span>
-                            <span>EMAIL: {reportData.schoolEmail || 'info@amalgamate.co.ke'}</span>
+                            <span>EMAIL: {reportData.schoolEmail || 'info@school.ac.ke'}</span>
                         </div>
                     </div>
                 </div>
@@ -137,9 +135,18 @@ const TermlyReportTemplate = ({ reportData, id = "termly-report-content" }) => {
                         <p className="text-[9px] font-black text-gray-500 uppercase">Class Teacher</p>
                     </div>
                     <div className="text-center flex flex-col items-center justify-center">
-                        <div className="w-16 h-16 border-2 border-dashed border-gray-200 rounded-full flex items-center justify-center mb-1">
-                            <span className="text-[8px] font-black text-gray-300 uppercase leading-none">School<br />Stamp</span>
-                        </div>
+                        {reportData.schoolStamp ? (
+                            <img
+                                src={reportData.schoolStamp}
+                                alt="Stamp"
+                                className="w-16 h-16 object-contain mb-1 opacity-80"
+                                style={{ mixBlendMode: 'multiply' }}
+                            />
+                        ) : (
+                            <div className="w-16 h-16 border-2 border-dashed border-gray-200 rounded-full flex items-center justify-center mb-1">
+                                <span className="text-[8px] font-black text-gray-300 uppercase leading-none">School<br />Stamp</span>
+                            </div>
+                        )}
                     </div>
                     <div className="text-center">
                         <div className="border-b border-gray-300 h-8 mb-1"></div>

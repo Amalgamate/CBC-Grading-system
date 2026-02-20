@@ -18,11 +18,13 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
     brandColor: brandingSettings?.brandColor || '#1e3a8a',
     logoUrl: brandingSettings?.logoUrl || '/logo-elimcrown.png',
     faviconUrl: brandingSettings?.faviconUrl || '/favicon.png',
+    stampUrl: brandingSettings?.stampUrl || '/stamp.svg',
     schoolName: brandingSettings?.schoolName || 'Elimcrown'
   });
 
   const [logoPreview, setLogoPreview] = useState(localSettings.logoUrl);
   const [faviconPreview, setFaviconPreview] = useState(localSettings.faviconUrl);
+  const [stampPreview, setStampPreview] = useState(localSettings.stampUrl);
 
   // Sync with parent branding settings
   useEffect(() => {
@@ -34,10 +36,12 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
       brandColor: brandingSettings?.brandColor || '#1e3a8a',
       logoUrl: brandingSettings?.logoUrl || '/logo-elimcrown.png',
       faviconUrl: brandingSettings?.faviconUrl || '/favicon.png',
+      stampUrl: brandingSettings?.stampUrl || '/stamp.svg',
       schoolName: brandingSettings?.schoolName || 'Elimcrown'
     });
     setLogoPreview(brandingSettings?.logoUrl || '/logo-elimcrown.png');
     setFaviconPreview(brandingSettings?.faviconUrl || '/favicon.png');
+    setStampPreview(brandingSettings?.stampUrl || '/stamp.svg');
   }, [brandingSettings]);
 
   const handleChange = (field, value) => {
@@ -69,6 +73,9 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
       } else if (type === 'favicon') {
         setFaviconPreview(base64String);
         handleChange('faviconUrl', base64String);
+      } else if (type === 'stamp') {
+        setStampPreview(base64String);
+        handleChange('stampUrl', base64String);
       }
     };
     reader.readAsDataURL(file);
@@ -86,6 +93,7 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
     localStorage.setItem('brandColor', localSettings.brandColor);
     localStorage.setItem('schoolLogo', localSettings.logoUrl);
     localStorage.setItem('schoolFavicon', localSettings.faviconUrl);
+    localStorage.setItem('schoolStamp', localSettings.stampUrl);
     localStorage.setItem('schoolName', localSettings.schoolName);
 
     toast.success('✨ Branding settings saved successfully!', {
@@ -111,12 +119,14 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
       brandColor: '#1e3a8a',
       logoUrl: '/logo-elimcrown.png',
       faviconUrl: '/favicon.png',
+      stampUrl: '/stamp.svg',
       schoolName: 'Elimcrown'
     };
 
     setLocalSettings(defaultSettings);
     setLogoPreview(defaultSettings.logoUrl);
     setFaviconPreview(defaultSettings.faviconUrl);
+    setStampPreview(defaultSettings.stampUrl);
 
     // Clear localStorage
     localStorage.removeItem('welcomeTitle');
@@ -126,6 +136,7 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
     localStorage.removeItem('brandColor');
     localStorage.removeItem('schoolLogo');
     localStorage.removeItem('schoolFavicon');
+    localStorage.removeItem('schoolStamp');
     localStorage.removeItem('schoolName');
 
     toast.success('🔄 Reset to default branding', {
@@ -237,6 +248,33 @@ const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
                   />
                 </label>
                 <p className="text-xs text-gray-500 mt-2">32x32 or 64x64 recommended</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Official School Stamp
+              </label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                <img
+                  src={stampPreview}
+                  alt="Stamp Preview"
+                  className="w-32 h-32 object-contain mx-auto mb-3"
+                  onError={(e) => {
+                    e.target.src = '/stamp.svg';
+                  }}
+                />
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                  <Upload size={18} />
+                  Upload Stamp
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleImageUpload(e, 'stamp')}
+                    className="hidden"
+                  />
+                </label>
+                <p className="text-xs text-gray-500 mt-2">PNG, SVG or JPG up to 2MB</p>
               </div>
             </div>
           </div>

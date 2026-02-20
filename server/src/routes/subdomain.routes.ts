@@ -55,6 +55,7 @@ router.get(
         schoolName: school.name,
         logoUrl: school.logoUrl,
         faviconUrl: school.faviconUrl,
+        stampUrl: school.stampUrl,
         status: school.active ? 'ACTIVE' : 'INACTIVE'
       }
     });

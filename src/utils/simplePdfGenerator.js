@@ -246,12 +246,12 @@ export const generatePDFWithLetterhead = async (
   } = options;
 
   const {
-    schoolName = 'Elimcrown Academy',
-    address = 'P.O. Box 1234, Nairobi, Kenya',
-    phone = '+254 700 000000',
-    email = 'info@elimcrown.ac.ke',
-    website = 'www.elimcrown.ac.ke',
-    logoUrl = '/logo-elimcrown.png',
+    schoolName = '',
+    address = '',
+    phone = '',
+    email = '',
+    website = '',
+    logoUrl = '',
     brandColor = '#1e3a8a',
     skipLetterhead = false
   } = schoolInfo;

@@ -14,7 +14,7 @@ import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { useLearnerSelection } from '../hooks/useLearnerSelection';
 import TermlyReportTemplate from '../templates/TermlyReportTemplate';
 
-const TermlyReport = ({ learners, brandingSettings }) => {
+const TermlyReport = ({ learners, brandingSettings, user }) => {
   const { showSuccess, showError } = useNotifications();
 
   // Use centralized hooks for assessment state management
@@ -88,12 +88,12 @@ const TermlyReport = ({ learners, brandingSettings }) => {
       // Generate filename
       const filename = `${selectedLearner.firstName}_${selectedLearner.lastName}_${selectedTerm.replace(' ', '_')}_Report.pdf`;
       const schoolInfo = {
-        schoolName: brandingSettings?.schoolName || 'Elimcrown Academy',
-        address: 'P.O. Box 1234, Nairobi, Kenya',
-        phone: '+254 700 000000',
-        email: 'info@elimcrown.ac.ke',
-        website: 'www.elimcrown.ac.ke',
-        logoUrl: brandingSettings?.logoUrl || '/logo-elimcrown.png',
+        schoolName: user?.school?.name || brandingSettings?.schoolName || '',
+        address: user?.school?.location || brandingSettings?.address || 'P.O. Box 1234, Nairobi, Kenya',
+        phone: user?.school?.phone || brandingSettings?.phone || '+254 700 000000',
+        email: user?.school?.email || brandingSettings?.email || 'info@school.ac.ke',
+        website: user?.school?.website || brandingSettings?.website || 'www.school.ac.ke',
+        logoUrl: user?.school?.logo || brandingSettings?.logoUrl || '/logo-new.png',
         brandColor: brandingSettings?.brandColor || '#1e3a8a'
       };
       // Generate PDF from the report content
@@ -253,12 +253,21 @@ const TermlyReport = ({ learners, brandingSettings }) => {
           <div className="bg-white rounded-xl shadow-md overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
 
             {/* On-Screen Header (Hidden in Print/PDF as Letterhead is added) */}
-            <div className="bg-brand-purple text-white p-4 text-center print:hidden">
-              <h2 className="text-xl font-bold">Elimcrown Academy</h2>
+            <div className="text-white p-4 text-center print:hidden" style={{ backgroundColor: brandingSettings?.brandColor || '#4a0404' }}>
+              <h2 className="text-xl font-bold">{brandingSettings?.schoolName || 'ACADEMIC SCHOOL'}</h2>
               <p className="opacity-80 text-sm">Excellence in Competency Based Curriculum</p>
             </div>
 
-            <TermlyReportTemplate reportData={reportData} />
+            <TermlyReportTemplate reportData={{
+              ...reportData,
+              schoolName: user?.school?.name || brandingSettings?.schoolName,
+              schoolAddress: user?.school?.location || brandingSettings?.address,
+              schoolPhone: user?.school?.phone || brandingSettings?.phone,
+              schoolEmail: user?.school?.email || brandingSettings?.email,
+              logoUrl: user?.school?.logo || brandingSettings?.logoUrl,
+              schoolStamp: user?.school?.stampUrl || brandingSettings?.stampUrl,
+              brandColor: brandingSettings?.brandColor || reportData.brandColor
+            }} />
           </div>
         </>
       )}

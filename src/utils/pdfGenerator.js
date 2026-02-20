@@ -25,13 +25,13 @@
  */
 export const createLetterhead = (schoolInfo) => {
   const {
-    schoolName = 'Elimcrown Academy',
-    logoUrl = '/logo-elimcrown.png',
+    schoolName = '',
+    logoUrl = '',
     brandColor = '#1e3a8a',
-    address = 'P.O. Box 1234, Nairobi, Kenya',
-    phone = '+254 700 000000',
-    email = 'info@elimcrown.ac.ke',
-    website = 'www.elimcrown.ac.ke'
+    address = '',
+    phone = '',
+    email = '',
+    website = ''
   } = schoolInfo;
 
   return {

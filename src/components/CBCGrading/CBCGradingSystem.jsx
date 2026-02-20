@@ -739,7 +739,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       case 'assess-formative':
         return <FormativeAssessment learners={learners} />;
       case 'assess-formative-report':
-        return <FormativeReport learners={learners} />;
+        return <FormativeReport learners={learners} brandingSettings={brandingSettings} user={user} />;
       case 'assess-summative-tests':
         return <SummativeTestsRouter onNavigate={handleNavigate} />;
       case 'assess-summative-assessment':
@@ -749,7 +749,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       case 'assess-summary-report':
         return <SummaryReportPage />;
       case 'assess-termly-report':
-        return <TermlyReport learners={learners} brandingSettings={brandingSettings} />;
+        return <TermlyReport learners={learners} brandingSettings={brandingSettings} user={user} />;
       case 'assess-learning-areas':
         return <LearningAreasManagement />;
       case 'assess-performance-scale':

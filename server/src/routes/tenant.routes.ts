@@ -28,6 +28,7 @@ router.get(
         name: true,
         logoUrl: true,
         faviconUrl: true,
+        stampUrl: true,
         active: true,
         archived: true,
         status: true,
@@ -45,6 +46,7 @@ router.get(
         schoolName: school.name,
         logoUrl: school.logoUrl,
         faviconUrl: school.faviconUrl,
+        stampUrl: school.stampUrl,
         status: school.status,
       },
     });

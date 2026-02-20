@@ -28,20 +28,18 @@ const IndividualTestTemplate = ({ testData, learner, id = "individual-test-repor
             <div className="flex justify-between items-start mb-10 border-b-2 pb-6" style={{ borderColor: brandColor }}>
                 <div className="flex items-center gap-5">
                     <div className="w-24 h-24 flex items-center justify-center rounded bg-white shadow-sm border border-gray-100 overflow-hidden">
-                        {testData.logoUrl ? (
+                        {testData.logoUrl && testData.logoUrl !== '/logo-elimcrown.png' ? (
                             <img src={testData.logoUrl} alt="Logo" className="max-w-full max-h-full object-contain" />
                         ) : (
-                            <div className="bg-gray-100 w-full h-full flex items-center justify-center text-[10px] font-black text-gray-300 uppercase text-center p-2">
-                                Official<br />School<br />Logo
-                            </div>
+                            <img src="/logo-new.png" alt="Logo" className="max-w-full max-h-full object-contain" />
                         )}
                     </div>
                     <div className="text-left">
                         <h1 className="text-3xl font-black uppercase tracking-tight leading-none mb-1">
-                            AMALGAMATE ACADEMY
+                            {testData.schoolName || 'ACADEMIC SCHOOL'}
                         </h1>
                         <p className="text-sm font-bold text-gray-500 uppercase tracking-[0.1em]">
-                            Excellence in Knowledge and Character
+                            {testData.schoolMotto || 'Excellence in Knowledge and Character'}
                         </p>
                     </div>
                 </div>
@@ -135,8 +133,16 @@ const IndividualTestTemplate = ({ testData, learner, id = "individual-test-repor
             {/* 5. SIGNATURES & VALIDATION - FIXED AT BOTTOM */}
             <div className="mt-auto pt-10 border-t border-dashed border-gray-300 grid grid-cols-2 gap-20">
                 <div className="text-center">
-                    <div className="h-10 border-b border-gray-900 flex items-end justify-center">
+                    <div className="h-10 border-b border-gray-900 flex items-center justify-center relative">
                         <span className="text-xs font-bold italic opacity-20 select-none uppercase tracking-widest">Official Verification Required</span>
+                        {reportData?.schoolStamp && (
+                            <img
+                                src={reportData.schoolStamp}
+                                alt="Stamp"
+                                className="absolute h-14 w-auto object-contain opacity-70 pointer-events-none"
+                                style={{ mixBlendMode: 'multiply', top: '-10px' }}
+                            />
+                        )}
                     </div>
                     <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mt-2">Subject Instructor Signature</p>
                 </div>
