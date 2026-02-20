@@ -17,6 +17,7 @@ export const PERMISSIONS = {
   EDIT_USER: ['SUPER_ADMIN', 'ADMIN'],
   DELETE_USER: ['SUPER_ADMIN', 'ADMIN'],
   VIEW_ALL_USERS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER'],
+  MANAGE_TEACHERS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'], // Can view/manage teacher list (hidden from teachers)
 
   // ============================================
   // LEARNER MANAGEMENT
@@ -41,6 +42,7 @@ export const PERMISSIONS = {
   VIEW_OWN_REPORTS: ['TEACHER'],      // Teachers see only their classes
   VIEW_CHILDREN_REPORTS: ['PARENT'],  // Parents see only their children
   GRADE_ASSESSMENT: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER'],
+  VIEW_ASSESSMENT_PAGES: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER'], // Can access assessment pages
   DOWNLOAD_REPORTS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'PARENT'],
 
   // ============================================
@@ -65,6 +67,8 @@ export const PERMISSIONS = {
   BACKUP_SETTINGS: ['SUPER_ADMIN'],
   USER_ROLES_SETTINGS: ['SUPER_ADMIN'],
   VIEW_ACADEMIC_SETTINGS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'],
+  MANAGE_LEARNING_AREAS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'], // Head teacher can manage learning areas
+  MANAGE_FACILITIES: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'], // Head teacher can manage classes and facilities
 
   // ============================================
   // COMMUNICATIONS

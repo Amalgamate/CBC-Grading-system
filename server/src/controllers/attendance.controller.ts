@@ -32,12 +32,12 @@ export class AttendanceController {
 
     // Phase 5: Tenant Scoping
     if (req.user?.schoolId) {
-        if (learner.schoolId !== req.user.schoolId) {
-            throw new ApiError(403, 'Unauthorized access to learner');
-        }
-        if (req.user.branchId && learner.branchId !== req.user.branchId) {
-            throw new ApiError(403, 'Unauthorized access to learner');
-        }
+      if (learner.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to learner');
+      }
+      if (req.user.branchId && learner.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to learner');
+      }
     }
 
     // Parse date
@@ -127,25 +127,25 @@ export class AttendanceController {
 
     // Phase 5: Tenant Scoping
     if (req.user?.schoolId) {
-        // If classId is provided, verify it belongs to tenant
-        if (classId) {
-            const classObj = await prisma.class.findUnique({ 
-                where: { id: classId },
-                include: { branch: true }
-            });
-            
-            if (!classObj) {
-                throw new ApiError(404, 'Class not found');
-            }
+      // If classId is provided, verify it belongs to tenant
+      if (classId) {
+        const classObj = await prisma.class.findUnique({
+          where: { id: classId },
+          include: { branch: true }
+        });
 
-            if (classObj.branch.schoolId !== req.user.schoolId) {
-                throw new ApiError(403, 'Unauthorized access to class');
-            }
-
-            if (req.user.branchId && classObj.branchId !== req.user.branchId) {
-                throw new ApiError(403, 'Unauthorized access to class');
-            }
+        if (!classObj) {
+          throw new ApiError(404, 'Class not found');
         }
+
+        if (classObj.branch.schoolId !== req.user.schoolId) {
+          throw new ApiError(403, 'Unauthorized access to class');
+        }
+
+        if (req.user.branchId && classObj.branchId !== req.user.branchId) {
+          throw new ApiError(403, 'Unauthorized access to class');
+        }
+      }
     }
 
     const attendanceDate = new Date(date);
@@ -251,12 +251,12 @@ export class AttendanceController {
 
     // Phase 5: Tenant Scoping
     if (req.user?.schoolId) {
-        whereClause.learner = {
-            schoolId: req.user.schoolId
-        };
-        if (req.user.branchId) {
-            whereClause.learner.branchId = req.user.branchId;
-        }
+      whereClause.learner = {
+        schoolId: req.user.schoolId
+      };
+      if (req.user.branchId) {
+        whereClause.learner.branchId = req.user.branchId;
+      }
     }
 
     const attendance = await prisma.attendance.findMany({
@@ -324,12 +324,12 @@ export class AttendanceController {
 
     // Phase 5: Tenant Scoping
     if (req.user?.schoolId) {
-        whereClause.learner = {
-            schoolId: req.user.schoolId
-        };
-        if (req.user.branchId) {
-            whereClause.learner.branchId = req.user.branchId;
-        }
+      whereClause.learner = {
+        schoolId: req.user.schoolId
+      };
+      if (req.user.branchId) {
+        whereClause.learner.branchId = req.user.branchId;
+      }
     }
 
     // Get counts by status
@@ -365,8 +365,8 @@ export class AttendanceController {
         acc[item.status] = item._count;
         return acc;
       }, {} as Record<string, number>),
-      attendanceRate: totalCount > 0 
-        ? Math.round((presentCount / totalCount) * 100) 
+      attendanceRate: totalCount > 0
+        ? Math.round((presentCount / totalCount) * 100)
         : 0,
     };
 
@@ -399,18 +399,18 @@ export class AttendanceController {
 
     // Phase 5: Tenant Scoping (for non-parents)
     if (currentUserRole !== 'PARENT' && req.user?.schoolId) {
-        const learner = await prisma.learner.findUnique({ where: { id: learnerId } });
-        
-        if (!learner) {
-             throw new ApiError(404, 'Learner not found');
-        }
+      const learner = await prisma.learner.findUnique({ where: { id: learnerId } });
 
-        if (learner.schoolId !== req.user.schoolId) {
-             throw new ApiError(403, 'Unauthorized access to learner');
-        }
-        if (req.user.branchId && learner.branchId !== req.user.branchId) {
-             throw new ApiError(403, 'Unauthorized access to learner');
-        }
+      if (!learner) {
+        throw new ApiError(404, 'Learner not found');
+      }
+
+      if (learner.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to learner');
+      }
+      if (req.user.branchId && learner.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to learner');
+      }
     }
 
     const whereClause: any = { learnerId };
@@ -443,8 +443,8 @@ export class AttendanceController {
       attendanceRate: 0,
     };
 
-    summary.attendanceRate = summary.total > 0 
-      ? Math.round((summary.present / summary.total) * 100) 
+    summary.attendanceRate = summary.total > 0
+      ? Math.round((summary.present / summary.total) * 100)
       : 0;
 
     res.json({
@@ -467,46 +467,59 @@ export class AttendanceController {
       throw new ApiError(400, 'Missing required parameters: classId, date');
     }
 
+    // Fetch class details to verify access and get grade/stream for learner matching
+    const classObj = await prisma.class.findUnique({
+      where: { id: classId as string },
+      include: { branch: true }
+    });
+
+    if (!classObj) {
+      throw new ApiError(404, 'Class not found');
+    }
+
     // Phase 5: Tenant Scoping
     if (req.user?.schoolId) {
-        const classObj = await prisma.class.findUnique({ 
-             where: { id: classId as string },
-             include: { branch: true }
-        });
-        
-        if (!classObj) {
-            throw new ApiError(404, 'Class not found');
-        }
+      if (classObj.branch.schoolId !== req.user.schoolId) {
+        throw new ApiError(403, 'Unauthorized access to class');
+      }
 
-        if (classObj.branch.schoolId !== req.user.schoolId) {
-            throw new ApiError(403, 'Unauthorized access to class');
-        }
-
-        if (req.user.branchId && classObj.branchId !== req.user.branchId) {
-            throw new ApiError(403, 'Unauthorized access to class');
-        }
+      if (req.user.branchId && classObj.branchId !== req.user.branchId) {
+        throw new ApiError(403, 'Unauthorized access to class');
+      }
     }
 
     const queryDate = new Date(date as string);
     queryDate.setHours(0, 0, 0, 0);
 
-    // Get all enrolled learners in the class
-    const enrollments = await prisma.classEnrollment.findMany({
+    // Get learners: either explicitly enrolled OR matching grade & stream
+    const learners = await prisma.learner.findMany({
       where: {
-        classId: classId as string,
-        active: true,
-      },
-      include: {
-        learner: {
-          select: {
-            id: true,
-            admissionNumber: true,
-            firstName: true,
-            lastName: true,
-            gender: true,
+        status: 'ACTIVE',
+        OR: [
+          {
+            enrollments: {
+              some: { classId: classId as string, active: true }
+            }
           },
-        },
+          {
+            schoolId: classObj.branch.schoolId,
+            grade: classObj.grade,
+            stream: classObj.stream || null,
+            branchId: classObj.branchId
+          }
+        ]
       },
+      select: {
+        id: true,
+        admissionNumber: true,
+        firstName: true,
+        lastName: true,
+        gender: true,
+      },
+      orderBy: [
+        { lastName: 'asc' },
+        { firstName: 'asc' }
+      ]
     });
 
     // Get attendance for this date
@@ -524,9 +537,9 @@ export class AttendanceController {
     }, {} as Record<string, any>);
 
     // Combine learner list with attendance
-    const report = enrollments.map(enrollment => ({
-      ...enrollment.learner,
-      attendance: attendanceMap[enrollment.learner.id] || null,
+    const report = learners.map(learner => ({
+      ...learner,
+      attendance: attendanceMap[learner.id] || null,
     }));
 
     res.json({
@@ -534,9 +547,9 @@ export class AttendanceController {
       data: {
         date: queryDate,
         classId,
-        totalLearners: enrollments.length,
+        totalLearners: learners.length,
         marked: attendanceRecords.length,
-        unmarked: enrollments.length - attendanceRecords.length,
+        unmarked: learners.length - attendanceRecords.length,
         learners: report,
       },
     });

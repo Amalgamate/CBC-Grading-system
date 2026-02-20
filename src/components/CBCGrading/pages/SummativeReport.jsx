@@ -297,10 +297,10 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
         {/* Logo Middle */}
         <div className="mb-4">
           <img
-            src="/logo-zawadi.png"
+            src="/logo-elimcrown.png"
             alt="Logo"
             style={{ height: '100px', width: 'auto', objectFit: 'contain' }}
-            onError={(e) => { e.target.src = '/logo-new.png'; }} // Fallback if zawadi logo is not found
+            onError={(e) => { e.target.src = '/logo-new.png'; }} // Fallback if logo is not found
           />
         </div>
 
@@ -490,7 +490,7 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
         {/* Stamp Area - Reduced further (w-80 -> w-68) */}
         <div className="mb-[-12px] z-10 flex justify-center">
           <img
-            src="/ZawadiStamp.svg"
+            src="/stamp.svg"
             alt="School Stamp"
             className="w-48 h-auto opacity-95"
             style={{ mixBlendMode: 'multiply' }}
@@ -2153,10 +2153,13 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
               <label className="premium-label">Learner(s)<span className="text-red-500">*</span></label>
               <button
                 onClick={() => setShowLearnerOptions(!showLearnerOptions)}
-                className="premium-input text-left flex justify-between items-center cursor-pointer min-h-[42px] py-1"
+                className="premium-input text-left flex justify-between items-center cursor-pointer min-h-[42px] py-1 disabled:opacity-50 disabled:cursor-not-allowed hidden-print"
+                disabled={!selectedGrade || selectedGrade === 'all'}
               >
                 <div className="flex flex-wrap gap-1 max-w-[90%] overflow-hidden">
-                  {selectedLearnerIds.length === 0 ? (
+                  {(!selectedGrade || selectedGrade === 'all') ? (
+                    <span className="text-gray-400">Select a specific Grade first</span>
+                  ) : selectedLearnerIds.length === 0 ? (
                     <span className="text-gray-400">Select Learners</span>
                   ) : selectedLearnerIds.length === filteredLearners.length && filteredLearners.length > 0 ? (
                     <span className="font-bold text-brand-teal">All {filteredLearners.length} Learners Selected</span>
@@ -2507,7 +2510,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
               {/* Logo Middle */}
               <div className="mb-4">
                 <img
-                  src="/logo-zawadi.png"
+                  src="/logo-elimcrown.png"
                   alt="Logo"
                   style={{ height: '100px', width: 'auto', objectFit: 'contain' }}
                   onError={(e) => { e.target.src = '/logo-new.png'; }}
@@ -2704,7 +2707,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
               {/* Logo Middle */}
               <div className="mb-4">
                 <img
-                  src="/logo-zawadi.png"
+                  src="/logo-elimcrown.png"
                   alt="Logo"
                   style={{ height: '80px', width: 'auto', objectFit: 'contain' }}
                   onError={(e) => { e.target.src = '/logo-new.png'; }}

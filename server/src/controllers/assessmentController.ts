@@ -1869,19 +1869,9 @@ export const recordSummativeResultsBulk = async (req: AuthRequest, res: Response
     // Get test details
     const test = await prisma.summativeTest.findUnique({
       where: { id: testId },
-      select: { id: true, totalMarks: true, passMarks: true, scaleId: true, schoolId: true, branchId: true, locked: true }
+      select: { id: true, totalMarks: true, passMarks: true, scaleId: true, schoolId: true, branchId: true }
     });
     if (!test) return res.status(404).json({ success: false, message: 'Test not found' });
-
-    // Check if test is locked
-    // Allow Super Admin to override lock
-    if (test.locked && req.user?.role !== 'SUPER_ADMIN') {
-      return res.status(403).json({ success: false, message: 'Test is locked and results cannot be modified.' });
-    }
-
-    // Check if any results currently exist for this test. If not, this is the first save.
-    const existingResultsCount = await prisma.summativeResult.count({ where: { testId } });
-    const isFirstSave = existingResultsCount === 0;
 
     // Fetch appropriate grading system: Specific Scale ID -> School Default Summative
     let gradingSystem;
@@ -2018,15 +2008,6 @@ export const recordSummativeResultsBulk = async (req: AuthRequest, res: Response
     );
 
     await Promise.all(updatePromises);
-
-    // If this was the first save, lock the test (Gap 7.1)
-    if (isFirstSave) {
-      await prisma.summativeTest.update({
-        where: { id: testId },
-        data: { locked: true, lockedAt: new Date(), lockedBy: recordedBy }
-      });
-      console.log(`🔒 Test ${testId} automatically locked after first results recorded.`);
-    }
 
     res.json({
       success: true,

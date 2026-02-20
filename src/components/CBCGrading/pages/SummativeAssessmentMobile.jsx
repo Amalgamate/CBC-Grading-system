@@ -277,9 +277,10 @@ const SummativeAssessmentMobile = ({ learners, initialTestId, onBack }) => {
                 onChange={(e) => setSelectedTestId(e.target.value)}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-teal-500 focus:border-transparent pointer-events-auto"
                 style={{ touchAction: 'manipulation' }}
+                disabled={!selectedLearningArea}
               >
-                <option value="">Select a test</option>
-                {(tests || []).map(t => (
+                <option value="">{selectedLearningArea ? 'Select a test' : 'Select Learning Area first'}</option>
+                {selectedLearningArea && (tests || []).map(t => (
                   <option key={t.id} value={String(t.id)}>
                     {t.title || t.name}
                   </option>
@@ -372,9 +373,8 @@ const SummativeAssessmentMobile = ({ learners, initialTestId, onBack }) => {
               return (
                 <div
                   key={learnerId}
-                  className={`bg-white rounded-lg border p-3 transition-all ${
-                    isMarked ? 'border-teal-200 bg-teal-50/30' : 'border-gray-200'
-                  }`}
+                  className={`bg-white rounded-lg border p-3 transition-all ${isMarked ? 'border-teal-200 bg-teal-50/30' : 'border-gray-200'
+                    }`}
                 >
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div className="min-w-0 flex-1">
@@ -392,9 +392,8 @@ const SummativeAssessmentMobile = ({ learners, initialTestId, onBack }) => {
                     placeholder="Enter mark"
                     value={marks[learnerId] ?? ''}
                     onChange={(e) => handleMarkChange(learnerId, e.target.value)}
-                    className={`w-full px-3 py-2 text-base border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent pointer-events-auto ${
-                      isMarked ? 'border-teal-300 bg-white' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-3 py-2 text-base border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent pointer-events-auto ${isMarked ? 'border-teal-300 bg-white' : 'border-gray-300'
+                      }`}
                     style={{ touchAction: 'manipulation' }}
                     max={selectedTest.maxMark || 100}
                   />

@@ -16,7 +16,7 @@ const DailyAttendance = () => {
   const [selectedClassId, setSelectedClassId] = useState('');
   const [dailyReport, setDailyReport] = useState(null);
   const [pendingChanges, setPendingChanges] = useState({});
-  
+
   // Hooks
   const {
     classes,
@@ -83,7 +83,7 @@ const DailyAttendance = () => {
   // Mark all as present
   const handleMarkAllPresent = () => {
     if (!dailyReport) return;
-    
+
     const allPresent = {};
     dailyReport.learners.forEach(learner => {
       allPresent[learner.id] = {
@@ -115,7 +115,7 @@ const DailyAttendance = () => {
     }
 
     const result = await markBulkAttendance(selectedDate, selectedClassId, attendanceRecords);
-    
+
     if (result.success) {
       showSuccess(result.message || 'Attendance saved successfully');
       // Reload the report to show updated data
@@ -141,14 +141,14 @@ const DailyAttendance = () => {
     <div className="space-y-6">
       {/* Actions Toolbar */}
       <div className="flex justify-end mb-4">
-          <button
-            onClick={handleMarkAllPresent}
-            disabled={!dailyReport || loading}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <CheckCircle size={20} />
-            Mark All Present
-          </button>
+        <button
+          onClick={handleMarkAllPresent}
+          disabled={!dailyReport || loading}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <CheckCircle size={20} />
+          Mark All Present
+        </button>
       </div>
 
       {/* Error Display */}
@@ -172,7 +172,7 @@ const DailyAttendance = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Class</label>
             <select
@@ -181,11 +181,22 @@ const DailyAttendance = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select a class...</option>
-              {classes.map(cls => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name} - {cls.grade.replace('_', ' ')} {cls.stream}
-                </option>
-              ))}
+              {classes.map(cls => {
+                const gradeStr = cls.grade ? cls.grade.replace('_', ' ') : '';
+                const streamStr = cls.stream || '';
+                const generatedName = `${gradeStr} ${streamStr}`.trim();
+                const displayName = cls.name === generatedName
+                  ? cls.name
+                  : (cls.name
+                    ? `${cls.name} - ${generatedName}`
+                    : generatedName);
+
+                return (
+                  <option key={cls.id} value={cls.id}>
+                    {displayName}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
@@ -212,7 +223,7 @@ const DailyAttendance = () => {
               <CheckCircle className="text-green-600" size={32} />
             </div>
           </div>
-          
+
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -222,7 +233,7 @@ const DailyAttendance = () => {
               <XCircle className="text-red-600" size={32} />
             </div>
           </div>
-          
+
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -282,14 +293,14 @@ const DailyAttendance = () => {
               Marked: {totalMarked} / {totalLearners}
             </p>
           </div>
-          
+
           <div className="space-y-3">
             {dailyReport.learners.map((learner) => {
               const currentStatus = pendingChanges[learner.id]?.status;
 
               return (
-                <div 
-                  key={learner.id} 
+                <div
+                  key={learner.id}
                   className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
                 >
                   <div className="flex-1">
@@ -302,11 +313,10 @@ const DailyAttendance = () => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleStatusChange(learner.id, 'PRESENT')}
-                      className={`px-4 py-2 rounded-lg transition ${
-                        currentStatus === 'PRESENT'
+                      className={`px-4 py-2 rounded-lg transition ${currentStatus === 'PRESENT'
                           ? 'bg-green-600 text-white'
                           : 'bg-green-50 text-green-600 hover:bg-green-100'
-                      }`}
+                        }`}
                     >
                       <CheckCircle size={16} className="inline mr-1" />
                       Present
@@ -314,11 +324,10 @@ const DailyAttendance = () => {
 
                     <button
                       onClick={() => handleStatusChange(learner.id, 'ABSENT')}
-                      className={`px-4 py-2 rounded-lg transition ${
-                        currentStatus === 'ABSENT'
+                      className={`px-4 py-2 rounded-lg transition ${currentStatus === 'ABSENT'
                           ? 'bg-red-600 text-white'
                           : 'bg-red-50 text-red-600 hover:bg-red-100'
-                      }`}
+                        }`}
                     >
                       <XCircle size={16} className="inline mr-1" />
                       Absent
@@ -326,11 +335,10 @@ const DailyAttendance = () => {
 
                     <button
                       onClick={() => handleStatusChange(learner.id, 'LATE')}
-                      className={`px-4 py-2 rounded-lg transition ${
-                        currentStatus === 'LATE'
+                      className={`px-4 py-2 rounded-lg transition ${currentStatus === 'LATE'
                           ? 'bg-orange-600 text-white'
                           : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
-                      }`}
+                        }`}
                     >
                       <Clock size={16} className="inline mr-1" />
                       Late
@@ -338,11 +346,10 @@ const DailyAttendance = () => {
 
                     <button
                       onClick={() => handleStatusChange(learner.id, 'EXCUSED')}
-                      className={`px-4 py-2 rounded-lg transition ${
-                        currentStatus === 'EXCUSED'
+                      className={`px-4 py-2 rounded-lg transition ${currentStatus === 'EXCUSED'
                           ? 'bg-blue-600 text-white'
                           : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                      }`}
+                        }`}
                     >
                       <AlertCircle size={16} className="inline mr-1" />
                       Excused
@@ -350,11 +357,10 @@ const DailyAttendance = () => {
 
                     <button
                       onClick={() => handleStatusChange(learner.id, 'SICK')}
-                      className={`px-4 py-2 rounded-lg transition ${
-                        currentStatus === 'SICK'
+                      className={`px-4 py-2 rounded-lg transition ${currentStatus === 'SICK'
                           ? 'bg-purple-600 text-white'
                           : 'bg-purple-50 text-purple-600 hover:bg-purple-100'
-                      }`}
+                        }`}
                     >
                       <AlertCircle size={16} className="inline mr-1" />
                       Sick

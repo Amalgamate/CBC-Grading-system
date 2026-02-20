@@ -338,17 +338,15 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
     return Array.from(mergedAreas).sort((a, b) => a.localeCompare(b));
   }, [filteredTestsBySelection, learningAreasMgr.flatLearningAreas]);
 
-  const finalTests = useMemo(() =>
-    filteredTestsBySelection.filter(t => {
-      if (selectedLearningArea) {
-        const normalizedSelected = selectedLearningArea.toLowerCase().trim();
-        const testArea = (t.learningArea || '').toLowerCase().trim();
-        return testArea === normalizedSelected;
-      }
-      return true;
-    }),
-    [filteredTestsBySelection, selectedLearningArea]
-  );
+  const finalTests = useMemo(() => {
+    if (!selectedLearningArea) return [];
+
+    return filteredTestsBySelection.filter(t => {
+      const normalizedSelected = selectedLearningArea.toLowerCase().trim();
+      const testArea = (t.learningArea || '').toLowerCase().trim();
+      return testArea === normalizedSelected;
+    });
+  }, [filteredTestsBySelection, selectedLearningArea]);
 
   // Fetch Learners when moving to Step 2 or filters change
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -875,163 +873,45 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
       {/* PDF Export Content Wrapper */}
       <div id="assessment-report-content" className="bg-white">
 
-        {/* PAGE 1: METRICS/STATISTICS PAGE (Print Only) */}
-        <div className="print-only px-5" style={{ pageBreakAfter: 'always', pageBreakInside: 'avoid' }}>
-          {/* Report Title */}
-          <div className="text-center py-3 mb-4">
-            <h1 className="text-2xl font-bold text-[#1e3a8a] mb-2 leading-tight">Summative Assessment Results</h1>
-            <p className="text-sm text-gray-600 font-medium">
-              {selectedTest?.learningArea} | {selectedTest?.grade?.replace('_', ' ')} | {setup.selectedStream || 'All Streams'} | {selectedTest?.term?.replace('_', ' ')} {selectedTest?.academicYear || new Date().getFullYear()}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              Total Marks: {selectedTest?.totalMarks} | Test Date: {selectedTest?.testDate ? new Date(selectedTest.testDate).toLocaleDateString() : 'N/A'}
-            </p>
-          </div>
-
-          {/* Metrics Content */}
-          {gradingScale && Object.keys(statistics.gradeDistribution).length > 0 ? (
-            <div className="space-y-4">
-
-              {/* TOP SECTION: METRICS CARDS (6 cards - Single Line) */}
-              <div className="grid grid-cols-6 gap-2 mb-4">
-                {/* Generate metric cards based on grade distribution */}
-                {Object.entries(statistics.gradeDistribution)
-                  .sort(([, a], [, b]) => b - a) // Sort by count descending
-                  .slice(0, 6) // Limit to 6 cards for the top row
-                  .map(([grade, count], idx) => {
-                    const isGreen = idx % 2 === 0; // Alternate colors (green, blue, green, blue...)
-                    const cardColor = isGreen ? '#10b981' : '#3b82f6'; // Green or Blue
-                    const cardBgColor = isGreen ? '#ecfdf5' : '#eff6ff'; // Light green or light blue
-
-                    return (
-                      <div
-                        key={grade}
-                        className="rounded-lg p-2 border-2 shadow-sm"
-                        style={{
-                          backgroundColor: cardBgColor,
-                          borderColor: cardColor,
-                          borderRadius: '0.5rem'
-                        }}
-                      >
-                        {/* Grade Label */}
-                        <div className="text-[10px] font-semibold text-gray-700 mb-1">
-                          {grade}
-                        </div>
-
-                        {/* Count - Large Display */}
-                        <div className="text-2xl font-bold mb-0.5" style={{ color: cardColor }}>
-                          {count}
-                        </div>
-
-                        {/* Percentage */}
-                        <div className="text-[9px] text-gray-600">
-                          {((count / statistics.count) * 100).toFixed(1)}%
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-
-              {/* MIDDLE SECTION: PIE CHART + LEGEND (Side by Side) */}
-              <div className="grid grid-cols-2 gap-4">
-
-                {/* ============ LEFT: PIE CHART ============ */}
-                <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200 shadow-sm">
-                  <h3 className="text-lg font-bold text-center mb-3 text-[#1e3a8a]">
-                    Grade Distribution
-                  </h3>
-
-                  {/* Pie Chart */}
-                  <div className="flex justify-center items-center h-64">
-                    <svg width="280" height="280" viewBox="0 0 200 200">
-                      <PieChartWithLabels data={statistics.gradeDistribution} />
-                    </svg>
-                  </div>
-                </div>
-
-                {/* ============ RIGHT: LEGEND + STATS ============ */}
-                <div className="space-y-3">
-                  {/* Legend Header */}
-                  <div className="bg-yellow-50 rounded-lg p-3 border-2 border-yellow-200">
-                    <h3 className="text-sm font-bold text-yellow-900 mb-3">Performance Scale</h3>
-
-                    {/* Grade Legend Items - Only Scale, No Metrics */}
-                    <div className="space-y-2">
-                      {Object.entries(statistics.gradeDistribution)
-                        .sort(([, a], [, b]) => b - a)
-                        .map(([grade, count]) => {
-                          const gradeColor = getGradeColor(grade);
-
-                          return (
-                            <div key={grade} className="flex items-center gap-3">
-                              <div
-                                className="w-5 h-5 rounded-full flex-shrink-0 shadow-sm"
-                                style={{ backgroundColor: gradeColor }}
-                              />
-                              <span className="text-xs font-semibold text-gray-800">
-                                {grade}
-                              </span>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-
-                  {/* Summary Statistics */}
-                  <div className="bg-white rounded-lg p-3 border-2 border-gray-300 space-y-2">
-                    <div className="flex justify-between items-center pb-2 border-b border-gray-200">
-                      <span className="text-xs font-medium text-gray-600">Total Students:</span>
-                      <span className="text-lg font-bold text-blue-600">{statistics.count}</span>
-                    </div>
-                    <div className="flex justify-between items-center pb-2 border-b border-gray-200">
-                      <span className="text-xs font-medium text-gray-600">Average Score:</span>
-                      <span className="text-lg font-bold text-green-600">{statistics.average}</span>
-                    </div>
-                    <div className="flex justify-between items-center pb-2 border-b border-gray-200">
-                      <span className="text-xs font-medium text-gray-600">Highest:</span>
-                      <span className="text-lg font-bold text-emerald-600">{statistics.max}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-medium text-gray-600">Lowest:</span>
-                      <span className="text-lg font-bold text-orange-600">{statistics.min}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No performance data available yet. Complete the assessment to see statistics.</p>
-            </div>
-          )}
-
-          {/* Page 1 footer */}
-          <div className="text-right text-xs text-gray-500 mt-6">
-            Page 1 of {chunkedLearners.length + 1}
-          </div>
-        </div>
-
-        {/* PAGES 2+: STUDENT RESULTS TABLES (10 per page) */}
+        {/* STUDENT RESULTS TABLES (Chunked for pagination) */}
         {chunkedLearners.map((chunk, pageIndex) => (
           <div
             key={pageIndex}
-            className="px-5 print-only"
+            className="px-5 print-only flex flex-col"
             style={{
-              pageBreakBefore: 'always',
+              pageBreakBefore: pageIndex === 0 ? 'avoid' : 'always',
               pageBreakAfter: pageIndex === chunkedLearners.length - 1 ? 'auto' : 'always',
-              pageBreakInside: 'avoid'
+              pageBreakInside: 'avoid',
+              minHeight: '100vh',
+              paddingTop: '20px', // Pull letterhead up to use less space
+              paddingBottom: '40px' // Keep it neat, not touch the footer
             }}
           >
-            {/* Letterhead / Page Header - Fixed at top with proper spacing */}
+            {/* Letterhead / Page Header */}
             <div className="text-center" style={{
-              paddingTop: '0.75rem',
               paddingBottom: '0.75rem',
-              borderBottom: '3px solid #1e3a8a',
-              pageBreakInside: 'avoid',
-              marginBottom: '0.5rem'
+              borderBottom: '2px solid #1e3a8a',
+              marginBottom: '1rem',
+              pageBreakInside: 'avoid'
             }}>
-              <h1 className="text-2xl font-bold text-[#1e3a8a] mb-1">Summative Assessment Results</h1>
-              <p className="text-sm text-gray-600 font-medium">
+              {pageIndex === 0 && (
+                <div className="flex flex-col items-center justify-center mb-2">
+                  <img
+                    src={user?.school?.logo || '/logo-elimcrown.png'}
+                    alt="School Logo"
+                    className="h-16 w-auto mb-2 object-contain"
+                    onError={(e) => { e.target.src = '/logo-new.png'; }}
+                  />
+                  <h1 className="text-2xl font-bold text-[#1e3a8a] uppercase tracking-wide">
+                    {user?.school?.name || user?.schoolName || 'SCHOOL NAME'}
+                  </h1>
+                </div>
+              )}
+
+              <h2 className={`${pageIndex === 0 ? 'text-xl' : 'text-lg'} font-bold text-gray-800`}>
+                Summative Assessment Results {pageIndex > 0 && `(Page ${pageIndex + 1})`}
+              </h2>
+              <p className="text-sm text-gray-600 font-medium mt-1">
                 {selectedTest?.learningArea} | {selectedTest?.grade?.replace('_', ' ')} | {setup.selectedStream || 'All Streams'} | {selectedTest?.term?.replace('_', ' ')} {selectedTest?.academicYear || new Date().getFullYear()}
               </p>
               <p className="text-xs text-gray-500 mt-1">
@@ -1039,15 +919,11 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
               </p>
             </div>
 
-            {/* Spacer for safe area - prevents table from touching footer */}
-            <div style={{ marginBottom: '1.5rem' }} />
-
             {/* Table Container with safe padding */}
-            <div className="overflow-hidden" style={{
+            <div className="flex-1 overflow-hidden" style={{
               pageBreakInside: 'avoid',
               paddingLeft: '0.5rem',
-              paddingRight: '0.5rem',
-              paddingBottom: '2rem'
+              paddingRight: '0.5rem'
             }}>
               <table className="w-full text-left border-collapse border border-gray-300" style={{ pageBreakInside: 'avoid' }}>
                 <thead className="bg-[#1e3a8a] text-white" style={{ pageBreakInside: 'avoid', pageBreakAfter: 'avoid' }}>

@@ -21,6 +21,7 @@ const FeeCollectionPage = ({ learnerId }) => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [allLearners, setAllLearners] = useState([]);
   const [searchLearnerId, setSearchLearnerId] = useState(learnerId || null);
   const [statusFilter, setStatusFilter] = useState('all');
   const { showSuccess, showError } = useNotifications();
@@ -56,9 +57,19 @@ const FeeCollectionPage = ({ learnerId }) => {
     }
   }, [statusFilter, showError]);
 
+  const fetchLearners = React.useCallback(async () => {
+    try {
+      const response = await api.learners.getAll({ status: 'ACTIVE' });
+      setAllLearners(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      console.error('Failed to load learners:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchInvoices();
-  }, [fetchInvoices]);
+    fetchLearners();
+  }, [fetchInvoices, fetchLearners]);
 
   const handleRecordPayment = async () => {
     if (!selectedInvoice || !paymentData.amount) {
@@ -103,7 +114,7 @@ const FeeCollectionPage = ({ learnerId }) => {
 
     // ── ASSETS ───────────────────────────────────────────────────────────────
     let logoData = null;
-    const logoUrl = user?.school?.logo || '/logo-zawadi.png';
+    const logoUrl = user?.school?.logo || '/logo-elimcrown.png';
     try {
       const r = await fetch(logoUrl).catch(() => null);
       if (r && r.ok) {
@@ -128,7 +139,7 @@ const FeeCollectionPage = ({ learnerId }) => {
     }
 
     // School Name
-    const sName = (user?.school?.name || 'ZAWADI JUNIOR ACADEMY').toUpperCase();
+    const sName = (user?.school?.name || 'ELIMCROWN ACADEMY').toUpperCase();
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(...C_ACCENT);
@@ -297,7 +308,7 @@ const FeeCollectionPage = ({ learnerId }) => {
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(7);
     doc.setTextColor(...C_LABEL);
-    doc.text('Thank you for choosing Zawadi Junior Academy.', pageW / 2, fY, { align: 'center' });
+    doc.text(`Thank you for choosing ${user?.school?.name || 'Elimcrown Academy'}.`, pageW / 2, fY, { align: 'center' });
 
     doc.save(filename);
   };
@@ -319,15 +330,7 @@ const FeeCollectionPage = ({ learnerId }) => {
     );
   };
 
-  const uniqueLearners = React.useMemo(() => {
-    const learnersMap = new Map();
-    invoices.forEach(inv => {
-      if (inv.learner && !learnersMap.has(inv.learner.id)) {
-        learnersMap.set(inv.learner.id, inv.learner);
-      }
-    });
-    return Array.from(learnersMap.values());
-  }, [invoices]);
+
 
   const filteredInvoices = React.useMemo(() => invoices.filter(invoice => {
     if (!searchLearnerId) return true;
@@ -337,7 +340,6 @@ const FeeCollectionPage = ({ learnerId }) => {
   // Create Invoice State
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [feeStructures, setFeeStructures] = useState([]);
-  const [allLearners, setAllLearners] = useState([]);
   const [newInvoice, setNewInvoice] = useState({
     learnerId: '',
     feeStructureId: '',
@@ -353,10 +355,6 @@ const FeeCollectionPage = ({ learnerId }) => {
         try {
           const response = await api.fees.getAllFeeStructures({ status: 'ACTIVE' });
           setFeeStructures(response.data || []);
-
-          // Load Learners
-          const learnerResponse = await api.learners.getAll({ status: 'ACTIVE' });
-          setAllLearners(Array.isArray(learnerResponse.data) ? learnerResponse.data : []);
         } catch (error) {
           console.error('Failed to load fee structures:', error);
           showError('Failed to load fee structures');
@@ -510,9 +508,9 @@ const FeeCollectionPage = ({ learnerId }) => {
       <div className="bg-white rounded-lg shadow p-4">
         <div className="flex flex-col md:flex-row gap-4 items-end">
           <div className="flex-1 w-full">
-            <div className="relative">
+            <div className="relative z-40">
               <SmartLearnerSearch
-                learners={uniqueLearners}
+                learners={allLearners}
                 selectedLearnerId={searchLearnerId}
                 onSelect={setSearchLearnerId}
                 placeholder="Search invoices by student..."
@@ -679,8 +677,7 @@ const FeeCollectionPage = ({ learnerId }) => {
                 ) : (
                   <div className="p-2 bg-gray-50 border rounded-lg text-sm text-gray-700 flex justify-between items-center">
                     <span>
-                      Selected: {uniqueLearners.find(l => l.id === searchLearnerId)?.firstName || 'Current Selection'}
-                      {uniqueLearners.find(l => l.id === searchLearnerId)?.lastName}
+                      Selected: {allLearners.find(l => l.id === searchLearnerId)?.firstName || 'Current Selection'} {allLearners.find(l => l.id === searchLearnerId)?.lastName}
                     </span>
                     <button
                       onClick={() => setSearchLearnerId(null)}
