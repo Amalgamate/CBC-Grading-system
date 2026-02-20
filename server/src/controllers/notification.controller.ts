@@ -588,26 +588,108 @@ export class NotificationController {
    * TODO: Implement proper audit logging with assessmentSmsAudit model
    */
   async getAuditLogs(req: AuthRequest, res: Response) {
-    const schoolId = (req as any).tenant?.schoolId;
+    const schoolId = (req as any).tenant?.schoolId || req.user?.schoolId;
+    const {
+      startDate,
+      endDate,
+      channel,
+      status,
+      search,
+      page = 1,
+      limit = 50
+    } = req.query as any;
 
     if (!schoolId) {
       throw new ApiError(403, 'School context required');
     }
 
-    // TODO: The assessmentSmsAudit model doesn't exist in the schema yet
-    // Returning empty data for now to prevent server crashes
-    res.json({
-      success: true,
-      data: {
-        logs: [],
-        total: 0,
-        summary: {
-          totalSent: 0,
-          successRate: 0,
-          failed: 0,
-          estimatedCost: 0
+    try {
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+      const take = parseInt(limit);
+
+      const where: any = {
+        schoolId,
+      };
+
+      if (channel) where.channel = channel;
+      if (status) where.smsStatus = status;
+      if (startDate || endDate) {
+        where.sentAt = {};
+        if (startDate) where.sentAt.gte = new Date(startDate);
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          where.sentAt.lte = end;
         }
       }
-    });
+
+      if (search) {
+        where.OR = [
+          { parentPhone: { contains: search, mode: 'insensitive' } },
+          { parentName: { contains: search, mode: 'insensitive' } },
+          { learnerName: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+
+      // Fetch logs
+      const logs = await prisma.assessmentSmsAudit.findMany({
+        where,
+        include: {
+          learner: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              admissionNumber: true,
+              grade: true,
+            }
+          }
+        },
+        orderBy: { sentAt: 'desc' },
+        skip,
+        take,
+      });
+
+      const total = await prisma.assessmentSmsAudit.count({ where });
+
+      // Fetch summary statistics
+      const totalSent = await prisma.assessmentSmsAudit.count({
+        where: { schoolId }
+      });
+
+      const successfulSent = await prisma.assessmentSmsAudit.count({
+        where: { schoolId, smsStatus: 'SENT' }
+      });
+
+      const failedSent = await prisma.assessmentSmsAudit.count({
+        where: { schoolId, smsStatus: 'FAILED' }
+      });
+
+      // Calculate success rate
+      const successRate = totalSent > 0 ? Math.round((successfulSent / totalSent) * 100) : 0;
+
+      res.json({
+        success: true,
+        data: {
+          logs: logs.map(log => ({
+            ...log,
+            phoneNumber: log.parentPhone,
+            status: log.smsStatus,
+            // Mock sentBy for now as relation is missing in schema
+            sentBy: { firstName: 'System', lastName: '' }
+          })),
+          total,
+          summary: {
+            totalSent,
+            successRate,
+            failed: failedSent,
+            estimatedCost: 0 // TODO: Calculate based on message parts if needed
+          }
+        }
+      });
+    } catch (error: any) {
+      console.error('[NotificationController] getAuditLogs error:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
   }
 }

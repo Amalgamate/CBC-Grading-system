@@ -34,7 +34,7 @@ export const saveBroadcastCampaign = async (req: AuthRequest, res: Response) => 
       data: {
         schoolId,
         senderId,
-        messagePreview,
+        messagePreview: messagePreview.substring(0, 150),
         messageTemplate,
         totalRecipients,
         successCount,
@@ -50,16 +50,40 @@ export const saveBroadcastCampaign = async (req: AuthRequest, res: Response) => 
               recipientName: r.name,
               status: r.status === 'Sent' ? 'DELIVERED' : 'FAILED',
               messageId: r.messageId,
-              sentAt: new Date(r.sentAt),
+              sentAt: new Date(r.sentAt || Date.now()),
               failureReason: r.error || null
             }))
           }
         }
-      },
-      include: {
-        recipients: true
       }
     });
+
+    // Also sync to AssessmentSmsAudit for unified message history
+    try {
+      if (recipients && recipients.length > 0) {
+        await prisma.assessmentSmsAudit.createMany({
+          data: recipients.map((r: any) => ({
+            schoolId,
+            learnerId: r.id, // This is the learner ID passed from frontend
+            parentPhone: r.phone,
+            parentName: r.name || 'Parent',
+            learnerName: r.studentName || r.name || 'Student',
+            learnerGrade: r.grade || 'N/A',
+            assessmentType: 'BROADCAST',
+            templateType: 'GENERAL',
+            messageContent: messagePreview,
+            smsStatus: r.status === 'Sent' ? 'SENT' : 'FAILED',
+            sentByUserId: senderId,
+            channel: 'SMS',
+            sentAt: new Date(r.sentAt || Date.now())
+          }))
+        });
+        console.log(`✅ Synced ${recipients.length} recipients to audit logs`);
+      }
+    } catch (auditError) {
+      console.error('❌ Failed to sync broadcast to audit logs:', auditError);
+      // Non-blocking error
+    }
 
     console.log(`✅ Broadcast campaign saved: ${campaign.id}`);
 
@@ -231,10 +255,10 @@ export const getBroadcastStats = async (req: AuthRequest, res: Response) => {
         totalFailed: totalFailed._sum.failedCount || 0,
         successRate: totalRecipients._sum.totalRecipients
           ? Math.round(
-              ((totalSuccessful._sum.successCount || 0) /
-                (totalRecipients._sum.totalRecipients || 1)) *
-                100
-            )
+            ((totalSuccessful._sum.successCount || 0) /
+              (totalRecipients._sum.totalRecipients || 1)) *
+            100
+          )
           : 0,
         recentCampaigns
       }

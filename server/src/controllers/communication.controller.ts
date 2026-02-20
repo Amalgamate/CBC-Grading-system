@@ -883,6 +883,63 @@ export const getContactGroupById = async (req: AuthRequest, res: Response) => {
             throw new ApiError(403, 'School context required');
         }
 
+        // Fallback for older frontend that might send a Grade string instead of a UUID
+        if (id.startsWith('GRADE_') || id.startsWith('PP') || id === 'PLAYGROUP') {
+            console.log(`[CommunicationController] Legacy frontend requested grade recipients via getContactGroupById: ${id}`);
+
+            // Normalize grade (reusing logic from getBroadcastRecipients)
+            let targetGrade = String(id);
+            if (targetGrade.match(/^Grade \d+$/i)) {
+                targetGrade = targetGrade.toUpperCase().replace(' ', '_');
+            }
+
+            // Fetch learners for this grade
+            const learners = await prisma.learner.findMany({
+                where: { schoolId, grade: targetGrade as any, status: 'ACTIVE' },
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    grade: true,
+                    guardianPhone: true,
+                    guardianName: true,
+                    fatherPhone: true,
+                    fatherName: true,
+                    motherPhone: true,
+                    motherName: true,
+                    primaryContactPhone: true,
+                    primaryContactName: true,
+                }
+            });
+
+            // Format into the 'members' format expected by the old frontend
+            const members = learners.map(l => {
+                const phone = l.primaryContactPhone || l.fatherPhone || l.motherPhone || l.guardianPhone;
+                const name = l.primaryContactName || l.fatherName || l.motherName || l.guardianName || 'Parent';
+
+                let cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+                if (cleanPhone.startsWith('0')) cleanPhone = '254' + cleanPhone.substring(1);
+                if (cleanPhone.length === 9) cleanPhone = '254' + cleanPhone;
+
+                return {
+                    id: l.id,
+                    name: name,
+                    phone: cleanPhone,
+                    studentName: `${l.firstName} ${l.lastName}`,
+                    grade: l.grade
+                };
+            }).filter(m => m.phone);
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    id,
+                    name: id.replace(/_/g, ' '),
+                    members: members // Old frontend expects 'members'
+                }
+            });
+        }
+
         const group = await prisma.contactGroup.findFirst({
             where: {
                 id,
