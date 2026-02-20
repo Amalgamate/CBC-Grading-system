@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Plus, Eye,
+  Plus, Eye, Trash2,
   CheckCircle, AlertCircle, Clock, FileText, Download
 } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -366,6 +366,44 @@ const FeeCollectionPage = ({ learnerId }) => {
     }
   }, [showCreateModal, showError]);
 
+  // Auto-select Fee Structure based on Learner, Term, and Year
+  useEffect(() => {
+    const learnerId = newInvoice.learnerId || searchLearnerId;
+
+    if (showCreateModal && learnerId && feeStructures.length > 0) {
+      // Find the learner to get their grade
+      const learner = allLearners.find(l => l.id === learnerId);
+
+      if (learner) {
+        // Find matching fee structure
+        // Match: Grade AND Term AND Year
+        const matchedStructure = feeStructures.find(fs =>
+          fs.grade === learner.grade &&
+          fs.term === newInvoice.term &&
+          Number(fs.academicYear) === Number(newInvoice.academicYear)
+        );
+
+        if (matchedStructure) {
+          setNewInvoice(prev => {
+            if (prev.feeStructureId !== matchedStructure.id) {
+              return { ...prev, feeStructureId: matchedStructure.id };
+            }
+            return prev;
+          });
+        } else {
+          // Optional: Clear selection if no match found for the new combination
+          // This prevents submitting an invalid mismatch
+          setNewInvoice(prev => {
+            if (prev.feeStructureId !== '') {
+              return { ...prev, feeStructureId: '' };
+            }
+            return prev;
+          });
+        }
+      }
+    }
+  }, [showCreateModal, newInvoice.learnerId, searchLearnerId, newInvoice.term, newInvoice.academicYear, feeStructures, allLearners]);
+
   const handleCreateInvoice = async () => {
     const targetLearnerId = newInvoice.learnerId || searchLearnerId;
     if (!targetLearnerId) {
@@ -394,6 +432,23 @@ const FeeCollectionPage = ({ learnerId }) => {
       }));
     } catch (error) {
       showError(error.message || 'Failed to create invoice');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetInvoices = async () => {
+    if (!window.confirm('⚠️ WARNING: This will delete ALL invoices and payments for the entire school.\nThis action cannot be undone.\n\nAre you sure you want to reset invoices?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await api.fees.resetInvoices();
+      showSuccess(result.message || 'Invoices reset successfully');
+      fetchInvoices();
+    } catch (error) {
+      showError(error.message || 'Failed to reset invoices');
     } finally {
       setLoading(false);
     }
@@ -481,6 +536,16 @@ const FeeCollectionPage = ({ learnerId }) => {
             <Plus size={18} />
             Create Invoice
           </button>
+
+          <button
+            onClick={handleResetInvoices}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold flex items-center gap-2 whitespace-nowrap"
+            title="Delete ALL invoices and payments"
+          >
+            <Trash2 size={18} />
+            Reset Invoices
+          </button>
+
         </div>
       </div>
 

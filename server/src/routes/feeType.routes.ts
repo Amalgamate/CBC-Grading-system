@@ -75,7 +75,7 @@ router.post(
  */
 router.delete(
     '/:id',
-    requireRole(['ADMIN', 'SUPER_ADMIN']),
+    requireRole(['ACCOUNTANT', 'ADMIN', 'SUPER_ADMIN']),
     auditLog('DELETE_FEE_TYPE'),
     asyncHandler(FeeTypeController.delete)
 );

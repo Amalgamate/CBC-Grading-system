@@ -68,7 +68,7 @@ router.put(
  */
 router.delete(
   '/structures/:id',
-  requireRole(['ADMIN', 'SUPER_ADMIN']),
+  requireRole(['ACCOUNTANT', 'ADMIN', 'SUPER_ADMIN']),
   auditLog('DELETE_FEE_STRUCTURE'),
   asyncHandler(feeController.deleteFeeStructure)
 );
@@ -121,6 +121,18 @@ router.post(
   requireRole(['ACCOUNTANT', 'ADMIN', 'SUPER_ADMIN']),
   auditLog('BULK_CREATE_INVOICES'),
   asyncHandler(feeController.bulkGenerateInvoices)
+);
+
+/**
+ * @route   DELETE /api/fees/invoices/reset
+ * @desc    Delete ALL invoices and payments (Reset)
+ * @access  ACCOUNTANT, ADMIN, SUPER_ADMIN
+ */
+router.delete(
+  '/invoices/reset',
+  requireRole(['ACCOUNTANT', 'ADMIN', 'SUPER_ADMIN']),
+  auditLog('RESET_INVOICES'),
+  asyncHandler(feeController.resetInvoices.bind(feeController))
 );
 
 // ============================================

@@ -1695,6 +1695,16 @@ export const feeAPI = {
     const query = new URLSearchParams(params).toString();
     return fetchWithAuth(`/fees/stats${query ? `?${query}` : ''}`);
   },
+
+  /**
+   * Reset all invoices and payments
+   * @returns {Promise} Success message
+   */
+  resetInvoices: async () => {
+    return fetchWithAuth('/fees/invoices/reset', {
+      method: 'DELETE',
+    });
+  },
 };
 
 // ============================================

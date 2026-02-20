@@ -42,7 +42,7 @@ const BroadcastMessagesPage = () => {
   const [sending, setSending] = useState(false);
   const [progress, setProgress] = useState(0);
   const [deliveryReport, setDeliveryReport] = useState([]);
-  
+
   // Message History & Tracking State
   const [messageHistory, setMessageHistory] = useState([]);
   const [showDeliveryLog, setShowDeliveryLog] = useState(false);
@@ -84,16 +84,16 @@ const BroadcastMessagesPage = () => {
       if (saved) {
         current = JSON.parse(saved);
       }
-      
+
       // Add new item to the beginning and keep only 50
       const updated = [item, ...current].slice(0, 50);
-      
+
       // Save to localStorage
       localStorage.setItem('broadcastMessageHistory', JSON.stringify(updated));
-      
+
       // Update state for real-time UI update
       setMessageHistory(updated);
-      
+
       console.log('✅ Message saved to history. Total items:', updated.length);
     } catch (err) {
       console.error('Failed to save to history:', err);
@@ -121,7 +121,7 @@ const BroadcastMessagesPage = () => {
           const text = e.target.result;
           const lines = text.split('\n');
           const numbers = [];
-          
+
           lines.forEach((line, idx) => {
             if (idx === 0 && (line.toLowerCase().includes('phone') || line.toLowerCase().includes('number'))) return;
             const matches = line.match(/[\d+\-\s()]+/g);
@@ -132,7 +132,7 @@ const BroadcastMessagesPage = () => {
               }
             }
           });
-          
+
           resolve([...new Set(numbers)]);
         } catch (err) {
           reject(err);
@@ -152,7 +152,7 @@ const BroadcastMessagesPage = () => {
           .split(/[,\n]/) // Split by comma or newline
           .map(n => n.trim())
           .filter(n => n); // Remove empty strings
-        
+
         const validNumbers = [];
         const invalidNumbers = [];
 
@@ -202,13 +202,14 @@ const BroadcastMessagesPage = () => {
           source: 'csv'
         }));
       } else if (recipientSource === 'group' && selectedGroups.length > 0) {
-        // Load recipients from each selected group
+        // Load recipients from each selected group (Grade)
         let allGroupRecipients = [];
         for (const groupId of selectedGroups) {
           try {
-            const response = await api.communication.getContactGroupById(groupId);
-            if (response.data && response.data.members) {
-              allGroupRecipients = allGroupRecipients.concat(response.data.members);
+            // Groups are Grades here, so we use getRecipients with grade filter
+            const response = await api.communication.getRecipients(groupId);
+            if (response.success && response.data) {
+              allGroupRecipients = allGroupRecipients.concat(response.data);
             }
           } catch (err) {
             console.warn(`Failed to load group ${groupId}:`, err);
@@ -376,7 +377,7 @@ const BroadcastMessagesPage = () => {
       report
     };
     saveToHistory(historyItem);
-    
+
     // Save to database
     saveBroadcastToDatabase(historyItem, recipients.length);
 
@@ -487,7 +488,7 @@ const BroadcastMessagesPage = () => {
           source: 'database',
           databaseId: campaign.id
         }));
-        
+
         // Merge database items with localStorage items (database first, then localStorage)
         const merged = [...dbItems, ...messageHistory.filter(h => h.source !== 'database')];
         setMessageHistory(merged);
@@ -537,9 +538,8 @@ const BroadcastMessagesPage = () => {
           {['recipients', 'compose', 'review', 'send'].map((s, idx) => (
             <React.Fragment key={s}>
               <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full cursor-pointer transition-all ${
-                  step === s ? 'bg-brand-purple text-white' : 'bg-gray-300 text-gray-600'
-                }`}
+                className={`flex items-center justify-center w-8 h-8 rounded-full cursor-pointer transition-all ${step === s ? 'bg-brand-purple text-white' : 'bg-gray-300 text-gray-600'
+                  }`}
                 onClick={() => idx < ['recipients', 'compose', 'review', 'send'].indexOf(step) + 1 && setStep(s)}
               >
                 {idx + 1}
@@ -675,11 +675,10 @@ const BroadcastMessagesPage = () => {
                         onClick={() => setSelectedGroups(prev =>
                           prev.includes(group.id) ? prev.filter(g => g !== group.id) : [...prev, group.id]
                         )}
-                        className={`px-3 py-2 rounded-lg font-bold text-sm transition ${
-                          selectedGroups.includes(group.id)
-                            ? 'bg-brand-purple text-white'
-                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                        }`}
+                        className={`px-3 py-2 rounded-lg font-bold text-sm transition ${selectedGroups.includes(group.id)
+                          ? 'bg-brand-purple text-white'
+                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                          }`}
                       >
                         {group.name}
                       </button>
@@ -775,6 +774,8 @@ const BroadcastMessagesPage = () => {
               </Button>
               <Button
                 onClick={() => setStep('review')}
+                disabled={!messageTemplate.trim()}
+                title={!messageTemplate.trim() ? "Please enter a message first" : ""}
                 className="flex-1 bg-brand-purple hover:bg-brand-purple/90 text-white font-bold gap-2"
               >
                 Next
@@ -848,6 +849,7 @@ const BroadcastMessagesPage = () => {
               <Button
                 onClick={() => setStep('send')}
                 disabled={sending || !messageTemplate.trim()}
+                title={!messageTemplate.trim() ? "Message cannot be empty" : ""}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold gap-2"
               >
                 {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}

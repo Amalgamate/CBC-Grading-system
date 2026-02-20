@@ -3,38 +3,71 @@
  * Generate and view attendance reports with filtering
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Download, FileText, CheckCircle, XCircle, Clock, Users } from 'lucide-react';
 import StatsCard from '../shared/StatsCard';
 import EmptyState from '../shared/EmptyState';
-import { useAttendance } from '../hooks/useAttendance';
+import { useAttendance } from '../hooks/useAttendanceAPI';
 import { getCurrentDate } from '../utils/dateHelpers';
 import SmartLearnerSearch from '../shared/SmartLearnerSearch';
+import LoadingSpinner from '../shared/LoadingSpinner';
 
 const AttendanceReports = ({ learners }) => {
   const [filterGrade, setFilterGrade] = useState('all');
-  const [reportStartDate, setReportStartDate] = useState('');
-  const [reportEndDate, setReportEndDate] = useState('');
+  const [reportStartDate, setReportStartDate] = useState(getCurrentDate());
+  const [reportEndDate, setReportEndDate] = useState(getCurrentDate());
   const [reportType, setReportType] = useState('grade'); // 'grade' or 'learner'
   const [selectedLearnerId, setSelectedLearnerId] = useState('');
 
-  const { attendanceRecords } = useAttendance();
+  const { attendanceRecords, fetchAttendance, loading } = useAttendance();
 
-  // Filter attendance records
-  const filteredRecords = attendanceRecords.filter(record => {
-    const learner = learners.find(l => l.id === record.learnerId);
-    if (!learner) return false;
-
-    const matchesStartDate = !reportStartDate || record.date >= reportStartDate;
-    const matchesEndDate = !reportEndDate || record.date <= reportEndDate;
-
-    if (reportType === 'learner') {
-      return (selectedLearnerId && record.learnerId.toString() === selectedLearnerId.toString()) && matchesStartDate && matchesEndDate;
+  // Fetch attendance when filters change
+  useEffect(() => {
+    const params = {};
+    if (reportStartDate) params.startDate = reportStartDate;
+    if (reportEndDate) params.endDate = reportEndDate;
+    if (reportType === 'learner' && selectedLearnerId) {
+      params.learnerId = selectedLearnerId;
     }
 
-    const matchesGrade = filterGrade === 'all' || learner.grade === filterGrade;
+    // If not fetching by learner, we fetch all for the date range
+    // Ideally we would filter by Grade on the backend too, but API might not support it yet.
+    // We'll rely on client-side filtering for grade.
 
-    return matchesGrade && matchesStartDate && matchesEndDate;
+    fetchAttendance(params);
+  }, [reportStartDate, reportEndDate, reportType, selectedLearnerId, fetchAttendance]);
+
+  // Filter attendance records (Client-side refinement)
+  const filteredRecords = attendanceRecords.filter(record => {
+    // If we fetched by learnerId, we don't need to filter by learnerId again, but it doesn't hurt.
+    // However, if we fetched by Date Range (for Grade report), we need to filter by Grade.
+
+    // Robust date handling
+    let recordDate = record.date;
+    if (typeof recordDate === 'string' && recordDate.includes('T')) {
+      recordDate = recordDate.split('T')[0];
+    } else if (recordDate instanceof Date) {
+      recordDate = recordDate.toISOString().split('T')[0];
+    }
+
+    // Ensure date matches (redundant if backend works, but good for safety)
+    const matchesStartDate = !reportStartDate || recordDate >= reportStartDate;
+    const matchesEndDate = !reportEndDate || recordDate <= reportEndDate;
+
+    if (!matchesStartDate || !matchesEndDate) return false;
+
+    if (reportType === 'learner') {
+      // If selectedLearnerId is set, backend handled it. 
+      // If not set, we might show nothing or all.
+      if (selectedLearnerId) return record.learnerId === selectedLearnerId;
+      return true;
+    }
+
+    // Grade Filter
+    const learner = learners.find(l => l.id === record.learnerId);
+    if (!learner) return false; // Should not happen if data is consistent
+
+    return filterGrade === 'all' || learner.grade === filterGrade;
   });
 
   // Calculate statistics
