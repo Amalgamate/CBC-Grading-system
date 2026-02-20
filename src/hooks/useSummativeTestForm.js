@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import api from '../services/api';
+import { assessmentAPI, gradingAPI, configAPI } from '../services/api';
 import { getLearningAreasByGrade } from '../constants/learningAreas';
 
 const TEST_TYPES = [
@@ -34,14 +34,17 @@ export const useSummativeTestForm = () => {
   const [scales, setScales] = useState([]);
   const [grades, setGrades] = useState([]);
   const [terms, setTerms] = useState([]);
+  const [allLearningAreas, setAllLearningAreas] = useState([]);
+  const [availableLearningAreas, setAvailableLearningAreas] = useState([]);
   const [loadingScales, setLoadingScales] = useState(false);
   const [loadingGrades, setLoadingGrades] = useState(false);
+  const [loadingAreas, setLoadingAreas] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState(DEFAULT_FORM_DATA);
   const [errors, setErrors] = useState({});
   const [saveStatus, setSaveStatus] = useState('');
 
-  // Load grades, terms, and scales on component mount
+  // Load grades, terms, scales, and learning areas on component mount
   const loadGrades = useCallback(async () => {
     setLoadingGrades(true);
     try {
@@ -55,8 +58,8 @@ export const useSummativeTestForm = () => {
 
       // Use concurrent fetching for classes and grade enum
       const [classesResponse, gradesResponse] = await Promise.all([
-        api.classes.getAll({ schoolId }).catch(() => []),
-        api.config.getGrades().catch(() => [])
+        configAPI.getClasses(schoolId).catch(() => []),
+        configAPI.getGrades().catch(() => [])
       ]);
 
       const classesData = classesResponse.data || classesResponse || [];
@@ -110,6 +113,24 @@ export const useSummativeTestForm = () => {
     }
   }, []);
 
+  const loadLearningAreas = useCallback(async () => {
+    setLoadingAreas(true);
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const schoolId = user?.school?.id || user?.schoolId || localStorage.getItem('currentSchoolId');
+
+      if (!schoolId) return;
+
+      const data = await configAPI.getLearningAreas(schoolId);
+      setAllLearningAreas(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('❌ Error loading learning areas:', error);
+      setAllLearningAreas([]);
+    } finally {
+      setLoadingAreas(false);
+    }
+  }, []);
+
   const loadScales = useCallback(async () => {
     setLoadingScales(true);
     try {
@@ -118,10 +139,7 @@ export const useSummativeTestForm = () => {
 
       if (!schoolId) return;
 
-      console.log('🔍 Loading scales for schoolId:', schoolId);
-      const systems = await api.grading.getSystems(schoolId);
-
-      console.log('✅ Loaded', systems.length, 'scales:', systems);
+      const systems = await gradingAPI.getSystems(schoolId);
       setScales(Array.isArray(systems) ? systems : []);
     } catch (error) {
       console.error('❌ Error loading scales:', error);
@@ -134,7 +152,32 @@ export const useSummativeTestForm = () => {
   useEffect(() => {
     loadGrades();
     loadScales();
-  }, [loadGrades, loadScales]);
+    loadLearningAreas();
+  }, [loadGrades, loadScales, loadLearningAreas]);
+
+  // Update available learning areas when grade changes
+  useEffect(() => {
+    if (!formData.grade) {
+      setAvailableLearningAreas([]);
+      return;
+    }
+
+    // Filter learning areas that match the grade-based CBC mapping
+    const officialAreas = getLearningAreasByGrade(formData.grade);
+
+    // Attempt to match DB areas against the official list
+    const filtered = allLearningAreas.filter(area =>
+      officialAreas.includes(area.name)
+    );
+
+    // If we found official matches in the DB, show those. 
+    // Otherwise, show the official list as virtual objects to allow creation.
+    if (filtered.length > 0) {
+      setAvailableLearningAreas(filtered);
+    } else {
+      setAvailableLearningAreas(officialAreas.map(name => ({ id: name, name })));
+    }
+  }, [formData.grade, allLearningAreas]);
 
   const setDefaultGrades = () => {
     setGrades([
@@ -240,7 +283,7 @@ export const useSummativeTestForm = () => {
       console.log('📤 Submitting test:', testData);
       console.log('📊 Selected scale:', selectedScale);
 
-      const response = await api.assessments.createTest({ ...testData });
+      const response = await assessmentAPI.createTest({ ...testData });
       const createdTest = response?.data || response;
 
       console.log('✅ Test created successfully:', createdTest);
@@ -278,6 +321,7 @@ export const useSummativeTestForm = () => {
     loadingScales,
     loadingGrades,
     saving,
+    availableLearningAreas,
     testTypes: TEST_TYPES,
 
     // Methods
@@ -285,7 +329,6 @@ export const useSummativeTestForm = () => {
     handleSubmit,
     validateForm,
     resetForm,
-    getSelectedScale,
-    getLearningAreasByGrade
+    getSelectedScale
   };
 };

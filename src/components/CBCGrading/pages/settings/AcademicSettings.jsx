@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Calendar, Save, BookOpen, Plus, Edit, Trash2, Calculator, Users, Loader } from 'lucide-react';
+import { Calendar, Save, BookOpen, Plus, Edit, Trash2, Calculator, Users, Loader, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useAuth } from '../../../../hooks/useAuth';
@@ -272,7 +272,8 @@ const AcademicSettings = () => {
     shortName: '',
     gradeLevel: 'Lower Primary',
     color: '#3b82f6',
-    icon: '📚'
+    icon: '📚',
+    description: ''
   });
 
   const [aggFormData, setAggFormData] = useState({
@@ -579,41 +580,74 @@ const AcademicSettings = () => {
     }
   };
 
-  const handleAddEdit = () => {
+  const handleAddEdit = async () => {
     if (!formData.name || !formData.shortName) {
-      showSuccess('Please fill all required fields');
+      showError('Please fill all required fields');
       return;
     }
 
-    if (editingArea) {
-      // Edit existing
-      setLearningAreas(learningAreas.map(area =>
-        area.id === editingArea.id ? { ...area, ...formData } : area
-      ));
-      showSuccess('Learning area updated successfully!');
-    } else {
-      // Add new
-      setLearningAreas([...learningAreas, { id: Date.now(), ...formData }]);
-      showSuccess('Learning area added successfully!');
-    }
+    try {
+      const sid = user?.school?.id || user?.schoolId;
+      if (!sid) {
+        showError('School ID is missing');
+        return;
+      }
 
-    setShowAddModal(false);
-    setEditingArea(null);
-    setFormData({ name: '', shortName: '', gradeLevel: 'Lower Primary', color: '#3b82f6', icon: '📚' });
+      if (editingArea) {
+        await configAPI.updateLearningArea(editingArea.id, formData);
+        notifySuccess('✏️ Learning area updated successfully');
+      } else {
+        await configAPI.createLearningArea({
+          ...formData,
+          schoolId: sid
+        });
+        notifySuccess('✨ Learning area created successfully');
+      }
+
+      setShowAddModal(false);
+      setEditingArea(null);
+      setFormData({ name: '', shortName: '', gradeLevel: 'Lower Primary', color: '#3b82f6', icon: '📚', description: '' });
+      await loadLearningAreas();
+    } catch (error) {
+      console.error('Error saving learning area:', error);
+      showError(error.message || 'Failed to save learning area');
+    }
+  };
+
+  const handleDeleteArea = async (area) => {
+    if (!window.confirm(`Are you sure you want to delete "${area.name}"? This action cannot be undone.`)) return;
+
+    try {
+      await configAPI.deleteLearningArea(area.id);
+      notifySuccess('🗑️ Learning area deleted');
+      await loadLearningAreas();
+    } catch (error) {
+      console.error('Error deleting learning area:', error);
+      showError('Failed to delete learning area');
+    }
   };
 
   const handleOpenModal = (area = null) => {
     if (area) {
       setEditingArea(area);
       setFormData({
-        name: area.name,
-        shortName: area.shortName,
-        gradeLevel: area.gradeLevel,
-        color: area.color,
-        icon: area.icon
+        name: area.name || '',
+        shortName: area.shortName || '',
+        gradeLevel: area.gradeLevel || 'Lower Primary',
+        color: area.color || '#3b82f6',
+        icon: area.icon || '📚',
+        description: area.description || ''
       });
     } else {
-      setFormData({ name: '', shortName: '', gradeLevel: 'Lower Primary', color: '#3b82f6', icon: '📚' });
+      setEditingArea(null);
+      setFormData({
+        name: '',
+        shortName: '',
+        gradeLevel: 'Lower Primary',
+        color: '#3b82f6',
+        icon: '📚',
+        description: ''
+      });
     }
     setShowAddModal(true);
   };
@@ -941,12 +975,7 @@ const AcademicSettings = () => {
               learningAreas={learningAreas}
               gradeStructure={gradeStructure}
               onEdit={(area) => handleOpenModal(area)}
-              onDelete={(area) => {
-                if (window.confirm(`Delete ${area.name}?`)) {
-                  setLearningAreas(learningAreas.filter(a => a.id !== area.id));
-                  showSuccess('Learning area deleted');
-                }
-              }}
+              onDelete={handleDeleteArea}
               onAddStrand={(area, strand) => {
                 // Placeholder for future strand assessment creation
                 console.log(`Add strand assessment for ${area.name} - ${strand}`);
@@ -1322,52 +1351,57 @@ const AcademicSettings = () => {
         </div >
       )}
 
-      {/* Add/Edit Modal */}
-      {
-        showAddModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-              <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-4 rounded-t-2xl">
-                <h3 className="text-xl font-bold text-white">
-                  {editingArea ? 'Edit Learning Area' : 'Add Learning Area'}
-                </h3>
-              </div>
+      {/* Manual Creation Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 bg-gray-50 border-b flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-800">
+                {editingArea ? 'Edit Learning Area' : 'New Learning Area'}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowAddModal(false);
+                  setEditingArea(null);
+                  setFormData({ name: '', shortName: '', gradeLevel: 'Lower Primary', color: '#3b82f6', icon: '📚', description: '' });
+                }}
+                className="p-2 hover:bg-gray-200 rounded-lg transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Full Name <span className="text-red-500">*</span>
-                  </label>
+            <form onSubmit={(e) => { e.preventDefault(); handleAddEdit(); }} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Learning Area Name</label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., Mathematics Activities"
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                    placeholder="e.g. Mathematics Activities"
+                    autoFocus
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Short Name <span className="text-red-500">*</span>
-                  </label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Short Name</label>
                   <input
                     type="text"
                     value={formData.shortName}
                     onChange={(e) => setFormData({ ...formData, shortName: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., Math"
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                    placeholder="e.g. MATH"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Grade Level
-                  </label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Grade Level</label>
                   <select
                     value={formData.gradeLevel}
                     onChange={(e) => setFormData({ ...formData, gradeLevel: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
                   >
                     <option value="Early Years">Early Years</option>
                     <option value="Pre-Primary">Pre-Primary</option>
@@ -1378,76 +1412,89 @@ const AcademicSettings = () => {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Color
-                    </label>
-                    <input
-                      type="color"
-                      value={formData.color}
-                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      className="w-full h-10 border border-gray-300 rounded-lg cursor-pointer"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Icon (Emoji)
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.icon}
-                      onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-2xl text-center"
-                      maxLength={2}
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Display Icon</label>
+                  <select
+                    value={formData.icon}
+                    onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                  >
+                    <option value="📘">📘 Book</option>
+                    <option value="🧮">🧮 Abacus</option>
+                    <option value="🔬">🔬 Science</option>
+                    <option value="🎨">🎨 Art</option>
+                    <option value="🏃">🏃 Sports</option>
+                    <option value="🌍">🌍 Social</option>
+                    <option value="🧸">🧸 Play</option>
+                    <option value="🎼">🎼 Music</option>
+                    <option value="🕌">🕌 Religion</option>
+                  </select>
                 </div>
 
-                {/* Preview */}
-                <div className="border-t pt-4">
-                  <p className="text-sm font-semibold text-gray-700 mb-2">Preview:</p>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Theme Color</label>
+                  <input
+                    type="color"
+                    value={formData.color}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    className="w-full h-10 p-1 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Description (Optional)</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                  placeholder="Describe focus areas..."
+                  rows={3}
+                />
+              </div>
+
+              {/* Preview */}
+              <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 text-center">Preview</p>
+                <div className="flex items-center gap-4">
                   <div
-                    className="border-2 rounded-lg p-4"
-                    style={{ borderColor: formData.color }}
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm"
+                    style={{ backgroundColor: `${formData.color}20`, color: formData.color }}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="text-3xl">{formData.icon}</span>
-                      <div>
-                        <h4 className="font-bold text-gray-800">{formData.shortName || 'Short Name'}</h4>
-                        <p className="text-xs text-gray-500">{formData.gradeLevel}</p>
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-2">{formData.name || 'Full Name'}</p>
-                    <div className="h-2 rounded-full mt-2" style={{ backgroundColor: formData.color }}></div>
+                    {formData.icon}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-gray-900 leading-tight">{formData.name || 'Subject Name'}</h4>
+                    <p className="text-xs text-gray-500 font-medium">
+                      <span className="text-blue-600">{formData.shortName || 'CODE'}</span> • {formData.gradeLevel}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="border-t px-6 py-4 flex items-center justify-end gap-3 bg-gray-50 rounded-b-2xl">
+              <div className="pt-4 flex gap-3">
                 <button
+                  type="button"
                   onClick={() => {
                     setShowAddModal(false);
                     setEditingArea(null);
-                    setFormData({ name: '', shortName: '', gradeLevel: 'Lower Primary', color: '#3b82f6', icon: '📚' });
+                    setFormData({ name: '', shortName: '', gradeLevel: 'Lower Primary', color: '#3b82f6', icon: '📚', description: '' });
                   }}
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition font-semibold"
+                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleAddEdit}
-                  className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition font-semibold"
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-700 hover:to-indigo-700 transition shadow-lg shadow-blue-500/20"
                 >
-                  <Save size={18} />
-                  {editingArea ? 'Update' : 'Add'} Learning Area
+                  {editingArea ? 'Update Area' : 'Create Area'}
                 </button>
               </div>
-            </div>
+            </form>
           </div>
-        )
-      }
+        </div>
+      )}
 
       {/* Aggregation Rule Modal */}
       {

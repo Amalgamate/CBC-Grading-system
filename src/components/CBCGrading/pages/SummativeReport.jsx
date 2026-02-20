@@ -471,59 +471,14 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
 
       {/* Signatures & Remarks Section */}
       <div className="mt-4 pt-3 border-t-2 border-gray-100 flex justify-between items-start page-break-inside-avoid">
-        {/* Class Teacher Remarks Area */}
-        <div className="flex flex-col gap-1 w-[60%] pr-4 group relative cursor-pointer"
-          onClick={() => { if (!isEditing) { setIsEditing(true); setEditedComment(commentData?.classTeacherComment || ''); } }}>
-          <div className="text-[10px] font-extrabold text-[#1E3A8A] uppercase flex items-center gap-2 mb-1">
+        {/* Class Teacher Remarks Area — read-only */}
+        <div className="flex flex-col gap-1 w-[60%] pr-4">
+          <div className="text-[10px] font-extrabold text-[#1E3A8A] uppercase mb-1">
             Class Teacher's Remarks:
           </div>
           <div className="min-h-[75px] border-b-2 border-slate-300 border-dotted pb-1 text-[12px] font-semibold text-slate-800 italic leading-snug">
-            {isEditing ? (
-              <div className="no-print w-full">
-                <textarea
-                  autoFocus
-                  className="w-full bg-blue-100/50 border-2 border-blue-400 rounded-lg p-3 outline-none focus:ring-4 focus:ring-blue-500/20 text-sm shadow-inner transition-all"
-                  value={editedComment}
-                  onChange={(e) => {
-                    setEditedComment(e.target.value);
-                    setIsTyping(true);
-                  }}
-                  onBlur={() => {
-                    handleSaveComment();
-                    setIsTyping(false);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSaveComment(); setIsTyping(false); }
-                    if (e.key === 'Escape') setIsEditing(false);
-                  }}
-                  disabled={isSavingComment}
-                  placeholder="Type student remarks here..."
-                  style={{ minHeight: '80px' }}
-                />
-                {(isSavingComment || isTyping) ? (
-                  <>
-                    <span className="text-xs text-blue-500 animate-pulse">(Saving...)</span>
-                    {isTyping ? 'Typing...' : 'Saving changes...'}
-                  </>
-                ) : (
-                  '✅ All changes saved'
-                )}
-              </div>
-            ) : (
-              <div className="relative">
-                {commentData?.classTeacherComment ? (
-                  commentData.classTeacherComment
-                ) : (
-                  <span className="text-gray-400 font-normal no-print italic">Click to add specific remarks for this learner...</span>
-                )}
-              </div>
-            )}
+            {commentData?.classTeacherComment || ''}
           </div>
-          {!isEditing && commentData?.classTeacherDate && (
-            <div className="text-[8px] text-gray-400 font-bold uppercase no-print mt-1">
-              Updated: {new Date(commentData.classTeacherDate).toLocaleDateString()}
-            </div>
-          )}
         </div>
 
         {/* Principal / Head Teacher Section */}
@@ -1808,15 +1763,14 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                     ...result,
                     test: test,
                     learningArea: test.learningArea,
+                    score: result.marksObtained, // Normalize to .score for aggregation logic below
                     maxScore: test.totalMarks || 100
                   });
                 }
               });
             }
             processedCount++;
-            if (processedCount % 5 === 0) {
-              setStatusMessage(`⏳ Processed ${processedCount}/${targetTests.length} tests...`);
-            }
+            setStatusMessage(`⏳ Processing assessment data: ${processedCount}/${targetTests.length} subjects...`);
           } catch (err) {
             console.error(`Failed to fetch results for test ${test.id}`, err);
           }
@@ -1869,6 +1823,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             totalLearners: targetLearners.length
           }
         });
+        setStatusMessage(`✅ Success: Generated broadsheet for ${targetLearners.length} learners`);
         showSuccess(`Generated ${selectedType.replace(/_/g, ' ')} for ${targetLearners.length} students`);
       }
       else if (selectedType.includes('ANALYSIS')) {
@@ -1901,7 +1856,12 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           const res = await api.assessments.getTestResults(test.id);
           if (res.success && res.data) {
             res.data.forEach(r => {
-              allResults.push({ ...r, test, learningArea: test.learningArea });
+              allResults.push({
+                ...r,
+                test,
+                learningArea: test.learningArea,
+                score: r.marksObtained // Normalize for analysis logic below
+              });
             });
           }
         }
@@ -2547,63 +2507,53 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
               boxSizing: 'border-box'
             }}
           >
-            {/* Header */}
-            <div className="text-center mb-6 border-b-2 border-blue-900 pb-4">
-              <h1 className="text-2xl font-bold text-blue-900 uppercase">{reportData.title}</h1>
-              <p className="text-sm text-gray-600 font-bold mt-1">
-                {setup.academicYear} | {reportData.meta?.term?.replace(/_/g, ' ')}
-              </p>
-              <div className="flex justify-between items-end mt-4 text-xs font-bold text-gray-500">
-                <div>CLASS: {reportData.meta?.grade} {reportData.meta?.stream !== 'all' ? reportData.meta?.stream : ''}</div>
-                <div>GENERATED: {new Date().toLocaleDateString()}</div>
-              </div>
-            </div>
-
-            {/* BULK ACTIONS BAR */}
-            <div className="no-print flex justify-between items-center mb-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
-              <div className="flex gap-4">
-                <button
-                  onClick={handleBulkPrint}
-                  disabled={isBulkPrinting}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition disabled:opacity-50"
-                >
-                  {isBulkPrinting ? <Loader className="animate-spin" size={16} /> : <Printer size={16} />}
-                  {isBulkPrinting ? 'Generating PDF...' : 'Print All Learners'}
-                </button>
-                <button
-                  onClick={handleBulkSMS}
-                  disabled={bulkProgress.active}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition disabled:opacity-50"
-                >
-                  {bulkProgress.active ? <Loader className="animate-spin" size={16} /> : <MessageSquare size={16} />}
-                  {bulkProgress.active ? `Sending (${bulkProgress.current}/${bulkProgress.total})` : 'Send SMS to All'}
-                </button>
-                <button
-                  onClick={() => setShowWhatsAppConfirm(true)}
-                  disabled={isSendingWhatsApp}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition disabled:opacity-50"
-                  title="Send via WhatsApp (Batched)"
-                >
-                  {isSendingWhatsApp ? <Loader className="animate-spin" size={16} /> : <MessageCircle size={16} />}
-                  {isSendingWhatsApp ? 'Processing...' : 'Bulk WhatsApp'}
-                </button>
+            {/* Professional Letterhead - Matching Learner's Report Flow */}
+            <div className="mb-6 flex flex-col items-center text-center">
+              {/* Logo Middle */}
+              <div className="mb-4">
+                <img
+                  src="/logo-zawadi.png"
+                  alt="Logo"
+                  style={{ height: '100px', width: 'auto', objectFit: 'contain' }}
+                  onError={(e) => { e.target.src = '/logo-new.png'; }}
+                />
               </div>
 
-              {(bulkProgress.active || isSendingWhatsApp) && (
-                <div className="text-sm font-medium text-gray-700">
-                  {isSendingWhatsApp ? (
-                    <span className="text-green-600 flex items-center gap-2">
-                      <Loader className="animate-spin" size={12} />
-                      WhatsApp Batch: {whatsAppProgress.current}/{whatsAppProgress.total}
-                    </span>
-                  ) : (
-                    <>
-                      Success: <span className="text-green-600">{bulkProgress.success}</span> |
-                      Failed: <span className="text-red-600">{bulkProgress.failed}</span>
-                    </>
-                  )}
+              {/* School Info */}
+              <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#1E3A8A', margin: '0', textTransform: 'uppercase', letterSpacing: '1px', lineHeight: '1.1' }}>
+                {user?.school?.name || brandingSettings?.schoolName || 'ACADEMIC SCHOOL'}
+              </h1>
+
+              {user?.school?.motto && (
+                <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginTop: '2px', textTransform: 'uppercase', fontStyle: 'italic' }}>
+                  "{user.school.motto}"
                 </div>
               )}
+
+              {/* Contact Details */}
+              <div style={{ fontSize: '11px', color: '#444', marginTop: '6px', fontWeight: '500', opacity: '0.8' }}>
+                {user?.school?.location && <span>{user.school.location}</span>}
+                {user?.school?.email && <span> • {user.school.email}</span>}
+              </div>
+
+              {/* Separator Line */}
+              <div className="w-full h-1 bg-blue-900 mt-4 mb-4"></div>
+
+              {/* Bold Report Title */}
+              <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#000', margin: '0', textTransform: 'uppercase', letterSpacing: '2px' }}>
+                {reportData.title}
+              </h2>
+
+              {/* Term/Academic Year Details In Pill */}
+              <div className="flex justify-between items-center w-full mt-4">
+                <div style={{ fontSize: '12px', fontWeight: '800', color: '#1E3A8A', textTransform: 'uppercase', backgroundColor: '#eff6ff', padding: '6px 20px', borderRadius: '40px', border: '1px solid #dbeafe' }}>
+                  {setup.academicYear} | {reportData.meta?.term?.replace(/_/g, ' ')}
+                </div>
+
+                <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>
+                  CLASS: {reportData.meta?.grade?.replace(/_/g, ' ')} {reportData.meta?.stream !== 'all' ? reportData.meta?.stream : ''} | GENERATED: {new Date().toLocaleDateString()}
+                </div>
+              </div>
             </div>
 
 
@@ -2669,101 +2619,53 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                 )}
               />
             </div>
-          </div>
 
-          {/* Controls */}
-          <div className="no-print mt-8 flex gap-4 justify-center">
-            <button
-              onClick={() => setReportData(null)}
-              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded text-sm font-semibold transition"
-            >
-              ← Back
-            </button>
-            <button
-              onClick={handleExportPDF}
-              disabled={isExporting}
-              className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold transition flex items-center gap-2"
-            >
-              {isExporting ? <Loader size={18} className="animate-spin" /> : <Download size={18} />}
-              {isExporting ? 'Exporting...' : 'Export Broadsheet PDF'}
-            </button>
-          </div>
-        </div>
-      )
-      }
-
-      {/* ANALYSIS REPORT DISPLAY */}
-      {
-        reportData?.type?.includes('ANALYSIS') && (
-          <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
-            <div
-              id="summative-report-content"
-              className="bg-white mx-auto shadow-2xl overflow-hidden"
-              style={{
-                fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-                lineHeight: '1.2',
-                width: '210mm',
-                minHeight: '297mm',
-                padding: '12mm',
-                boxSizing: 'border-box'
-              }}
-            >
-              <div className="text-center mb-8 border-b-2 border-blue-900 pb-4">
-                <h1 className="text-2xl font-bold text-blue-900 uppercase">{reportData.title}</h1>
-                <p className="text-sm text-gray-600 font-bold mt-1">
-                  {setup.academicYear} | {reportData.meta?.term?.replace(/_/g, ' ')}
-                </p>
+            {/* BULK ACTIONS BAR - MOVED TO BOTTOM */}
+            <div className="no-print mt-8 flex justify-between items-center bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
+              <div className="flex gap-4">
+                <button
+                  onClick={handleBulkPrint}
+                  disabled={isBulkPrinting}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-md font-bold uppercase text-xs"
+                >
+                  {isBulkPrinting ? <Loader className="animate-spin" size={16} /> : <Printer size={16} />}
+                  {isBulkPrinting ? 'Generating PDF...' : 'Print All Learners'}
+                </button>
+                <button
+                  onClick={handleBulkSMS}
+                  disabled={bulkProgress.active}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-md font-bold uppercase text-xs"
+                >
+                  {bulkProgress.active ? <Loader className="animate-spin" size={16} /> : <MessageSquare size={16} />}
+                  {bulkProgress.active ? `Sending (${bulkProgress.current}/${bulkProgress.total})` : 'Send SMS to All'}
+                </button>
+                <button
+                  onClick={() => setShowWhatsAppConfirm(true)}
+                  disabled={isSendingWhatsApp}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition shadow-md font-bold uppercase text-xs"
+                  title="Send via WhatsApp (Batched)"
+                >
+                  {isSendingWhatsApp ? <Loader className="animate-spin" size={16} /> : <MessageCircle size={16} />}
+                  {isSendingWhatsApp ? 'Processing...' : 'Bulk WhatsApp'}
+                </button>
               </div>
 
-              {/* Subject Performance Table */}
-              <div className="mb-8">
-                <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-blue-600 pl-2">Subject Performance Analysis</h2>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#f1f5f9', color: '#1e293b' }}>
-                      <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #cbd5e1' }}>SUBJECT</th>
-                      <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>LEARNERS</th>
-                      <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>MEAN SCORE</th>
-                      <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>HIGHEST</th>
-                      <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>LOWEST</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.subjectStats.map((stat, idx) => (
-                      <tr key={stat.subject} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                        <td style={{ padding: '8px', fontWeight: '600' }}>{stat.subject}</td>
-                        <td style={{ padding: '8px', textAlign: 'center' }}>{stat.count}</td>
-                        <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: '#2563eb' }}>{stat.mean}%</td>
-                        <td style={{ padding: '8px', textAlign: 'center', color: '#16a34a' }}>{stat.highest}%</td>
-                        <td style={{ padding: '8px', textAlign: 'center', color: '#dc2626' }}>{stat.lowest}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Grade Distribution */}
-              <div className="mb-8">
-                <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-blue-600 pl-2">Grade Distribution</h2>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
-                  <div className="p-4 bg-green-50 rounded border border-green-200 text-center">
-                    <div className="text-2xl font-bold text-green-700">{reportData.gradeDist['EE'] || 0}</div>
-                    <div className="text-xs font-bold text-green-800 uppercase mt-1">Exceeding Exp.</div>
-                  </div>
-                  <div className="p-4 bg-blue-50 rounded border border-blue-200 text-center">
-                    <div className="text-2xl font-bold text-blue-700">{reportData.gradeDist['ME'] || 0}</div>
-                    <div className="text-xs font-bold text-blue-800 uppercase mt-1">Meeting Exp.</div>
-                  </div>
-                  <div className="p-4 bg-yellow-50 rounded border border-yellow-200 text-center">
-                    <div className="text-2xl font-bold text-yellow-700">{reportData.gradeDist['AE'] || 0}</div>
-                    <div className="text-xs font-bold text-yellow-800 uppercase mt-1">Approaching Exp.</div>
-                  </div>
-                  <div className="p-4 bg-red-50 rounded border border-red-200 text-center">
-                    <div className="text-2xl font-bold text-red-700">{reportData.gradeDist['BE'] || 0}</div>
-                    <div className="text-xs font-bold text-red-800 uppercase mt-1">Below Exp.</div>
-                  </div>
+              {(bulkProgress.active || isSendingWhatsApp) && (
+                <div className="text-sm font-medium text-gray-700">
+                  {isSendingWhatsApp ? (
+                    <span className="text-green-600 flex items-center gap-2 font-bold animate-pulse">
+                      <Loader className="animate-spin" size={12} />
+                      WhatsApp Batch: {whatsAppProgress.current}/{whatsAppProgress.total}
+                    </span>
+                  ) : (
+                    <div className="flex gap-3 font-bold">
+                      <span className="text-green-600">SUCCESS: {bulkProgress.success}</span>
+                      <span className="text-gray-300">|</span>
+                      <span className="text-red-500">FAILED: {bulkProgress.failed}</span>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Controls */}
@@ -2780,12 +2682,135 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                 className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold transition flex items-center gap-2"
               >
                 {isExporting ? <Loader size={18} className="animate-spin" /> : <Download size={18} />}
-                {isExporting ? 'Exporting...' : 'Export Analysis PDF'}
+                {isExporting ? 'Exporting...' : 'Export Broadsheet PDF'}
               </button>
             </div>
           </div>
-        )
-      }
+        </div>
+      )}
+
+      {/* ANALYSIS REPORT DISPLAY */}
+      {reportData?.type?.includes('ANALYSIS') && (
+        <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
+          <div
+            id="summative-report-content"
+            className="bg-white mx-auto shadow-2xl overflow-hidden"
+            style={{
+              fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+              lineHeight: '1.2',
+              width: '210mm',
+              minHeight: '297mm',
+              padding: '12mm',
+              boxSizing: 'border-box'
+            }}
+          >
+            {/* Professional Letterhead - Consistency across reports */}
+            <div className="mb-6 flex flex-col items-center text-center">
+              {/* Logo Middle */}
+              <div className="mb-4">
+                <img
+                  src="/logo-zawadi.png"
+                  alt="Logo"
+                  style={{ height: '80px', width: 'auto', objectFit: 'contain' }}
+                  onError={(e) => { e.target.src = '/logo-new.png'; }}
+                />
+              </div>
+
+              {/* School Info */}
+              <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#1E3A8A', margin: '0', textTransform: 'uppercase', letterSpacing: '1px', lineHeight: '1.2' }}>
+                {user?.school?.name || brandingSettings?.schoolName || 'ACADEMIC SCHOOL'}
+              </h1>
+
+              {user?.school?.motto && (
+                <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', marginTop: '2px', textTransform: 'uppercase', fontStyle: 'italic' }}>
+                  "{user.school.motto}"
+                </div>
+              )}
+
+              {/* Separator Line */}
+              <div className="w-full h-0.5 bg-blue-900 mt-3 mb-3"></div>
+
+              {/* Bold Report Title */}
+              <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#000', margin: '0', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                {reportData.title}
+              </h2>
+
+              <div style={{ fontSize: '12px', fontWeight: '700', color: '#1E3A8A', marginTop: '4px', textTransform: 'uppercase', backgroundColor: '#eff6ff', padding: '4px 16px', borderRadius: '40px' }}>
+                {setup.academicYear} | {reportData.meta?.term?.replace(/_/g, ' ')}
+              </div>
+            </div>
+
+            {/* Subject Performance Table */}
+            <div className="mb-8">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-blue-600 pl-2">Subject Performance Analysis</h2>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f1f5f9', color: '#1e293b' }}>
+                    <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #cbd5e1' }}>SUBJECT</th>
+                    <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>LEARNERS</th>
+                    <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>MEAN SCORE</th>
+                    <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>HIGHEST</th>
+                    <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>LOWEST</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.subjectStats.map((stat, idx) => (
+                    <tr key={stat.subject} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ padding: '8px', fontWeight: '600' }}>{stat.subject}</td>
+                      <td style={{ padding: '8px', textAlign: 'center' }}>{stat.count}</td>
+                      <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: '#2563eb' }}>{stat.mean}%</td>
+                      <td style={{ padding: '8px', textAlign: 'center', color: '#16a34a' }}>{stat.highest}%</td>
+                      <td style={{ padding: '8px', textAlign: 'center', color: '#dc2626' }}>{stat.lowest}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Grade Distribution */}
+            <div className="mb-8">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-blue-600 pl-2">Grade Distribution</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                <div className="p-4 bg-green-50 rounded border border-green-200 text-center">
+                  <div className="text-2xl font-bold text-green-700">{reportData.gradeDist['EE'] || 0}</div>
+                  <div className="text-xs font-bold text-green-800 uppercase mt-1">Exceeding Exp.</div>
+                </div>
+                <div className="p-4 bg-blue-50 rounded border border-blue-200 text-center">
+                  <div className="text-2xl font-bold text-blue-700">{reportData.gradeDist['ME'] || 0}</div>
+                  <div className="text-xs font-bold text-blue-800 uppercase mt-1">Meeting Exp.</div>
+                </div>
+                <div className="p-4 bg-yellow-50 rounded border border-yellow-200 text-center">
+                  <div className="text-2xl font-bold text-yellow-700">{reportData.gradeDist['AE'] || 0}</div>
+                  <div className="text-xs font-bold text-yellow-800 uppercase mt-1">Approaching Exp.</div>
+                </div>
+                <div className="p-4 bg-red-50 rounded border border-red-200 text-center">
+                  <div className="text-2xl font-bold text-red-700">{reportData.gradeDist['BE'] || 0}</div>
+                  <div className="text-xs font-bold text-red-800 uppercase mt-1">Below Exp.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="no-print mt-8 flex gap-4 justify-center">
+            <button
+              onClick={() => setReportData(null)}
+              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded text-sm font-semibold transition"
+            >
+              ← Back
+            </button>
+            <button
+              onClick={handleExportPDF}
+              disabled={isExporting}
+              className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold transition flex items-center gap-2"
+            >
+              {isExporting ? <Loader size={18} className="animate-spin" /> : <Download size={18} />}
+              {isExporting ? 'Exporting...' : 'Export Analysis PDF'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* HIDDEN CONTAINER FOR INDIVIDUAL PDF GENERATION (Direct Download) */}
       <div className="fixed -left-[10000px] top-0 no-print">
         {singleDownloadData && (
@@ -2894,162 +2919,166 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       }
 
       {/* SMS BULK CONFIRMATION / PROGRESS MODAL */}
-      {(showSMSBulkConfirm || bulkProgress.active) && (
-        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border border-gray-100">
+      {
+        (showSMSBulkConfirm || bulkProgress.active) && (
+          <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border border-gray-100">
 
-            {!bulkProgress.active ? (
-              <>
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-800">
-                  <MessageSquare className="text-blue-500" />
-                  Start Bulk SMS?
-                </h3>
-                <p className="text-gray-600 mb-4 text-sm">
-                  You are about to send report summaries to <strong>{selectedReportRows.length > 0 ? selectedReportRows.length : reportData.rows.length}</strong> parents via SMS.
-                </p>
-                <div className="bg-blue-50 border border-blue-200 p-3 rounded mb-4 text-xs text-blue-800 font-medium">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
-                    <div>
-                      <div className="font-bold mb-1">Cost Estimate</div>
-                      <div>Approx. {Math.ceil((selectedReportRows.length > 0 ? selectedReportRows.length : reportData.rows.length) * 2)} SMS parts will be sent.</div>
-                      <div className="text-[10px] text-blue-600 mt-1 italic">Each report is ~2-3 SMS parts (160 chars each)</div>
+              {!bulkProgress.active ? (
+                <>
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-800">
+                    <MessageSquare className="text-blue-500" />
+                    Start Bulk SMS?
+                  </h3>
+                  <p className="text-gray-600 mb-4 text-sm">
+                    You are about to send report summaries to <strong>{selectedReportRows.length > 0 ? selectedReportRows.length : reportData.rows.length}</strong> parents via SMS.
+                  </p>
+                  <div className="bg-blue-50 border border-blue-200 p-3 rounded mb-4 text-xs text-blue-800 font-medium">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="font-bold mb-1">Cost Estimate</div>
+                        <div>Approx. {Math.ceil((selectedReportRows.length > 0 ? selectedReportRows.length : reportData.rows.length) * 2)} SMS parts will be sent.</div>
+                        <div className="text-[10px] text-blue-600 mt-1 italic">Each report is ~2-3 SMS parts (160 chars each)</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <label className="block text-xs font-bold mb-1 text-gray-500 uppercase">Send Test Message To (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 0712345678"
+                      id="sms-test-number"
+                      className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none transition"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">If entered, ALL messages will be sent to this number for testing.</p>
+                  </div>
+
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => setShowSMSBulkConfirm(false)}
+                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded text-sm font-bold transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        const testNum = document.getElementById('sms-test-number').value;
+                        executeBulkSMS(testNum || null);
+                      }}
+                      className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold text-sm shadow-lg shadow-blue-200 transition transform hover:scale-105"
+                    >
+                      Start Sending
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-4">
+                  <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-2">Sending SMS Messages...</h3>
+                  <p className="text-gray-500 text-sm mb-6">Please do not close this window.</p>
+
+                  <div className="w-full bg-gray-100 rounded-full h-4 mb-2 overflow-hidden">
+                    <div
+                      className="bg-blue-600 h-4 rounded-full transition-all duration-300 ease-out"
+                      style={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-xs font-bold text-gray-500 uppercase mb-4">
+                    <span>Progress</span>
+                    <span>{bulkProgress.current} / {bulkProgress.total}</span>
+                  </div>
+
+                  <div className="flex justify-center gap-4 text-sm font-medium">
+                    <div className="flex items-center gap-1">
+                      <CheckCircle size={14} className="text-green-600" />
+                      <span className="text-green-600">Success: {bulkProgress.success}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <XCircle size={14} className="text-red-600" />
+                      <span className="text-red-600">Failed: {bulkProgress.failed}</span>
                     </div>
                   </div>
                 </div>
-
-                <div className="mb-6">
-                  <label className="block text-xs font-bold mb-1 text-gray-500 uppercase">Send Test Message To (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 0712345678"
-                    id="sms-test-number"
-                    className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none transition"
-                  />
-                  <p className="text-[10px] text-gray-400 mt-1">If entered, ALL messages will be sent to this number for testing.</p>
-                </div>
-
-                <div className="flex justify-end gap-3">
-                  <button
-                    onClick={() => setShowSMSBulkConfirm(false)}
-                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded text-sm font-bold transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      const testNum = document.getElementById('sms-test-number').value;
-                      executeBulkSMS(testNum || null);
-                    }}
-                    className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold text-sm shadow-lg shadow-blue-200 transition transform hover:scale-105"
-                  >
-                    Start Sending
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-4">
-                <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">Sending SMS Messages...</h3>
-                <p className="text-gray-500 text-sm mb-6">Please do not close this window.</p>
-
-                <div className="w-full bg-gray-100 rounded-full h-4 mb-2 overflow-hidden">
-                  <div
-                    className="bg-blue-600 h-4 rounded-full transition-all duration-300 ease-out"
-                    style={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-xs font-bold text-gray-500 uppercase mb-4">
-                  <span>Progress</span>
-                  <span>{bulkProgress.current} / {bulkProgress.total}</span>
-                </div>
-
-                <div className="flex justify-center gap-4 text-sm font-medium">
-                  <div className="flex items-center gap-1">
-                    <CheckCircle size={14} className="text-green-600" />
-                    <span className="text-green-600">Success: {bulkProgress.success}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <XCircle size={14} className="text-red-600" />
-                    <span className="text-red-600">Failed: {bulkProgress.failed}</span>
-                  </div>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* GENERAL NOTIFICATION MODAL */}
 
       {/* WHATSAPP PROGRESS / CONFIRMATION MODAL - GLOBAL */}
-      {(showWhatsAppConfirm || isSendingWhatsApp) && (
-        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border border-gray-100">
+      {
+        (showWhatsAppConfirm || isSendingWhatsApp) && (
+          <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border border-gray-100">
 
-            {!isSendingWhatsApp ? (
-              <>
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-800">
-                  <MessageCircle className="text-green-500" />
-                  Start Bulk WhatsApp?
-                </h3>
-                <p className="text-gray-600 mb-4 text-sm">
-                  You are about to send report summaries to <strong>{selectedReportRows.length > 0 ? selectedReportRows.length : reportData.rows.length}</strong> parents via WhatsApp.
-                </p>
-                <div className="bg-yellow-50 border border-yellow-200 p-3 rounded mb-4 text-xs text-yellow-800 font-medium">
-                  Messages will be sent in batches with intervals to comply with WhatsApp policies.
-                </div>
+              {!isSendingWhatsApp ? (
+                <>
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-800">
+                    <MessageCircle className="text-green-500" />
+                    Start Bulk WhatsApp?
+                  </h3>
+                  <p className="text-gray-600 mb-4 text-sm">
+                    You are about to send report summaries to <strong>{selectedReportRows.length > 0 ? selectedReportRows.length : reportData.rows.length}</strong> parents via WhatsApp.
+                  </p>
+                  <div className="bg-yellow-50 border border-yellow-200 p-3 rounded mb-4 text-xs text-yellow-800 font-medium">
+                    Messages will be sent in batches with intervals to comply with WhatsApp policies.
+                  </div>
 
-                <div className="mb-6">
-                  <label className="block text-xs font-bold mb-1 text-gray-500 uppercase">Send Test Message To (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 0712345678"
-                    id="wa-test-number"
-                    className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-2 focus:ring-green-500 outline-none transition"
-                  />
-                  <p className="text-[10px] text-gray-400 mt-1">If entered, ALL messages will be sent to this number for testing.</p>
-                </div>
+                  <div className="mb-6">
+                    <label className="block text-xs font-bold mb-1 text-gray-500 uppercase">Send Test Message To (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 0712345678"
+                      id="wa-test-number"
+                      className="w-full border border-gray-300 p-2 rounded text-sm focus:ring-2 focus:ring-green-500 outline-none transition"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">If entered, ALL messages will be sent to this number for testing.</p>
+                  </div>
 
-                <div className="flex justify-end gap-3">
-                  <button
-                    onClick={() => setShowWhatsAppConfirm(false)}
-                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded text-sm font-bold transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      const testNum = document.getElementById('wa-test-number').value;
-                      handleBulkWhatsApp(testNum || null);
-                    }}
-                    className="px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600 font-bold text-sm shadow-lg shadow-green-200 transition transform hover:scale-105"
-                  >
-                    Start Sending
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-4">
-                <div className="w-16 h-16 border-4 border-green-100 border-t-green-500 rounded-full animate-spin mx-auto mb-4"></div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">Sending WhatsApp Messages...</h3>
-                <p className="text-gray-500 text-sm mb-6">Please do not close this window.</p>
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => setShowWhatsAppConfirm(false)}
+                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded text-sm font-bold transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        const testNum = document.getElementById('wa-test-number').value;
+                        handleBulkWhatsApp(testNum || null);
+                      }}
+                      className="px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600 font-bold text-sm shadow-lg shadow-green-200 transition transform hover:scale-105"
+                    >
+                      Start Sending
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-4">
+                  <div className="w-16 h-16 border-4 border-green-100 border-t-green-500 rounded-full animate-spin mx-auto mb-4"></div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-2">Sending WhatsApp Messages...</h3>
+                  <p className="text-gray-500 text-sm mb-6">Please do not close this window.</p>
 
-                <div className="w-full bg-gray-100 rounded-full h-4 mb-2 overflow-hidden">
-                  <div
-                    className="bg-green-500 h-4 rounded-full transition-all duration-300 ease-out"
-                    style={{ width: `${(whatsAppProgress.current / whatsAppProgress.total) * 100}%` }}
-                  ></div>
+                  <div className="w-full bg-gray-100 rounded-full h-4 mb-2 overflow-hidden">
+                    <div
+                      className="bg-green-500 h-4 rounded-full transition-all duration-300 ease-out"
+                      style={{ width: `${(whatsAppProgress.current / whatsAppProgress.total) * 100}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
+                    <span>Progress</span>
+                    <span>{whatsAppProgress.current} / {whatsAppProgress.total}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
-                  <span>Progress</span>
-                  <span>{whatsAppProgress.current} / {whatsAppProgress.total}</span>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* NOTIFICATION MODAL */}
       {

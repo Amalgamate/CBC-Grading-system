@@ -557,7 +557,7 @@ const SummativeTests = ({ onNavigate }) => {
                 <Plus size={16} /> <span className="hidden sm:inline">New Test</span><span className="inline sm:hidden">+</span>
               </button>
               <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2 bg-brand-teal/70 text-white rounded-lg hover:bg-brand-teal/80 transition shadow-sm font-bold text-sm">
-                <Plus size={16} /> <span className="hidden sm:inline">Bulk Import</span><span className="inline sm:hidden">Import</span>
+                <Plus size={16} /> <span className="hidden sm:inline">Create all</span><span className="inline sm:hidden">Create all</span>
               </button>
             </div>
           </div>

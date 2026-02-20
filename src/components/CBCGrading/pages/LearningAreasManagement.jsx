@@ -1,277 +1,359 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, Check, X } from 'lucide-react';
-import api from '../../../services/api';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Plus, Trash2, Edit2, Check, X, BookOpen, Search, Filter, RefreshCw, Layers } from 'lucide-react';
+import api, { configAPI } from '../../../services/api';
 import { useAuth } from '../../../hooks/useAuth';
+import { useNotifications } from '../hooks/useNotifications';
+import toast from 'react-hot-toast';
+import HierarchicalLearningAreas from './settings/HierarchicalLearningAreas';
+import { gradeStructure } from '../data/gradeStructure';
 
+/**
+ * LearningAreasManagement
+ * Upgraded management interface for Learning Areas & Strands.
+ * This version is accessible to Head Teachers and Administrators.
+ */
 const LearningAreasManagement = () => {
   const { user } = useAuth();
+  const { showSuccess, showError } = useNotifications();
+
+  // States
   const [learningAreas, setLearningAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [seeding, setSeeding] = useState(false);
+
+  // Modal/Form State
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
+  const [editingArea, setEditingArea] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     code: '',
+    gradeLevel: 'Lower Primary',
+    icon: '📘',
+    color: '#3b82f6'
   });
 
-  // Fetch learning areas
-  useEffect(() => {
-    fetchLearningAreas();
-  }, []);
+  const GRADE_LEVELS = [
+    'PP1', 'PP2',
+    'GRADE_1', 'GRADE_2', 'GRADE_3',
+    'GRADE_4', 'GRADE_5', 'GRADE_6',
+    'GRADE_7', 'GRADE_8', 'GRADE_9',
+    'Early Years',
+    'Pre-Primary',
+    'Lower Primary',
+    'Upper Primary',
+    'Junior School'
+  ];
 
-  const fetchLearningAreas = async () => {
+  const fetchLearningAreas = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
       const data = await api.getLearningAreas(user?.schoolId);
-      setLearningAreas(data || []);
+      setLearningAreas(Array.isArray(data) ? data : (data?.data || []));
     } catch (err) {
-      setError('Failed to load learning areas: ' + err.message);
+      setError('Failed to load learning areas: ' + (err.message || 'Unknown error'));
       console.error('Error fetching learning areas:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.schoolId]);
 
-  const handleAddNew = () => {
-    setFormData({ name: '', description: '', code: '' });
-    setEditingId(null);
-    setShowForm(true);
-  };
+  useEffect(() => {
+    if (user?.schoolId) {
+      fetchLearningAreas();
+    }
+  }, [user?.schoolId, fetchLearningAreas]);
 
-  const handleEdit = (area) => {
-    setFormData({
-      name: area.name || '',
-      description: area.description || '',
-      code: area.code || '',
-    });
-    setEditingId(area.id);
-    setShowForm(true);
-  };
-
-  const handleCancel = () => {
-    setShowForm(false);
-    setEditingId(null);
-    setFormData({ name: '', description: '', code: '' });
-  };
-
-  const handleSubmit = async () => {
+  const handleSeedAreas = async () => {
     try {
-      setError('');
+      setSeeding(true);
+      const result = await configAPI.seedLearningAreas();
 
+      toast.success(`📚 Curriculum seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`, {
+        duration: 4000,
+        position: 'top-right',
+      });
+
+      await fetchLearningAreas();
+    } catch (err) {
+      showError(err.message || 'Failed to seed learning areas');
+    } finally {
+      setSeeding(false);
+    }
+  };
+
+  const handleOpenModal = (area = null) => {
+    if (area) {
+      setEditingArea(area);
+      setFormData({
+        name: area.name || '',
+        description: area.description || '',
+        shortName: area.shortName || '',
+        gradeLevel: area.gradeLevel || 'Lower Primary',
+        icon: area.icon || '📘',
+        color: area.color || '#3b82f6'
+      });
+    } else {
+      setEditingArea(null);
+      setFormData({
+        name: '',
+        description: '',
+        shortName: '',
+        gradeLevel: 'Lower Primary',
+        icon: '📘',
+        color: '#3b82f6'
+      });
+    }
+    setShowForm(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
       if (!formData.name.trim()) {
-        setError('Learning area name is required');
+        toast.error('Name is required');
+        return;
+      }
+      if (!formData.shortName.trim()) {
+        toast.error('Short Name is required');
         return;
       }
 
-      if (editingId) {
-        // Update existing
-        await api.updateLearningArea(editingId, formData);
+      if (editingArea) {
+        await api.updateLearningArea(editingArea.id, formData);
+        showSuccess('Learning area updated');
       } else {
-        // Create new
         await api.createLearningArea({
           ...formData,
-          schoolId: user?.schoolId,
+          schoolId: user?.schoolId
         });
+        showSuccess('Learning area created');
       }
 
-      await fetchLearningAreas();
-      handleCancel();
+      setShowForm(false);
+      fetchLearningAreas();
     } catch (err) {
-      setError('Failed to save learning area: ' + err.message);
-      console.error('Error saving learning area:', err);
+      showError(err.message || 'Failed to save');
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this learning area?')) return;
-
+  const handleDelete = async (area) => {
+    if (!window.confirm(`Are you sure you want to delete "${area.name}"?`)) return;
     try {
-      setError('');
-      await api.deleteLearningArea(id);
-      await fetchLearningAreas();
+      await api.deleteLearningArea(area.id);
+      showSuccess('Deleted successfully');
+      fetchLearningAreas();
     } catch (err) {
-      setError('Failed to delete learning area: ' + err.message);
-      console.error('Error deleting learning area:', err);
+      showError(err.message || 'Failed to delete');
     }
   };
-
-  if (loading) {
-    return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-3 text-gray-600">Loading learning areas...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Learning Areas Management</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Create and manage learning areas for your school
-            </p>
-          </div>
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <Layers className="text-brand-purple" />
+            Learning Areas Management
+          </h2>
+          <p className="text-gray-500 mt-1">Configure your school's CBC curriculum structure and subjects.</p>
+        </div>
+
+        <div className="flex items-center gap-3">
           <button
-            onClick={handleAddNew}
-            disabled={showForm}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            onClick={handleSeedAreas}
+            disabled={seeding || loading}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm ${seeding
+              ? 'bg-gray-100 text-gray-400 cursor-wait'
+              : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+              }`}
+          >
+            {seeding ? (
+              <RefreshCw className="animate-spin" size={18} />
+            ) : (
+              <span>🌱</span>
+            )}
+            {seeding ? 'Seeding...' : 'Seed CBC Areas'}
+          </button>
+
+          <button
+            onClick={() => handleOpenModal()}
+            className="flex items-center gap-2 px-5 py-2.5 bg-brand-purple text-white rounded-xl font-bold hover:bg-brand-purple/90 transition-all shadow-md shadow-brand-purple/20"
           >
             <Plus size={18} />
             Add Learning Area
           </button>
         </div>
+      </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-800">{error}</p>
+      {/* Main Content Area */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 min-h-[400px]">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-10 w-10 border-4 border-brand-purple/20 border-t-brand-purple"></div>
+            <p className="text-gray-500 mt-4 font-medium">Loading curriculum...</p>
+          </div>
+        ) : error ? (
+          <div className="p-12 text-center">
+            <div className="bg-red-50 text-red-600 p-4 rounded-xl inline-block mb-4">
+              <X size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-gray-800">{error}</h3>
+            <button
+              onClick={fetchLearningAreas}
+              className="mt-4 px-6 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition font-semibold"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : (
+          <div className="p-6">
+            <HierarchicalLearningAreas
+              learningAreas={learningAreas}
+              gradeStructure={gradeStructure}
+              onEdit={handleOpenModal}
+              onDelete={handleDelete}
+            />
           </div>
         )}
+      </div>
 
-        {/* Add/Edit Form */}
-        {showForm && (
-          <div className="mt-6 p-6 bg-gray-50 border border-gray-200 rounded-lg">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              {editingId ? 'Edit Learning Area' : 'Add New Learning Area'}
-            </h3>
+      {/* Manual Creation Modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 bg-gray-50 border-b flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-800">
+                {editingArea ? 'Edit Learning Area' : 'New Learning Area'}
+              </h3>
+              <button
+                onClick={() => setShowForm(false)}
+                className="p-2 hover:bg-gray-200 rounded-lg transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
-            <div className="space-y-4">
-              {/* Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., Language and Literacy"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                />
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Learning Area Name</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple outline-none transition"
+                    placeholder="e.g. Mathematics Activities"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Short Name</label>
+                  <input
+                    type="text"
+                    value={formData.shortName}
+                    onChange={(e) => setFormData({ ...formData, shortName: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple outline-none transition"
+                    placeholder="e.g. MATH"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Grade Level</label>
+                  <select
+                    value={formData.gradeLevel}
+                    onChange={(e) => setFormData({ ...formData, gradeLevel: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple outline-none transition"
+                  >
+                    {GRADE_LEVELS.map(level => (
+                      <option key={level} value={level}>{level}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Display Icon</label>
+                  <select
+                    value={formData.icon}
+                    onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple outline-none transition"
+                  >
+                    <option value="📘">📘 Book</option>
+                    <option value="🧮">🧮 Abacus</option>
+                    <option value="🔬">🔬 Science</option>
+                    <option value="🎨">🎨 Art</option>
+                    <option value="🏃">🏃 Sports</option>
+                    <option value="🌍">🌍 Social</option>
+                    <option value="🧸">🧸 Play</option>
+                    <option value="🎼">🎼 Music</option>
+                    <option value="🕌">🕌 Religion</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Theme Color</label>
+                  <input
+                    type="color"
+                    value={formData.color}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    className="w-full h-10 p-1 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+                  />
+                </div>
               </div>
 
-              {/* Code */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Code <span className="text-gray-500 text-xs">(optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  placeholder="e.g., LL"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description <span className="text-gray-500 text-xs">(optional)</span>
-                </label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Description (Optional)</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Enter description for this learning area"
-                  rows="3"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple outline-none transition"
+                  placeholder="Describe focus areas..."
+                  rows={3}
                 />
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-3 justify-end pt-4">
+              {/* Preview */}
+              <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 text-center">Preview</p>
+                <div className="flex items-center gap-4">
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm"
+                    style={{ backgroundColor: `${formData.color}20`, color: formData.color }}
+                  >
+                    {formData.icon}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-gray-900 leading-tight">{formData.name || 'Subject Name'}</h4>
+                    <p className="text-xs text-gray-500 font-medium">
+                      <span className="text-brand-purple">{formData.shortName || 'CODE'}</span> • {formData.gradeLevel}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-3">
                 <button
-                  onClick={handleCancel}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition"
                 >
-                  <X size={16} />
                   Cancel
                 </button>
                 <button
-                  onClick={handleSubmit}
-                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-brand-purple text-white rounded-xl font-bold hover:bg-brand-purple/90 transition shadow-lg shadow-brand-purple/10"
                 >
-                  <Check size={16} />
-                  {editingId ? 'Update' : 'Save'}
+                  {editingArea ? 'Update' : 'Create'}
                 </button>
               </div>
-            </div>
+            </form>
           </div>
-        )}
-      </div>
-
-      {/* Learning Areas List */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        {learningAreas.length === 0 ? (
-          <div className="p-8 text-center">
-            <p className="text-gray-500">No learning areas created yet</p>
-            <p className="text-sm text-gray-400 mt-2">Click "Add Learning Area" to get started</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Name</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Code</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Description</th>
-                  <th className="px-6 py-3 text-center text-sm font-semibold text-gray-700">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {learningAreas.map((area) => (
-                  <tr key={area.id} className="border-b hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-sm text-gray-800 font-medium">{area.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{area.code || '-'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
-                      {area.description || '-'}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleEdit(area)}
-                          disabled={showForm}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          title="Edit"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(area.id)}
-                          disabled={showForm}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Info Box */}
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <p className="text-sm text-blue-800">
-          <strong>Note:</strong> Learning areas are used across the assessment module. Create your learning areas here 
-          before setting up assessment scales and tests.
-        </p>
-      </div>
+        </div>
+      )}
     </div>
   );
 };

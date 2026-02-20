@@ -1,7 +1,6 @@
 import React from 'react';
 import { ArrowLeft, Check, AlertCircle, RefreshCw, Loader } from 'lucide-react';
 import { useSummativeTestForm } from '../../hooks/useSummativeTestForm';
-import { getLearningAreasByGrade } from '../../constants/learningAreas';
 
 const SummativeTestFormMobile = ({ onBack, onSuccess }) => {
   const {
@@ -15,6 +14,7 @@ const SummativeTestFormMobile = ({ onBack, onSuccess }) => {
     loadingScales,
     loadingGrades,
     testTypes,
+    availableLearningAreas,
     handleInputChange,
     handleSubmit: originalHandleSubmit,
     getSelectedScale
@@ -83,9 +83,8 @@ const SummativeTestFormMobile = ({ onBack, onSuccess }) => {
               type="text"
               value={formData.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
-              className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.title ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.title ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="e.g., Math Mid-Term"
             />
             {errors.title && (
@@ -101,9 +100,8 @@ const SummativeTestFormMobile = ({ onBack, onSuccess }) => {
             <select
               value={formData.type}
               onChange={(e) => handleInputChange('type', e.target.value)}
-              className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.type ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.type ? 'border-red-500' : 'border-gray-300'
+                }`}
             >
               <option value="">Select Type</option>
               {testTypes.map(type => (
@@ -123,9 +121,8 @@ const SummativeTestFormMobile = ({ onBack, onSuccess }) => {
             <select
               value={formData.grade}
               onChange={(e) => handleInputChange('grade', e.target.value)}
-              className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.grade ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.grade ? 'border-red-500' : 'border-gray-300'
+                }`}
               disabled={loadingGrades}
             >
               {loadingGrades ? (
@@ -156,14 +153,13 @@ const SummativeTestFormMobile = ({ onBack, onSuccess }) => {
             <select
               value={formData.learningArea}
               onChange={(e) => handleInputChange('learningArea', e.target.value)}
-              className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.learningArea ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.learningArea ? 'border-red-500' : 'border-gray-300'
+                }`}
               disabled={!formData.grade}
             >
               <option value="">{formData.grade ? 'Select Learning Area' : 'Select Grade first'}</option>
-              {formData.grade && getLearningAreasByGrade(formData.grade).map(area => (
-                <option key={area} value={area}>{area}</option>
+              {formData.grade && availableLearningAreas.map(area => (
+                <option key={area.id || area.name} value={area.name}>{area.name}</option>
               ))}
             </select>
             {errors.learningArea && (
@@ -179,9 +175,8 @@ const SummativeTestFormMobile = ({ onBack, onSuccess }) => {
             <select
               value={formData.term}
               onChange={(e) => handleInputChange('term', e.target.value)}
-              className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.term ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-3 py-2.5 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.term ? 'border-red-500' : 'border-gray-300'
+                }`}
               disabled={loadingGrades}
             >
               {loadingGrades ? (
@@ -269,9 +264,8 @@ const SummativeTestFormMobile = ({ onBack, onSuccess }) => {
           type="submit"
           onClick={handleSubmit}
           disabled={saving}
-          className={`flex-1 px-3 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm ${
-            saving ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
+          className={`flex-1 px-3 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm ${saving ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
         >
           {saving ? (
             <>

@@ -10,9 +10,9 @@ import { getStrandsForArea } from '../../../../constants/strandsConfig';
 const HierarchicalLearningAreas = ({
   learningAreas = [],
   gradeStructure = [],
-  onEdit = () => {},
-  onDelete = () => {},
-  onAddStrand = () => {}
+  onEdit = () => { },
+  onDelete = () => { },
+  onAddStrand = () => { }
 }) => {
   const [expandedGrades, setExpandedGrades] = useState({});
   const [expandedAreas, setExpandedAreas] = useState({});
@@ -27,19 +27,18 @@ const HierarchicalLearningAreas = ({
     return acc;
   }, {});
 
-  // Sort grades in a logical order
-  const gradeOrder = [
-    'Early Years',
-    'Pre-Primary',
-    'Lower Primary',
-    'Upper Primary',
-    'Junior School',
-    'Senior School',
-    'Other'
-  ];
+  // Sort grades based on the order in gradeStructure
+  const gradeOrder = gradeStructure.map(g => g.name);
 
   const sortedGrades = Object.keys(groupedByGrade).sort(
-    (a, b) => gradeOrder.indexOf(a) - gradeOrder.indexOf(b)
+    (a, b) => {
+      const indexA = gradeOrder.indexOf(a);
+      const indexB = gradeOrder.indexOf(b);
+      if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    }
   );
 
   const toggleGrade = (grade) => {
@@ -79,7 +78,9 @@ const HierarchicalLearningAreas = ({
                 )}
               </button>
               <div className="flex-grow">
-                <h3 className="font-bold text-gray-800 text-lg">{grade}</h3>
+                <h3 className="font-bold text-gray-800 text-lg">
+                  {gradeStructure.find(g => g.code === grade || g.name === grade)?.name || grade}
+                </h3>
                 <p className="text-xs text-gray-500">
                   {groupedByGrade[grade].length} learning {groupedByGrade[grade].length === 1 ? 'area' : 'areas'}
                 </p>
@@ -125,7 +126,14 @@ const HierarchicalLearningAreas = ({
                         {/* Area Icon and Name */}
                         <div className="flex-shrink-0 text-2xl">{area.icon}</div>
                         <div className="flex-grow">
-                          <h4 className="font-semibold text-gray-700">{area.name}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-gray-700">{area.name}</h4>
+                            {area.shortName && (
+                              <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded uppercase">
+                                {area.shortName}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 mt-1">
                             <div
                               className="w-4 h-4 rounded border border-gray-300"

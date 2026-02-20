@@ -12,6 +12,7 @@ import jsPDF from 'jspdf';
 import EmptyState from '../shared/EmptyState';
 import LoadingSpinner from '../shared/LoadingSpinner';
 import { useNotifications } from '../hooks/useNotifications';
+import { useAuth } from '../../../hooks/useAuth';
 import api from '../../../services/api';
 import SmartLearnerSearch from '../shared/SmartLearnerSearch';
 
@@ -23,6 +24,7 @@ const FeeCollectionPage = ({ learnerId }) => {
   const [searchLearnerId, setSearchLearnerId] = useState(learnerId || null);
   const [statusFilter, setStatusFilter] = useState('all');
   const { showSuccess, showError } = useNotifications();
+  const { user } = useAuth();
 
   // Payment form state
   const [paymentData, setPaymentData] = useState({
@@ -83,91 +85,222 @@ const FeeCollectionPage = ({ learnerId }) => {
     }
   };
 
-  const handleDownloadPdf = (invoice) => {
-    const doc = new jsPDF();
+  const handleDownloadPdf = async (invoice) => {
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pageW = 210, pageH = 297, M = 15;
 
-    // Header
-    doc.setFillColor(41, 128, 185); // Blue header
-    doc.rect(0, 0, 210, 40, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
-    doc.text("INVOICE / RECEIPT", 105, 15, null, null, "center");
-    doc.setFontSize(12);
-    doc.text("School Management System", 105, 25, null, null, "center"); // Replace with actual school name if available
+    // ── COLORS & CONFIG ──────────────────────────────────────────────────────
+    const isPaid = ['PAID', 'OVERPAID', 'WAIVED'].includes(invoice.status);
+    const docType = isPaid ? 'OFFICIAL RECEIPT' : 'FEE INVOICE';
+    const docRef = isPaid ? `RCT-${invoice.invoiceNumber}` : `INV-${invoice.invoiceNumber}`;
+    const filename = isPaid ? `Receipt_${invoice.invoiceNumber}.pdf` : `Invoice_${invoice.invoiceNumber}.pdf`;
 
-    // Invoice Details
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
+    const C_ACCENT = [0, 32, 96];      // Deep Navy
+    const C_GOLD = [202, 138, 4];    // Muted Gold
+    const C_TEXT = [30, 30, 30];     // Dark Grey/Black
+    const C_LABEL = [100, 100, 100];  // Light Grey
+    const C_LINE = [230, 230, 230];  // Divider
 
-    let y = 50;
+    // ── ASSETS ───────────────────────────────────────────────────────────────
+    let logoData = null;
+    const logoUrl = user?.school?.logo || '/logo-zawadi.png';
+    try {
+      const r = await fetch(logoUrl).catch(() => null);
+      if (r && r.ok) {
+        const b = await r.blob();
+        logoData = await new Promise(res => {
+          const fr = new FileReader();
+          fr.onload = () => res(fr.result);
+          fr.readAsDataURL(b);
+        });
+      }
+    } catch (_) { }
 
-    // Left Column
-    doc.setFont(undefined, 'bold');
-    doc.text("Invoice To:", 14, y);
-    doc.setFont(undefined, 'normal');
-    y += 7;
-    doc.text(`Student: ${invoice.learner?.firstName} ${invoice.learner?.lastName}`, 14, y);
-    y += 5;
-    doc.text(`Adm No: ${invoice.learner?.admissionNumber}`, 14, y);
-    y += 5;
-    doc.text(`Grade: ${invoice.learner?.grade} ${invoice.learner?.stream}`, 14, y);
+    // ── HEADER (Centered, Minimalist) ────────────────────────────────────────
+    let y = 15;
 
-    // Right Column
-    y = 50;
-    doc.setFont(undefined, 'bold');
-    doc.text("Invoice Details:", 140, y);
-    doc.setFont(undefined, 'normal');
-    y += 7;
-    doc.text(`Invoice #: ${invoice.invoiceNumber}`, 140, y);
-    y += 5;
-    doc.text(`Date: ${new Date(invoice.createdAt || Date.now()).toLocaleDateString()}`, 140, y);
-    y += 5;
-    doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, 140, y);
-    y += 5;
-    doc.text(`Status: ${invoice.status}`, 140, y);
+    // Logo
+    if (logoData) {
+      try { doc.addImage(logoData, 'PNG', pageW / 2 - 12, y, 24, 24); } catch (_) { }
+      y += 28;
+    } else {
+      y += 5;
+    }
 
-    // Table Header
-    y += 20;
-    doc.setFillColor(240, 240, 240);
-    doc.rect(14, y - 5, 182, 10, 'F');
-    doc.setFont(undefined, 'bold');
-    doc.text("Description", 16, y);
-    doc.text("Amount (KES)", 160, y);
+    // School Name
+    const sName = (user?.school?.name || 'ZAWADI JUNIOR ACADEMY').toUpperCase();
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(...C_ACCENT);
+    doc.text(sName, pageW / 2, y, { align: 'center' });
+    y += 6;
 
-    // Table content
-    y += 10;
-    doc.setFont(undefined, 'normal');
-    doc.text(`${invoice.feeStructure?.name} (${invoice.term} ${invoice.academicYear})`, 16, y);
-    doc.text(Number(invoice.totalAmount).toLocaleString(), 160, y);
-
-    // Totals
-    y += 20;
-    doc.setDrawColor(200, 200, 200);
-    doc.line(14, y - 5, 196, y - 5);
-
-    doc.setFont(undefined, 'bold');
-    doc.text("Total Amount:", 120, y);
-    doc.text(`KES ${Number(invoice.totalAmount).toLocaleString()}`, 160, y);
-
-    y += 10;
-    doc.setTextColor(0, 128, 0); // Green for paid
-    doc.text("Amount Paid:", 120, y);
-    doc.text(`KES ${Number(invoice.paidAmount).toLocaleString()}`, 160, y);
-
-    y += 10;
-    doc.setTextColor(255, 0, 0); // Red for balance
-    doc.text("Balance Due:", 120, y);
-    doc.text(`KES ${Number(invoice.balance).toLocaleString()}`, 160, y);
-
-    // Footer
-    doc.setTextColor(150, 150, 150);
+    // Contact Info (One compact line)
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.text("Thank you for your business.", 105, 280, null, null, "center");
+    doc.setTextColor(...C_LABEL);
+    const contact = [
+      user?.school?.phone || '+254 700 123 456',
+      user?.school?.email || 'info@school.ac.ke',
+      user?.school?.address
+    ].filter(Boolean).join('  |  ');
+    doc.text(contact, pageW / 2, y, { align: 'center' });
+    y += 8;
 
-    // Save
-    doc.save(`Invoice_${invoice.invoiceNumber}.pdf`);
+    // Gold Divider
+    doc.setDrawColor(...C_GOLD);
+    doc.setLineWidth(0.5);
+    doc.line(M + 20, y, pageW - M - 20, y);
+    y += 10;
+
+    // ── DOCUMENT BADGE (Outlined) ────────────────────────────────────────────
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(pageW / 2 - 40, y, 80, 11, 1, 1, 'S');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(docType, pageW / 2, y + 7.5, { align: 'center' });
+    y += 18;
+
+    // Meta (Ref & Date)
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...C_TEXT);
+    doc.text(`REF: ${docRef}    •    DATE: ${new Date(invoice.createdAt || Date.now()).toLocaleDateString('en-GB')}`, pageW / 2, y, { align: 'center' });
+    y += 15;
+
+    // ── BILLING INFO (Clean Columns) ─────────────────────────────────────────
+    const col1 = M + 5;
+    const col2 = pageW / 2 + 10;
+
+    // Headers
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(...C_ACCENT);
+    doc.text('BILL TO:', col1, y);
+    doc.text('PAYMENT DETAILS:', col2, y);
+    y += 5;
+
+    // Data
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...C_TEXT);
+
+    // Left Col
+    const lName = `${invoice.learner?.firstName || ''} ${invoice.learner?.lastName || ''}`.toUpperCase();
+    doc.text(lName, col1, y);
+    doc.setTextColor(...C_LABEL);
+    doc.setFontSize(8.5);
+    doc.text(`ID: ${invoice.learner?.admissionNumber || '-'}`, col1, y + 5);
+    doc.text(`Class: ${(invoice.learner?.grade || '').replace(/_/g, ' ')}`, col1, y + 10);
+
+    // Right Col
+    doc.setFontSize(9);
+    doc.setTextColor(...C_TEXT);
+    doc.text(`Term: ${(invoice.term || '').replace(/_/g, ' ')} ${invoice.academicYear || ''}`, col2, y);
+    doc.text(`Due: ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}`, col2, y + 5);
+    const statusCol = isPaid ? [22, 163, 74] : [220, 38, 38];
+    doc.setTextColor(...statusCol);
+    doc.setFont('helvetica', 'bold');
+    doc.text(invoice.status, col2, y + 10);
+
+    y += 20;
+
+    // ── FEE TABLE (Premium Minimalist) ───────────────────────────────────────
+    // Header Row
+    doc.setFillColor(...C_ACCENT);
+    doc.rect(M, y, pageW - 2 * M, 8, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+
+    const tC1 = M + 4;       // #
+    const tC2 = M + 18;      // Desc
+    const tC3 = pageW - M - 40; // Mandatory
+    const tC4 = pageW - M - 4;  // Amount (Right aligned x coord)
+
+    doc.text('#', tC1, y + 5);
+    doc.text('DESCRIPTION', tC2, y + 5);
+    doc.text('TYPE', tC3, y + 5, { align: 'center' });
+    doc.text('AMOUNT', tC4, y + 5, { align: 'right' });
+    y += 10;
+
+    // Items
+    const items = invoice.feeStructure?.items?.length
+      ? invoice.feeStructure.items
+      : (invoice.items || [{ name: 'School Fees', amount: invoice.totalAmount, mandatory: true }]);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...C_TEXT);
+
+    items.forEach((item, i) => {
+      // Separator line
+      if (i > 0) {
+        doc.setDrawColor(...C_LINE);
+        doc.setLineWidth(0.1);
+        doc.line(M, y - 2, pageW - M, y - 2);
+      }
+
+      doc.text((i + 1).toString(), tC1, y + 2);
+      doc.text(item.name || item.description || 'Fee Item', tC2, y + 2);
+
+      // Badge style for Mandatory
+      const isMand = item.mandatory !== false;
+      doc.setFontSize(7);
+      doc.setTextColor(...(isMand ? C_ACCENT : C_LABEL));
+      doc.text(isMand ? 'MANDATORY' : 'OPTIONAL', tC3, y + 2, { align: 'center' });
+
+      doc.setFontSize(9);
+      doc.setTextColor(...C_TEXT);
+      doc.text(Number(item.amount || 0).toLocaleString('en-KE'), tC4, y + 2, { align: 'right' });
+      y += 8;
+    });
+
+    // Thick bottom line
+    y += 2;
+    doc.setDrawColor(...C_ACCENT);
+    doc.setLineWidth(0.5);
+    doc.line(M, y, pageW - M, y);
+    y += 8;
+
+    // ── TOTALS ───────────────────────────────────────────────────────────────
+    const xLab = pageW - M - 55;
+    const xVal = pageW - M - 4;
+
+    const printTot = (label, val, bold, col) => {
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setTextColor(...col);
+      doc.text(label, xLab, y);
+      doc.text(`KES ${Number(val || 0).toLocaleString('en-KE')}`, xVal, y, { align: 'right' });
+      y += 6;
+    };
+
+    printTot('TOTAL CHARGED:', invoice.totalAmount, true, C_ACCENT);
+    printTot('AMOUNT PAID:', invoice.paidAmount, false, [22, 163, 74]);
+
+    y += 2;
+    const bal = Number(invoice.balance || 0);
+    const bCol = bal <= 0 ? [22, 163, 74] : [220, 38, 38];
+    doc.setFontSize(10);
+    printTot('BALANCE DUE:', bal, true, bCol);
+    y += 10;
+
+    // ── FOOTER (Minimal) ─────────────────────────────────────────────────────
+    const fY = pageH - 12;
+    doc.setDrawColor(...C_LINE);
+    doc.setLineWidth(0.2);
+    doc.line(M, fY - 5, pageW - M, fY - 5);
+
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7);
+    doc.setTextColor(...C_LABEL);
+    doc.text('Thank you for choosing Zawadi Junior Academy.', pageW / 2, fY, { align: 'center' });
+
+    doc.save(filename);
   };
-
   const getStatusBadge = (status) => {
     const badges = {
       PENDING: { color: 'bg-yellow-100 text-yellow-800', icon: Clock, label: 'Pending' },

@@ -1257,7 +1257,7 @@ model LearningArea {
   updatedAt   DateTime @updatedAt
   school      School?  @relation("SchoolLearningAreas", fields: [schoolId], references: [id], onDelete: Cascade)
 
-  @@unique([schoolId, name])
+  @@unique([schoolId, name, gradeLevel])
   @@index([gradeLevel])
   @@index([schoolId])
   @@map("learning_areas")

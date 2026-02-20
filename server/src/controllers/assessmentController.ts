@@ -831,46 +831,33 @@ export const generateTestsBulk = async (req: AuthRequest, res: Response) => {
     const created = [];
     const skipped = [];
 
-    // CBC Learning Areas (Consistent with scaleGroup.controller.ts)
-    const getLearningAreasForGrade = (gradeValue: string) => {
-      const standardAreas = [
-        'MATHEMATICAL ACTIVITIES',
-        'ENGLISH LANGUAGE ACTIVITIES',
-        'KISWAHILI',
-        'ENVIRONMENTAL ACTIVITIES',
-        'CREATIVE ACTIVITIES',
-        'RELIGIOUS EDUCATION',
-        'SCIENCE & TECHNOLOGY',
-        'SOCIAL STUDIES',
-        'MUSIC',
-        'ART & CRAFT',
-        'PHYSICAL EDUCATION',
-        'INSHA',
-        'READING',
-        'ABACUS',
-        'AGRICULTURE'
-      ];
-
-      const gradeStr = String(gradeValue).toUpperCase();
-      if (gradeStr.includes('GRADE_7') || gradeStr.includes('GRADE_8') || gradeStr.includes('GRADE_9') ||
-        gradeStr === '7' || gradeStr === '8' || gradeStr === '9') {
-        // Remove: Abbacus, Art & CR, ENV, Insha, music, Physical, reading, sci & Tech
-        return [
-          'MATHEMATICAL ACTIVITIES',
-          'ENGLISH LANGUAGE ACTIVITIES',
-          'KISWAHILI',
-          'RELIGIOUS EDUCATION',
-          'SOCIAL STUDIES',
-          'AGRICULTURE',
-          'CREATIVE ACTIVITIES'
-        ];
-      }
-
-      return standardAreas;
+    // Official CBC Learning Area Mapping
+    const OFFICIAL_CBC_MAPPING: { [key: string]: string[] } = {
+      'CRECHE': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+      'PLAYGROUP': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+      'RECEPTION': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+      'TRANSITION': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+      'PP1': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+      'PP2': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+      'GRADE_1': ['English', 'Kiswahili', 'Indigenous Language', 'Mathematical Activities', 'Environmental Activities', 'Religious Education', 'Creative Activities'],
+      'GRADE_2': ['English', 'Kiswahili', 'Indigenous Language', 'Mathematical Activities', 'Environmental Activities', 'Religious Education', 'Creative Activities'],
+      'GRADE_3': ['English', 'Kiswahili', 'Indigenous Language', 'Mathematical Activities', 'Environmental Activities', 'Religious Education', 'Creative Activities'],
+      'GRADE_4': ['English', 'Kiswahili', 'Science and Technology', 'Social Studies', 'Mathematics', 'Agriculture & Nutrition', 'Creative Arts', 'Religious Education'],
+      'GRADE_5': ['English', 'Kiswahili', 'Science and Technology', 'Social Studies', 'Mathematics', 'Agriculture & Nutrition', 'Creative Arts', 'Religious Education'],
+      'GRADE_6': ['English', 'Kiswahili', 'Science and Technology', 'Social Studies', 'Mathematics', 'Agriculture & Nutrition', 'Creative Arts', 'Religious Education'],
+      'GRADE_7': ['English', 'Kiswahili', 'Mathematics', 'Integrated Science', 'Social Studies', 'Religious Education', 'Pre-Technical Studies', 'Agriculture & Nutrition', 'Creative Arts & Sports'],
+      'GRADE_8': ['English', 'Kiswahili', 'Mathematics', 'Integrated Science', 'Social Studies', 'Religious Education', 'Pre-Technical Studies', 'Agriculture & Nutrition', 'Creative Arts & Sports'],
+      'GRADE_9': ['English', 'Kiswahili', 'Mathematics', 'Integrated Science', 'Social Studies', 'Religious Education', 'Pre-Technical Studies', 'Agriculture & Nutrition', 'Creative Arts & Sports']
     };
 
     for (const grade of grades) {
-      const AREAS_TO_GENERATE = getLearningAreasForGrade(grade);
+      const AREAS_TO_GENERATE = OFFICIAL_CBC_MAPPING[grade as string] || [];
+
+      if (AREAS_TO_GENERATE.length === 0) {
+        console.log(`- No mapping found for grade ${grade}, skipping...`);
+        continue;
+      }
+
       for (const learningArea of AREAS_TO_GENERATE) {
         // Check if a test with same unique properties already exists
         const existing = await prisma.summativeTest.findFirst({

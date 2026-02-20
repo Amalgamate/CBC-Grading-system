@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
-  Save, Search, Loader, ArrowLeft, Lock, Printer, UploadCloud, Database, ChevronRight
+  Save, Search, Loader, ArrowLeft, Printer, UploadCloud, Database, ChevronRight
 } from 'lucide-react';
 import VirtualizedTable from '../shared/VirtualizedTable';
 import { assessmentAPI, gradingAPI, classAPI, configAPI, learnerAPI } from '../../../services/api';
@@ -24,8 +24,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
   // View State
   const [step, setStep] = useState(initialTestId ? 2 : 1); // 1: Setup, 2: Assess (Skip setup if test ID provided)
   const [loading, setLoading] = useState(true);
-  const [lockingTest, setLockingTest] = useState(false);
-  const [isTestLocked, setIsTestLocked] = useState(false);
+
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
@@ -238,10 +237,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
           }
         }
 
-        // 2. Fetch Test Lock Status
-        if (test) {
-          setIsTestLocked(test.locked === true);
-        }
+
 
         // 3. Fetch Existing Marks or Load from Draft
         const draftKey = `draft-marks-${selectedTestId}`;
@@ -280,7 +276,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
 
   // Auto-save marks to localStorage with debouncing
   useEffect(() => {
-    if (!selectedTestId || isTestLocked) return;
+    if (!selectedTestId) return;
 
     const draftKey = `draft-marks-${selectedTestId}`;
 
@@ -295,7 +291,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
     }, 2000); // 2 second debounce
 
     return () => clearTimeout(timeoutId);
-  }, [marks, selectedTestId, isTestLocked]);
+  }, [marks, selectedTestId]);
 
   // Derived Data
   // Tests filtered list depends on selected grade/term
@@ -440,86 +436,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
     return 'Not assessed';
   };
 
-  const handleLockTest = async () => {
-    // Check if assessment is complete
-    if (!assessmentProgress.isComplete) {
-      showError('Cannot lock test: Assessment must be 100% complete');
-      return;
-    }
 
-    // Confirm lock action
-    const testName = selectedTest?.title || selectedTest?.name || 'this test';
-    const confirmMessage = `🔒 Lock this test?
-
-Once locked, marks cannot be modified. This is a permanent action.
-
-Test: ${testName}
-Assessed: ${assessmentProgress.assessed}/${assessmentProgress.total} students
-
-Are you sure you want to lock this test?`;
-
-    const userConfirmed = window.confirm(confirmMessage);
-
-    if (!userConfirmed) {
-      return;
-    }
-
-    try {
-      setLockingTest(true);
-
-      // Update test with lock status
-      await assessmentAPI.updateTest(selectedTestId, {
-        locked: true,
-        lockedAt: new Date().toISOString(),
-        lockedBy: user?.userId || user?.id || user?.email
-      });
-
-      setIsTestLocked(true);
-      showSuccess('✅ Test locked successfully!');
-    } catch (error) {
-      console.error('Lock test error:', error);
-      showError('Failed to lock test');
-    } finally {
-      setLockingTest(false);
-    }
-  };
-
-  const handleUnlockTest = async () => {
-    // Confirm unlock action
-    const testName = selectedTest?.title || selectedTest?.name || 'this test';
-    const confirmMessage = `🔓 Unlock this test?
-
-Unlocking will allow marks to be modified again. Only proceed if you are authorized.
-
-Test: ${testName}
-
-Are you sure you want to unlock this test?`;
-
-    const userConfirmed = window.confirm(confirmMessage);
-
-    if (!userConfirmed) {
-      return;
-    }
-
-    try {
-      setLockingTest(true);
-
-      // Update test with unlock status
-      await assessmentAPI.updateTest(selectedTestId, {
-        locked: false,
-        lockedAt: null, // Clear locked info
-        lockedBy: null
-      });
-
-      setIsTestLocked(false);
-      showSuccess('✅ Test unlocked successfully!');
-    } catch (error) {
-      console.error('Unlock test error:', error);
-      showError('Failed to unlock test');
-    } finally {
-      setLockingTest(false);
-    }
-  };
 
   const handlePrintReport = async (onProgress) => {
     try {
@@ -588,11 +505,7 @@ Are you sure you want to unlock this test?`;
   const handleSave = async (marksToSaveOverride = null) => {
     const currentMarksToSave = marksToSaveOverride || marks;
 
-    // Check if test is locked
-    if (isTestLocked) {
-      showError('Cannot save: Test is locked');
-      return;
-    }
+
 
     if (Object.keys(currentMarksToSave).length === 0) {
       showError('No marks entered to save');
@@ -773,7 +686,7 @@ Are you sure you want to unlock this test?`;
               <option value="">{finalTests.length === 0 ? (selectedLearningArea ? 'No tests for this area' : 'Select Learning Area first') : 'Select Test'}</option>
               {finalTests.map(t => (
                 <option key={t.id} value={t.id}>
-                  {t.locked ? '🔒 ' : ''}{t.title || t.name}
+                  {t.title || t.name}
                 </option>
               ))}
             </select>
@@ -860,11 +773,7 @@ Are you sure you want to unlock this test?`;
                 }`}>
                 {assessmentProgress.percentage}% Complete
               </span>
-              {isTestLocked && (
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200 flex items-center gap-1">
-                  <Lock size={10} /> Locked
-                </span>
-              )}
+
               {isDraft && (
                 <span className="text-[10px] text-gray-400 font-medium italic flex items-center gap-1.5 ml-1">
                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
@@ -887,7 +796,7 @@ Are you sure you want to unlock this test?`;
 
               <button
                 onClick={() => setShowBulkImportModal(true)}
-                disabled={isTestLocked || !selectedTestId || loading || loadingLearners}
+                disabled={!selectedTestId || loading || loadingLearners}
                 className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Import
@@ -895,35 +804,11 @@ Are you sure you want to unlock this test?`;
 
               <div className="h-3 w-px bg-gray-200 mx-3" />
 
-              {assessmentProgress.isComplete && !isTestLocked && (
-                <>
-                  <button
-                    onClick={handleLockTest}
-                    disabled={lockingTest}
-                    className="text-sm font-medium text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50"
-                  >
-                    {lockingTest ? 'Locking...' : 'Lock'}
-                  </button>
-                  <div className="h-3 w-px bg-gray-200 mx-3" />
-                </>
-              )}
 
-              {isTestLocked && (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'HEAD_TEACHER') && (
-                <>
-                  <button
-                    onClick={handleUnlockTest}
-                    disabled={lockingTest}
-                    className="text-sm font-medium text-gray-500 hover:text-green-600 transition-colors disabled:opacity-50"
-                  >
-                    {lockingTest ? 'Unlocking...' : 'Unlock'}
-                  </button>
-                  <div className="h-3 w-px bg-gray-200 mx-3" />
-                </>
-              )}
 
               <button
                 onClick={() => handleSave()}
-                disabled={loading || isTestLocked}
+                disabled={loading}
                 className="text-sm font-bold text-[#0D9488] hover:text-[#0f766e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Saving...' : 'Save'}
@@ -933,22 +818,7 @@ Are you sure you want to unlock this test?`;
         </div>
       </div>
 
-      {/* Warning Banner for Locked Tests - Moved below header */}
-      {isTestLocked && (
-        <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-md mx-1 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-orange-100 rounded-full">
-              <Lock className="text-orange-600" size={16} />
-            </div>
-            <div>
-              <p className="text-orange-900 font-bold text-sm">Assessment Locked</p>
-              <p className="text-orange-800 text-xs mt-0.5">
-                Marks cannot be modified. Contact an administrator to unlock.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* PDF Export Content Wrapper */}
       <div id="assessment-report-content" className="bg-white">
@@ -1237,25 +1107,15 @@ Are you sure you want to unlock this test?`;
                     {learner.firstName?.toUpperCase()} {learner.lastName?.toUpperCase()}
                   </td>
                   <td className="px-3 py-1.5 text-center border-r border-gray-200">
-                    {isTestLocked && score ? (
-                      <span className="inline-block font-bold text-sm text-gray-900">
-                        {score}
-                      </span>
-                    ) : (
-                      <input
-                        type="number"
-                        min="0"
-                        max={selectedTest?.totalMarks}
-                        value={marks[learner.id] ?? ''}
-                        onChange={(e) => handleMarkChange(learner.id, e.target.value)}
-                        disabled={isTestLocked}
-                        className={`w-full px-2 py-1 border rounded focus:ring-2 focus:ring-brand-purple outline-none transition text-center font-semibold text-xs ${isTestLocked
-                          ? 'bg-gray-100 border-gray-200 cursor-not-allowed text-gray-500'
-                          : 'border-gray-300 bg-white'
-                          }`}
-                        placeholder="-"
-                      />
-                    )}
+                    <input
+                      type="number"
+                      min="0"
+                      max={selectedTest?.totalMarks}
+                      value={marks[learner.id] ?? ''}
+                      onChange={(e) => handleMarkChange(learner.id, e.target.value)}
+                      className="w-full px-2 py-1 border border-gray-300 bg-white rounded focus:ring-2 focus:ring-brand-purple outline-none transition text-center font-semibold text-xs"
+                      placeholder="-"
+                    />
                   </td>
                   <td className="px-3 py-1.5 text-[10px] text-[#475569] italic leading-snug">
                     {getDescriptionForGrade(marks[learner.id], selectedTest?.totalMarks, learner.firstName)}

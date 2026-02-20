@@ -48,6 +48,8 @@ const FacilityManager = () => {
   const [submitting, setSubmitting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [activeTab, setActiveTab] = useState('classes'); // classes, streams, create-class, create-stream
+  const [seedingClasses, setSeedingClasses] = useState(false);
+  const [seedingStreams, setSeedingStreams] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -59,6 +61,38 @@ const FacilityManager = () => {
     branchId: '',
     description: ''
   });
+
+  // Handle Seeding Classes
+  const handleSeedClasses = async () => {
+    if (!schoolId) return;
+    try {
+      setSeedingClasses(true);
+      const result = await configAPI.seedClasses(schoolId);
+      showSuccess(`✏️ Classes seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`);
+      await fetchInitialData(schoolId);
+    } catch (error) {
+      console.error('Error seeding classes:', error);
+      showError(error?.message || 'Failed to seed classes');
+    } finally {
+      setSeedingClasses(false);
+    }
+  };
+
+  // Handle Seeding Streams
+  const handleSeedStreams = async () => {
+    if (!schoolId) return;
+    try {
+      setSeedingStreams(true);
+      const result = await configAPI.seedStreams(schoolId);
+      showSuccess(`🌊 Streams seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`);
+      await fetchInitialData(schoolId);
+    } catch (error) {
+      console.error('Error seeding streams:', error);
+      showError(error?.message || 'Failed to seed streams');
+    } finally {
+      setSeedingStreams(false);
+    }
+  };
 
   const [streamFormData, setStreamFormData] = useState({
     name: '',
@@ -406,12 +440,16 @@ const FacilityManager = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
         <div>
-          <h1 className="text-2xl font-black text-gray-900">Facility Management</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage classes, streams, and school facilities</p>
+          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <Grid className="text-brand-purple" />
+            Facility Management
+          </h2>
+          <p className="text-gray-500 mt-1">Manage classes, streams, and school facilities</p>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             onClick={() => {
               if (schoolId) {
@@ -420,16 +458,39 @@ const FacilityManager = () => {
             }}
             disabled={loading}
             variant="outline"
+            className="h-10 border-gray-200"
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             Refresh
           </Button>
+
+          <Button
+            onClick={handleSeedClasses}
+            disabled={seedingClasses || loading}
+            variant="outline"
+            className="h-10 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200"
+          >
+            {seedingClasses ? <RefreshCw className="animate-spin" size={16} /> : <span>🌱</span>}
+            {seedingClasses ? 'Seeding...' : 'Seed Classes'}
+          </Button>
+
+          <Button
+            onClick={handleSeedStreams}
+            disabled={seedingStreams || loading}
+            variant="outline"
+            className="h-10 bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+          >
+            {seedingStreams ? <RefreshCw className="animate-spin" size={16} /> : <span>🌊</span>}
+            {seedingStreams ? 'Seeding...' : 'Seed Streams'}
+          </Button>
+
           {(activeTab === 'classes') && (
             <Button
               onClick={() => {
                 resetForm();
                 setActiveTab('create-class');
               }}
+              className="h-10 bg-brand-purple text-white hover:bg-brand-purple/90"
             >
               <Plus size={16} />
               New Class
@@ -441,6 +502,7 @@ const FacilityManager = () => {
                 resetStreamForm();
                 setActiveTab('create-stream');
               }}
+              className="h-10 bg-brand-purple text-white hover:bg-brand-purple/90"
             >
               <Plus size={16} />
               New Stream

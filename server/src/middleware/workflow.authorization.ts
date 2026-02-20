@@ -19,7 +19,7 @@ const WORKFLOW_PERMISSIONS: Record<string, UserRole[]> = {
   reject: ['HEAD_TEACHER', 'ADMIN', 'SUPER_ADMIN'],
   publish: ['ADMIN', 'HEAD_TEACHER', 'SUPER_ADMIN'],
   lock: ['ADMIN', 'SUPER_ADMIN'],
-  unlock: ['ADMIN', 'SUPER_ADMIN']
+  unlock: ['ADMIN', 'SUPER_ADMIN', 'HEAD_TEACHER']
 };
 
 // ============================================
@@ -113,8 +113,8 @@ export const checkNotLocked = async (
 
     // Check if locked
     if (assessment.locked || assessment.status === 'LOCKED') {
-      // Allow admins to bypass lock
-      if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') {
+      // Allow admins and head teachers to bypass lock
+      if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN' || userRole === 'HEAD_TEACHER') {
         return next();
       }
 
@@ -191,9 +191,9 @@ export const checkNotPublishedOrLocked = async (
         return next();
       }
 
-      // Allow ADMIN to edit locked
+      // Allow ADMIN and HEAD_TEACHER to edit locked
       if (assessment.status === 'LOCKED' &&
-        (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN')) {
+        (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN' || userRole === 'HEAD_TEACHER')) {
         return next();
       }
 

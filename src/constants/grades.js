@@ -4,7 +4,9 @@
  */
 
 export const GRADES = [
+    { value: 'CRECHE', label: 'Crèche' },
     { value: 'PLAYGROUP', label: 'Playgroup' },
+    { value: 'RECEPTION', label: 'Reception' },
     { value: 'PP1', label: 'PP1' },
     { value: 'PP2', label: 'PP2' },
     { value: 'GRADE_1', label: 'Grade 1' },
@@ -15,7 +17,10 @@ export const GRADES = [
     { value: 'GRADE_6', label: 'Grade 6' },
     { value: 'GRADE_7', label: 'Grade 7' },
     { value: 'GRADE_8', label: 'Grade 8' },
-    { value: 'GRADE_9', label: 'Grade 9' }
+    { value: 'GRADE_9', label: 'Grade 9' },
+    { value: 'GRADE_10', label: 'Grade 10' },
+    { value: 'GRADE_11', label: 'Grade 11' },
+    { value: 'GRADE_12', label: 'Grade 12' }
 ];
 
 /**
@@ -25,7 +30,7 @@ export const GRADES = [
  */
 export const getGradeLabel = (value) => {
     const grade = GRADES.find(g => g.value === value);
-    return grade ? grade.label : value?.replace('_', ' ');
+    return grade ? grade.label : value?.replace('_', ' ')?.replace(/\b\w/g, l => l.toUpperCase());
 };
 
 export default GRADES;

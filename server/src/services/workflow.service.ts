@@ -64,7 +64,7 @@ const WORKFLOW_PERMISSIONS: Record<string, UserRole[]> = {
   reject: ['HEAD_TEACHER', 'ADMIN', 'SUPER_ADMIN'],
   publish: ['ADMIN', 'HEAD_TEACHER', 'SUPER_ADMIN'],
   lock: ['ADMIN', 'SUPER_ADMIN'],
-  unlock: ['ADMIN', 'SUPER_ADMIN']
+  unlock: ['ADMIN', 'SUPER_ADMIN', 'HEAD_TEACHER']
 };
 
 // ============================================
@@ -376,22 +376,25 @@ export class WorkflowService {
     // Get current assessment
     const assessment = await this.getAssessment(assessmentType, assessmentId);
 
-    // Validate current status
-    if (assessment.status !== 'LOCKED') {
+    // Validate: accept status LOCKED OR the locked flag being true (older records set only the flag)
+    const isLocked = assessment.status === 'LOCKED' || assessment.locked === true;
+    if (!isLocked) {
       throw new Error(
-        `Cannot unlock assessment with status ${assessment.status}. Must be LOCKED.`
+        `Cannot unlock assessment with status ${assessment.status}. Assessment must be locked.`
       );
     }
 
-    // Check user permission (ADMIN or SUPER_ADMIN only)
+    // Check user permission (ADMIN, SUPER_ADMIN, or HEAD_TEACHER)
     const user = await this.getUser(userId);
     if (!WORKFLOW_PERMISSIONS.unlock.includes(user.role)) {
       throw new Error(
-        `Role ${user.role} is not permitted to unlock assessments. ADMIN role required.`
+        `Role ${user.role} is not permitted to unlock assessments. Admin or Head Teacher role required.`
       );
     }
 
-    // Update status
+    const fromStatus = assessment.status as AssessmentStatus;
+
+    // Update status back to PUBLISHED and clear lock fields
     const updated = await this.updateAssessmentStatus(
       assessmentType,
       assessmentId,
@@ -408,7 +411,7 @@ export class WorkflowService {
       assessmentId,
       assessmentType,
       action: 'UNLOCK',
-      fromStatus: 'LOCKED',
+      fromStatus,
       toStatus: 'PUBLISHED',
       performedBy: userId,
       comments: `EMERGENCY UNLOCK: ${reason}`,

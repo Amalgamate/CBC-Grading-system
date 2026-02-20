@@ -218,66 +218,48 @@ export const seedLearningAreas = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'School ID is required' });
     }
 
-    // Grade level mappings and default areas
-    const gradeLevelMappings: { [key: string]: string[] } = {
-      'Early Years': [
-        'Literacy Activities', 'Mathematical Activities', 'English Language Activities',
-        'Environmental Activities', 'Creative Arts Activities', 'Christian Religious Education',
-        'Islamic Religious Education', 'Computer Studies Activities'
-      ],
-      'Pre-Primary': [
-        'Literacy', 'English Language Activities', 'Mathematical Activities',
-        'Environmental Activities', 'Creative Activities', 'Christian Religious Education',
-        'Islamic Religious Education', 'Computer Studies (Interactive)', 'Kiswahili'
-      ],
-      'Lower Primary': [
-        'Mathematics', 'English', 'Kiswahili', 'Environmental Studies',
-        'Creative Activities', 'Religious Education', 'Information Communications Technology'
-      ],
-      'Upper Primary': [
-        'English Language', 'Kiswahili', 'Mathematics', 'Science and Technology',
-        'Social Studies', 'Agriculture', 'Creative Arts', 'Christian Religious Education',
-        'Islamic Religious Education', 'Computer Studies', 'Coding and Robotics', 'French'
-      ],
-      'Junior School': [
-        'English Language', 'Kiswahili', 'Mathematics', 'Integrated Science',
-        'Social Studies', 'Pre-Technical Studies', 'Agriculture', 'Creative Arts and Sports',
-        'Christian Religious Education', 'Islamic Religious Education', 'Computer Studies',
-        'Coding and Robotics', 'French'
-      ],
-      'Senior School': [
-        'Community Service Learning', 'Physical Education and Sports', 'ICT / Digital Literacy',
-        'Life Skills Education', 'Biology', 'Chemistry', 'Physics', 'History', 'Geography',
-        'Literature in English'
-      ]
+    // Official CBC Per-Grade Mapping
+    const gradeMappings: { [key: string]: string[] } = {
+      'CRECHE': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+      'PLAYGROUP': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+      'RECEPTION': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+      'TRANSITION': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+      'PP1': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+      'PP2': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+      'GRADE_1': ['English', 'Kiswahili', 'Indigenous Language', 'Mathematical Activities', 'Environmental Activities', 'Religious Education', 'Creative Activities'],
+      'GRADE_2': ['English', 'Kiswahili', 'Indigenous Language', 'Mathematical Activities', 'Environmental Activities', 'Religious Education', 'Creative Activities'],
+      'GRADE_3': ['English', 'Kiswahili', 'Indigenous Language', 'Mathematical Activities', 'Environmental Activities', 'Religious Education', 'Creative Activities'],
+      'GRADE_4': ['English', 'Kiswahili', 'Science and Technology', 'Social Studies', 'Mathematics', 'Agriculture & Nutrition', 'Creative Arts', 'Religious Education'],
+      'GRADE_5': ['English', 'Kiswahili', 'Science and Technology', 'Social Studies', 'Mathematics', 'Agriculture & Nutrition', 'Creative Arts', 'Religious Education'],
+      'GRADE_6': ['English', 'Kiswahili', 'Science and Technology', 'Social Studies', 'Mathematics', 'Agriculture & Nutrition', 'Creative Arts', 'Religious Education'],
+      'GRADE_7': ['English', 'Kiswahili', 'Mathematics', 'Integrated Science', 'Social Studies', 'Religious Education', 'Pre-Technical Studies', 'Agriculture & Nutrition', 'Creative Arts & Sports'],
+      'GRADE_8': ['English', 'Kiswahili', 'Mathematics', 'Integrated Science', 'Social Studies', 'Religious Education', 'Pre-Technical Studies', 'Agriculture & Nutrition', 'Creative Arts & Sports'],
+      'GRADE_9': ['English', 'Kiswahili', 'Mathematics', 'Integrated Science', 'Social Studies', 'Religious Education', 'Pre-Technical Studies', 'Agriculture & Nutrition', 'Creative Arts & Sports']
     };
 
     const colors: { [key: string]: string } = {
-      'Early Years': '#ec4899',
-      'Pre-Primary': '#8b5cf6',
-      'Lower Primary': '#3b82f6',
-      'Upper Primary': '#10b981',
-      'Junior School': '#f59e0b',
-      'Senior School': '#f43f5e'
+      'Pre-Primary': '#8b5cf6', 'Lower Primary': '#3b82f6', 'Upper Primary': '#2563eb', 'Junior School': '#10b981'
     };
 
     const icons: { [key: string]: string } = {
-      'Early Years': '🧸',
-      'Pre-Primary': '🎨',
-      'Lower Primary': '📚',
-      'Upper Primary': '🧪',
-      'Junior School': '🧬',
-      'Senior School': '🎓'
+      'Pre-Primary': '🎨', 'Lower Primary': '📘', 'Upper Primary': '🧪', 'Junior School': '📗'
     };
 
     let created = 0;
     let skipped = 0;
 
-    for (const [gradeLevel, areas] of Object.entries(gradeLevelMappings)) {
+    for (const [grade, areas] of Object.entries(gradeMappings)) {
+      // Determine a visual "group" for color/icon purposes, but the gradeLevel in DB is the actual Grade
+      let visualGroup = 'Lower Primary';
+      if (['CRECHE', 'PLAYGROUP', 'RECEPTION', 'TRANSITION', 'PP1', 'PP2'].includes(grade)) visualGroup = 'Pre-Primary';
+      if (['GRADE_4', 'GRADE_5', 'GRADE_6'].includes(grade)) visualGroup = 'Upper Primary';
+      if (['GRADE_7', 'GRADE_8', 'GRADE_9'].includes(grade)) visualGroup = 'Junior School';
+
       for (const area of areas) {
         const existing = await prisma.learningArea.findFirst({
           where: {
             name: area,
+            gradeLevel: grade, // Actual Grade here!
             schoolId
           }
         });
@@ -287,28 +269,33 @@ export const seedLearningAreas = async (req: AuthRequest, res: Response) => {
           continue;
         }
 
-        // Specific short names for Lower Primary
-        let shortName = area.split(' ')[0];
-        if (gradeLevel === 'Lower Primary') {
-          const mapping: { [key: string]: string } = {
-            'Mathematics': 'Maths',
-            'English': 'ENG',
-            'Kiswahili': 'Kiswa',
-            'Environmental Studies': 'ENV',
-            'Creative Activities': 'CA',
-            'Religious Education': 'RE',
-            'Information Communications Technology': 'ICT'
-          };
-          shortName = mapping[area] || shortName;
-        }
+        // Generate a better short name
+        const shortNameMapping: { [key: string]: string } = {
+          'English': 'ENG',
+          'Kiswahili': 'KISW',
+          'Mathematics': 'MATH',
+          'Mathematical Activities': 'MATH',
+          'Language Activities': 'LANG',
+          'Environmental Activities': 'ENV',
+          'Creative Activities': 'CREA',
+          'Religious Education': 'RE',
+          'Religious Activities': 'REL',
+          'Science and Technology': 'SCI',
+          'Social Studies': 'SOC',
+          'Agriculture & Nutrition': 'AGRI',
+          'Creative Arts': 'ARTS',
+          'Integrated Science': 'INT_SCI',
+          'Pre-Technical Studies': 'PRE-TECH',
+          'Creative Arts & Sports': 'ARTS'
+        };
 
         await prisma.learningArea.create({
           data: {
             name: area,
-            shortName,
-            gradeLevel,
-            icon: icons[gradeLevel] || '📚',
-            color: colors[gradeLevel] || '#3b82f6',
+            shortName: shortNameMapping[area] || area.substring(0, 5).toUpperCase(),
+            gradeLevel: grade, // Store actual Grade
+            icon: icons[visualGroup] || '📚',
+            color: colors[visualGroup] || '#3b82f6',
             schoolId
           }
         });

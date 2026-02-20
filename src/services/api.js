@@ -2005,6 +2005,12 @@ export const workflowAPI = {
       method: 'POST',
       body: JSON.stringify({ ids, assessmentType, comments }),
     });
+  },
+  unlock: async (type, id, reason) => {
+    return fetchWithAuth(`/workflow/unlock/${type}/${id}`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
   }
 };
 
@@ -2300,6 +2306,7 @@ const api = {
   broadcasts: broadcastAPI,
   books: bookAPI,
   sharing: sharingAPI,
+  ...configAPI,
   planner: {
     getEvents: async (params) => {
       const queryString = new URLSearchParams(params).toString();

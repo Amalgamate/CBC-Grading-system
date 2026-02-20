@@ -13,24 +13,24 @@ import { AuthRequest } from '../middleware/permissions.middleware';
 
 const prisma = new PrismaClient();
 
-// All CBC Learning Areas - MUST match frontend
-const LEARNING_AREAS = [
-  'MATHEMATICAL ACTIVITIES',
-  'ENGLISH LANGUAGE ACTIVITIES',
-  'KISWAHILI',
-  'ENVIRONMENTAL ACTIVITIES',
-  'CREATIVE ACTIVITIES',
-  'RELIGIOUS EDUCATION',
-  'SCIENCE & TECHNOLOGY',
-  'SOCIAL STUDIES',
-  'MUSIC',
-  'ART & CRAFT',
-  'PHYSICAL EDUCATION',
-  'INSHA',
-  'READING',
-  'ABACUS',
-  'AGRICULTURE'
-];
+// Official CBC Grade-Based Mapping
+const OFFICIAL_CBC_MAPPING: { [key: string]: string[] } = {
+  'CRECHE': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+  'PLAYGROUP': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+  'RECEPTION': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+  'TRANSITION': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+  'PP1': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+  'PP2': ['Language Activities', 'Mathematical Activities', 'Environmental Activities', 'Creative Activities', 'Religious Activities', 'Pastoral Programme of Instruction (PPI)'],
+  'GRADE_1': ['Mathematics', 'English', 'Kiswahili', 'Indigenous Language / Kenyan Sign Language', 'Environmental Activities', 'Creative Activities', 'Religious Education'],
+  'GRADE_2': ['Mathematics', 'English', 'Kiswahili', 'Indigenous Language / Kenyan Sign Language', 'Environmental Activities', 'Creative Activities', 'Religious Education'],
+  'GRADE_3': ['Mathematics', 'English', 'Kiswahili', 'Indigenous Language / Kenyan Sign Language', 'Environmental Activities', 'Creative Activities', 'Religious Education'],
+  'GRADE_4': ['Mathematics', 'English', 'Kiswahili', 'Indigenous Language / KSL', 'Science and Technology', 'Social Studies', 'Agriculture & Nutrition', 'Creative Arts', 'Religious Education'],
+  'GRADE_5': ['Mathematics', 'English', 'Kiswahili', 'Indigenous Language / KSL', 'Science and Technology', 'Social Studies', 'Agriculture & Nutrition', 'Creative Arts', 'Religious Education'],
+  'GRADE_6': ['Mathematics', 'English', 'Kiswahili', 'Indigenous Language / KSL', 'Science and Technology', 'Social Studies', 'Agriculture & Nutrition', 'Creative Arts', 'Religious Education'],
+  'GRADE_7': ['English', 'Kiswahili', 'Mathematics', 'Integrated Science', 'Social Studies', 'Religious Education', 'Pre-Technical Studies', 'Agriculture', 'Creative Arts & Sports'],
+  'GRADE_8': ['English', 'Kiswahili', 'Mathematics', 'Integrated Science', 'Social Studies', 'Religious Education', 'Pre-Technical Studies', 'Agriculture', 'Creative Arts & Sports'],
+  'GRADE_9': ['English', 'Kiswahili', 'Mathematics', 'Integrated Science', 'Social Studies', 'Religious Education', 'Pre-Technical Studies', 'Agriculture', 'Creative Arts & Sports']
+};
 
 // ============================================
 // SCALE GROUP CRUD
@@ -520,19 +520,13 @@ export const generateGradesForScaleGroup = async (req: AuthRequest, res: Respons
     const existingSet = new Set(existingSystems.map(s => `${s.grade}|${s.learningArea}`));
     const systemsToCreate: any[] = [];
 
-    // 2. Prepare systems for bulk creation
     for (const grade of grades) {
-      // Junior School specific learning areas
-      const gradeStr = String(grade).toUpperCase();
-      const isJuniorSchool = gradeStr.includes('7') || gradeStr.includes('8') || gradeStr.includes('9');
+      const areasToUse = OFFICIAL_CBC_MAPPING[grade as string] || [];
 
-      const areasToUse = isJuniorSchool
-        ? LEARNING_AREAS.filter(area => ![
-          'ABACUS', 'ART & CRAFT', 'ENVIRONMENTAL ACTIVITIES',
-          'INSHA', 'MUSIC', 'PHYSICAL EDUCATION',
-          'READING', 'SCIENCE & TECHNOLOGY'
-        ].includes(area))
-        : LEARNING_AREAS;
+      if (areasToUse.length === 0) {
+        console.log(`- No mapping found for grade ${grade}, skipping...`);
+        continue;
+      }
 
       for (const learningArea of areasToUse) {
         if (!existingSet.has(`${grade}|${learningArea}`)) {
@@ -619,7 +613,7 @@ export const generateGradesForScaleGroup = async (req: AuthRequest, res: Respons
 
     res.json({
       success: true,
-      message: `Successfully created ${createdCount} grading systems (${LEARNING_AREAS.length} learning areas × ${grades.length} grade(s))`
+      message: `Successfully created ${createdCount} grading systems across ${grades.length} grade(s)`
     });
 
   } catch (error: any) {
