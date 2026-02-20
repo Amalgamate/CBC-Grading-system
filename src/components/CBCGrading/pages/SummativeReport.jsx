@@ -884,29 +884,24 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       return [];
     }
 
-    // Filter to only show tests that HAVE assessments (scores recorded)
-    const assessedTests = availableTests.filter(t => (t._count?.results || 0) > 0);
-
-    // Get unique test types/groups
+    // Get unique test types/groups from all available tests (removed results count filter)
     const groups = Array.from(
-      new Set(assessedTests.map(t => t.testType).filter(Boolean))
+      new Set(availableTests.map(t => t.testType).filter(Boolean))
     );
 
-    console.log('📊 Available test groups (assessed):', groups);
+    console.log('📊 Available test groups:', groups);
     return groups.sort();
   }, [availableTests]);
 
   // Derive tests within the selected test group(s)
   const testsInGroups = useMemo(() => {
-    // Always filter by assessed status first
-    const assessedTests = availableTests.filter(t => (t._count?.results || 0) > 0);
-
+    // Show all tests, even those without results (removed results count filter)
     if (!selectedTestGroups || selectedTestGroups.length === 0) {
-      // If no groups selected, show all assessed tests
-      return assessedTests;
+      // If no groups selected, show all tests
+      return availableTests;
     }
 
-    const filtered = assessedTests.filter(t => selectedTestGroups.includes(t.testType));
+    const filtered = availableTests.filter(t => selectedTestGroups.includes(t.testType));
     return filtered;
   }, [availableTests, selectedTestGroups]);
 

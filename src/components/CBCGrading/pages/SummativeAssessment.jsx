@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
-  Save, Search, Loader, ArrowLeft, Printer, UploadCloud, Database, ChevronRight
+  Save, Search, Loader, ArrowLeft, Printer, UploadCloud, Database, ChevronRight, FileSpreadsheet, Download
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import VirtualizedTable from '../shared/VirtualizedTable';
 import { assessmentAPI, gradingAPI, classAPI, configAPI, learnerAPI } from '../../../services/api';
 import { useNotifications } from '../hooks/useNotifications';
@@ -499,7 +500,34 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
       throw error;
     } finally {
       setGeneratingPDF(false);
+      setLoading(false);
     }
+  };
+
+  const handleExport = (type = 'xlsx') => {
+    if (filteredLearners.length === 0) {
+      showError("No data to export");
+      return;
+    }
+
+    const exportData = filteredLearners.map(l => ({
+      'Admission Number': l.admissionNumber,
+      'Student Name': `${l.firstName} ${l.lastName}`,
+      'Mark': marks[l.id] || ''
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Marks");
+
+    const fileName = `${(selectedTest?.title || 'Marks').replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}`;
+
+    if (type === 'xlsx') {
+      XLSX.writeFile(wb, `${fileName}.xlsx`);
+    } else {
+      XLSX.writeFile(wb, `${fileName}.csv`, { bookType: 'csv' });
+    }
+    showSuccess(`Successfully exported to ${type.toUpperCase()}`);
   };
 
   const handleSave = async (marksToSaveOverride = null) => {
@@ -794,11 +822,35 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
 
               <div className="h-3 w-px bg-gray-200 mx-3" />
 
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleExport('xlsx')}
+                  disabled={filteredLearners.length === 0}
+                  className="flex items-center gap-1.5 text-sm font-medium text-brand-purple hover:text-brand-purple/80 transition-colors disabled:opacity-50"
+                  title="Export to Excel"
+                >
+                  <FileSpreadsheet size={16} />
+                  Excel
+                </button>
+                <button
+                  onClick={() => handleExport('csv')}
+                  disabled={filteredLearners.length === 0}
+                  className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-50"
+                  title="Export to CSV"
+                >
+                  <Download size={16} />
+                  CSV
+                </button>
+              </div>
+
+              <div className="h-3 w-px bg-gray-200 mx-3" />
+
               <button
                 onClick={() => setShowBulkImportModal(true)}
                 disabled={!selectedTestId || loading || loadingLearners}
-                className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 text-sm font-medium text-brand-teal hover:text-brand-teal/80 transition-colors disabled:opacity-50"
               >
+                <UploadCloud size={16} />
                 Import
               </button>
 
