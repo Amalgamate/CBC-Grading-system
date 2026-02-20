@@ -726,8 +726,13 @@ const BroadcastMessagesPage = () => {
                   rows={5}
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-purple resize-none"
                 />
-                <div className="text-right text-sm text-gray-500">
-                  {messageTemplate.length} characters
+                <div className="flex justify-between items-center text-xs mt-1">
+                  <div className="text-gray-500 font-medium">
+                    Standard SMS: 160 chars
+                  </div>
+                  <div className={`font-bold ${messageTemplate.length > 160 ? 'text-orange-600' : 'text-brand-purple'}`}>
+                    {messageTemplate.length} characters | {messageTemplate.length > 160 ? Math.ceil(messageTemplate.length / 153) : (messageTemplate.length > 0 ? 1 : 0)} SMS
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -799,7 +804,12 @@ const BroadcastMessagesPage = () => {
               <Card>
                 <CardContent className="p-4">
                   <p className="text-gray-600 text-sm">Message Length</p>
-                  <p className="text-3xl font-bold text-brand-teal">{messageTemplate.length}</p>
+                  <p className="text-3xl font-bold text-brand-teal">
+                    {messageTemplate.length}
+                    <span className="text-sm font-normal text-gray-500 ml-2">
+                      ({messageTemplate.length > 160 ? Math.ceil(messageTemplate.length / 153) : (messageTemplate.length > 0 ? 1 : 0)} SMS)
+                    </span>
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -1085,6 +1095,9 @@ const BroadcastMessagesPage = () => {
                   .replace(/{grade}/gi, previewData.grade)
                   .replace(/{schoolName}/gi, previewData.schoolName) || '(Message preview)'}
               </CardContent>
+              <div className="px-4 pb-2 text-right text-[10px] text-gray-500 font-bold">
+                {messageTemplate.length} chars | {messageTemplate.length > 160 ? Math.ceil(messageTemplate.length / 153) : (messageTemplate.length > 0 ? 1 : 0)} SMS
+              </div>
             </Card>
 
             {testResult && (
