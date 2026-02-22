@@ -553,10 +553,20 @@ const SummativeTests = ({ onNavigate }) => {
                   <CheckCircle size={20} /> <span className="hidden sm:inline">Approve All</span><span className="inline sm:hidden">Approve</span>
                 </button>
               )}
-              <button onClick={handleAddSingleTest} className="flex items-center gap-2 px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-sm font-bold text-sm">
+              <button
+                onClick={handleAddSingleTest}
+                className="flex items-center gap-2 px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition shadow-sm font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={user?.role === 'TEACHER'}
+                title={user?.role === 'TEACHER' ? "Please consult with the Head Teacher to create new tests" : "Create a single test"}
+              >
                 <Plus size={16} /> <span className="hidden sm:inline">New Test</span><span className="inline sm:hidden">+</span>
               </button>
-              <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2 bg-brand-teal/70 text-white rounded-lg hover:bg-brand-teal/80 transition shadow-sm font-bold text-sm">
+              <button
+                onClick={handleAdd}
+                className="flex items-center gap-2 px-4 py-2 bg-brand-teal/70 text-white rounded-lg hover:bg-brand-teal/80 transition shadow-sm font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={user?.role === 'TEACHER'}
+                title={user?.role === 'TEACHER' ? "Please consult with the Head Teacher to create new tests" : "Create all tests for a series"}
+              >
                 <Plus size={16} /> <span className="hidden sm:inline">Create all</span><span className="inline sm:hidden">Create all</span>
               </button>
             </div>

@@ -12,6 +12,7 @@ import SmartLearnerSearch from '../shared/SmartLearnerSearch';
 import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { useLearnerSelection } from '../hooks/useLearnerSelection';
 import { useLearningAreas } from '../hooks/useLearningAreas';
+import { useTeacherWorkload } from '../hooks/useTeacherWorkload';
 
 const FormativeAssessment = ({ learners }) => {
   const { showSuccess, showError } = useNotifications();
@@ -20,6 +21,7 @@ const FormativeAssessment = ({ learners }) => {
   const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
   const selection = useLearnerSelection(learners || [], { status: ['ACTIVE', 'Active'] });
   const learningAreas = useLearningAreas(setup.selectedGrade);
+  const teacherWorkload = useTeacherWorkload();
 
   // View State
   const [viewMode, setViewMode] = useState('setup'); // 'setup' | 'assess' | 'review'
@@ -55,7 +57,30 @@ const FormativeAssessment = ({ learners }) => {
   const setSearchLearnerId = selection.selectLearner;
 
   // Fetch Grades from DB
-  // Grades are now managed by setup hook
+  // Grades are now managed by setup hook (but we might need to filter them)
+  const filteredGrades = React.useMemo(() => {
+    if (!teacherWorkload.isTeacher) return grades;
+    return grades.filter(g => teacherWorkload.assignedGrades.includes(g.value));
+  }, [grades, teacherWorkload.isTeacher, teacherWorkload.assignedGrades]);
+
+  const filteredLearningAreasByWorkload = React.useMemo(() => {
+    const areas = learningAreas.flatLearningAreas;
+    if (!teacherWorkload.isTeacher || !selectedGrade) return areas;
+
+    const assignedSubjects = teacherWorkload.getAssignedSubjectsForGrade(selectedGrade);
+    if (!assignedSubjects) return areas;
+
+    return areas.filter(area =>
+      assignedSubjects.some(as => as.toLowerCase().trim() === area.toLowerCase().trim())
+    );
+  }, [learningAreas.flatLearningAreas, teacherWorkload.isTeacher, selectedGrade, teacherWorkload]);
+
+  // Alert teacher if they have no assignments
+  React.useEffect(() => {
+    if (!teacherWorkload.loading && teacherWorkload.isTeacher && !teacherWorkload.hasAnyAssignments) {
+      showError('You are not currently assigned to any classes or subjects. Please consult with the Head Teacher.');
+    }
+  }, [teacherWorkload.loading, teacherWorkload.isTeacher, teacherWorkload.hasAnyAssignments, showError]);
 
   // NEW: Fetch existing assessments when entering 'assess' mode
   React.useEffect(() => {
@@ -405,11 +430,14 @@ const FormativeAssessment = ({ learners }) => {
                       {loadingGrades ? (
                         <option>Loading grades...</option>
                       ) : (
-                        grades.map(g => (
+                        filteredGrades.map(g => (
                           <option key={g.value} value={g.value}>{g.label}</option>
                         ))
                       )}
                     </select>
+                    {teacherWorkload.isTeacher && filteredGrades.length === 0 && !teacherWorkload.loading && (
+                      <p className="text-[10px] text-red-500 mt-1 font-bold italic">No classes assigned to you.</p>
+                    )}
                   </div>
 
                   <div>
@@ -438,11 +466,14 @@ const FormativeAssessment = ({ learners }) => {
                     disabled={!setup.selectedGrade}
                   >
                     <option value="">Select a learning area</option>
-                    {learningAreas.flatLearningAreas.map(a => (
+                    {filteredLearningAreasByWorkload.map(a => (
                       <option key={a} value={a}>{a}</option>
                     ))}
                   </select>
-                  {learningAreas.hasAreas && (
+                  {teacherWorkload.isTeacher && selectedGrade && filteredLearningAreasByWorkload.length === 0 && (
+                    <p className="text-[10px] text-red-500 mt-1 font-bold italic">No subjects assigned for this grade.</p>
+                  )}
+                  {learningAreas.hasAreas && !teacherWorkload.isTeacher && (
                     <p className="text-xs text-gray-500 mt-1">{learningAreas.areaCount} learning areas available</p>
                   )}
                 </div>

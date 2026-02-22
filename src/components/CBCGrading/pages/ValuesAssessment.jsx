@@ -15,6 +15,7 @@ import { CBC_RATINGS, getRatingByValue } from '../../../constants/ratings';
 import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { useLearnerSelection } from '../hooks/useLearnerSelection';
 import { useRatings } from '../hooks/useRatings';
+import { useTeacherWorkload } from '../hooks/useTeacherWorkload';
 import { validateValuesAssessment, formatValidationErrors } from '../../../utils/validation/assessmentValidators';
 
 const ValuesAssessment = ({ learners }) => {
@@ -22,7 +23,15 @@ const ValuesAssessment = ({ learners }) => {
 
   // Use centralized hooks for assessment state management
   const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
-  const selection = useLearnerSelection(learners || [], { status: ['ACTIVE', 'Active'] });
+  const teacherWorkload = useTeacherWorkload();
+
+  // Filter learners by teacher's assigned grades if they are a teacher
+  const filteredLearnersByRole = React.useMemo(() => {
+    if (!teacherWorkload.isTeacher) return learners || [];
+    return (learners || []).filter(l => teacherWorkload.assignedGrades.includes(l.grade));
+  }, [learners, teacherWorkload.isTeacher, teacherWorkload.assignedGrades]);
+
+  const selection = useLearnerSelection(filteredLearnersByRole, { status: ['ACTIVE', 'Active'] });
   const ratings = useRatings({
     love: 'ME1',
     responsibility: 'ME1',
@@ -83,6 +92,13 @@ const ValuesAssessment = ({ learners }) => {
       loadExistingValues();
     }
   }, [viewMode, loadExistingValues]);
+
+  // Alert teacher if they have no assignments
+  useEffect(() => {
+    if (!teacherWorkload.loading && teacherWorkload.isTeacher && !teacherWorkload.hasAnyAssignments) {
+      showError('You are not currently assigned to any classes. Please consult with the Head Teacher.');
+    }
+  }, [teacherWorkload.loading, teacherWorkload.isTeacher, teacherWorkload.hasAnyAssignments, showError]);
 
   // Save values assessment
   const handleSave = async () => {

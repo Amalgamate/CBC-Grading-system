@@ -14,6 +14,7 @@ import PDFPreviewModal from '../shared/PDFPreviewModal';
 import { getGradeColor } from '../../../utils/grading/colors';
 import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { useLearningAreas } from '../hooks/useLearningAreas';
+import { useTeacherWorkload } from '../hooks/useTeacherWorkload';
 
 const SummativeAssessment = ({ learners, initialTestId }) => {
   const { showSuccess, showError } = useNotifications();
@@ -21,6 +22,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
   // Use centralized hooks for assessment state management
   const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
   const learningAreasMgr = useLearningAreas(setup.selectedGrade);
+  const teacherWorkload = useTeacherWorkload();
 
   // View State
   const [step, setStep] = useState(initialTestId ? 2 : 1); // 1: Setup, 2: Assess (Skip setup if test ID provided)
@@ -118,6 +120,18 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
   useEffect(() => {
     loadOptions();
   }, [loadOptions]);
+
+  // Alert teacher if they have no assignments
+  useEffect(() => {
+    if (!teacherWorkload.loading && teacherWorkload.isTeacher && !teacherWorkload.hasAnyAssignments) {
+      showError('You are not currently assigned to any classes or subjects. Please consult with the Head Teacher.');
+    }
+  }, [teacherWorkload.loading, teacherWorkload.isTeacher, teacherWorkload.hasAnyAssignments, showError]);
+
+  const filteredGrades = useMemo(() => {
+    if (!teacherWorkload.isTeacher) return availableGrades;
+    return availableGrades.filter(g => teacherWorkload.assignedGrades.includes(g));
+  }, [availableGrades, teacherWorkload.isTeacher, teacherWorkload.assignedGrades]);
 
   const selectedTest = useMemo(() =>
     tests.find(t => String(t.id) === String(selectedTestId)),
@@ -337,6 +351,18 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
 
     return Array.from(mergedAreas).sort((a, b) => a.localeCompare(b));
   }, [filteredTestsBySelection, learningAreasMgr.flatLearningAreas]);
+
+  const filteredLearningAreasByWorkload = useMemo(() => {
+    const areas = availableLearningAreas;
+    if (!teacherWorkload.isTeacher || !setup.selectedGrade) return areas;
+
+    const assignedSubjects = teacherWorkload.getAssignedSubjectsForGrade(setup.selectedGrade);
+    if (!assignedSubjects) return areas;
+
+    return areas.filter(area =>
+      assignedSubjects.some(as => as.toLowerCase().trim() === area.toLowerCase().trim())
+    );
+  }, [availableLearningAreas, teacherWorkload.isTeacher, setup.selectedGrade, teacherWorkload]);
 
   const finalTests = useMemo(() => {
     if (!selectedLearningArea) return [];
@@ -637,10 +663,13 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple bg-white"
             >
               <option value="">Select Grade</option>
-              {availableGrades.map(g => (
+              {filteredGrades.map(g => (
                 <option key={g} value={g}>{g.replace('_', ' ')}</option>
               ))}
             </select>
+            {teacherWorkload.isTeacher && filteredGrades.length === 0 && !teacherWorkload.loading && (
+              <p className="text-[10px] text-red-500 mt-1 font-bold italic">No classes assigned to you.</p>
+            )}
           </div>
 
           <div>
@@ -695,10 +724,13 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
                     ? 'No tests found for this period'
                     : 'Select Learning Area'}
               </option>
-              {availableLearningAreas.map(area => (
+              {filteredLearningAreasByWorkload.map(area => (
                 <option key={area} value={area}>{area}</option>
               ))}
             </select>
+            {teacherWorkload.isTeacher && setup.selectedGrade && filteredLearningAreasByWorkload.length === 0 && (
+              <p className="text-[10px] text-red-500 mt-1 font-bold italic">No subjects assigned for this grade.</p>
+            )}
           </div>
 
           <div>
