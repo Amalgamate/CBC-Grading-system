@@ -153,26 +153,18 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
   );
 
   const availableLearningAreas = useMemo(() => {
-    // 1. Get official learning areas for the grade
-    const officialAreas = learningAreasMgr.flatLearningAreas || [];
-
-    // 2. Extract unique learning areas from actual tests found for this selection
-    const testAreas = filteredTestsBySelection
-      .map(t => t.learningArea)
-      .filter(Boolean);
-
-    // 3. Merge them while preserving the original name from tests if there's a match
-    const mergedAreas = new Set([...officialAreas]);
-
-    // Add test areas if they aren't already represented (case-insensitive check)
-    testAreas.forEach(testArea => {
-      const exists = officialAreas.some(oa => oa.toLowerCase().trim() === testArea.toLowerCase().trim());
-      if (!exists) {
-        mergedAreas.add(testArea);
-      }
+    // Collect all learning areas from the filtered tests
+    const areas = new Set();
+    filteredTestsBySelection.forEach(t => {
+      if (t.learningArea) areas.add(t.learningArea);
     });
 
-    return Array.from(mergedAreas).sort((a, b) => a.localeCompare(b));
+    // Merge with official ones if any tests exist (to ensure we show names correctly)
+    const officialAreas = learningAreasMgr.flatLearningAreas || [];
+    const result = Array.from(areas);
+
+    // If result is empty but we have tests, it might be a naming issue, but usually tests have areas
+    return result.sort();
   }, [filteredTestsBySelection, learningAreasMgr.flatLearningAreas]);
 
   const filteredLearningAreasByWorkload = useMemo(() => {
@@ -182,17 +174,21 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
     const assignedSubjects = teacherWorkload.getAssignedSubjectsForGrade(setup.selectedGrade);
     if (!assignedSubjects) return areas;
 
+    const normalize = (val) => String(val || '').toLowerCase().replace(/&/g, 'and').replace(/\s+/g, '').trim();
+
     return areas.filter(area =>
-      assignedSubjects.some(as => as.toLowerCase().trim() === area.toLowerCase().trim())
+      assignedSubjects.some(as => normalize(as) === normalize(area))
     );
   }, [availableLearningAreas, teacherWorkload.isTeacher, setup.selectedGrade, teacherWorkload]);
 
   const finalTests = useMemo(() => {
     if (!selectedLearningArea) return [];
 
+    const normalize = (val) => String(val || '').toLowerCase().replace(/&/g, 'and').replace(/\s+/g, '').trim();
+    const normalizedSelected = normalize(selectedLearningArea);
+
     return filteredTestsBySelection.filter(t => {
-      const normalizedSelected = selectedLearningArea.toLowerCase().trim();
-      const testArea = (t.learningArea || '').toLowerCase().trim();
+      const testArea = normalize(t.learningArea);
       return testArea === normalizedSelected;
     });
   }, [filteredTestsBySelection, selectedLearningArea]);
