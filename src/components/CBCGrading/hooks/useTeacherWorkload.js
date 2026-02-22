@@ -14,7 +14,7 @@ export const useTeacherWorkload = () => {
     const [schedules, setSchedules] = useState([]);
     const [error, setError] = useState(null);
 
-    const teacherId = user?.userId;
+    const teacherId = user?.id || user?.userId;
     const isTeacher = user?.role === 'TEACHER';
 
     const fetchWorkload = useCallback(async () => {
@@ -64,25 +64,45 @@ export const useTeacherWorkload = () => {
         const gradeSchedules = schedules.filter(s =>
             s.class?.grade === grade || s.grade === grade
         );
-        return [...new Set(gradeSchedules.map(s => s.subject))];
-    }, [isTeacher, schedules]);
+
+        if (gradeSchedules.length > 0) {
+            return [...new Set(gradeSchedules.map(s => s.subject))];
+        }
+
+        // Fallback: If assigned as a class teacher for this grade but no specific subjects are in the schedule
+        // In many primary settings, the class teacher handles all subjects
+        const isClassTeacher = assignedGrades.includes(grade);
+        if (isClassTeacher) {
+            return null; // Return null to allow all subjects
+        }
+
+        return []; // Truly no assignments for this grade
+    }, [isTeacher, schedules, assignedGrades]);
 
     // Check if the teacher has any assignments at all
     const hasAnyAssignments = useMemo(() => {
-        if (!isTeacher) return true;
-        return (workload?.classCount > 0) || (schedules.length > 0);
-    }, [isTeacher, workload, schedules]);
+        return assignedGrades.length > 0 || schedules.length > 0;
+    }, [assignedGrades, schedules]);
+
+    // Primary Assignment for auto-prefill
+    const primaryGrade = useMemo(() => assignedGrades[0] || null, [assignedGrades]);
+
+    const primaryStream = useMemo(() => {
+        const firstClass = workload?.classes?.[0];
+        return firstClass?.stream || null;
+    }, [workload]);
 
     return {
         workload,
-        schedules,
-        assignedGrades,
         loading,
         error,
         isTeacher,
-        isAssignedToGrade,
-        getAssignedSubjectsForGrade,
+        teacherId,
+        assignedGrades,
         hasAnyAssignments,
+        primaryGrade,
+        primaryStream,
+        getAssignedSubjectsForGrade,
         refresh: fetchWorkload
     };
 };

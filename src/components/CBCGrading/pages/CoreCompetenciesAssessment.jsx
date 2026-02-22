@@ -101,6 +101,18 @@ const CoreCompetenciesAssessment = ({ learners }) => {
     }
   }, [teacherWorkload.loading, teacherWorkload.isTeacher, teacherWorkload.hasAnyAssignments, showError]);
 
+  // Auto-prefill Grade and Stream for teachers
+  useEffect(() => {
+    if (teacherWorkload.isTeacher && !teacherWorkload.loading && viewMode === 'setup') {
+      if (!setup.selectedGrade && teacherWorkload.primaryGrade) {
+        setup.setSelectedGrade(teacherWorkload.primaryGrade);
+      }
+      if (!setup.selectedStream && teacherWorkload.primaryStream) {
+        setup.setSelectedStream(teacherWorkload.primaryStream);
+      }
+    }
+  }, [teacherWorkload.isTeacher, teacherWorkload.loading, teacherWorkload.primaryGrade, teacherWorkload.primaryStream, setup, viewMode]);
+
   // Save competencies assessment
   const handleSave = async () => {
     if (!selection.selectedLearnerId) {

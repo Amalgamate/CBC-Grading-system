@@ -128,15 +128,107 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
     }
   }, [teacherWorkload.loading, teacherWorkload.isTeacher, teacherWorkload.hasAnyAssignments, showError]);
 
+  // Derived Data
+  const selectedTest = useMemo(() =>
+    tests.find(t => String(t.id) === String(selectedTestId)),
+    [selectedTestId, tests]
+  );
+
+  const filteredTestsBySelection = useMemo(() =>
+    tests.filter(t => {
+      if (setup.selectedGrade) {
+        // Handle variations like GRADE_1 vs Grade 1 or GRADE 1
+        const normalizedGrade = setup.selectedGrade.replace(/\s+/g, '_').toUpperCase();
+        const testGrade = (t.grade || '').replace(/\s+/g, '_').toUpperCase();
+        if (testGrade !== normalizedGrade) return false;
+      }
+      if (setup.selectedTerm) {
+        const normalizedTerm = setup.selectedTerm.toUpperCase().trim();
+        const testTerm = (t.term || '').toUpperCase().trim();
+        if (testTerm !== normalizedTerm) return false;
+      }
+      return true;
+    }),
+    [tests, setup.selectedGrade, setup.selectedTerm]
+  );
+
+  const availableLearningAreas = useMemo(() => {
+    // 1. Get official learning areas for the grade
+    const officialAreas = learningAreasMgr.flatLearningAreas || [];
+
+    // 2. Extract unique learning areas from actual tests found for this selection
+    const testAreas = filteredTestsBySelection
+      .map(t => t.learningArea)
+      .filter(Boolean);
+
+    // 3. Merge them while preserving the original name from tests if there's a match
+    const mergedAreas = new Set([...officialAreas]);
+
+    // Add test areas if they aren't already represented (case-insensitive check)
+    testAreas.forEach(testArea => {
+      const exists = officialAreas.some(oa => oa.toLowerCase().trim() === testArea.toLowerCase().trim());
+      if (!exists) {
+        mergedAreas.add(testArea);
+      }
+    });
+
+    return Array.from(mergedAreas).sort((a, b) => a.localeCompare(b));
+  }, [filteredTestsBySelection, learningAreasMgr.flatLearningAreas]);
+
+  const filteredLearningAreasByWorkload = useMemo(() => {
+    const areas = availableLearningAreas;
+    if (!teacherWorkload.isTeacher || !setup.selectedGrade) return areas;
+
+    const assignedSubjects = teacherWorkload.getAssignedSubjectsForGrade(setup.selectedGrade);
+    if (!assignedSubjects) return areas;
+
+    return areas.filter(area =>
+      assignedSubjects.some(as => as.toLowerCase().trim() === area.toLowerCase().trim())
+    );
+  }, [availableLearningAreas, teacherWorkload.isTeacher, setup.selectedGrade, teacherWorkload]);
+
+  const finalTests = useMemo(() => {
+    if (!selectedLearningArea) return [];
+
+    return filteredTestsBySelection.filter(t => {
+      const normalizedSelected = selectedLearningArea.toLowerCase().trim();
+      const testArea = (t.learningArea || '').toLowerCase().trim();
+      return testArea === normalizedSelected;
+    });
+  }, [filteredTestsBySelection, selectedLearningArea]);
+
   const filteredGrades = useMemo(() => {
     if (!teacherWorkload.isTeacher) return availableGrades;
     return availableGrades.filter(g => teacherWorkload.assignedGrades.includes(g));
   }, [availableGrades, teacherWorkload.isTeacher, teacherWorkload.assignedGrades]);
 
-  const selectedTest = useMemo(() =>
-    tests.find(t => String(t.id) === String(selectedTestId)),
-    [selectedTestId, tests]
-  );
+
+  // Effects for Auto-selection & Prefill
+  // 1. Auto-prefill Grade and Stream for teachers
+  useEffect(() => {
+    if (teacherWorkload.isTeacher && !teacherWorkload.loading && step === 1) {
+      if (!setup.selectedGrade && teacherWorkload.primaryGrade) {
+        setup.setSelectedGrade(teacherWorkload.primaryGrade);
+      }
+      if (!setup.selectedStream && teacherWorkload.primaryStream) {
+        setup.setSelectedStream(teacherWorkload.primaryStream);
+      }
+    }
+  }, [teacherWorkload.isTeacher, teacherWorkload.loading, teacherWorkload.primaryGrade, teacherWorkload.primaryStream, setup, step]);
+
+  // 2. Auto-select Learning Area if only one is available
+  useEffect(() => {
+    if (teacherWorkload.isTeacher && filteredLearningAreasByWorkload.length === 1 && !selectedLearningArea && step === 1) {
+      setSelectedLearningArea(filteredLearningAreasByWorkload[0]);
+    }
+  }, [teacherWorkload.isTeacher, filteredLearningAreasByWorkload, selectedLearningArea, step]);
+
+  // 3. Auto-select Test if only one is available
+  useEffect(() => {
+    if (teacherWorkload.isTeacher && finalTests.length === 1 && !selectedTestId && step === 1) {
+      setSelectedTestId(finalTests[0].id);
+    }
+  }, [teacherWorkload.isTeacher, finalTests, selectedTestId, step]);
 
   // Fetch Learners state (declared early to be used in assessmentProgress)
   const [fetchedLearners, setFetchedLearners] = useState([]);
@@ -308,71 +400,6 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
     return () => clearTimeout(timeoutId);
   }, [marks, selectedTestId]);
 
-  // Derived Data
-  // Tests filtered list depends on selected grade/term
-
-  const filteredTestsBySelection = useMemo(() =>
-    tests.filter(t => {
-      if (setup.selectedGrade) {
-        // Handle variations like GRADE_1 vs Grade 1 or GRADE 1
-        const normalizedGrade = setup.selectedGrade.replace(/\s+/g, '_').toUpperCase();
-        const testGrade = (t.grade || '').replace(/\s+/g, '_').toUpperCase();
-        if (testGrade !== normalizedGrade) return false;
-      }
-      if (setup.selectedTerm) {
-        const normalizedTerm = setup.selectedTerm.toUpperCase().trim();
-        const testTerm = (t.term || '').toUpperCase().trim();
-        if (testTerm !== normalizedTerm) return false;
-      }
-      return true;
-    }),
-    [tests, setup.selectedGrade, setup.selectedTerm]
-  );
-
-  const availableLearningAreas = useMemo(() => {
-    // 1. Get official learning areas for the grade
-    const officialAreas = learningAreasMgr.flatLearningAreas || [];
-
-    // 2. Extract unique learning areas from actual tests found for this selection
-    const testAreas = filteredTestsBySelection
-      .map(t => t.learningArea)
-      .filter(Boolean);
-
-    // 3. Merge them while preserving the original name from tests if there's a match
-    const mergedAreas = new Set([...officialAreas]);
-
-    // Add test areas if they aren't already represented (case-insensitive check)
-    testAreas.forEach(testArea => {
-      const exists = officialAreas.some(oa => oa.toLowerCase().trim() === testArea.toLowerCase().trim());
-      if (!exists) {
-        mergedAreas.add(testArea);
-      }
-    });
-
-    return Array.from(mergedAreas).sort((a, b) => a.localeCompare(b));
-  }, [filteredTestsBySelection, learningAreasMgr.flatLearningAreas]);
-
-  const filteredLearningAreasByWorkload = useMemo(() => {
-    const areas = availableLearningAreas;
-    if (!teacherWorkload.isTeacher || !setup.selectedGrade) return areas;
-
-    const assignedSubjects = teacherWorkload.getAssignedSubjectsForGrade(setup.selectedGrade);
-    if (!assignedSubjects) return areas;
-
-    return areas.filter(area =>
-      assignedSubjects.some(as => as.toLowerCase().trim() === area.toLowerCase().trim())
-    );
-  }, [availableLearningAreas, teacherWorkload.isTeacher, setup.selectedGrade, teacherWorkload]);
-
-  const finalTests = useMemo(() => {
-    if (!selectedLearningArea) return [];
-
-    return filteredTestsBySelection.filter(t => {
-      const normalizedSelected = selectedLearningArea.toLowerCase().trim();
-      const testArea = (t.learningArea || '').toLowerCase().trim();
-      return testArea === normalizedSelected;
-    });
-  }, [filteredTestsBySelection, selectedLearningArea]);
 
   // Fetch Learners when moving to Step 2 or filters change
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -664,7 +691,10 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
             >
               <option value="">Select Grade</option>
               {filteredGrades.map(g => (
-                <option key={g} value={g}>{g.replace('_', ' ')}</option>
+                <option key={g} value={g}>
+                  {g.replace('_', ' ')}
+                  {teacherWorkload.isTeacher && teacherWorkload.assignedGrades.includes(g) ? ' (Assigned)' : ''}
+                </option>
               ))}
             </select>
             {teacherWorkload.isTeacher && filteredGrades.length === 0 && !teacherWorkload.loading && (
@@ -724,9 +754,16 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
                     ? 'No tests found for this period'
                     : 'Select Learning Area'}
               </option>
-              {filteredLearningAreasByWorkload.map(area => (
-                <option key={area} value={area}>{area}</option>
-              ))}
+              {filteredLearningAreasByWorkload.map(area => {
+                const isAssigned = teacherWorkload.isTeacher &&
+                  teacherWorkload.getAssignedSubjectsForGrade(setup.selectedGrade)?.some(as => as.toLowerCase().trim() === area.toLowerCase().trim());
+
+                return (
+                  <option key={area} value={area}>
+                    {area} {isAssigned ? ' (Assigned)' : ''}
+                  </option>
+                );
+              })}
             </select>
             {teacherWorkload.isTeacher && setup.selectedGrade && filteredLearningAreasByWorkload.length === 0 && (
               <p className="text-[10px] text-red-500 mt-1 font-bold italic">No subjects assigned for this grade.</p>
