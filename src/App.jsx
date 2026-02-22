@@ -180,7 +180,14 @@ function AppContent() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<HomePage {...landingProps} />} />
+        {/* Mobile/Capacitor: redirect "/" to login page directly */}
+        {(window.Capacitor || /mobile|android|iphone/i.test(navigator.userAgent)) && (
+          <Route path="/" element={<Navigate to="/auth/login" replace />} />
+        )}
+        {/* Desktop/Web: show homepage */}
+        {!(window.Capacitor || /mobile|android|iphone/i.test(navigator.userAgent)) && (
+          <Route path="/" element={<HomePage {...landingProps} />} />
+        )}
         <Route path="/features" element={<FeaturesPage {...landingProps} />} />
         <Route path="/solutions" element={<SolutionsPage {...landingProps} />} />
         <Route path="/pricing" element={<PricingPage {...landingProps} />} />
