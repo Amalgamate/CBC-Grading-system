@@ -3,6 +3,7 @@ import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { authAPI, API_BASE_URL } from '../../services/api';
 import { setAdminSchoolId, setBranchId } from '../../services/tenantContext';
 import OTPVerificationForm from './OTPVerificationForm';
+import ConnectionStatus from './ConnectionStatus';
 
 export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword, onLoginSuccess, brandingSettings }) {
   const [formData, setFormData] = useState({
@@ -301,6 +302,11 @@ export default function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword
               <div className="mb-8 text-center">
                 <h1 className="text-3xl font-extrabold text-[#111827] mb-2">Sign In</h1>
                 <p className="text-slate-500 text-base">Access your institution's dashboard.</p>
+              </div>
+
+              {/* Connection Status Indicator */}
+              <div className="mb-6">
+                <ConnectionStatus />
               </div>
 
               {errors.form && (

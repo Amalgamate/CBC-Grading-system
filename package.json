@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@capacitor/android": "^8.1.0",
+    "@capacitor/cli": "^8.1.0",
+    "@capacitor/core": "^8.1.0",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-label": "^2.1.8",
@@ -79,6 +82,7 @@
     "lint-staged": "^16.2.7",
     "postcss": "^8.4.24",
     "prettier": "^3.8.0",
+    "sharp": "^0.34.5",
     "tailwindcss": "^3.3.0",
     "wait-on": "^9.0.3"
   }

@@ -40,6 +40,12 @@ app.use(cors({
     // Allow localhost subdomains (e.g. mary.localhost:3000)
     if (/^https?:\/\/.*\.localhost(:\d+)?$/.test(origin)) return callback(null, true);
     if (origin.startsWith('http://127.')) return callback(null, true);
+    
+    // Allow Capacitor/Mobile app origins (Android WebView)
+    if (origin === 'capacitor://localhost') return callback(null, true);
+    if (origin?.startsWith('capacitor://')) return callback(null, true);
+    if (origin === 'file://localhost') return callback(null, true);
+    if (origin?.startsWith('file://')) return callback(null, true);
 
     // Check wildcard pattern for deployment domain
     if (process.env.NODE_ENV !== 'production' || process.env.SUBDOMAIN_ENABLED === 'true') {

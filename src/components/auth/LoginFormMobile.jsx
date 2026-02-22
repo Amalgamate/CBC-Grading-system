@@ -3,6 +3,7 @@ import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { authAPI, API_BASE_URL } from '../../services/api';
 import { setAdminSchoolId, setBranchId } from '../../services/tenantContext';
 import OTPVerificationForm from './OTPVerificationForm';
+import ConnectionStatus from './ConnectionStatus';
 
 export default function LoginFormMobile({ onSwitchToRegister, onSwitchToForgotPassword, onLoginSuccess, brandingSettings }) {
   const [formData, setFormData] = useState({
@@ -256,6 +257,11 @@ export default function LoginFormMobile({ onSwitchToRegister, onSwitchToForgotPa
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-1">Sign In</h2>
                 <p className="text-gray-500 text-sm">Access your dashboard</p>
+              </div>
+
+              {/* Connection Status Indicator */}
+              <div className="mb-5">
+                <ConnectionStatus />
               </div>
 
               {errors.form && (

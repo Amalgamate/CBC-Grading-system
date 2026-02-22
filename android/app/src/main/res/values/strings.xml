@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">EDucore</string>
+    <string name="title_activity_main">EDucore</string>
+    <string name="package_name">com.educore.app</string>
+    <string name="custom_url_scheme">com.educore.app</string>
+</resources>

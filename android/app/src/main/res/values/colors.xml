@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#14b8a6</color>
+    <color name="colorPrimaryDark">#0d9488</color>
+    <color name="colorAccent">#14b8a6</color>
+    
+    <!-- EDucore Brand Colors -->
+    <color name="educore_teal">#14b8a6</color>
+    <color name="educore_dark_teal">#0d9488</color>
+    <color name="educore_light_teal">#99f6e4</color>
+    <color name="educore_white">#ffffff</color>
+    <color name="educore_dark_gray">#1f2937</color>
+    <color name="educore_light_gray">#f3f4f6</color>
+    
+    <!-- Status Colors -->
+    <color name="success_green">#10b981</color>
+    <color name="warning_amber">#f59e0b</color>
+    <color name="error_red">#ef4444</color>
+    <color name="info_blue">#3b82f6</color>
+</resources>
