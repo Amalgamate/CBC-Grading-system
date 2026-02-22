@@ -24,7 +24,7 @@ export class ClassController {
     const totalClasses = await prisma.class.count();
     const nextNumber = totalClasses + 1;
     const classCode = `CLS-${String(nextNumber).padStart(5, '0')}`;
-    
+
     // Verify it's unique (shouldn't be needed but for safety)
     const existing = await prisma.class.findUnique({ where: { classCode } });
     if (existing) {
@@ -37,7 +37,7 @@ export class ClassController {
         counter++;
       }
     }
-    
+
     return classCode;
   }
 
@@ -881,4 +881,51 @@ export class ClassController {
       }
     });
   }
+
+  /**
+   * Get teacher's subject schedules (all ClassSchedule entries for a teacher)
+   * Access: SUPER_ADMIN, ADMIN, HEAD_TEACHER, HEAD_OF_CURRICULUM, TEACHER (self only)
+   */
+  async getTeacherSchedules(req: AuthRequest, res: Response) {
+    const { teacherId } = req.params;
+
+    const teacher = await prisma.user.findUnique({
+      where: { id: teacherId },
+      select: { id: true, firstName: true, lastName: true, schoolId: true, role: true }
+    });
+
+    if (!teacher) {
+      throw new ApiError(404, 'Teacher not found');
+    }
+
+    // Phase 5: Tenant Check
+    if (req.user?.schoolId && teacher.schoolId !== req.user.schoolId) {
+      throw new ApiError(403, 'Unauthorized access to teacher schedules');
+    }
+
+    const schedules = await prisma.classSchedule.findMany({
+      where: { teacherId },
+      include: {
+        class: {
+          select: {
+            id: true,
+            name: true,
+            grade: true,
+            stream: true,
+          }
+        }
+      },
+      orderBy: [
+        { day: 'asc' },
+        { startTime: 'asc' }
+      ]
+    });
+
+    res.json({
+      success: true,
+      data: schedules,
+      count: schedules.length
+    });
+  }
 }
+

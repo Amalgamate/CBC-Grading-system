@@ -1,436 +1,239 @@
 /**
- * Branding Settings Page
+ * Branding Settings Page - Focus on Public Messaging
  */
 
 import React, { useState, useEffect } from 'react';
-import { Save, RefreshCw, Upload, Image, MessageSquare } from 'lucide-react';
+import { Save, RefreshCw, MessageSquare, Layout } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNotifications } from '../../hooks/useNotifications';
 
 const BrandingSettings = ({ brandingSettings, setBrandingSettings }) => {
-  const { showSuccess, showError } = useNotifications();
+  const { showSuccess } = useNotifications();
 
+  // State for branding messages only
   const [localSettings, setLocalSettings] = useState({
-    welcomeTitle: brandingSettings?.welcomeTitle || 'Welcome to Elimcrown',
-    welcomeMessage: brandingSettings?.welcomeMessage || 'Empowering education through innovative learning management.',
-    onboardingTitle: brandingSettings?.onboardingTitle || 'Join Our Community',
-    onboardingMessage: brandingSettings?.onboardingMessage || 'Start your journey with us today. Create an account to access powerful tools for managing learning and assessment with ease.',
-    brandColor: brandingSettings?.brandColor || '#1e3a8a',
-    logoUrl: brandingSettings?.logoUrl || '/logo-elimcrown.png',
-    faviconUrl: brandingSettings?.faviconUrl || '/favicon.png',
-    stampUrl: brandingSettings?.stampUrl || '/stamp.svg',
-    schoolName: brandingSettings?.schoolName || 'Elimcrown'
+    welcomeTitle: brandingSettings?.welcomeTitle || '',
+    welcomeMessage: brandingSettings?.welcomeMessage || '',
+    onboardingTitle: brandingSettings?.onboardingTitle || '',
+    onboardingMessage: brandingSettings?.onboardingMessage || ''
   });
 
-  const [logoPreview, setLogoPreview] = useState(localSettings.logoUrl);
-  const [faviconPreview, setFaviconPreview] = useState(localSettings.faviconUrl);
-  const [stampPreview, setStampPreview] = useState(localSettings.stampUrl);
+  const [saving, setSaving] = useState(false);
 
-  // Sync with parent branding settings
+  // Sync with parent state on mount/update
   useEffect(() => {
     setLocalSettings({
-      welcomeTitle: brandingSettings?.welcomeTitle || 'Welcome to Elimcrown',
-      welcomeMessage: brandingSettings?.welcomeMessage || 'Empowering education through innovative learning management.',
-      onboardingTitle: brandingSettings?.onboardingTitle || 'Join Our Community',
-      onboardingMessage: brandingSettings?.onboardingMessage || 'Start your journey with us today. Create an account to access powerful tools for managing learning and assessment with ease.',
-      brandColor: brandingSettings?.brandColor || '#1e3a8a',
-      logoUrl: brandingSettings?.logoUrl || '/logo-elimcrown.png',
-      faviconUrl: brandingSettings?.faviconUrl || '/favicon.png',
-      stampUrl: brandingSettings?.stampUrl || '/stamp.svg',
-      schoolName: brandingSettings?.schoolName || 'Elimcrown'
+      welcomeTitle: brandingSettings?.welcomeTitle || '',
+      welcomeMessage: brandingSettings?.welcomeMessage || '',
+      onboardingTitle: brandingSettings?.onboardingTitle || '',
+      onboardingMessage: brandingSettings?.onboardingMessage || ''
     });
-    setLogoPreview(brandingSettings?.logoUrl || '/logo-elimcrown.png');
-    setFaviconPreview(brandingSettings?.faviconUrl || '/favicon.png');
-    setStampPreview(brandingSettings?.stampUrl || '/stamp.svg');
   }, [brandingSettings]);
 
   const handleChange = (field, value) => {
     setLocalSettings(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleImageUpload = (e, type) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const schoolId = localStorage.getItem('currentSchoolId');
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      showError('Please upload an image file');
-      return;
-    }
+      if (!schoolId || !token) throw new Error('Authentication required');
 
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      showError('Image size should be less than 2MB');
-      return;
-    }
+      const { API_BASE_URL } = await import('../../../../services/api');
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result;
-      if (type === 'logo') {
-        setLogoPreview(base64String);
-        handleChange('logoUrl', base64String);
-      } else if (type === 'favicon') {
-        setFaviconPreview(base64String);
-        handleChange('faviconUrl', base64String);
-      } else if (type === 'stamp') {
-        setStampPreview(base64String);
-        handleChange('stampUrl', base64String);
+      // Update backend - only send messaging fields (backend handles individual updates)
+      const response = await fetch(`${API_BASE_URL}/schools/${schoolId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'X-School-Id': schoolId
+        },
+        body: JSON.stringify({
+          welcomeTitle: localSettings.welcomeTitle,
+          welcomeMessage: localSettings.welcomeMessage,
+          onboardingTitle: localSettings.onboardingTitle,
+          onboardingMessage: localSettings.onboardingMessage
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to save branding messages');
       }
-    };
-    reader.readAsDataURL(file);
-  };
 
-  const handleSave = () => {
-    // Update parent state
-    setBrandingSettings(localSettings);
+      // Update parent state (keep other branding fields intact)
+      setBrandingSettings(prev => ({
+        ...prev,
+        ...localSettings
+      }));
 
-    // Save to localStorage
-    localStorage.setItem('welcomeTitle', localSettings.welcomeTitle);
-    localStorage.setItem('welcomeMessage', localSettings.welcomeMessage);
-    localStorage.setItem('onboardingTitle', localSettings.onboardingTitle);
-    localStorage.setItem('onboardingMessage', localSettings.onboardingMessage);
-    localStorage.setItem('brandColor', localSettings.brandColor);
-    localStorage.setItem('schoolLogo', localSettings.logoUrl);
-    localStorage.setItem('schoolFavicon', localSettings.faviconUrl);
-    localStorage.setItem('schoolStamp', localSettings.stampUrl);
-    localStorage.setItem('schoolName', localSettings.schoolName);
-
-    toast.success('✨ Branding settings saved successfully!', {
-      duration: 4000,
-      position: 'top-right',
-      style: {
-        background: '#10b981',
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: '14px',
-        padding: '16px',
-        borderRadius: '8px'
-      }
-    });
+      toast.success('✨ Public messages saved successfully!');
+      window.dispatchEvent(new Event('storage'));
+    } catch (error) {
+      toast.error(error.message || 'Failed to save settings.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleReset = () => {
-    const defaultSettings = {
-      welcomeTitle: 'Welcome to Elimcrown',
+    setLocalSettings({
+      welcomeTitle: `Welcome to ${brandingSettings?.schoolName || 'Elimcrown'}`,
       welcomeMessage: 'Empowering education through innovative learning management.',
       onboardingTitle: 'Join Our Community',
-      onboardingMessage: 'Start your journey with us today. Create an account to access powerful tools for managing learning and assessment with ease.',
-      brandColor: '#1e3a8a',
-      logoUrl: '/logo-elimcrown.png',
-      faviconUrl: '/favicon.png',
-      stampUrl: '/stamp.svg',
-      schoolName: 'Elimcrown'
-    };
-
-    setLocalSettings(defaultSettings);
-    setLogoPreview(defaultSettings.logoUrl);
-    setFaviconPreview(defaultSettings.faviconUrl);
-    setStampPreview(defaultSettings.stampUrl);
-
-    // Clear localStorage
-    localStorage.removeItem('welcomeTitle');
-    localStorage.removeItem('welcomeMessage');
-    localStorage.removeItem('onboardingTitle');
-    localStorage.removeItem('onboardingMessage');
-    localStorage.removeItem('brandColor');
-    localStorage.removeItem('schoolLogo');
-    localStorage.removeItem('schoolFavicon');
-    localStorage.removeItem('schoolStamp');
-    localStorage.removeItem('schoolName');
-
-    toast.success('🔄 Reset to default branding', {
-      duration: 4000,
-      position: 'top-right',
-      style: {
-        background: '#10b981',
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: '14px',
-        padding: '16px',
-        borderRadius: '8px'
-      }
+      onboardingMessage: 'Start your journey with us today. Create an account to access powerful tools for managing learning and assessment with ease.'
     });
+
+    toast.success('🔄 Reset to default messages. Click "Save Changes" to persist.');
   };
 
   return (
-    <div className="space-y-6">
-      {/* Important Notice */}
+    <div className="max-w-5xl mx-auto space-y-6">
+      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-bold text-gray-800">Public Portal Messaging</h2>
+          <p className="text-sm text-gray-500">Customize the messages shown on your login and registration pages.</p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition font-medium"
+          >
+            <RefreshCw size={18} />
+            Reset
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition shadow-sm ${saving ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+          >
+            {saving ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
+            {saving ? 'Saving...' : 'Save Messages'}
+          </button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* School Information */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <Image size={20} className="text-blue-600" />
-            School Information
-          </h3>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                School Name
-              </label>
-              <input
-                type="text"
-                value={localSettings.schoolName}
-                onChange={(e) => handleChange('schoolName', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                placeholder="Enter school name"
-              />
+        {/* Configuration Column */}
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+              <MessageSquare className="text-blue-600" size={18} />
+              <h3 className="font-bold text-gray-700">Auth Portal Content</h3>
             </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Brand Color
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={localSettings.brandColor}
-                  onChange={(e) => handleChange('brandColor', e.target.value)}
-                  className="w-16 h-16 border border-gray-300 rounded cursor-pointer"
-                />
-                <div className="flex-1">
-                  <div className="w-full h-16 rounded" style={{ backgroundColor: localSettings.brandColor }}></div>
-                  <p className="text-xs text-gray-600 mt-2 font-mono">{localSettings.brandColor}</p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                School Logo
-              </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                <img
-                  src={logoPreview}
-                  alt="Logo Preview"
-                  className="w-32 h-32 object-contain mx-auto mb-3"
-                  onError={(e) => {
-                    e.target.src = '/logo-elimcrown.png';
-                  }}
-                />
-                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                  <Upload size={18} />
-                  Upload Logo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageUpload(e, 'logo')}
-                    className="hidden"
-                  />
-                </label>
-                <p className="text-xs text-gray-500 mt-2">PNG, JPG up to 2MB</p>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Favicon
-              </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                <img
-                  src={faviconPreview}
-                  alt="Favicon Preview"
-                  className="w-16 h-16 object-contain mx-auto mb-3"
-                  onError={(e) => {
-                    e.target.src = '/favicon.png';
-                  }}
-                />
-                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                  <Upload size={18} />
-                  Upload Favicon
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageUpload(e, 'favicon')}
-                    className="hidden"
-                  />
-                </label>
-                <p className="text-xs text-gray-500 mt-2">32x32 or 64x64 recommended</p>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Official School Stamp
-              </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                <img
-                  src={stampPreview}
-                  alt="Stamp Preview"
-                  className="w-32 h-32 object-contain mx-auto mb-3"
-                  onError={(e) => {
-                    e.target.src = '/stamp.svg';
-                  }}
-                />
-                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                  <Upload size={18} />
-                  Upload Stamp
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageUpload(e, 'stamp')}
-                    className="hidden"
-                  />
-                </label>
-                <p className="text-xs text-gray-500 mt-2">PNG, SVG or JPG up to 2MB</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Messages Configuration */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <MessageSquare size={20} className="text-blue-600" />
-            Welcome & Onboarding Messages
-          </h3>
-
-          <div className="space-y-6">
-            {/* Login Page Messages */}
-            <div className="border-b pb-6">
-              <h4 className="font-semibold text-gray-800 mb-3">Login Page</h4>
+            <div className="p-6 space-y-8">
+              {/* Login Page */}
               <div className="space-y-4">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Login Page</h4>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Welcome Title
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Welcome Title</label>
                   <input
                     type="text"
                     value={localSettings.welcomeTitle}
                     onChange={(e) => handleChange('welcomeTitle', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                    placeholder="e.g., Welcome to Elimcrown Academy"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                    placeholder="e.g. Welcome back!"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Welcome Message
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Welcome Message</label>
                   <textarea
                     value={localSettings.welcomeMessage}
                     onChange={(e) => handleChange('welcomeMessage', e.target.value)}
                     rows={3}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
-                    placeholder="Enter a welcoming message for users logging in"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition resize-none"
+                    placeholder="Short greeting for your users..."
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Registration Page Messages */}
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-3">Registration Page</h4>
-              <div className="space-y-4">
+              {/* Registration Page */}
+              <div className="space-y-4 pt-4 border-t border-gray-50">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Registration Page</h4>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Onboarding Title
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Onboarding Title</label>
                   <input
                     type="text"
                     value={localSettings.onboardingTitle}
                     onChange={(e) => handleChange('onboardingTitle', e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                    placeholder="e.g., Join Our Community"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                    placeholder="e.g. Create Account"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Onboarding Message
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Onboarding Message</label>
                   <textarea
                     value={localSettings.onboardingMessage}
                     onChange={(e) => handleChange('onboardingMessage', e.target.value)}
-                    rows={4}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none"
-                    placeholder="Enter a motivating message for new users"
+                    rows={3}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition resize-none"
+                    placeholder="Encouraging message for new signups..."
                   />
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Preview Section */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <h3 className="text-lg font-bold mb-4">Preview</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 items-start">
+            <Layout className="text-blue-500 mt-0.5" size={20} />
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> Identity settings like School Name and Colors have been moved to
+              <span className="font-bold"> School Settings</span> for unified management.
+            </p>
+          </div>
+        </div>
+
+        {/* Preview Column */}
+        <div className="space-y-6">
           {/* Login Preview */}
-          <div className="border-2 border-gray-200 rounded-lg overflow-hidden">
-            <div className="bg-gray-100 px-4 py-2 border-b">
-              <p className="text-xs font-semibold text-gray-600">Login Page Preview</p>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex justify-between items-center text-[10px] uppercase font-bold text-gray-400">
+              <span>Portal Preview (Login)</span>
+              <span>Visual Check</span>
             </div>
             <div
-              className="p-8 text-white relative overflow-hidden"
-              style={{ backgroundColor: localSettings.brandColor }}
+              className="p-10 text-white relative flex flex-col items-center text-center justify-center min-h-[300px]"
+              style={{ backgroundColor: brandingSettings?.brandColor || '#520050' }}
             >
-              <div className="absolute inset-0 overflow-hidden opacity-10">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-white rounded-full -translate-y-1/2 translate-x-1/2"></div>
-              </div>
-              <div className="relative z-10 text-center">
-                <img
-                  src={logoPreview}
-                  alt="Logo"
-                  className="w-24 h-24 object-contain mx-auto mb-4"
-                  onError={(e) => {
-                    e.target.src = '/logo-elimcrown.png';
-                  }}
-                />
-                <h3 className="text-xl font-bold mb-2">{localSettings.welcomeTitle}</h3>
-                <p className="text-sm opacity-90">{localSettings.welcomeMessage}</p>
-              </div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+              <img
+                src={brandingSettings?.logoUrl || '/logo-elimcrown.png'}
+                alt="Logo"
+                className="w-20 h-20 object-contain mb-6 drop-shadow-lg"
+                onError={(e) => e.target.src = '/logo-elimcrown.png'}
+              />
+              <h3 className="text-xl font-black mb-2 tracking-tight">{localSettings.welcomeTitle || 'Welcome'}</h3>
+              <p className="text-sm text-blue-50/80 leading-relaxed max-w-xs">{localSettings.welcomeMessage}</p>
             </div>
           </div>
 
           {/* Registration Preview */}
-          <div className="border-2 border-gray-200 rounded-lg overflow-hidden">
-            <div className="bg-gray-100 px-4 py-2 border-b">
-              <p className="text-xs font-semibold text-gray-600">Registration Page Preview</p>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 flex justify-between items-center text-[10px] uppercase font-bold text-gray-400">
+              <span>Portal Preview (Onboarding)</span>
+              <span>Visual Check</span>
             </div>
             <div
-              className="p-8 text-white relative overflow-hidden"
-              style={{ backgroundColor: localSettings.brandColor }}
+              className="p-10 text-white relative flex flex-col items-center text-center justify-center min-h-[300px]"
+              style={{ backgroundColor: brandingSettings?.brandColor || '#520050' }}
             >
-              <div className="absolute inset-0 overflow-hidden opacity-10">
-                <div className="absolute bottom-0 left-0 w-32 h-32 bg-white rounded-full translate-y-1/2 -translate-x-1/2"></div>
-              </div>
-              <div className="relative z-10 text-center">
-                <img
-                  src={logoPreview}
-                  alt="Logo"
-                  className="w-24 h-24 object-contain mx-auto mb-4"
-                  onError={(e) => {
-                    e.target.src = '/logo-elimcrown.png';
-                  }}
-                />
-                <h3 className="text-xl font-bold mb-2">{localSettings.onboardingTitle}</h3>
-                <p className="text-sm opacity-90">{localSettings.onboardingMessage}</p>
-              </div>
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+              <img
+                src={brandingSettings?.logoUrl || '/logo-elimcrown.png'}
+                alt="Logo"
+                className="w-20 h-20 object-contain mb-6 drop-shadow-lg"
+                onError={(e) => e.target.src = '/logo-elimcrown.png'}
+              />
+              <h3 className="text-xl font-black mb-2 tracking-tight">{localSettings.onboardingTitle || 'Get Started'}</h3>
+              <p className="text-sm text-blue-50/80 leading-relaxed max-w-xs">{localSettings.onboardingMessage}</p>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex justify-between">
-        <button
-          onClick={handleReset}
-          className="flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold transition"
-        >
-          <RefreshCw size={20} />
-          Reset to Default
-        </button>
-        <button
-          onClick={handleSave}
-          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition shadow-lg"
-        >
-          <Save size={20} />
-          Save Changes
-        </button>
       </div>
     </div>
   );

@@ -36,18 +36,16 @@ function AppContent() {
   const pathname = location.pathname;
   const { schoolId: urlSchoolId } = parseTenantFromPath(pathname);
 
-  const [brandingSettings, setBrandingSettings] = useState(() => {
-    return {
-      logoUrl: localStorage.getItem('schoolLogo') || '/logo-new.png',
-      faviconUrl: localStorage.getItem('schoolFavicon') || '/favicon.png',
-      stampUrl: localStorage.getItem('schoolStamp') || '/stamp.svg',
-      brandColor: localStorage.getItem('brandColor') || '#520050',
-      welcomeTitle: localStorage.getItem('welcomeTitle') || 'Welcome to Elimcrown',
-      welcomeMessage: localStorage.getItem('welcomeMessage') || 'Unified education management for schools and institutions.',
-      onboardingTitle: localStorage.getItem('onboardingTitle') || 'Create Your Elimcrown Account',
-      onboardingMessage: localStorage.getItem('onboardingMessage') || 'Sign up to access powerful tools for managing learning and assessment.',
-      schoolName: localStorage.getItem('schoolName') || 'Elimcrown',
-    };
+  const [brandingSettings, setBrandingSettings] = useState({
+    logoUrl: '/logo-new.png',
+    faviconUrl: '/favicon.png',
+    stampUrl: '/stamp.svg',
+    brandColor: '#520050',
+    welcomeTitle: 'Welcome to Elimcrown',
+    welcomeMessage: 'Unified education management for schools and institutions.',
+    onboardingTitle: 'Create Your Elimcrown Account',
+    onboardingMessage: 'Sign up to access powerful tools for managing learning and assessment.',
+    schoolName: 'Elimcrown',
   });
 
   useEffect(() => {
@@ -65,6 +63,11 @@ function AppContent() {
           logoUrl: t.logoUrl || prev.logoUrl,
           faviconUrl: t.faviconUrl || prev.faviconUrl,
           stampUrl: t.stampUrl || prev.stampUrl,
+          brandColor: t.brandColor || prev.brandColor,
+          welcomeTitle: t.welcomeTitle || prev.welcomeTitle,
+          welcomeMessage: t.welcomeMessage || prev.welcomeMessage,
+          onboardingTitle: t.onboardingTitle || prev.onboardingTitle,
+          onboardingMessage: t.onboardingMessage || prev.onboardingMessage,
           schoolName: t.schoolName || prev.schoolName,
         }));
       } catch {
@@ -75,15 +78,6 @@ function AppContent() {
     return () => { cancelled = true; };
   }, [urlSchoolId]);
 
-  useEffect(() => {
-    if (brandingSettings.logoUrl && brandingSettings.logoUrl !== '/logo-elimcrown.png')
-      localStorage.setItem('schoolLogo', brandingSettings.logoUrl);
-    if (brandingSettings.schoolName) localStorage.setItem('schoolName', brandingSettings.schoolName);
-    if (brandingSettings.faviconUrl && brandingSettings.faviconUrl !== '/favicon.png')
-      localStorage.setItem('schoolFavicon', brandingSettings.faviconUrl);
-    if (brandingSettings.stampUrl && brandingSettings.stampUrl !== '/stamp.svg')
-      localStorage.setItem('schoolStamp', brandingSettings.stampUrl);
-  }, [brandingSettings]);
 
   useEffect(() => {
     let link = document.querySelector("link[rel*='icon']");

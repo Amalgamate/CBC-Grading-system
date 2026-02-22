@@ -16,35 +16,35 @@ export const PERMISSIONS = {
   CREATE_RECEPTIONIST: ['SUPER_ADMIN', 'ADMIN'],
   EDIT_USER: ['SUPER_ADMIN', 'ADMIN'],
   DELETE_USER: ['SUPER_ADMIN', 'ADMIN'],
-  VIEW_ALL_USERS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER'],
-  MANAGE_TEACHERS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'], // Can view/manage teacher list (hidden from teachers)
-  
+  VIEW_ALL_USERS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'HEAD_OF_CURRICULUM'],
+  MANAGE_TEACHERS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM'], // Can view/manage teacher list (hidden from teachers)
+
   // ============================================
   // LEARNER MANAGEMENT
   // ============================================
-  CREATE_LEARNER: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'],
-  EDIT_LEARNER: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'],
+  CREATE_LEARNER: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM'],
+  EDIT_LEARNER: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM'],
   DELETE_LEARNER: ['SUPER_ADMIN', 'ADMIN'],
   VIEW_ALL_LEARNERS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'ACCOUNTANT', 'RECEPTIONIST'],
   VIEW_OWN_LEARNERS: ['TEACHER'],
   VIEW_OWN_CHILDREN: ['PARENT'],
   PROMOTE_LEARNER: ['SUPER_ADMIN', 'ADMIN'],
   TRANSFER_LEARNER: ['SUPER_ADMIN', 'ADMIN'],
-  
+
   // ============================================
   // ASSESSMENTS
   // ============================================
-  ACCESS_ASSESSMENT_MODULE: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER'], // Full assessment module access
-  CREATE_ASSESSMENT: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER'],
-  EDIT_ASSESSMENT: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER'],
+  ACCESS_ASSESSMENT_MODULE: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'HEAD_OF_CURRICULUM'], // Full assessment module access
+  CREATE_ASSESSMENT: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'HEAD_OF_CURRICULUM'],
+  EDIT_ASSESSMENT: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'HEAD_OF_CURRICULUM'],
   DELETE_ASSESSMENT: ['SUPER_ADMIN', 'ADMIN'],
-  VIEW_ASSESSMENT_PAGES: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER'], // Can access assessment pages
-  VIEW_ALL_REPORTS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER'],
+  VIEW_ASSESSMENT_PAGES: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'HEAD_OF_CURRICULUM'], // Can access assessment pages
+  VIEW_ALL_REPORTS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'HEAD_OF_CURRICULUM'],
   VIEW_OWN_REPORTS: ['TEACHER'],
   VIEW_CHILDREN_REPORTS: ['PARENT'], // Parents can only view their children's reports
   GRADE_ASSESSMENT: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER'],
   DOWNLOAD_REPORTS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'PARENT'],
-  
+
   // ============================================
   // ATTENDANCE
   // ============================================
@@ -54,7 +54,7 @@ export const PERMISSIONS = {
   VIEW_OWN_ATTENDANCE: ['TEACHER'],
   VIEW_CHILDREN_ATTENDANCE: ['PARENT'],
   GENERATE_ATTENDANCE_REPORTS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER'],
-  
+
   // ============================================
   // SETTINGS
   // ============================================
@@ -66,10 +66,10 @@ export const PERMISSIONS = {
   BRANDING_SETTINGS: ['SUPER_ADMIN'],
   BACKUP_SETTINGS: ['SUPER_ADMIN'],
   USER_ROLES_SETTINGS: ['SUPER_ADMIN'],
-  VIEW_ACADEMIC_SETTINGS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'],
-  MANAGE_LEARNING_AREAS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'], // Head teacher can manage learning areas
-  MANAGE_FACILITIES: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'], // Head teacher can manage classes and facilities
-  
+  VIEW_ACADEMIC_SETTINGS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM'],
+  MANAGE_LEARNING_AREAS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM'], // Head teacher can manage learning areas
+  MANAGE_FACILITIES: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM'], // Head teacher can manage classes and facilities
+
   // ============================================
   // COMMUNICATIONS
   // ============================================
@@ -78,7 +78,7 @@ export const PERMISSIONS = {
   VIEW_INBOX: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'PARENT', 'ACCOUNTANT', 'RECEPTIONIST'],
   DELETE_OWN_MESSAGES: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'PARENT', 'ACCOUNTANT', 'RECEPTIONIST'],
   DELETE_ANY_MESSAGE: ['SUPER_ADMIN'],
-  
+
   // ============================================
   // FINANCE / FEE MANAGEMENT
   // ============================================
@@ -90,7 +90,7 @@ export const PERMISSIONS = {
   GENERATE_RECEIPTS: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'],
   FINANCIAL_REPORTS: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'],
   SEND_FEE_REMINDERS: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'],
-  
+
   // ============================================
   // HUMAN RESOURCES / STAFF MANAGEMENT
   // ============================================
@@ -103,7 +103,7 @@ export const PERMISSIONS = {
   APPROVE_LEAVE: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'],
   STAFF_PERFORMANCE: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'],
   VIEW_STAFF_DOCUMENTS: ['SUPER_ADMIN', 'ADMIN'],
-  
+
   // ============================================
   // LIBRARY MANAGEMENT
   // ============================================
@@ -113,7 +113,7 @@ export const PERMISSIONS = {
   MANAGE_LIBRARY_FEES: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'],
   VIEW_LIBRARY_INVENTORY: ['SUPER_ADMIN', 'ADMIN'],
   MANAGE_LIBRARY_MEMBERS: ['SUPER_ADMIN', 'ADMIN'],
-  
+
   // ============================================
   // TRANSPORT & HOSTEL MANAGEMENT
   // ============================================
@@ -124,7 +124,7 @@ export const PERMISSIONS = {
   MANAGE_HOSTEL_ALLOCATION: ['SUPER_ADMIN', 'ADMIN'],
   TRANSPORT_HOSTEL_FEES: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTANT'],
   VIEW_TRANSPORT_REPORTS: ['SUPER_ADMIN', 'ADMIN'],
-  
+
   // ============================================
   // BIOMETRIC ATTENDANCE
   // ============================================
@@ -133,7 +133,7 @@ export const PERMISSIONS = {
   ENROLL_FINGERPRINTS: ['SUPER_ADMIN', 'ADMIN'],
   VIEW_BIOMETRIC_LOGS: ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER'],
   CONFIGURE_BIOMETRIC_API: ['SUPER_ADMIN'],
-  
+
   // ============================================
   // AUDIT & LOGS
   // ============================================
@@ -153,6 +153,7 @@ export const ROLES = {
   PARENT: 'PARENT',
   ACCOUNTANT: 'ACCOUNTANT',
   RECEPTIONIST: 'RECEPTIONIST',
+  HEAD_OF_CURRICULUM: 'HEAD_OF_CURRICULUM',
 };
 
 /**
@@ -166,6 +167,7 @@ export const ROLE_NAMES = {
   PARENT: 'Parent',
   ACCOUNTANT: 'Accountant',
   RECEPTIONIST: 'Receptionist',
+  HEAD_OF_CURRICULUM: 'Head of Curriculum',
 };
 
 /**
@@ -176,6 +178,7 @@ export const ROLE_HIERARCHY = {
   SUPER_ADMIN: 7,
   ADMIN: 6,
   HEAD_TEACHER: 5,
+  HEAD_OF_CURRICULUM: 5,
   TEACHER: 4,
   ACCOUNTANT: 3,
   RECEPTIONIST: 2,
@@ -203,7 +206,7 @@ export function hasPermission(role, permission) {
  */
 export function getRolePermissions(role) {
   if (!role) return [];
-  
+
   return Object.entries(PERMISSIONS)
     .filter(([_, roles]) => roles.includes(role))
     .map(([permission]) => permission);

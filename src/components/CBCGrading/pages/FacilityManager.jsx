@@ -14,6 +14,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { getAdminSchoolId, getStoredUser } from '../../../services/tenantContext';
 import { GRADES } from '../../../constants/grades';
 import api from '../../../services/api';
+import Toast from '../shared/Toast';
 import {
   Button,
   Input,
@@ -32,7 +33,14 @@ import {
 } from '../../../components/ui';
 
 const FacilityManager = () => {
-  const { showSuccess, showError } = useNotifications();
+  const {
+    showSuccess,
+    showError,
+    showToast,
+    toastMessage,
+    toastType,
+    hideNotification
+  } = useNotifications();
 
   // State
   const [classes, setClasses] = useState([]);
@@ -382,43 +390,6 @@ const FacilityManager = () => {
     setActiveTab('classes');
   };
 
-  // Get current lesson based on time
-  const getCurrentLesson = () => {
-    const now = new Date();
-    const hour = now.getHours();
-    const minute = now.getMinutes();
-    const currentMinutes = hour * 60 + minute;
-
-    // Define lesson slots (time in minutes from midnight)
-    const lessons = [
-      { start: 8 * 60, end: 9.5 * 60, name: 'First Lesson', color: 'bg-amber-100 text-amber-900' },
-      { start: 10 * 60, end: 11.5 * 60, name: 'Second Lesson', color: 'bg-blue-100 text-blue-900' },
-      { start: 13 * 60, end: 14.5 * 60, name: 'Third Lesson', color: 'bg-green-100 text-green-900' },
-      { start: 15 * 60, end: 16.5 * 60, name: 'Fourth Lesson', color: 'bg-purple-100 text-purple-900' },
-    ];
-
-    return lessons.find(l => currentMinutes >= l.start && currentMinutes < l.end) || { name: 'No active lesson', color: 'bg-gray-100 text-gray-900' };
-  };
-
-  // Get student count for a class
-  const getStudentCount = (classItem) => {
-    // Mock enrollment for now - in production, this would come from enrollments data
-    const mockCounts = {
-      'Grade 1 - A': 28,
-      'Grade 2 - A': 32,
-      'Grade 3 - A': 25,
-      'Grade 4 - A': 30,
-      'Grade 5 - A': 34,
-      'Grade 6 - A': 28,
-      'Grade 7 - A': 35,
-      'Grade 8 - A': 29,
-      'Grade 9 - A': 31,
-      'Grade 10 - A': 27,
-      'Grade 11 - A': 26,
-      'Grade 12 - A': 24,
-    };
-    return mockCounts[classItem?.name] || 0;
-  };
 
   // Filter classes
   const filteredClasses = classes.filter(item =>
@@ -596,88 +567,76 @@ const FacilityManager = () => {
                 </CardContent>
               </Card>
             ) : (
-              // Classes Grid
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredClasses.map(classItem => {
-                  const currentLesson = getCurrentLesson();
-                  const studentCount = getStudentCount(classItem);
-
-                  return (
-                    <Card key={classItem.id} className="hover:shadow-lg transition-shadow border-l-4 border-l-brand-purple">
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <CardTitle className="text-lg">{classItem.name}</CardTitle>
-                            <CardDescription className="text-xs">Grade: {classItem.grade}</CardDescription>
-                          </div>
-                          <div className="text-right text-xs bg-brand-purple/10 px-2 py-1 rounded text-brand-purple font-bold">
-                            {currentLesson.name}
-                          </div>
-                        </div>
-                      </CardHeader>
-
-                      <CardContent className="space-y-4">
-                        {/* Teacher Info */}
-                        <div className="bg-amber-50 border border-amber-100 rounded-lg p-3">
-                          <p className="text-xs text-amber-900 font-bold uppercase tracking-tight mb-1">Class Teacher</p>
-                          <p className="text-sm font-bold text-gray-900">{classItem.teacher?.firstName || 'Unassigned'} {classItem.teacher?.lastName || ''}</p>
-                          {classItem.teacher?.phone && (
-                            <p className="text-xs text-gray-600 mt-1">{classItem.teacher.phone}</p>
-                          )}
-                        </div>
-
-                        {/* Student Count */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-center">
-                            <p className="text-xs text-blue-900 font-bold uppercase tracking-tight">Students</p>
-                            <p className="text-2xl font-black text-blue-600 mt-1">{studentCount}/{classItem.capacity}</p>
-                            <p className="text-xs text-blue-700 mt-1">Enrolled</p>
-                          </div>
-
-                          {/* Capacity Utilization */}
-                          <div className="bg-green-50 border border-green-100 rounded-lg p-3 text-center">
-                            <p className="text-xs text-green-900 font-bold uppercase tracking-tight">Utilization</p>
-                            <p className="text-2xl font-black text-green-600 mt-1">{Math.round((studentCount / classItem.capacity) * 100)}%</p>
-                            <div className="w-full bg-green-200 rounded-full h-1.5 mt-2">
-                              <div
-                                className="bg-green-600 h-1.5 rounded-full transition-all"
-                                style={{ width: `${Math.min((studentCount / classItem.capacity) * 100, 100)}%` }}
-                              ></div>
+              // Classes Table View
+              <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50/50 border-b border-gray-100">
+                      <th className="p-4 font-bold text-gray-700 text-sm">Class Name</th>
+                      <th className="p-4 font-bold text-gray-700 text-sm">Grade</th>
+                      <th className="p-4 font-bold text-gray-700 text-sm">Stream</th>
+                      <th className="p-4 font-bold text-gray-700 text-sm">Teacher</th>
+                      <th className="p-4 font-bold text-gray-700 text-sm text-center">Capacity</th>
+                      <th className="p-4 font-bold text-gray-700 text-sm">Status</th>
+                      <th className="p-4 font-bold text-gray-700 text-sm text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {filteredClasses.map(classItem => {
+                      const teacher = teachers.find(t => t.id === classItem.teacherId);
+                      return (
+                        <tr key={classItem.id} className="hover:bg-blue-50/30 transition-colors group">
+                          <td className="p-4">
+                            <p className="font-bold text-gray-900">{classItem.name}</p>
+                            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">{classItem.code}</p>
+                          </td>
+                          <td className="p-4 text-sm text-gray-600 font-medium">{classItem.grade}</td>
+                          <td className="p-4 text-sm text-gray-600 font-medium">{classItem.stream || '-'}</td>
+                          <td className="p-4">
+                            {teacher ? (
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xs font-bold">
+                                  {teacher.firstName?.[0]}{teacher.lastName?.[0]}
+                                </div>
+                                <span className="text-sm font-semibold text-gray-700">
+                                  {teacher.firstName} {teacher.lastName}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs font-medium text-gray-400 italic">Unassigned</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-center">
+                            <span className="text-sm font-bold text-gray-700">{classItem.capacity}</span>
+                          </td>
+                          <td className="p-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${classItem.active !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                              {classItem.active !== false ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleEditClass(classItem)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                title="Edit Class"
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm(classItem.id)}
+                                className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                                title="Remove Class"
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </div>
-                          </div>
-                        </div>
-
-                        {/* Current Activity */}
-                        <div className={`${currentLesson.color} border border-current rounded-lg p-3`}>
-                          <p className="text-xs font-bold uppercase tracking-tight opacity-70 mb-1">Current Activity</p>
-                          <p className="text-sm font-bold">{currentLesson.name}</p>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex gap-2 pt-4 border-t">
-                          <Button
-                            onClick={() => handleEditClass(classItem)}
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                          >
-                            <Edit size={14} />
-                            Edit
-                          </Button>
-                          <Button
-                            onClick={() => setDeleteConfirm(classItem.id)}
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 text-brand-purple hover:text-brand-purple hover:bg-brand-purple/5"
-                          >
-                            <Trash2 size={14} />
-                            Remove
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
@@ -1090,6 +1049,14 @@ const FacilityManager = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Notifications */}
+      <Toast
+        show={showToast}
+        message={toastMessage}
+        type={toastType}
+        onClose={hideNotification}
+      />
     </div>
   );
 };

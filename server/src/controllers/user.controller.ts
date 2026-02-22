@@ -28,11 +28,10 @@ export class UserController {
 
     let users;
 
-    if (currentUserRole === 'HEAD_TEACHER') {
-      // HEAD_TEACHER can only see teachers in their department
-      // TODO: Filter by department when department model is implemented
+    if (currentUserRole === 'HEAD_TEACHER' || currentUserRole === 'HEAD_OF_CURRICULUM') {
+      // HEAD_TEACHER / HEAD_OF_CURRICULUM can only see teachers in their department
       const whereClause: any = {
-        role: { in: ['TEACHER', 'HEAD_TEACHER'] }
+        role: { in: ['TEACHER', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM'] }
       };
 
       // Phase 5: Tenant Scoping
@@ -187,7 +186,7 @@ export class UserController {
     }
 
     // Validate role
-    const validRoles: Role[] = ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'PARENT', 'ACCOUNTANT', 'RECEPTIONIST'];
+    const validRoles: Role[] = ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM', 'TEACHER', 'PARENT', 'ACCOUNTANT', 'RECEPTIONIST'];
     if (!validRoles.includes(role as Role)) {
       throw new ApiError(400, `Invalid role. Must be one of: ${validRoles.join(', ')}`);
     }
@@ -222,7 +221,7 @@ export class UserController {
 
     // Auto-generate staff ID if not provided and role is staff
     let staffId = req.body.staffId;
-    const staffRoles: Role[] = ['ADMIN', 'HEAD_TEACHER', 'TEACHER', 'ACCOUNTANT', 'RECEPTIONIST'];
+    const staffRoles: Role[] = ['ADMIN', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM', 'TEACHER', 'ACCOUNTANT', 'RECEPTIONIST'];
 
     if (!staffId && staffRoles.includes(role as Role) && schoolId) {
       try {
@@ -539,13 +538,13 @@ export class UserController {
     const skip = (page - 1) * limit;
 
     // Validate role
-    const validRoles: Role[] = ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'TEACHER', 'PARENT', 'ACCOUNTANT', 'RECEPTIONIST'];
+    const validRoles: Role[] = ['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM', 'TEACHER', 'PARENT', 'ACCOUNTANT', 'RECEPTIONIST'];
     if (!validRoles.includes(role as Role)) {
       throw new ApiError(400, `Invalid role. Must be one of: ${validRoles.join(', ')}`);
     }
 
-    // HEAD_TEACHER can only view teachers
-    if (currentUserRole === 'HEAD_TEACHER' && !['TEACHER', 'HEAD_TEACHER'].includes(role)) {
+    // HEAD_TEACHER / HEAD_OF_CURRICULUM can only view teachers
+    if ((currentUserRole === 'HEAD_TEACHER' || currentUserRole === 'HEAD_OF_CURRICULUM') && !['TEACHER', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM'].includes(role)) {
       throw new ApiError(403, 'You can only view teachers');
     }
 
@@ -657,10 +656,10 @@ export class UserController {
       stats.totalUsers = userCounts.reduce((sum, item) => sum + item._count, 0);
     }
 
-    if (currentUserRole === 'HEAD_TEACHER') {
+    if (currentUserRole === 'HEAD_TEACHER' || currentUserRole === 'HEAD_OF_CURRICULUM') {
       // Get teacher counts
       const teacherCount = await prisma.user.count({
-        where: { role: 'TEACHER', ...whereClause }
+        where: { role: { in: ['TEACHER', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM'] }, ...whereClause }
       });
       stats.teachers = teacherCount;
     }

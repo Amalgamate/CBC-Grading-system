@@ -2295,7 +2295,16 @@ const api = {
   teachers: teacherAPI,
   parents: parentAPI,
   learners: learnerAPI,
-  classes: classAPI,
+  classes: {
+    ...classAPI,
+    getTeacherWorkload: async (teacherId, params = {}) => {
+      const queryString = new URLSearchParams(params).toString();
+      return fetchWithAuth(`/classes/teacher/${teacherId}/workload${queryString ? `?${queryString}` : ''}`);
+    },
+    getTeacherSchedules: async (teacherId) => {
+      return fetchWithAuth(`/classes/teacher/${teacherId}/schedules`);
+    },
+  },
   attendance: attendanceAPI,
   assessments: assessmentAPI,
   reports: reportAPI,

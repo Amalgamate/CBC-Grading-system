@@ -88,10 +88,17 @@ model School {
   logoUrl                String?
   faviconUrl             String?
   stampUrl               String?
+  latitude               Float?
+  longitude              Float?
   schoolType             String?
   motto                  String?
   vision                 String?
   mission                String?
+  brandColor             String?
+  welcomeTitle           String?
+  welcomeMessage         String?
+  onboardingTitle        String?
+  onboardingMessage      String?
   admissionFormatType    AdmissionFormatType   @default(BRANCH_PREFIX_START)
   branchSeparator        String                @default("-")
   active                 Boolean               @default(true)
@@ -1393,6 +1400,7 @@ enum UserRole {
   SUPER_ADMIN
   ADMIN
   HEAD_TEACHER
+  HEAD_OF_CURRICULUM
   TEACHER
   PARENT
   ACCOUNTANT

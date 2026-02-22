@@ -481,9 +481,9 @@ const Sidebar = React.memo(({
 
   // Find settings section separately
   const settingsSection = useMemo(() => {
-    // Teachers cannot access settings
+    // Teachers and HoC/Head Teachers may have different access
     if (role === 'TEACHER') return null;
-
+    // HoC should have access to settings if they have the permission
     const section = allNavSections.find(s => s.id === 'settings');
     if (!section || !can(section.permission)) return null;
 
@@ -576,7 +576,7 @@ const Sidebar = React.memo(({
 
   const [activeCategory, setActiveCategory] = useState(() => {
     const learningRoles = ['TEACHER', 'PARENT'];
-    const schoolRoles = ['ACCOUNTANT', 'RECEPTIONIST', 'ADMIN', 'SUPER_ADMIN', 'HEAD_TEACHER'];
+    const schoolRoles = ['ACCOUNTANT', 'RECEPTIONIST', 'ADMIN', 'SUPER_ADMIN', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM'];
     if (learningRoles.includes(role)) return 'learning';
     if (schoolRoles.includes(role)) return 'school';
     return 'learning';

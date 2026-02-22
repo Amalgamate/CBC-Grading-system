@@ -55,6 +55,20 @@ const ROLES_CONFIG = [
     }
   },
   {
+    value: 'HEAD_OF_CURRICULUM',
+    label: 'Head of Curriculum',
+    color: 'violet',
+    permissions: {
+      users: { view: true, create: false, edit: false, delete: false },
+      roles: { view: true, create: false, edit: false, delete: false },
+      learners: { view: true, create: true, edit: true, delete: false },
+      assessments: { view: true, create: true, edit: true, delete: false },
+      reports: { view: true, create: true, edit: true, delete: false },
+      fees: { view: false, create: false, edit: false, delete: false },
+      settings: { view: true, create: false, edit: false, delete: false }
+    }
+  },
+  {
     value: 'TEACHER',
     label: 'Teacher',
     color: 'blue',
@@ -401,7 +415,7 @@ const UserManagement = () => {
 
   // User grouping functions
   const getAdminUsers = () => users.filter(u => ['SUPER_ADMIN', 'ADMIN'].includes(u.role) && !u.archived);
-  const getTutorUsers = () => users.filter(u => ['TEACHER', 'HEAD_TEACHER'].includes(u.role) && !u.archived);
+  const getTutorUsers = () => users.filter(u => ['TEACHER', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM'].includes(u.role) && !u.archived);
   const getParentUsers = () => users.filter(u => u.role === 'PARENT' && !u.archived);
 
   const filteredUsers = users.filter(user => {
@@ -410,7 +424,7 @@ const UserManagement = () => {
     if (activeTab === 'parents') {
       matchesTab = user.role === 'PARENT' && !user.archived;
     } else if (activeTab === 'staff') {
-      matchesTab = ['TEACHER', 'HEAD_TEACHER', 'ACCOUNTANT', 'RECEPTIONIST', 'LIBRARIAN'].includes(user.role) && !user.archived;
+      matchesTab = ['TEACHER', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM', 'ACCOUNTANT', 'RECEPTIONIST', 'LIBRARIAN'].includes(user.role) && !user.archived;
     } else if (activeTab === 'admins') {
       matchesTab = ['SUPER_ADMIN', 'ADMIN'].includes(user.role) && !user.archived;
     } else if (activeTab === 'archive') {

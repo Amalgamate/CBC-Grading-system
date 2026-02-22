@@ -107,7 +107,7 @@ router.post(
   '/assign-teacher',
   authenticate,
   requireTenant,
-  requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
+  requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM']),
   auditLog('ASSIGN_TEACHER'),
   asyncHandler(classController.assignTeacher.bind(classController))
 );
@@ -121,7 +121,7 @@ router.post(
   '/unassign-teacher',
   authenticate,
   requireTenant,
-  requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
+  requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM']),
   auditLog('UNASSIGN_TEACHER'),
   asyncHandler(classController.unassignTeacher.bind(classController))
 );
@@ -135,8 +135,21 @@ router.get(
   '/teacher/:teacherId/workload',
   authenticate,
   requireTenant,
-  requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER']),
+  requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM', 'TEACHER']),
   asyncHandler(classController.getTeacherWorkload.bind(classController))
+);
+
+/**
+ * @route   GET /api/classes/teacher/:teacherId/schedules
+ * @desc    Get teacher's subject schedules from ClassSchedule table
+ * @access  SUPER_ADMIN, ADMIN, HEAD_TEACHER, HEAD_OF_CURRICULUM, TEACHER (self)
+ */
+router.get(
+  '/teacher/:teacherId/schedules',
+  authenticate,
+  requireTenant,
+  requireRole(['SUPER_ADMIN', 'ADMIN', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM', 'TEACHER']),
+  asyncHandler(classController.getTeacherSchedules.bind(classController))
 );
 
 export default router;

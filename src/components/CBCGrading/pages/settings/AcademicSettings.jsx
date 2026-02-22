@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Calendar, Save, BookOpen, Plus, Edit, Trash2, Calculator, Users, Loader, X } from 'lucide-react';
+import { Calendar, Save, BookOpen, Plus, Edit, Trash2, Users, Loader, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useAuth } from '../../../../hooks/useAuth';
@@ -16,9 +16,17 @@ import {
 } from '../../../../constants/learningAreas';
 import { gradeStructure } from '../../data/gradeStructure';
 import HierarchicalLearningAreas from './HierarchicalLearningAreas';
+import Toast from '../../shared/Toast';
 
 const AcademicSettings = () => {
-  const { showSuccess, showError } = useNotifications();
+  const {
+    showSuccess,
+    showError,
+    showToast,
+    toastMessage,
+    toastType,
+    hideNotification
+  } = useNotifications();
   const { user, updateUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'terms';
@@ -42,11 +50,11 @@ const AcademicSettings = () => {
   };
 
   const [termConfigs, setTermConfigs] = useState([]);
-  const [aggregationConfigs, setAggregationConfigs] = useState([]);
   const [streamConfigs, setStreamConfigs] = useState([]);
   const [classConfigs, setClassConfigs] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [showContextPrompt, setShowContextPrompt] = useState(false);
   const [schools, setSchools] = useState([]);
   const [selectedContextSchool, setSelectedContextSchool] = useState('');
@@ -71,24 +79,20 @@ const AcademicSettings = () => {
       if (!sid) {
         showError('School ID not detected. Please re-login.');
         setStreamConfigs([]);
-        setAggregationConfigs([]);
         setTermConfigs([]);
         return;
       }
-      const [terms, aggregations, streams, classes, teachersList] = await Promise.all([
+      const [terms, streams, classes, teachersList] = await Promise.all([
         configAPI.getTermConfigs(sid),
-        configAPI.getAggregationConfigs(sid),
         configAPI.getStreamConfigs(sid),
         configAPI.getClasses(sid),
         userAPI.getAll()
       ]);
       const termsArr = Array.isArray(terms) ? terms : (terms && terms.data) ? terms.data : [];
-      const aggsArr = Array.isArray(aggregations) ? aggregations : (aggregations && aggregations.data) ? aggregations.data : [];
       const streamsArr = Array.isArray(streams) ? streams : (streams && streams.data) ? streams.data : [];
       const classesArr = Array.isArray(classes) ? classes : (classes && classes.data) ? classes.data : [];
       const teachersArr = Array.isArray(teachersList) ? teachersList : (teachersList && teachersList.data) ? teachersList.data : [];
       setTermConfigs(termsArr);
-      setAggregationConfigs(aggsArr || []);
       setStreamConfigs(streamsArr || []);
       setClassConfigs(classesArr || []);
       setTeachers(teachersArr.filter(t => t.role === 'TEACHER' || t.role === 'HEAD_TEACHER') || []);
@@ -130,6 +134,7 @@ const AcademicSettings = () => {
   const handleSeedLearningAreas = React.useCallback(async () => {
     try {
       setSeedingLearningAreas(true);
+      setSubmitting(true);
       const result = await configAPI.seedLearningAreas();
 
       // Show success with toast AND notification
@@ -165,6 +170,7 @@ const AcademicSettings = () => {
       });
     } finally {
       setSeedingLearningAreas(false);
+      setSubmitting(false);
     }
   }, [loadLearningAreas]);
 
@@ -172,6 +178,7 @@ const AcademicSettings = () => {
   const handleSeedClasses = React.useCallback(async () => {
     try {
       setSeedingClasses(true);
+      setSubmitting(true);
       const sid = user?.school?.id || user?.schoolId;
       const result = await configAPI.seedClasses(sid);
       notifySuccess(`✏️ Classes seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`);
@@ -181,6 +188,7 @@ const AcademicSettings = () => {
       showError(error?.message || 'Failed to seed classes');
     } finally {
       setSeedingClasses(false);
+      setSubmitting(false);
     }
   }, [loadConfigs, showSuccess, showError]);
 
@@ -188,6 +196,7 @@ const AcademicSettings = () => {
   const handleSeedStreams = React.useCallback(async () => {
     try {
       setSeedingStreams(true);
+      setSubmitting(true);
       const sid = user?.school?.id || user?.schoolId;
       const result = await configAPI.seedStreams(sid);
       notifySuccess(`🌊 Streams seeded! Created: ${result.created || 0}, Skipped: ${result.skipped || 0}`);
@@ -197,6 +206,7 @@ const AcademicSettings = () => {
       showError(error?.message || 'Failed to seed streams');
     } finally {
       setSeedingStreams(false);
+      setSubmitting(false);
     }
   }, [loadConfigs, showSuccess, showError]);
 
@@ -254,11 +264,9 @@ const AcademicSettings = () => {
   const [learningAreas, setLearningAreas] = useState([]);
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showAggModal, setShowAggModal] = useState(false); // Aggregation Modal
   const [showStreamModal, setShowStreamModal] = useState(false); // Stream Modal
   const [showClassModal, setShowClassModal] = useState(false); // Class Modal
   const [editingArea, setEditingArea] = useState(null);
-  const [editingAgg, setEditingAgg] = useState(null); // Aggregation Edit
   const [editingStream, setEditingStream] = useState(null); // Stream Edit
   const [editingClass, setEditingClass] = useState(null); // Class Edit
 
@@ -276,14 +284,7 @@ const AcademicSettings = () => {
     description: ''
   });
 
-  const [aggFormData, setAggFormData] = useState({
-    type: 'QUIZ',
-    strategy: 'SIMPLE_AVERAGE',
-    nValue: '',
-    weight: 1.0,
-    grade: '',
-    learningArea: ''
-  });
+
 
   const [streamFormData, setStreamFormData] = useState({
     name: '',
@@ -304,6 +305,7 @@ const AcademicSettings = () => {
 
   const handleSaveTerm = async (termData) => {
     try {
+      setSubmitting(true);
       const sid = user?.school?.id || user?.schoolId;
       await configAPI.upsertTermConfig({
         ...termData,
@@ -313,34 +315,12 @@ const AcademicSettings = () => {
       loadConfigs(); // Refresh
     } catch (error) {
       showError(error.message || 'Failed to save term configuration');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleAddEditAgg = async () => {
-    try {
-      const sid = user?.school?.id || user?.schoolId;
-      const payload = {
-        ...aggFormData,
-        schoolId: sid,
-        nValue: aggFormData.nValue ? Number(aggFormData.nValue) : null,
-        weight: Number(aggFormData.weight)
-      };
 
-      if (editingAgg) {
-        await configAPI.updateAggregationConfig(editingAgg.id, payload);
-        showSuccess('Aggregation rule updated');
-      } else {
-        await configAPI.createAggregationConfig(payload);
-        showSuccess('Aggregation rule created');
-      }
-
-      setShowAggModal(false);
-      setEditingAgg(null);
-      loadConfigs();
-    } catch (error) {
-      showError(error.message || 'Failed to save aggregation rule');
-    }
-  };
 
   const handleSaveStream = async () => {
     if (!streamFormData.name || !streamFormData.name.trim()) {
@@ -365,6 +345,7 @@ const AcademicSettings = () => {
     }
 
     try {
+      setSubmitting(true);
       const sid = sidCtx;
       // removed debug log
 
@@ -400,19 +381,12 @@ const AcademicSettings = () => {
       } else {
         showError(error.message || 'Failed to save stream. Please try again.');
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleDeleteAgg = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this rule?')) return;
-    try {
-      await configAPI.deleteAggregationConfig(id);
-      showSuccess('Rule deleted');
-      loadConfigs();
-    } catch (error) {
-      showError(error.message || 'Failed to delete rule');
-    }
-  };
+
 
   const handleDeleteStream = async (id) => {
     if (!window.confirm('Are you sure you want to delete this stream?')) return;
@@ -425,30 +399,7 @@ const AcademicSettings = () => {
     }
   };
 
-  const openAggModal = (agg = null) => {
-    if (agg) {
-      setEditingAgg(agg);
-      setAggFormData({
-        type: agg.type,
-        strategy: agg.strategy,
-        nValue: agg.nValue || '',
-        weight: agg.weight || 1.0,
-        grade: agg.grade || '',
-        learningArea: agg.learningArea || ''
-      });
-    } else {
-      setEditingAgg(null);
-      setAggFormData({
-        type: 'QUIZ',
-        strategy: 'SIMPLE_AVERAGE',
-        nValue: '',
-        weight: 1.0,
-        grade: '',
-        learningArea: ''
-      });
-    }
-    setShowAggModal(true);
-  };
+
 
   const openStreamModal = (stream = null) => {
     if (stream) {
@@ -534,6 +485,7 @@ const AcademicSettings = () => {
     }
 
     try {
+      setSubmitting(true);
       const payload = {
         ...classFormData,
         schoolId: sid,
@@ -566,6 +518,8 @@ const AcademicSettings = () => {
       console.error('Error saving class:', error);
       // Show the actual error message from the server if available
       showError(error.message || 'Failed to save class. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -587,6 +541,7 @@ const AcademicSettings = () => {
     }
 
     try {
+      setSubmitting(true);
       const sid = user?.school?.id || user?.schoolId;
       if (!sid) {
         showError('School ID is missing');
@@ -611,6 +566,8 @@ const AcademicSettings = () => {
     } catch (error) {
       console.error('Error saving learning area:', error);
       showError(error.message || 'Failed to save learning area');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -725,16 +682,7 @@ const AcademicSettings = () => {
               <BookOpen size={20} />
               Learning Areas
             </button>
-            <button
-              onClick={() => setActiveTab('aggregation')}
-              className={`flex items-center gap-2 px-6 py-4 font-semibold transition ${activeTab === 'aggregation'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-600 hover:text-gray-800'
-                }`}
-            >
-              <Calculator size={20} />
-              Grading Rules
-            </button>
+
             <button
               onClick={() => setActiveTab('classes')}
               className={`flex items-center gap-2 px-6 py-4 font-semibold transition ${activeTab === 'classes'
@@ -789,8 +737,6 @@ const AcademicSettings = () => {
                       term: termName,
                       startDate: '',
                       endDate: '',
-                      formativeWeight: 50,
-                      summativeWeight: 50,
                       isActive: false
                     };
 
@@ -802,21 +748,25 @@ const AcademicSettings = () => {
                             <input
                               type="checkbox"
                               checked={config.isActive}
+                              disabled={submitting}
                               onChange={(e) => handleSaveTerm({ ...config, isActive: e.target.checked })}
-                              className="w-4 h-4 text-blue-600"
+                              className="w-4 h-4 text-blue-600 disabled:opacity-50"
                             />
-                            <span className="text-sm font-medium">Active Term</span>
+                            <span className="text-sm font-medium">
+                              {submitting && config.isActive ? 'Updating...' : 'Active Term'}
+                            </span>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-xs font-semibold text-gray-600 mb-1">Start Date</label>
                             <input
                               type="date"
                               value={config.startDate ? new Date(config.startDate).toISOString().split('T')[0] : ''}
+                              disabled={submitting}
                               onChange={(e) => handleSaveTerm({ ...config, startDate: e.target.value })}
-                              className="w-full px-3 py-2 border rounded text-sm"
+                              className="w-full px-3 py-2 border rounded text-sm disabled:bg-gray-100"
                             />
                           </div>
                           <div>
@@ -824,26 +774,9 @@ const AcademicSettings = () => {
                             <input
                               type="date"
                               value={config.endDate ? new Date(config.endDate).toISOString().split('T')[0] : ''}
+                              disabled={submitting}
                               onChange={(e) => handleSaveTerm({ ...config, endDate: e.target.value })}
-                              className="w-full px-3 py-2 border rounded text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">Formative Weight (%)</label>
-                            <input
-                              type="number"
-                              value={config.formativeWeight}
-                              onChange={(e) => handleSaveTerm({ ...config, formativeWeight: Number(e.target.value) })}
-                              className="w-full px-3 py-2 border rounded text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">Summative Weight (%)</label>
-                            <input
-                              type="number"
-                              value={config.summativeWeight}
-                              onChange={(e) => handleSaveTerm({ ...config, summativeWeight: Number(e.target.value) })}
-                              className="w-full px-3 py-2 border rounded text-sm"
+                              className="w-full px-3 py-2 border rounded text-sm disabled:bg-gray-100"
                             />
                           </div>
                         </div>
@@ -857,67 +790,7 @@ const AcademicSettings = () => {
         </div>
       )}
 
-      {/* Aggregation Tab */}
-      {activeTab === 'aggregation' && (
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold">Assessment Aggregation Rules</h3>
-            <button
-              onClick={() => openAggModal()}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
-            >
-              <Plus size={18} />
-              Add Rule
-            </button>
-          </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 border-b">
-                  <th className="p-4 font-semibold text-gray-600">Type</th>
-                  <th className="p-4 font-semibold text-gray-600">Strategy</th>
-                  <th className="p-4 font-semibold text-gray-600">Parameters</th>
-                  <th className="p-4 font-semibold text-gray-600">Scope</th>
-                  <th className="p-4 font-semibold text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {aggregationConfigs.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="p-8 text-center text-gray-500">No aggregation rules defined.</td>
-                  </tr>
-                ) : (
-                  aggregationConfigs.map(config => (
-                    <tr key={config.id} className="border-b hover:bg-gray-50">
-                      <td className="p-4 font-medium">{config.type}</td>
-                      <td className="p-4">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-semibold">
-                          {config.strategy.replace(/_/g, ' ')}
-                        </span>
-                      </td>
-                      <td className="p-4 text-sm">
-                        {config.strategy === 'BEST_N' && `Best ${config.nValue}`}
-                        {config.strategy === 'DROP_LOWEST_N' && `Drop Lowest ${config.nValue}`}
-                        {config.weight !== 1 && <div>Weight: {config.weight}x</div>}
-                      </td>
-                      <td className="p-4 text-sm text-gray-500">
-                        {config.grade ? `Grade: ${config.grade}` : 'All Grades'}
-                        <br />
-                        {config.learningArea ? `Subject: ${config.learningArea}` : 'All Subjects'}
-                      </td>
-                      <td className="p-4 flex gap-2">
-                        <button onClick={() => openAggModal(config)} className="text-blue-600 hover:text-blue-800"><Edit size={16} /></button>
-                        <button onClick={() => handleDeleteAgg(config.id)} className="text-red-600 hover:text-red-800"><Trash2 size={16} /></button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
 
       {/* Learning Areas Tab */}
       {activeTab === 'learning-areas' && (
@@ -998,7 +871,17 @@ const AcademicSettings = () => {
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Seed default classes for all grades"
               >
-                {seedingClasses ? '⏳ Seeding...' : '🌱 Seed Classes'}
+                {seedingClasses ? (
+                  <>
+                    <Loader size={18} className="animate-spin" />
+                    <span>Seeding...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🌱</span>
+                    <span>Seed Classes</span>
+                  </>
+                )}
               </button>
               <button
                 onClick={() => openClassModal()}
@@ -1074,7 +957,17 @@ const AcademicSettings = () => {
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Seed default streams (A, B, C, D)"
               >
-                {seedingStreams ? '⏳ Seeding...' : '🌱 Seed Streams'}
+                {seedingStreams ? (
+                  <>
+                    <Loader size={18} className="animate-spin" />
+                    <span>Seeding...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🌱</span>
+                    <span>Seed Streams</span>
+                  </>
+                )}
               </button>
               <button
                 onClick={() => openStreamModal()}
@@ -1166,10 +1059,20 @@ const AcademicSettings = () => {
               </button>
               <button
                 onClick={handleSaveStream}
-                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition font-semibold"
+                disabled={submitting}
+                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Save size={18} />
-                {editingStream ? 'Update' : 'Add'} Stream
+                {submitting ? (
+                  <>
+                    <Loader size={18} className="animate-spin" />
+                    <span>{editingStream ? 'Updating...' : 'Adding...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} />
+                    <span>{editingStream ? 'Update' : 'Add'} Stream</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1341,10 +1244,20 @@ const AcademicSettings = () => {
               </button>
               <button
                 onClick={handleSaveClass}
-                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition font-semibold"
+                disabled={submitting}
+                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Save size={18} />
-                {editingClass ? 'Update' : 'Create'} Class
+                {submitting ? (
+                  <>
+                    <Loader size={18} className="animate-spin" />
+                    <span>{editingClass ? 'Updating...' : 'Creating...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} />
+                    <span>{editingClass ? 'Update' : 'Create'} Class</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1486,9 +1399,17 @@ const AcademicSettings = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-700 hover:to-indigo-700 transition shadow-lg shadow-blue-500/20"
+                  disabled={submitting}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-700 hover:to-indigo-700 transition shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingArea ? 'Update Area' : 'Create Area'}
+                  {submitting ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader size={18} className="animate-spin" />
+                      <span>{editingArea ? 'Updating...' : 'Creating...'}</span>
+                    </div>
+                  ) : (
+                    <span>{editingArea ? 'Update Area' : 'Create Area'}</span>
+                  )}
                 </button>
               </div>
             </form>
@@ -1496,117 +1417,14 @@ const AcademicSettings = () => {
         </div>
       )}
 
-      {/* Aggregation Rule Modal */}
-      {
-        showAggModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-              <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-4 rounded-t-2xl">
-                <h3 className="text-xl font-bold text-white">
-                  {editingAgg ? 'Edit Aggregation Rule' : 'Add Aggregation Rule'}
-                </h3>
-              </div>
-
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Assessment Type</label>
-                  <select
-                    value={aggFormData.type}
-                    onChange={(e) => setAggFormData({ ...aggFormData, type: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="QUIZ">Quiz</option>
-                    <option value="ASSIGNMENT">Assignment</option>
-                    <option value="PROJECT">Project</option>
-                    <option value="EXAM">Exam</option>
-                    <option value="OBSERVATION">Observation</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Strategy</label>
-                  <select
-                    value={aggFormData.strategy}
-                    onChange={(e) => setAggFormData({ ...aggFormData, strategy: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="SIMPLE_AVERAGE">Simple Average</option>
-                    <option value="BEST_N">Best N</option>
-                    <option value="DROP_LOWEST_N">Drop Lowest N</option>
-                    <option value="WEIGHTED_AVERAGE">Weighted Average</option>
-                    <option value="MEDIAN">Median</option>
-                  </select>
-                </div>
-
-                {(aggFormData.strategy === 'BEST_N' || aggFormData.strategy === 'DROP_LOWEST_N') && (
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">N Value</label>
-                    <input
-                      type="number"
-                      value={aggFormData.nValue}
-                      onChange={(e) => setAggFormData({ ...aggFormData, nValue: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                      placeholder="e.g. 3"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Weight (Multiplier)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={aggFormData.weight}
-                    onChange={(e) => setAggFormData({ ...aggFormData, weight: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Grade (Optional)</label>
-                    <input
-                      type="text"
-                      value={aggFormData.grade}
-                      onChange={(e) => setAggFormData({ ...aggFormData, grade: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                      placeholder="e.g. Grade 1"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Subject (Optional)</label>
-                    <input
-                      type="text"
-                      value={aggFormData.learningArea}
-                      onChange={(e) => setAggFormData({ ...aggFormData, learningArea: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                      placeholder="e.g. Math"
-                    />
-                  </div>
-                </div>
-
-              </div>
-
-              <div className="border-t px-6 py-4 flex items-center justify-end gap-3 bg-gray-50 rounded-b-2xl">
-                <button
-                  onClick={() => setShowAggModal(false)}
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddEditAgg}
-                  className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition font-semibold"
-                >
-                  <Save size={18} />
-                  {editingAgg ? 'Update Rule' : 'Create Rule'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      }
-    </div >
+      {/* Notifications */}
+      <Toast
+        show={showToast}
+        message={toastMessage}
+        type={toastType}
+        onClose={hideNotification}
+      />
+    </div>
   );
 };
 

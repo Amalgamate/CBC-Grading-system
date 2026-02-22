@@ -47,6 +47,11 @@ interface SchoolData {
   logoUrl: string | null;
   faviconUrl: string | null;
   stampUrl: string | null;
+  brandColor: string | null;
+  welcomeTitle: string | null;
+  welcomeMessage: string | null;
+  onboardingTitle: string | null;
+  onboardingMessage: string | null;
 }
 
 interface SubdomainValidationResult {
@@ -162,7 +167,12 @@ export class SubdomainService {
           subdomainVerifiedAt: true,
           logoUrl: true,
           faviconUrl: true,
-          stampUrl: true
+          stampUrl: true,
+          brandColor: true,
+          welcomeTitle: true,
+          welcomeMessage: true,
+          onboardingTitle: true,
+          onboardingMessage: true
         }
       })) as any;
 

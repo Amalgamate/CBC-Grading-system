@@ -12,6 +12,7 @@ import api from '../../../../services/api';
 import { useNotifications } from '../../hooks/useNotifications';
 import ProfilePhotoModal from '../../shared/ProfilePhotoModal';
 import ResetPasswordModal from '../../shared/ResetPasswordModal';
+import AssignClassModal from '../../shared/AssignClassModal';
 
 const TeacherProfile = ({ teacher, onBack }) => {
     const [activeTab, setActiveTab] = useState('overview');
@@ -19,15 +20,36 @@ const TeacherProfile = ({ teacher, onBack }) => {
     const [showPhotoModal, setShowPhotoModal] = useState(false);
     const [showResetModal, setShowResetModal] = useState(false);
     const [showIssueModal, setShowIssueModal] = useState(false);
+    const [showAssignModal, setShowAssignModal] = useState(false);
     const [loadingBooks, setLoadingBooks] = useState(false);
     const [assignedBooks, setAssignedBooks] = useState([]);
     const [availableBooks, setAvailableBooks] = useState([]);
+    const [workload, setWorkload] = useState(null);
+    const [schedules, setSchedules] = useState([]);
+    const [loadingWorkload, setLoadingWorkload] = useState(false);
 
     useEffect(() => {
         if (teacher?.id) {
             fetchBooks();
+            fetchWorkload();
         }
     }, [teacher?.id]);
+
+    const fetchWorkload = async () => {
+        setLoadingWorkload(true);
+        try {
+            const [workloadResp, schedulesResp] = await Promise.all([
+                api.classes.getTeacherWorkload(teacher.id),
+                api.classes.getTeacherSchedules(teacher.id)
+            ]);
+            if (workloadResp.success) setWorkload(workloadResp.data);
+            if (schedulesResp.success) setSchedules(schedulesResp.data);
+        } catch (err) {
+            console.error('Failed to fetch teacher workload/schedules:', err);
+        } finally {
+            setLoadingWorkload(false);
+        }
+    };
 
     const fetchBooks = async () => {
         setLoadingBooks(true);
@@ -262,89 +284,170 @@ const TeacherProfile = ({ teacher, onBack }) => {
                 {/* CLASSES TAB */}
                 {activeTab === 'classes' && (
                     <div className="space-y-6 animate-fade-in">
-                        <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
-                            <div className="flex items-center justify-between mb-8 pb-3 border-b border-gray-100">
+
+                        {/* === WORKLOAD SUMMARY STATS === */}
+                        <div className="grid grid-cols-3 gap-4">
+                            {[
+                                { label: 'Classes Assigned', value: workload?.classCount ?? teacher.assignedClasses?.length ?? 0, icon: GraduationCap, color: 'purple' },
+                                { label: 'Total Students', value: workload?.totalStudents ?? 0, icon: BookOpen, color: 'blue' },
+                                { label: 'Subject Schedules', value: schedules.length, icon: Briefcase, color: 'teal' }
+                            ].map(stat => (
+                                <div key={stat.label} className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 flex items-center gap-4">
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-${stat.color === 'teal' ? 'brand-teal' : stat.color}-50 text-${stat.color === 'teal' ? 'brand-teal' : stat.color}-600`}>
+                                        <stat.icon size={22} />
+                                    </div>
+                                    <div>
+                                        <p className="text-2xl font-black text-gray-900">{loadingWorkload ? '—' : stat.value}</p>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{stat.label}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* === ASSIGNED CLASSES TABLE === */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div className="flex items-center justify-between p-6 border-b border-gray-100">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
-                                        <BookOpen size={20} />
+                                        <GraduationCap size={20} />
                                     </div>
-                                    <h3 className="text-xl font-bold text-gray-900 tracking-tight">Academic Workload</h3>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-900">Assigned Classes</h3>
+                                        <p className="text-xs text-gray-400">Classes this teacher is responsible for</p>
+                                    </div>
                                 </div>
-                                <div className="flex gap-3 items-center">
-                                    <button
-                                        onClick={() => setShowIssueModal(true)}
-                                        className="flex items-center gap-2 px-3 py-1.5 bg-brand-teal/10 text-brand-teal rounded-lg hover:bg-brand-teal/20 transition text-xs font-bold ring-1 ring-brand-teal/20"
-                                    >
-                                        <Plus size={14} />
-                                        Issue Item/Book
-                                    </button>
-                                    <span className="px-3 py-1.5 bg-purple-50 text-purple-600 rounded-lg text-xs font-bold ring-1 ring-purple-100">
-                                        {teacher.assignedClasses?.length || 0} Classes Assigned
-                                    </span>
-                                </div>
+                                <button
+                                    onClick={() => setShowAssignModal(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition text-xs font-bold shadow-sm"
+                                >
+                                    <Plus size={14} />
+                                    Assign to Class
+                                </button>
                             </div>
 
-                            {teacher.assignedClasses && teacher.assignedClasses.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {teacher.assignedClasses.map((cls, idx) => (
-                                        <div key={idx} className="group p-6 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-brand-teal/20 transition-all duration-300">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 group-hover:bg-brand-teal/10 group-hover:text-brand-teal transition-colors">
-                                                        <GraduationCap size={24} />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-black text-gray-900 text-lg">{cls}</p>
-                                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{teacher.subject}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="pt-4 border-t border-gray-50">
-                                                <div className="flex items-center justify-between mb-3">
-                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Resource Assignments</span>
-                                                    <span className="text-[10px] font-bold text-brand-teal px-2 py-0.5 bg-brand-teal/5 rounded">Books</span>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    {loadingBooks ? (
-                                                        <div className="flex items-center gap-2 text-xs text-gray-400 animate-pulse">
-                                                            <RefreshCcw size={14} className="animate-spin" />
-                                                            Checking for assigned books...
-                                                        </div>
-                                                    ) : assignedBooks.length > 0 ? (
-                                                        assignedBooks.map(book => (
-                                                            <div key={book.id} className="flex items-center justify-between group/item p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                                                <div className="flex items-center gap-2 text-sm text-gray-700 font-medium">
-                                                                    <Package size={14} className="text-emerald-500" />
-                                                                    {book.title}
-                                                                </div>
-                                                                <button
-                                                                    onClick={() => handleReturnBook(book.id)}
-                                                                    className="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover/item:opacity-100 transition-opacity"
-                                                                    title="Return Item"
-                                                                >
-                                                                    <LogOut size={14} />
-                                                                </button>
+                            {loadingWorkload ? (
+                                <div className="p-12 text-center">
+                                    <RefreshCcw size={24} className="animate-spin text-purple-400 mx-auto mb-3" />
+                                    <p className="text-gray-400 text-sm">Loading class assignments...</p>
+                                </div>
+                            ) : workload?.classes?.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-gray-50/70 border-b text-[10px] uppercase tracking-wider text-gray-500">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left font-bold">Class</th>
+                                                <th className="px-6 py-3 text-left font-bold">Grade</th>
+                                                <th className="px-6 py-3 text-left font-bold">Stream</th>
+                                                <th className="px-6 py-3 text-center font-bold">Students</th>
+                                                <th className="px-6 py-3 text-center font-bold">Capacity</th>
+                                                <th className="px-6 py-3 text-center font-bold">Utilization</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                            {workload.classes.map((cls, i) => (
+                                                <tr key={cls.id || i} className="hover:bg-purple-50/20 transition-colors">
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-9 h-9 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600">
+                                                                <GraduationCap size={16} />
                                                             </div>
-                                                        ))
-                                                    ) : (
-                                                        <p className="text-xs text-gray-400 italic py-1 pl-1">No items currently assigned.</p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
+                                                            <span className="font-bold text-gray-900">{cls.name}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-black uppercase tracking-widest">{cls.grade?.replace('_', ' ')}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-gray-600 font-medium">{cls.stream || '—'}</td>
+                                                    <td className="px-6 py-4 text-center font-black text-gray-900">{cls.studentCount}</td>
+                                                    <td className="px-6 py-4 text-center text-gray-500">{cls.capacity}</td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <div className="flex-1 bg-gray-100 rounded-full h-1.5 max-w-[80px]">
+                                                                <div
+                                                                    className={`h-1.5 rounded-full ${cls.utilization > 90 ? 'bg-red-500' : cls.utilization > 70 ? 'bg-amber-400' : 'bg-emerald-500'}`}
+                                                                    style={{ width: `${Math.min(cls.utilization, 100)}%` }}
+                                                                />
+                                                            </div>
+                                                            <span className="text-xs font-bold text-gray-600">{cls.utilization}%</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             ) : (
-                                <div className="p-16 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-                                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                                        <BookOpen size={32} className="text-gray-300" />
+                                <div className="p-12 text-center bg-gray-50/50">
+                                    <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                                        <GraduationCap size={28} className="text-gray-300" />
                                     </div>
-                                    <h4 className="text-gray-900 font-bold mb-1">No Classes Found</h4>
-                                    <p className="text-gray-500 text-sm">Assign this teacher to classes in the <span className="text-brand-teal font-bold cursor-pointer">Class Management</span> section.</p>
+                                    <h4 className="text-gray-800 font-bold mb-1">No Classes Assigned</h4>
+                                    <p className="text-gray-400 text-sm mb-4">Click "Assign to Class" to give this teacher a class.</p>
+                                    <button
+                                        onClick={() => setShowAssignModal(true)}
+                                        className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold hover:bg-purple-700 transition"
+                                    >
+                                        <Plus size={14} /> Assign to Class
+                                    </button>
                                 </div>
                             )}
                         </div>
+
+                        {/* === SUBJECT SCHEDULES TABLE === */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div className="flex items-center gap-3 p-6 border-b border-gray-100">
+                                <div className="w-10 h-10 bg-brand-teal/10 rounded-xl flex items-center justify-center text-brand-teal">
+                                    <BookOpen size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900">Subject Schedules</h3>
+                                    <p className="text-xs text-gray-400">Subjects this teacher teaches across classes (from timetable)</p>
+                                </div>
+                            </div>
+
+                            {loadingWorkload ? (
+                                <div className="p-10 text-center">
+                                    <RefreshCcw size={22} className="animate-spin text-brand-teal mx-auto mb-3" />
+                                    <p className="text-gray-400 text-sm">Loading subject schedules...</p>
+                                </div>
+                            ) : schedules.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-gray-50/70 border-b text-[10px] uppercase tracking-wider text-gray-500">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left font-bold">Subject</th>
+                                                <th className="px-6 py-3 text-left font-bold">Class</th>
+                                                <th className="px-6 py-3 text-left font-bold">Grade</th>
+                                                <th className="px-6 py-3 text-left font-bold">Day</th>
+                                                <th className="px-6 py-3 text-left font-bold">Time</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                            {schedules.map((sched, i) => (
+                                                <tr key={sched.id || i} className="hover:bg-teal-50/20 transition-colors">
+                                                    <td className="px-6 py-3">
+                                                        <span className="px-2.5 py-1 bg-brand-teal/10 text-brand-teal rounded-lg text-xs font-black">{sched.subject}</span>
+                                                    </td>
+                                                    <td className="px-6 py-3 font-bold text-gray-900">{sched.class?.name || '—'}</td>
+                                                    <td className="px-6 py-3">
+                                                        <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-black uppercase">{sched.class?.grade?.replace('_', ' ') || '—'}</span>
+                                                    </td>
+                                                    <td className="px-6 py-3 text-gray-600 font-medium capitalize">{sched.day?.toLowerCase()}</td>
+                                                    <td className="px-6 py-3 text-gray-500 font-mono text-xs">{sched.startTime} – {sched.endTime}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="p-10 text-center bg-gray-50/40">
+                                    <BookOpen size={32} className="text-gray-200 mx-auto mb-3" />
+                                    <p className="text-gray-500 font-medium text-sm">No subject entries in the timetable yet.</p>
+                                    <p className="text-gray-400 text-xs mt-1">Add entries in the class schedule to see them here.</p>
+                                </div>
+                            )}
+                        </div>
+
                     </div>
                 )}
 
@@ -425,6 +528,13 @@ const TeacherProfile = ({ teacher, onBack }) => {
                 items={availableBooks}
                 onIssue={handleIssueBook}
                 teacherName={`${teacher.firstName} ${teacher.lastName}`}
+            />
+
+            <AssignClassModal
+                isOpen={showAssignModal}
+                onClose={() => setShowAssignModal(false)}
+                teacher={teacher}
+                onAssign={() => fetchWorkload()}
             />
         </ProfileLayout>
     );

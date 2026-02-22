@@ -56,6 +56,11 @@ router.get(
         logoUrl: school.logoUrl,
         faviconUrl: school.faviconUrl,
         stampUrl: school.stampUrl,
+        brandColor: school.brandColor,
+        welcomeTitle: school.welcomeTitle,
+        welcomeMessage: school.welcomeMessage,
+        onboardingTitle: school.onboardingTitle,
+        onboardingMessage: school.onboardingMessage,
         status: school.active ? 'ACTIVE' : 'INACTIVE'
       }
     });
