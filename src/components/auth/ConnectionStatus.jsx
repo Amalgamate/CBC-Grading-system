@@ -10,11 +10,12 @@ export default function ConnectionStatus() {
     const checkConnection = async () => {
       setIsChecking(true);
       try {
-        // Health endpoint is at /health, not /api/health
-        const backendBaseUrl = API_BASE_URL.replace('/api', '');
-        const healthUrl = `${backendBaseUrl}/health`;
+        // Build the correct health endpoint
+        // API_BASE_URL is like "http://localhost:5000/api" or "https://elimcrown-api.onrender.com/api"
+        // Health endpoint is at /api/health
+        const healthUrl = `${API_BASE_URL}/health`;
         
-        console.log('🔍 Checking connection to:', healthUrl);
+        console.log('🔍 Checking health at:', healthUrl);
         
         const response = await fetch(healthUrl, {
           method: 'GET',
@@ -25,11 +26,11 @@ export default function ConnectionStatus() {
         
         if (response.ok) {
           const data = await response.json();
-          console.log('✅ Health check data:', data);
+          console.log('✅ Backend is connected!', data);
           setIsConnected(true);
           setError(null);
         } else {
-          console.warn('⚠️ Health check failed with status:', response.status);
+          console.warn('⚠️ Unexpected response status:', response.status);
           setIsConnected(false);
           setError(`HTTP ${response.status}`);
         }
@@ -43,7 +44,7 @@ export default function ConnectionStatus() {
     };
 
     checkConnection();
-    const interval = setInterval(checkConnection, 10000); // Check every 10 seconds
+    const interval = setInterval(checkConnection, 10000);
 
     return () => clearInterval(interval);
   }, []);
