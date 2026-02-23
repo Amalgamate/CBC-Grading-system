@@ -33,6 +33,7 @@ const LearnersList = ({
   const [availableStreams, setAvailableStreams] = useState([]);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [selectedLearners, setSelectedLearners] = useState([]);
+  const [selectAllDatabase, setSelectAllDatabase] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showQuickContact, setShowQuickContact] = useState(false);
@@ -205,18 +206,26 @@ const LearnersList = ({
   };
 
   const handleBulkDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete ${selectedLearners.length} students? This action cannot be undone.`)) {
+    const countToDelete = selectAllDatabase ? pagination?.total : selectedLearners.length;
+    if (!window.confirm(`Are you sure you want to delete ${countToDelete} students? This action cannot be undone.`)) {
       return;
     }
 
     setIsDeleting(true);
     try {
       if (onBulkDelete) {
-        await onBulkDelete(selectedLearners);
+        // If selectAllDatabase is true, pass null to indicate delete all matching filters
+        await onBulkDelete(selectAllDatabase ? null : selectedLearners, selectAllDatabase ? {
+          search: searchTerm,
+          grade: filterGrade !== 'all' ? filterGrade : undefined,
+          status: filterStatus !== 'all' ? filterStatus : undefined,
+          stream: filterStream !== 'all' ? filterStream : undefined
+        } : undefined);
       } else {
         await Promise.all(selectedLearners.map(id => onDeleteLearner(id)));
       }
       setSelectedLearners([]);
+      setSelectAllDatabase(false);
       refreshData();
     } catch (error) {
       console.error('Error deleting students:', error);
@@ -387,26 +396,49 @@ const LearnersList = ({
       </div>
 
       {/* Bulk Actions Toolbar */}
-      {selectedLearners.length > 0 && (
+      {(selectedLearners.length > 0 || selectAllDatabase) && (
         <div className="bg-brand-purple/5 border border-brand-purple/10 rounded-xl p-4 flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-3">
-            <span className="bg-brand-purple text-white text-sm font-bold px-3 py-1 rounded-full">
-              {selectedLearners.length}
-            </span>
-            <span className="text-brand-purple font-medium">Students Selected</span>
-            {selectedLearners.length < (pagination?.total || displayLearners.length) && (
-              <button
-                onClick={() => setSelectedLearners(displayLearners.map(l => l.id))}
-                className="text-xs font-bold text-brand-purple hover:bg-brand-purple/10 px-2 py-1 rounded transition"
-                title={`Select all ${displayLearners.length} visible students`}
-              >
-                Select All {displayLearners.length}
-              </button>
+            {selectAllDatabase ? (
+              <>
+                <span className="bg-brand-purple text-white text-sm font-bold px-3 py-1 rounded-full">
+                  ALL
+                </span>
+                <span className="text-brand-purple font-medium">
+                  All {pagination?.total || 0} Students Selected
+                </span>
+                <button
+                  onClick={() => setSelectAllDatabase(false)}
+                  className="text-xs font-bold text-brand-purple hover:bg-brand-purple/10 px-2 py-1 rounded transition"
+                  title="Deselect all students"
+                >
+                  Deselect All
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="bg-brand-purple text-white text-sm font-bold px-3 py-1 rounded-full">
+                  {selectedLearners.length}
+                </span>
+                <span className="text-brand-purple font-medium">Students Selected</span>
+                {selectedLearners.length < (pagination?.total || displayLearners.length) && (
+                  <button
+                    onClick={() => setSelectAllDatabase(true)}
+                    className="text-xs font-bold text-brand-purple hover:bg-brand-purple/10 px-2 py-1 rounded transition"
+                    title={`Select all ${pagination?.total || 0} students in database`}
+                  >
+                    Select All {pagination?.total || 0}
+                  </button>
+                )}
+              </>
             )}
           </div>
           <div className="flex gap-3">
             <button
-              onClick={() => setSelectedLearners([])}
+              onClick={() => {
+                setSelectedLearners([]);
+                setSelectAllDatabase(false);
+              }}
               className="px-4 py-2 text-brand-purple hover:bg-brand-purple/10 rounded-lg transition text-sm font-medium"
             >
               Cancel
