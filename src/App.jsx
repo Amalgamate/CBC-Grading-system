@@ -92,6 +92,42 @@ function AppContent() {
     return () => { cancelled = true; };
   }, [urlSchoolId]);
 
+  // Fetch school branding settings when user is authenticated
+  useEffect(() => {
+    if (!isAuthenticated || !user?.schoolId) return;
+    
+    let cancelled = false;
+    const fetchSchoolBranding = async () => {
+      try {
+        const schoolId = user.schoolId;
+        const resp = await api.get(`/schools/${schoolId}/branding`);
+        if (cancelled) return;
+        
+        const branding = resp?.data;
+        if (branding) {
+          setBrandingSettings((prev) => ({
+            ...prev,
+            logoUrl: branding.logoUrl || prev.logoUrl,
+            faviconUrl: branding.faviconUrl || prev.faviconUrl,
+            stampUrl: branding.stampUrl || prev.stampUrl,
+            brandColor: branding.brandColor || prev.brandColor,
+            welcomeTitle: branding.welcomeTitle || prev.welcomeTitle,
+            welcomeMessage: branding.welcomeMessage || prev.welcomeMessage,
+            onboardingTitle: branding.onboardingTitle || prev.onboardingTitle,
+            onboardingMessage: branding.onboardingMessage || prev.onboardingMessage,
+            schoolName: branding.schoolName || prev.schoolName,
+          }));
+        }
+      } catch (error) {
+        console.warn('Failed to fetch school branding:', error);
+        // Fall back to current branding settings
+      }
+    };
+    
+    fetchSchoolBranding();
+    return () => { cancelled = true; };
+  }, [isAuthenticated, user?.schoolId]);
+
 
   useEffect(() => {
     let link = document.querySelector("link[rel*='icon']");
