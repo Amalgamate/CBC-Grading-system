@@ -2294,10 +2294,10 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       {(reportData?.type === 'GRADE_REPORT' || reportData?.type === 'STREAM_REPORT' || reportData?.type === 'STREAM_RANKING_REPORT') && reportData?.rows && (
         <div className="px-6 py-8">
           <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
-          <div
-            id="summative-report-content"
-            className="bg-white mx-auto shadow-2xl overflow-hidden"
-            style={{
+            <div
+              id="summative-report-content"
+              className="bg-white mx-auto shadow-2xl overflow-hidden"
+              style={{
               fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
               lineHeight: '1.2',
               width: '297mm', // Landscape for broadsheet
@@ -2492,10 +2492,10 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       {reportData?.type?.includes('ANALYSIS') && (
         <div className="px-6 py-8">
           <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
-          <div
-            id="summative-report-content"
-            className="bg-white mx-auto shadow-2xl overflow-hidden"
-            style={{
+            <div
+              id="summative-report-content"
+              className="bg-white mx-auto shadow-2xl overflow-hidden"
+              style={{
               fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
               lineHeight: '1.2',
               width: '210mm',
