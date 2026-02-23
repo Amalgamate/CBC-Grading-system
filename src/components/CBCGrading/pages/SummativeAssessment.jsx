@@ -953,16 +953,16 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
               paddingBottom: '40px' // Keep it neat, not touch the footer
             }}
           >
-            {/* Letterhead / Page Header - Logo Left, Text Right */}
-            <div style={{
-              paddingBottom: '1rem',
-              borderBottom: '3px solid #1e3a8a',
-              marginBottom: '1.5rem',
-              pageBreakInside: 'avoid'
-            }}>
-              <div className="flex items-center justify-between gap-8">
-                {/* Logo Column - Left */}
-                {pageIndex === 0 && (
+            {/* Letterhead / Page Header - Logo Left, Text Right - First Page Only */}
+            {pageIndex === 0 && (
+              <div style={{
+                paddingBottom: '1rem',
+                borderBottom: '3px solid #1e3a8a',
+                marginBottom: '1.5rem',
+                pageBreakInside: 'avoid'
+              }}>
+                <div className="flex items-center justify-between gap-8">
+                  {/* Logo Column - Left */}
                   <div className="flex-shrink-0 pr-6">
                     <img
                       src={brandingSettings?.logoUrl || user?.school?.logo || '/logo-elimcrown.png'}
@@ -972,26 +972,25 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
                       style={{ filter: 'drop-shadow(0 2px 4px rgba(30, 58, 138, 0.1))' }}
                     />
                   </div>
-                )}
-                {pageIndex > 0 && <div style={{ width: '100px', flexShrink: 0 }}></div>}
-                
-                {/* Text Content Column - Right, Right-Aligned */}
-                <div className="flex-1 text-right">
-                  <h1 className="text-2xl font-bold text-[#1e3a8a] uppercase tracking-wider leading-tight">
-                    {user?.school?.name || user?.schoolName || 'SCHOOL NAME'}
-                  </h1>
-                  <h2 className="text-base font-bold text-gray-800 leading-tight mt-1">
-                    Summative Assessment Results {pageIndex > 0 && `(Page ${pageIndex + 1})`}
-                  </h2>
-                  <p className="text-sm text-gray-700 font-semibold leading-tight mt-0.5">
-                    {selectedTest?.learningArea} | {selectedTest?.grade?.replace('_', ' ')} | {setup.selectedStream || 'All Streams'}
-                  </p>
-                  <p className="text-sm text-gray-600 leading-tight mt-0.5">
-                    {selectedTest?.term?.replace('_', ' ')} {selectedTest?.academicYear || new Date().getFullYear()} | Total Marks: {selectedTest?.totalMarks} | Test Date: {selectedTest?.testDate ? new Date(selectedTest.testDate).toLocaleDateString('en-GB') : 'N/A'}
-                  </p>
+                  
+                  {/* Text Content Column - Right, Right-Aligned */}
+                  <div className="flex-1 text-right">
+                    <h1 className="text-2xl font-bold text-[#1e3a8a] uppercase tracking-wider leading-tight">
+                      {user?.school?.name || user?.schoolName || 'SCHOOL NAME'}
+                    </h1>
+                    <h2 className="text-base font-bold text-gray-800 leading-tight mt-1">
+                      Summative Assessment Results
+                    </h2>
+                    <p className="text-sm text-gray-700 font-semibold leading-tight mt-0.5">
+                      {selectedTest?.learningArea} | {selectedTest?.grade?.replace('_', ' ')} | {setup.selectedStream || 'All Streams'}
+                    </p>
+                    <p className="text-sm text-gray-600 leading-tight mt-0.5">
+                      {selectedTest?.term?.replace('_', ' ')} {selectedTest?.academicYear || new Date().getFullYear()} | Total Marks: {selectedTest?.totalMarks} | Test Date: {selectedTest?.testDate ? new Date(selectedTest.testDate).toLocaleDateString('en-GB') : 'N/A'}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Table Container with safe padding */}
             <div className="flex-1 overflow-hidden" style={{
