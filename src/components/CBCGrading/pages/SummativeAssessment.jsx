@@ -45,6 +45,26 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
   const [availableTerms, setAvailableTerms] = useState([]);
   const [availableStreams, setAvailableStreams] = useState([]);
 
+  // Staged Filter State - Only apply when green button clicked
+  const [stagedGrade, setStagedGrade] = useState('');
+  const [stagedStream, setStagedStream] = useState('');
+  const [stagedTerm, setStagedTerm] = useState('');
+  const [stagedLearningArea, setStagedLearningArea] = useState('');
+  const [stagedTestId, setStagedTestId] = useState('');
+
+  // Handler to apply filters when green button clicked
+  const applyFilters = useCallback(() => {
+    setup.updateGrade(stagedGrade);
+    setup.updateStream(stagedStream);
+    setup.updateTerm(stagedTerm);
+    setSelectedLearningArea(stagedLearningArea);
+    setSelectedTestId(stagedTestId);
+    // Clear marks when filters applied
+    if (stagedTestId !== selectedTestId) {
+      setMarks({});
+    }
+  }, [stagedGrade, stagedStream, stagedTerm, stagedLearningArea, stagedTestId, selectedTestId, setup]);
+
   // User Context
   const { user } = useAuth();
   const schoolId = user?.school?.id || user?.schoolId || localStorage.getItem('currentSchoolId') || 'default-school-e082e9a4';
@@ -153,6 +173,24 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
     [tests, setup.selectedGrade, setup.selectedTerm]
   );
 
+  // Staged filtered tests - for dropdown options while editing
+  const stagedFilteredTestsBySelection = useMemo(() =>
+    tests.filter(t => {
+      if (stagedGrade) {
+        const normalizedGrade = stagedGrade.replace(/\s+/g, '_').toUpperCase();
+        const testGrade = (t.grade || '').replace(/\s+/g, '_').toUpperCase();
+        if (testGrade !== normalizedGrade) return false;
+      }
+      if (stagedTerm) {
+        const normalizedTerm = stagedTerm.toUpperCase().trim();
+        const testTerm = (t.term || '').toUpperCase().trim();
+        if (testTerm !== normalizedTerm) return false;
+      }
+      return true;
+    }),
+    [tests, stagedGrade, stagedTerm]
+  );
+
   const availableLearningAreas = useMemo(() => {
     // Collect all learning areas from the filtered tests
     const areas = new Set();
@@ -168,6 +206,16 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
     return result.sort();
   }, [filteredTestsBySelection, learningAreasMgr.flatLearningAreas]);
 
+  // Staged available learning areas - for dropdown options while editing
+  const stagedAvailableLearningAreas = useMemo(() => {
+    const areas = new Set();
+    stagedFilteredTestsBySelection.forEach(t => {
+      if (t.learningArea) areas.add(t.learningArea);
+    });
+    const result = Array.from(areas);
+    return result.sort();
+  }, [stagedFilteredTestsBySelection]);
+
   const filteredLearningAreasByWorkload = useMemo(() => {
     const areas = availableLearningAreas;
     if (!teacherWorkload.isTeacher || !setup.selectedGrade) return areas;
@@ -182,6 +230,21 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
     );
   }, [availableLearningAreas, teacherWorkload.isTeacher, setup.selectedGrade, teacherWorkload]);
 
+  // Staged filtered learning areas - for dropdown options while editing
+  const stagedFilteredLearningAreasByWorkload = useMemo(() => {
+    const areas = stagedAvailableLearningAreas;
+    if (!teacherWorkload.isTeacher || !stagedGrade) return areas;
+
+    const assignedSubjects = teacherWorkload.getAssignedSubjectsForGrade(stagedGrade);
+    if (!assignedSubjects) return areas;
+
+    const normalize = (val) => String(val || '').toLowerCase().replace(/&/g, 'and').replace(/\s+/g, '').trim();
+
+    return areas.filter(area =>
+      assignedSubjects.some(as => normalize(as) === normalize(area))
+    );
+  }, [stagedAvailableLearningAreas, teacherWorkload.isTeacher, stagedGrade, teacherWorkload]);
+
   const finalTests = useMemo(() => {
     if (!selectedLearningArea) return [];
 
@@ -193,6 +256,19 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
       return testArea === normalizedSelected;
     });
   }, [filteredTestsBySelection, selectedLearningArea]);
+
+  // Staged final tests - for dropdown options while editing
+  const stagedFinalTests = useMemo(() => {
+    if (!stagedLearningArea) return [];
+
+    const normalize = (val) => String(val || '').toLowerCase().replace(/&/g, 'and').replace(/\s+/g, '').trim();
+    const normalizedSelected = normalize(stagedLearningArea);
+
+    return stagedFilteredTestsBySelection.filter(t => {
+      const testArea = normalize(t.learningArea);
+      return testArea === normalizedSelected;
+    });
+  }, [stagedFilteredTestsBySelection, stagedLearningArea]);
 
   const filteredGrades = useMemo(() => {
     if (!teacherWorkload.isTeacher) return availableGrades;
@@ -785,11 +861,11 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
           <div className="flex flex-wrap gap-2 items-center">
             {/* Grade - Compact Input */}
             <select
-              value={setup.selectedGrade}
+              value={stagedGrade}
               onChange={(e) => {
-                setup.updateGrade(e.target.value);
-                setSelectedLearningArea('');
-                setSelectedTestId('');
+                setStagedGrade(e.target.value);
+                setStagedLearningArea('');
+                setStagedTestId('');
               }}
               className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-24"
               title="Select Grade"
@@ -804,8 +880,8 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
 
             {/* Stream - Compact */}
             <select
-              value={setup.selectedStream}
-              onChange={(e) => setup.updateStream(e.target.value)}
+              value={stagedStream}
+              onChange={(e) => setStagedStream(e.target.value)}
               className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-20"
               title="Select Stream"
             >
@@ -817,11 +893,11 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
 
             {/* Academic Term - Compact */}
             <select
-              value={setup.selectedTerm}
+              value={stagedTerm}
               onChange={(e) => {
-                setup.updateTerm(e.target.value);
-                setSelectedLearningArea('');
-                setSelectedTestId('');
+                setStagedTerm(e.target.value);
+                setStagedLearningArea('');
+                setStagedTestId('');
               }}
               className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-24"
               title="Select Term"
@@ -834,49 +910,52 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
 
             {/* Learning Area - Balanced */}
             <select
-              value={selectedLearningArea}
+              value={stagedLearningArea}
               onChange={(e) => {
-                setSelectedLearningArea(e.target.value);
-                setSelectedTestId('');
+                setStagedLearningArea(e.target.value);
+                setStagedTestId('');
               }}
-              disabled={!setup.selectedGrade || !setup.selectedTerm || availableLearningAreas.length === 0}
+              disabled={!stagedGrade || !stagedTerm || stagedAvailableLearningAreas.length === 0}
               className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 flex-1 min-w-[120px]"
               title="Select Learning Area"
             >
               <option value="">
-                {!setup.selectedGrade || !setup.selectedTerm
+                {!stagedGrade || !stagedTerm
                   ? 'Area'
                   : 'Area'}
               </option>
-              {filteredLearningAreasByWorkload.map(area => (
+              {stagedFilteredLearningAreasByWorkload.map(area => (
                 <option key={area} value={area}>{area}</option>
               ))}
             </select>
 
             {/* Test - Balanced */}
             <select
-              value={selectedTestId}
-              onChange={(e) => setSelectedTestId(e.target.value)}
-              disabled={finalTests.length === 0}
+              value={stagedTestId}
+              onChange={(e) => setStagedTestId(e.target.value)}
+              disabled={stagedFinalTests.length === 0}
               className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 flex-1 min-w-[120px]"
               title="Select Test"
             >
               <option value="">
-                {finalTests.length === 0 
-                  ? (selectedLearningArea ? 'No tests' : 'Test')
+                {stagedFinalTests.length === 0 
+                  ? (stagedLearningArea ? 'No tests' : 'Test')
                   : 'Test'}
               </option>
-              {finalTests.map(t => (
+              {stagedFinalTests.map(t => (
                 <option key={t.id} value={t.id}>
                   {t.title || t.name}
                 </option>
               ))}
             </select>
 
-            {/* Indicator Badge - Shows when test is selected */}
-            {selectedTestId && (
-              <div className="h-2 w-2 rounded-full bg-brand-teal animate-pulse flex-shrink-0" title="Assessment loaded"></div>
-            )}
+            {/* Apply Filters Button - Green button clicked to apply filters */}
+            <button
+              onClick={applyFilters}
+              disabled={!stagedTestId}
+              className="h-2 w-2 rounded-full bg-brand-teal flex-shrink-0 hover:bg-brand-teal/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title={stagedTestId ? 'Click to load assessment' : 'Select a test first'}
+            />
           </div>
         </div>
       </div>
