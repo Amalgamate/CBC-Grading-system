@@ -1122,7 +1122,6 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
     </div>
   );
 };
-};
 
 // ============================================
 // ENHANCED PIE CHART COMPONENT WITH LABELS
