@@ -3,7 +3,8 @@
  * Clean, minimal design matching Summative Assessment setup
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { FileText } from 'lucide-react';
 import { useAuth } from '../../../../hooks/useAuth';
 import { configAPI } from '../../../../services/api';
 
@@ -14,8 +15,25 @@ const SummaryReportPage = () => {
   const [selectedStream, setSelectedStream] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('');
   const [selectedTest, setSelectedTest] = useState('');
+  
+  // Staged filter state - only apply when Generate button clicked
+  const [stagedType, setStagedType] = useState('');
+  const [stagedGrade, setStagedGrade] = useState('');
+  const [stagedStream, setStagedStream] = useState('');
+  const [stagedTerm, setStagedTerm] = useState('');
+  const [stagedTest, setStagedTest] = useState('');
+  
   const [availableStreams, setAvailableStreams] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Apply filters when button clicked
+  const applyFilters = useCallback(() => {
+    setSelectedType(stagedType);
+    setSelectedGrade(stagedGrade);
+    setSelectedStream(stagedStream);
+    setSelectedTerm(stagedTerm);
+    setSelectedTest(stagedTest);
+  }, [stagedType, stagedGrade, stagedStream, stagedTerm, stagedTest]);
 
   useEffect(() => {
     const fetchStreams = async () => {
@@ -43,6 +61,7 @@ const SummaryReportPage = () => {
   ];
 
   const grades = [
+    { value: 'PLAYGROUP', label: 'Playgroup' },
     { value: 'PP1', label: 'PP1' },
     { value: 'PP2', label: 'PP2' },
     { value: 'GRADE_1', label: 'Grade 1' },
@@ -87,104 +106,127 @@ const SummaryReportPage = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-8">
-      <h2 className="text-xl font-bold text-gray-800 mb-8 pb-4 border-b">Summary Report</h2>
-
-      {/* First Row: Type, Grade, Stream, Term */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Type</label>
-          <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            <option value="">Select Type</option>
-            {reportTypes.map(type => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
+    <div className="min-h-screen bg-slate-50/30">
+      {/* Sticky Filter Header */}
+      <div className="sticky top-0 z-40 bg-white shadow-sm">
+        {/* Report Header */}
+        <div className="border-b border-gray-100 px-6 py-4">
+          <h2 className="text-lg font-bold text-gray-800">Summary Report</h2>
         </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Grade</label>
-          <select
-            value={selectedGrade}
-            onChange={(e) => setSelectedGrade(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            <option value="">Select Grade</option>
-            {grades.map(grade => (
-              <option key={grade.value} value={grade.value}>
-                {grade.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Filter Bar */}
+        <div className="border-t border-slate-200 px-6 py-3.5">
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* Type */}
+            <select
+              value={stagedType}
+              onChange={(e) => setStagedType(e.target.value)}
+              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-32"
+              title="Select Report Type"
+            >
+              <option value="">Type</option>
+              {reportTypes.map(type => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
 
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Stream</label>
-          <select
-            value={selectedStream}
-            onChange={(e) => setSelectedStream(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            <option value="">Select Stream</option>
-            {availableStreams.map(stream => (
-              <option key={stream.id} value={stream.name}>
-                {stream.name}
-              </option>
-            ))}
-          </select>
-        </div>
+            {/* Grade */}
+            <select
+              value={stagedGrade}
+              onChange={(e) => setStagedGrade(e.target.value)}
+              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-28"
+              title="Select Grade"
+            >
+              <option value="">Grade</option>
+              {grades.map(grade => (
+                <option key={grade.value} value={grade.value}>
+                  {grade.label}
+                </option>
+              ))}
+            </select>
 
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Academic Term</label>
-          <select
-            value={selectedTerm}
-            onChange={(e) => setSelectedTerm(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            <option value="">Select Term</option>
-            {terms.map(term => (
-              <option key={term.value} value={term.value}>
-                {term.label}
-              </option>
-            ))}
-          </select>
+            {/* Stream */}
+            <select
+              value={stagedStream}
+              onChange={(e) => setStagedStream(e.target.value)}
+              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-20"
+              title="Select Stream"
+            >
+              <option value="">Stream</option>
+              {availableStreams.map(stream => (
+                <option key={stream.id} value={stream.name}>
+                  {stream.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Term */}
+            <select
+              value={stagedTerm}
+              onChange={(e) => setStagedTerm(e.target.value)}
+              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-20"
+              title="Select Term"
+            >
+              <option value="">Term</option>
+              {terms.map(term => (
+                <option key={term.value} value={term.value}>
+                  {term.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Test */}
+            <select
+              value={stagedTest}
+              onChange={(e) => setStagedTest(e.target.value)}
+              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors flex-1 min-w-[120px]"
+              title="Select Test"
+            >
+              <option value="">Test</option>
+              {tests.map(test => (
+                <option key={test.value} value={test.value}>
+                  {test.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Generate Button */}
+            <button
+              onClick={applyFilters}
+              disabled={!stagedType}
+              className="h-9 px-3 rounded bg-brand-teal hover:bg-brand-teal/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 flex-shrink-0"
+              title={stagedType ? 'Click to apply filters' : 'Select a report type first'}
+            >
+              <FileText size={16} className="text-white" />
+              <span className="text-xs font-medium text-white">Generate</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Second Row: Tests (half width) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Tests</label>
-          <select
-            value={selectedTest}
-            onChange={(e) => setSelectedTest(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition bg-white"
-          >
-            <option value="">Select Test</option>
-            {tests.map(test => (
-              <option key={test.value} value={test.value}>
-                {test.label}
-              </option>
-            ))}
-          </select>
+      {/* Main Content Area */}
+      <div className="p-6">
+        <div className="bg-white rounded-lg shadow-sm p-8">
+          {selectedType ? (
+            <div>
+              <p className="text-gray-600">
+                <strong>Report Type:</strong> {reportTypes.find(t => t.value === selectedType)?.label}
+              </p>
+              {selectedGrade && <p className="text-gray-600"><strong>Grade:</strong> {grades.find(g => g.value === selectedGrade)?.label}</p>}
+              {selectedStream && <p className="text-gray-600"><strong>Stream:</strong> {selectedStream}</p>}
+              {selectedTerm && <p className="text-gray-600"><strong>Term:</strong> {terms.find(t => t.value === selectedTerm)?.label}</p>}
+              {selectedTest && <p className="text-gray-600"><strong>Test:</strong> {tests.find(t => t.value === selectedTest)?.label}</p>}
+              <p className="text-sm text-gray-500 mt-4">Report would be generated with the selected filters...</p>
+            </div>
+          ) : (
+            <div className="py-8 text-center">
+              <FileText size={40} className="mx-auto text-gray-300 mb-4" />
+              <p className="text-gray-500 text-sm">Select a report type and click Generate to create a report</p>
+            </div>
+          )}
         </div>
-      </div>
-
-      {/* Generate Button */}
-      <div className="flex justify-end pt-4">
-        <button
-          onClick={handleGenerateReport}
-          disabled={loading || !selectedType}
-          className="px-8 py-3 bg-[#1e293b] text-white rounded-lg hover:bg-[#334155] transition font-semibold disabled:opacity-50 shadow-sm"
-        >
-          {loading ? 'Generating...' : 'Generate Report'}
-        </button>
       </div>
     </div>
   );

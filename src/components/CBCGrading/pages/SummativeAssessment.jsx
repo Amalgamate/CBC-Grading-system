@@ -1132,15 +1132,15 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
 
       {/* INTERACTIVE TABLE FOR SCREEN (with search) - NOT printed */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 no-print">
-        <div className="p-3 border-b border-gray-200 flex justify-end">
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+        <div className="p-4 border-b border-gray-200 flex justify-start">
+          <div className="relative w-96">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name or adm no..."
-              className="w-full pl-9 pr-4 py-1.5 border rounded-lg text-xs focus:ring-2 focus:ring-brand-purple outline-none"
+              className="w-full pl-12 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none"
             />
           </div>
         </div>
