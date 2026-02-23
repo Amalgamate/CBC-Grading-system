@@ -218,6 +218,27 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
     return () => window.removeEventListener('pageNavigate', handlePageNavigate);
   }, []);
 
+  // Handle browser back button to restore page state
+  React.useEffect(() => {
+    const handlePopState = () => {
+      // Restore the last saved page state from localStorage
+      try {
+        const savedPage = localStorage.getItem('cbc_current_page') || 'dashboard';
+        const savedParams = localStorage.getItem('cbc_page_params');
+        setCurrentPage(savedPage);
+        if (savedParams) {
+          setPageParams(JSON.parse(savedParams));
+        }
+      } catch (e) {
+        console.error('Error restoring page state:', e);
+        setCurrentPage('dashboard');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // Confirmation Dialog State
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);

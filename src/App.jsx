@@ -53,6 +53,28 @@ function AppContent() {
     schoolName: 'ZAWADI JUNIOR ACADEMY',
   });
 
+  // Handle browser back button to stay within the app
+  useEffect(() => {
+    const handlePopState = (event) => {
+      // If going back would exit the app, prevent it and navigate to the last saved page
+      const currentPath = window.location.pathname;
+      
+      if (isAuthenticated) {
+        // If we're authenticated but navigating outside the app, redirect back
+        if (!currentPath.startsWith('/app') && !currentPath.startsWith('/superadmin')) {
+          event.preventDefault();
+          
+          // Try to restore the last page from localStorage
+          const lastPage = localStorage.getItem('cbc_current_page') || 'dashboard';
+          navigate(`/app/${lastPage}`, { replace: true });
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isAuthenticated, navigate]);
+
   // Mark app as ready after initial load
   useEffect(() => {
     const timer = setTimeout(() => setAppReady(true), 300);
