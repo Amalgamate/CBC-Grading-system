@@ -953,30 +953,30 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
               paddingBottom: '40px' // Keep it neat, not touch the footer
             }}
           >
-            {/* Letterhead / Page Header - Professional 2 Column Layout */}
+            {/* Letterhead / Page Header - Logo Left, Text Right */}
             <div style={{
               paddingBottom: '1rem',
               borderBottom: '3px solid #1e3a8a',
               marginBottom: '1.5rem',
               pageBreakInside: 'avoid'
             }}>
-              <div className="flex items-center gap-6">
-                {/* Logo Column */}
+              <div className="flex items-center justify-between gap-8">
+                {/* Logo Column - Left */}
                 {pageIndex === 0 && (
-                  <div className="flex-shrink-0">
+                  <div className="flex-shrink-0 pr-6">
                     <img
                       src={brandingSettings?.logoUrl || user?.school?.logo || '/logo-elimcrown.png'}
                       alt="School Logo"
-                      className="h-20 w-20 object-contain"
+                      className="h-24 w-24 object-contain"
                       onError={(e) => { e.target.src = '/logo-new.png'; }}
                       style={{ filter: 'drop-shadow(0 2px 4px rgba(30, 58, 138, 0.1))' }}
                     />
                   </div>
                 )}
-                {pageIndex > 0 && <div style={{ width: '80px', flexShrink: 0 }}></div>}
+                {pageIndex > 0 && <div style={{ width: '100px', flexShrink: 0 }}></div>}
                 
-                {/* Text Content Column */}
-                <div className="flex-1">
+                {/* Text Content Column - Right, Right-Aligned */}
+                <div className="flex-1 text-right">
                   <h1 className="text-2xl font-bold text-[#1e3a8a] uppercase tracking-wider leading-tight">
                     {user?.school?.name || user?.schoolName || 'SCHOOL NAME'}
                   </h1>
