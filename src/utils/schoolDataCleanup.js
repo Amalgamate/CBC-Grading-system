@@ -117,7 +117,6 @@ export const initializeSchoolData = (schoolData) => {
     };
 
     localStorage.setItem('schoolSettings', JSON.stringify(settings));
-    localStorage.setItem('schoolName', schoolData.name || '');
 
     // Only set logo/favicon if they exist in the backend
     if (schoolData.logoUrl) {

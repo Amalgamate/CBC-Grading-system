@@ -301,7 +301,7 @@ const MessagesPage = () => {
           parentName: recipient.name,
           studentName: recipient.studentName,
           grade: recipient.grade,
-          schoolName: localStorage.getItem('schoolName') || 'School'
+          schoolName: 'School'
         });
 
         await api.communication.sendTestSMS({
