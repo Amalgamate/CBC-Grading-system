@@ -172,6 +172,9 @@ router.post('/upload', upload.single('file'), async (req: AuthRequest, res: Resp
       try {
         const csvData = item.data;
         const admNo = csvData['Adm No'];
+
+        // Map CSV grade to enum
+        const gradeStr = (csvData['Class'] || '').toString().toUpperCase().trim();
         const gradeMap: { [key: string]: Grade } = {
           'CRECHE': 'CRECHE',
           'RECEPTION': 'RECEPTION',
