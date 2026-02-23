@@ -1377,7 +1377,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       const timestamp = new Date().toISOString().split('T')[0];
-      const filename = `${reportData.title.replace(/[^a-zA-Z0-9]/g, '_')}_Detailed_Reports_${timestamp}.pdf`;
+      const filename = `${(reportData?.title || 'Report').replace(/[^a-zA-Z0-9]/g, '_')}_Detailed_Reports_${timestamp}.pdf`;
 
       setPdfProgress('📄 Preparing report layouts...');
 
@@ -2291,8 +2291,9 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       </div>
 
       {/* GRADE / STREAM REPORT DISPLAY - BROADSHEET */}
-      <div className="px-6 py-8">
-        <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
+      {(reportData?.type === 'GRADE_REPORT' || reportData?.type === 'STREAM_REPORT' || reportData?.type === 'STREAM_RANKING_REPORT') && reportData?.rows && (
+        <div className="px-6 py-8">
+          <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
           <div
             id="summative-report-content"
             className="bg-white mx-auto shadow-2xl overflow-hidden"
@@ -2339,7 +2340,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
 
               {/* Bold Report Title */}
               <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#000', margin: '0', textTransform: 'uppercase', letterSpacing: '2px' }}>
-                {reportData.title}
+                {reportData?.title}
               </h2>
 
               {/* Term/Academic Year Details In Pill */}
@@ -2489,9 +2490,9 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       </div>
 
       {/* ANALYSIS REPORT DISPLAY */}
-      <div className="px-6 py-8">
-        {reportData?.type?.includes('ANALYSIS') && (
-        <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
+      {reportData?.type?.includes('ANALYSIS') && (
+        <div className="px-6 py-8">
+          <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
           <div
             id="summative-report-content"
             className="bg-white mx-auto shadow-2xl overflow-hidden"
@@ -2532,7 +2533,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
 
               {/* Bold Report Title */}
               <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#000', margin: '0', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                {reportData.title}
+                {reportData?.title}
               </h2>
 
               <div style={{ fontSize: '12px', fontWeight: '700', color: '#1E3A8A', marginTop: '4px', textTransform: 'uppercase', backgroundColor: '#eff6ff', padding: '4px 16px', borderRadius: '40px' }}>
@@ -2609,6 +2610,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             </button>
           </div>
         </div>
+      </div>
       )}
 
       {/* HIDDEN CONTAINER FOR INDIVIDUAL PDF GENERATION (Direct Download) */}
