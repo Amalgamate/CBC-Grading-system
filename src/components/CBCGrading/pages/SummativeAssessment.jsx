@@ -499,15 +499,15 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
 
       if (onProgress) onProgress('Processing content...', 20);
 
-      // Get school information from user context
+      // Get school information from user context and branding settings
       const schoolInfo = {
-        schoolName: user?.school?.name || 'School Name',
-        address: user?.school?.address || 'School Address',
-        phone: user?.school?.phone || 'Phone Number',
-        email: user?.school?.email || 'email@school.com',
-        website: user?.school?.website || 'www.school.com',
-        logoUrl: user?.school?.logo || '/logo-elimcrown.png',
-        brandColor: '#1e3a8a'
+        schoolName: user?.school?.name || brandingSettings?.schoolName || 'School Name',
+        address: user?.school?.address || brandingSettings?.address || 'School Address',
+        phone: user?.school?.phone || brandingSettings?.phone || 'Phone Number',
+        email: user?.school?.email || brandingSettings?.email || 'email@school.com',
+        website: user?.school?.website || brandingSettings?.website || 'www.school.com',
+        logoUrl: brandingSettings?.logoUrl || user?.school?.logo || '/logo-elimcrown.png',
+        brandColor: brandingSettings?.brandColor || '#1e3a8a'
       };
 
       // Generate filename
@@ -963,7 +963,7 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
               {pageIndex === 0 && (
                 <div className="flex flex-col items-center justify-center mb-2">
                   <img
-                    src={user?.school?.logo || '/logo-elimcrown.png'}
+                    src={brandingSettings?.logoUrl || user?.school?.logo || '/logo-elimcrown.png'}
                     alt="School Logo"
                     className="h-16 w-auto mb-2 object-contain"
                     onError={(e) => { e.target.src = '/logo-new.png'; }}

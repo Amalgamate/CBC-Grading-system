@@ -297,7 +297,7 @@ const LearnerReportTemplate = ({ learner, results, term, academicYear, brandingS
         {/* Logo Middle */}
         <div className="mb-4">
           <img
-            src={user?.school?.logo || brandingSettings?.logoUrl || "/logo-new.png"}
+            src={brandingSettings?.logoUrl || user?.school?.logo || "/logo-new.png"}
             alt="Logo"
             style={{ height: '100px', width: 'auto', objectFit: 'contain' }}
             onError={(e) => { e.target.src = '/logo-new.png'; }} // Fallback if logo is not found
@@ -2519,7 +2519,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
               {/* Logo Middle */}
               <div className="mb-4">
                 <img
-                  src={user?.school?.logo || brandingSettings?.logoUrl || "/logo-new.png"}
+                  src={brandingSettings?.logoUrl || user?.school?.logo || "/logo-new.png"}
                   alt="Logo"
                   style={{ height: '100px', width: 'auto', objectFit: 'contain' }}
                   onError={(e) => { e.target.src = '/logo-new.png'; }}
@@ -2716,7 +2716,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
               {/* Logo Middle */}
               <div className="mb-4">
                 <img
-                  src={user?.school?.logo || brandingSettings?.logoUrl || "/logo-new.png"}
+                  src={brandingSettings?.logoUrl || user?.school?.logo || "/logo-new.png"}
                   alt="Logo"
                   style={{ height: '80px', width: 'auto', objectFit: 'contain' }}
                   onError={(e) => { e.target.src = '/logo-new.png'; }}

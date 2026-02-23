@@ -264,8 +264,8 @@ const TermlyReport = ({ learners, brandingSettings, user }) => {
               schoolAddress: user?.school?.location || brandingSettings?.address,
               schoolPhone: user?.school?.phone || brandingSettings?.phone,
               schoolEmail: user?.school?.email || brandingSettings?.email,
-              logoUrl: user?.school?.logo || brandingSettings?.logoUrl,
-              schoolStamp: user?.school?.stampUrl || brandingSettings?.stampUrl,
+              logoUrl: brandingSettings?.logoUrl || user?.school?.logo,
+              schoolStamp: brandingSettings?.stampUrl || user?.school?.stampUrl,
               brandColor: brandingSettings?.brandColor || reportData.brandColor
             }} />
           </div>
