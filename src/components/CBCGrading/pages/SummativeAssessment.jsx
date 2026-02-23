@@ -950,8 +950,13 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
               pageBreakAfter: pageIndex === chunkedLearners.length - 1 ? 'auto' : 'always',
               pageBreakInside: 'avoid',
               minHeight: '100vh',
-              paddingTop: '20px', // Pull letterhead up to use less space
-              paddingBottom: '40px' // Keep it neat, not touch the footer
+              // Standard document margins: 1 inch / 25.4mm top & bottom, 0.75 inch / 19mm sides
+              paddingTop: pageIndex === 0 ? '20px' : '95px', // 1 inch (25.4mm) for subsequent pages, less for first with letterhead
+              paddingBottom: '113px', // 30mm to safely avoid footer
+              paddingLeft: '20px', // ~19mm left margin
+              paddingRight: '20px', // ~19mm right margin
+              marginLeft: '0',
+              marginRight: '0'
             }}
           >
             {/* Letterhead / Page Header - Logo Left, Text Right - First Page Only */}
@@ -996,8 +1001,11 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
             {/* Table Container with safe padding */}
             <div className="flex-1 overflow-hidden" style={{
               pageBreakInside: 'avoid',
-              paddingLeft: '0.5rem',
-              paddingRight: '0.5rem'
+              paddingLeft: '0',
+              paddingRight: '0',
+              marginBottom: '50px', // Keep table away from footer
+              display: 'flex',
+              flexDirection: 'column'
             }}>
               <table className="w-full text-left border-collapse border border-gray-300" style={{ pageBreakInside: 'avoid' }}>
                 <thead className="bg-[#1e3a8a] text-white" style={{ pageBreakInside: 'avoid', pageBreakAfter: 'avoid' }}>
@@ -1058,7 +1066,11 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
             </div>
 
             {/* Page number */}
-            <div className="text-right text-xs text-gray-500 mt-2">
+            <div className="text-right text-xs text-gray-500 mt-auto pt-4" style={{
+              marginTop: 'auto',
+              paddingTop: '1rem',
+              pageBreakInside: 'avoid'
+            }}>
               Page {pageIndex + 2} of {chunkedLearners.length + 1}
             </div>
           </div>
