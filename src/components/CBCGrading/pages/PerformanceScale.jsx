@@ -75,6 +75,8 @@ const PerformanceScale = () => {
   const { showSuccess, showError } = useNotifications();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [creatingTests, setCreatingTests] = useState(false);
+  const [showCreateTestsOption, setShowCreateTestsOption] = useState(false);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'create'
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedGrades, setExpandedGrades] = useState([]);
@@ -199,7 +201,7 @@ const PerformanceScale = () => {
       showSuccess(`✓ Created "${scaleName}" performance scale successfully!`);
       setScaleName('');
       setSelectedGrades(['GRADE_1']);
-      setViewMode('list');
+      setShowCreateTestsOption(true);
       await loadData();
     } catch (err) {
       console.error('Error creating scale:', err);
@@ -229,6 +231,27 @@ const PerformanceScale = () => {
       }
     });
     setShowConfirm(true);
+  };
+
+  // Create tests for all grades after scales are created
+  const handleCreateTests = async () => {
+    setCreatingTests(true);
+    try {
+      const response = await gradingAPI.createTestsForScales({
+        term: 'TERM_1',
+        academicYear: new Date().getFullYear(),
+        overwrite: false
+      });
+      
+      showSuccess(`✓ Created ${response.data.created} summative tests! All tests are now pre-linked to their grading scales.`);
+      setShowCreateTestsOption(false);
+      setViewMode('list');
+      await loadData();
+    } catch (err) {
+      showError('Failed to create tests: ' + (err.message || 'Unknown error'));
+    } finally {
+      setCreatingTests(false);
+    }
   };
 
   const getColorForScore = (score) => {
@@ -306,28 +329,54 @@ const PerformanceScale = () => {
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
-                onClick={() => setViewMode('list')}
+                onClick={() => {
+                  setScaleName('');
+                  setSelectedGrades(['GRADE_1']);
+                  setShowCreateTestsOption(false);
+                  setViewMode('list');
+                }}
                 className="hidden md:flex text-slate-500 font-bold"
               >
-                Cancel
+                {showCreateTestsOption ? 'Skip' : 'Cancel'}
               </Button>
-              <Button
-                onClick={handleCreateScale}
-                disabled={saving || !scaleName.trim() || selectedGrades.length === 0}
-                className="bg-brand-purple hover:bg-brand-purple/90 text-white px-8 rounded-full shadow-lg shadow-brand-purple/20 transition-all active:scale-95 disabled:opacity-50"
-              >
-                {saving ? (
-                  <>
-                    <RefreshCw className="animate-spin mr-2" size={18} />
-                    <span>Deploying Scales...</span>
-                  </>
-                ) : (
-                  <>
-                    <Zap className="mr-2" size={18} />
-                    <span>Generate & Apply Logic</span>
-                  </>
-                )}
-              </Button>
+
+              {!showCreateTestsOption ? (
+                <Button
+                  onClick={handleCreateScale}
+                  disabled={saving || !scaleName.trim() || selectedGrades.length === 0}
+                  className="bg-brand-purple hover:bg-brand-purple/90 text-white px-8 rounded-full shadow-lg shadow-brand-purple/20 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {saving ? (
+                    <>
+                      <RefreshCw className="animate-spin mr-2" size={18} />
+                      <span>Deploying Scales...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="mr-2" size={18} />
+                      <span>Generate & Apply Logic</span>
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleCreateTests}
+                  disabled={creatingTests}
+                  className="bg-brand-teal hover:bg-brand-teal/90 text-white px-8 rounded-full shadow-lg shadow-brand-teal/20 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {creatingTests ? (
+                    <>
+                      <RefreshCw className="animate-spin mr-2" size={18} />
+                      <span>Creating Tests...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="mr-2" size={18} />
+                      <span>Also Create Tests</span>
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </div>

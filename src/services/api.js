@@ -1550,6 +1550,46 @@ export const assessmentAPI = {
       // Header for FormData is handled automatically by fetch if body is FormData
       headers: {}
     });
+  },
+
+  // ============================================
+  // SETUP ENDPOINTS (BULK OPERATIONS)
+  // ============================================
+
+  /**
+   * Create all grading scales for the school
+   * @param {Object} data - Setup data (optional: overwrite flag)
+   * @returns {Promise} Creation summary with count
+   */
+  createScalesForSchool: async (data = {}) => {
+    return fetchWithAuth('/assessments/setup/create-scales', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Create all summative tests linked to scales
+   * @param {Object} data - Setup data (term, academicYear, overwrite)
+   * @returns {Promise} Creation summary with count
+   */
+  createTestsForScales: async (data) => {
+    return fetchWithAuth('/assessments/setup/create-tests', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Complete school setup: create scales and tests atomically
+   * @param {Object} data - Setup data (term, academicYear, overwrite)
+   * @returns {Promise} Complete setup summary
+   */
+  completeSchoolSetup: async (data) => {
+    return fetchWithAuth('/assessments/setup/complete', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 };
 
@@ -2116,6 +2156,28 @@ export const gradingAPI = {
     const params = new URLSearchParams({ grade });
     if (learningArea) params.append('learningArea', learningArea);
     return fetchWithAuth(`/grading/scale-groups/${groupId}/for-test?${params.toString()}`);
+  },
+
+  // Setup endpoints for bulk operations
+  createTestsForScales: async (data) => {
+    return fetchWithAuth('/assessments/setup/create-tests', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  createScalesForSchool: async (data = {}) => {
+    return fetchWithAuth('/assessments/setup/create-scales', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  completeSchoolSetup: async (data) => {
+    return fetchWithAuth('/assessments/setup/complete', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 };
 
