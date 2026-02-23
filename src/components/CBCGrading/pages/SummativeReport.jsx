@@ -2487,7 +2487,6 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           </div>
         </div>
       )}
-      </div>
 
       {/* ANALYSIS REPORT DISPLAY */}
       {reportData?.type?.includes('ANALYSIS') && (
@@ -2610,7 +2609,6 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             </button>
           </div>
         </div>
-      </div>
       )}
 
       {/* HIDDEN CONTAINER FOR INDIVIDUAL PDF GENERATION (Direct Download) */}
