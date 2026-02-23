@@ -2288,7 +2288,6 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           )}
         </div>
       )}
-      </div>
 
       {/* GRADE / STREAM REPORT DISPLAY - BROADSHEET */}
       {(reportData?.type === 'GRADE_REPORT' || reportData?.type === 'STREAM_REPORT' || reportData?.type === 'STREAM_RANKING_REPORT') && reportData?.rows && (
@@ -2609,7 +2608,6 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             </button>
           </div>
         </div>
-      </div>
       )}
 
       {/* HIDDEN CONTAINER FOR INDIVIDUAL PDF GENERATION (Direct Download) */}
