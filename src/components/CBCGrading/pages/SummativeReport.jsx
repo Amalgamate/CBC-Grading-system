@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Download, Loader, MessageCircle, Printer, MessageSquare, AlertCircle, CheckCircle, XCircle, Edit2 } from 'lucide-react';
+import { Download, Loader, MessageCircle, Printer, MessageSquare, AlertCircle, CheckCircle, XCircle, Edit2, FileText } from 'lucide-react';
 import VirtualizedTable from '../shared/VirtualizedTable';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useNotifications } from '../hooks/useNotifications';
@@ -614,6 +614,21 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     };
   }, []);
 
+  // Grade ordering for sorting (lowest to highest)
+  const gradeOrder = ['PLAYGROUP', 'PP1', 'PP2', 'GRADE_1', 'GRADE_2', 'GRADE_3', 'GRADE_4', 'GRADE_5', 'GRADE_6', 'GRADE_7', 'GRADE_8', 'GRADE_9'];
+
+  // Apply staged filters to actual state
+  const applyFilters = () => {
+    setSelectedType(stagedType);
+    setSelectedGrade(stagedGrade);
+    setSelectedStream(stagedStream);
+    setSelectedTerm(stagedTerm);
+    setSelectedTestGroups(stagedTestGroups);
+    setSelectedTestIds(stagedTestIds);
+    setSelectedLearnerIds(stagedLearnerIds);
+    handleGenerate();
+  };
+
   const handleToggleSelectRow = (idx) => {
     setSelectedReportRows(prev => {
       if (prev.includes(idx)) {
@@ -667,6 +682,15 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
   const [selectedGrade, setSelectedGrade] = useState('');
   const [selectedStream, setSelectedStream] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('TERM_1');
+
+  // Staged filter state - filters only apply when button is clicked
+  const [stagedType, setStagedType] = useState('LEARNER_REPORT');
+  const [stagedGrade, setStagedGrade] = useState('');
+  const [stagedStream, setStagedStream] = useState('');
+  const [stagedTerm, setStagedTerm] = useState('TERM_1');
+  const [stagedTestGroups, setStagedTestGroups] = useState([]);
+  const [stagedTestIds, setStagedTestIds] = useState([]);
+  const [stagedLearnerIds, setStagedLearnerIds] = useState([]);
 
   // Get terms from hook
   const terms = setup.terms;
@@ -1941,349 +1965,115 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-8">
-      <h2 className="text-xl font-bold text-gray-800 mb-8 pb-4 border-b">Summary Report</h2>
-
-      {/* FILTER CONTROLS - Hidden from PDF */}
-      <div className="no-print">
-        {/* First Row: Type, Grade, Stream */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div>
-            <label className="premium-label">Type</label>
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="premium-select"
-            >
-              <option value="">Select Type</option>
-              {reportTypes.map(t => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="premium-label">Grade</label>
-            <select
-              value={selectedGrade}
-              onChange={(e) => {
-                setSelectedGrade(e.target.value);
-                setSelectedStream('all');
-              }}
-              className="premium-select"
-            >
-              <option value="">Select Grade</option>
-              <option value="all">All Grades</option>
-              {(grades || []).map(g => {
-                // Handle both string grades and object grades
-                const gradeValue = typeof g === 'string' ? g : (g.value || g.id || g.name);
-                const gradeLabel = typeof g === 'string' ? g : (g.label || g.name || g);
-                return (
-                  <option key={gradeValue} value={gradeValue}>
-                    {gradeLabel}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-
-          <div>
-            <label className="premium-label">Stream</label>
-            <select
-              value={selectedStream}
-              onChange={(e) => setSelectedStream(e.target.value)}
-              className="premium-select"
-            >
-              <option value="all">All Streams</option>
-              {availableStreams.map(s => (
-                <option key={s.id || s.name} value={s.value || s.name}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="premium-label">Academic Year</label>
-            <select
-              value={setup.academicYear}
-              onChange={(e) => setup.updateAcademicYear(Number(e.target.value))}
-              className="premium-select"
-            >
-              {[2024, 2025, 2026, 2027].map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
-          </div>
+    <div className="bg-white">
+      {/* STICKY HEADER & FILTER BAR */}
+      <div className="sticky top-0 z-40 bg-white shadow-sm">
+        {/* Report Title Header */}
+        <div className="border-b border-gray-100 px-6 py-4">
+          <h2 className="text-xl font-bold text-gray-800">Summative Report</h2>
         </div>
 
-        {/* Second Row: Term and Test Group */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div>
-            <label className="premium-label">Academic Term</label>
-            <select
-              value={selectedTerm}
-              onChange={(e) => setSelectedTerm(e.target.value)}
-              className="premium-select"
-            >
-              {terms.map(t => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
+        {/* Single Row Filter Bar */}
+        <div className="border-t border-slate-200 px-6 py-3.5 flex flex-wrap gap-2 items-center">
+          {/* Type Selector */}
+          <select
+            value={stagedType}
+            onChange={(e) => setStagedType(e.target.value)}
+            className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-brand-teal focus:border-brand-teal outline-none"
+          >
+            {reportTypes.map(t => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+
+          {/* Grade Selector */}
+          <select
+            value={stagedGrade}
+            onChange={(e) => {
+              setStagedGrade(e.target.value);
+              setStagedStream('');
+            }}
+            className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-brand-teal focus:border-brand-teal outline-none w-28"
+          >
+            <option value="">Grade</option>
+            <option value="all">All Grades</option>
+            {(grades || []).sort((a, b) => {
+              const aVal = typeof a === 'string' ? a : (a.value || a.id || a.name);
+              const bVal = typeof b === 'string' ? b : (b.value || b.id || b.name);
+              return gradeOrder.indexOf(aVal) - gradeOrder.indexOf(bVal);
+            }).map(g => {
+              const gradeValue = typeof g === 'string' ? g : (g.value || g.id || g.name);
+              const gradeLabel = typeof g === 'string' ? g : (g.label || g.name || g);
+              return (
+                <option key={gradeValue} value={gradeValue}>
+                  {gradeLabel}
                 </option>
-              ))}
-            </select>
-          </div>
+              );
+            })}
+          </select>
 
-          <div ref={testGroupRef}>
-            <label className="premium-label">Test Group</label>
-            <button
-              onClick={() => setShowTestGroupOptions(!showTestGroupOptions)}
-              className="premium-input text-left flex justify-between items-center cursor-pointer"
-            >
-              <span>
-                {selectedTestGroups.length === 0
-                  ? 'All Test Groups'
-                  : `${selectedTestGroups.length} group(s) selected`}
-              </span>
-              <span className="text-sm">▼</span>
-            </button>
+          {/* Stream Selector */}
+          <select
+            value={stagedStream}
+            onChange={(e) => setStagedStream(e.target.value)}
+            className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-brand-teal focus:border-brand-teal outline-none w-20"
+          >
+            <option value="">Stream</option>
+            <option value="all">All</option>
+            {availableStreams?.map(s => (
+              <option key={s.id || s.name} value={s.value || s.name}>
+                {s.name}
+              </option>
+            ))}
+          </select>
 
-            {/* Test Group Checkboxes */}
-            {showTestGroupOptions && (
-              <div className="absolute z-10 mt-2 w-72 border border-gray-300 rounded-lg bg-white shadow-lg p-3 max-h-64 overflow-y-auto">
-                <div className="mb-2 pb-2 border-b">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedTestGroups.length === availableTestGroups.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedTestGroups([...availableTestGroups]);
-                        } else {
-                          setSelectedTestGroups([]);
-                        }
-                      }}
-                      className="w-4 h-4 rounded text-brand-teal focus:ring-brand-teal"
-                    />
-                    <span className="font-semibold text-gray-700">Select All</span>
-                  </label>
-                </div>
+          {/* Term Selector */}
+          <select
+            value={stagedTerm}
+            onChange={(e) => setStagedTerm(e.target.value)}
+            className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-brand-teal focus:border-brand-teal outline-none w-20"
+          >
+            {terms?.map(t => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
 
-                {availableTestGroups.map(group => (
-                  <label key={group} className="flex items-center gap-2 cursor-pointer mb-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedTestGroups.includes(group)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedTestGroups([...selectedTestGroups, group]);
-                        } else {
-                          setSelectedTestGroups(selectedTestGroups.filter(g => g !== group));
-                        }
-                      }}
-                      className="w-4 h-4 rounded text-brand-teal focus:ring-brand-teal"
-                    />
-                    <span className="text-gray-700">{group}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+          {/* Generate Button with Icon */}
+          <button
+            onClick={applyFilters}
+            disabled={loading}
+            className="h-9 px-3 rounded bg-brand-teal text-white flex items-center gap-1.5 hover:bg-brand-teal/90 disabled:opacity-50 transition text-xs font-medium whitespace-nowrap"
+          >
+            <FileText size={16} />
+            <span>Generate</span>
+          </button>
 
-        {/* Third Row: Specific Test (optional deeper filtering) and Learner (if applicable) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div ref={testOptionsRef}>
-            <label className="premium-label">Specific Tests (Optional)</label>
-            <button
-              onClick={() => setShowTestOptions(!showTestOptions)}
-              className="premium-input text-left flex justify-between items-center cursor-pointer"
-            >
-              <span>
-                {selectedTestIds.length === 0
-                  ? 'All Tests in Group'
-                  : `${selectedTestIds.length} test(s) selected`}
-              </span>
-              <span className="text-sm">▼</span>
-            </button>
-
-            {/* Specific Tests Checkboxes */}
-            {showTestOptions && (
-              <div className="absolute z-10 mt-2 w-72 border border-gray-300 rounded-lg bg-white shadow-lg p-3 max-h-64 overflow-y-auto">
-                <div className="mb-2 pb-2 border-b">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedTestIds.length === testsInGroups.length && testsInGroups.length > 0}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedTestIds(testsInGroups.map(t => t.id));
-                        } else {
-                          setSelectedTestIds([]);
-                        }
-                      }}
-                      disabled={testsInGroups.length === 0}
-                      className="w-4 h-4 rounded text-brand-teal focus:ring-brand-teal"
-                    />
-                    <span className="font-semibold text-gray-700">Select All</span>
-                  </label>
-                </div>
-
-                {testsInGroups.length === 0 ? (
-                  <p className="text-sm text-gray-500 italic">Select a test group first</p>
-                ) : (
-                  testsInGroups.map(test => (
-                    <label key={test.id} className="flex items-center gap-2 cursor-pointer mb-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedTestIds.includes(test.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedTestIds([...selectedTestIds, test.id]);
-                          } else {
-                            setSelectedTestIds(selectedTestIds.filter(id => id !== test.id));
-                          }
-                        }}
-                        className="w-4 h-4 rounded text-brand-teal focus:ring-brand-teal"
-                      />
-                      <span className="text-gray-700">{test.title || test.learningArea} ({test.totalMarks} marks)</span>
-                    </label>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Learner Selector - Multi-select Checkbox Dropdown */}
-          {(selectedType === 'LEARNER_REPORT' || selectedType === 'LEARNER_TERMLY_REPORT') && (
-            <div ref={learnerOptionsRef}>
-              <label className="premium-label">Learner(s)<span className="text-red-500">*</span></label>
-              <button
-                onClick={() => setShowLearnerOptions(!showLearnerOptions)}
-                className="premium-input text-left flex justify-between items-center cursor-pointer min-h-[42px] py-1 disabled:opacity-50 disabled:cursor-not-allowed hidden-print"
-                disabled={!selectedGrade || selectedGrade === 'all'}
-              >
-                <div className="flex flex-wrap gap-1 max-w-[90%] overflow-hidden">
-                  {(!selectedGrade || selectedGrade === 'all') ? (
-                    <span className="text-gray-400">Select a specific Grade first</span>
-                  ) : selectedLearnerIds.length === 0 ? (
-                    <span className="text-gray-400">Select Learners</span>
-                  ) : selectedLearnerIds.length === filteredLearners.length && filteredLearners.length > 0 ? (
-                    <span className="font-bold text-brand-teal">All {filteredLearners.length} Learners Selected</span>
-                  ) : (
-                    <span className="font-bold text-brand-teal">{selectedLearnerIds.length} learner(s) selected</span>
-                  )}
-                </div>
-                <span className="text-sm">▼</span>
-              </button>
-
-              {/* Multi-select Dropdown */}
-              {showLearnerOptions && (
-                <div className="absolute z-20 mt-2 w-full md:w-96 border border-gray-300 rounded-lg bg-white shadow-xl p-3 max-h-80 overflow-y-auto">
-                  <div className="sticky top-0 bg-white z-10 mb-2 pb-2 border-b flex justify-between items-center">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedLearnerIds.length === filteredLearners.length && filteredLearners.length > 0}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedLearnerIds(filteredLearners.map(l => l.id));
-                          } else {
-                            setSelectedLearnerIds([]);
-                          }
-                        }}
-                        className="w-4 h-4 rounded text-brand-teal focus:ring-brand-teal"
-                      />
-                      <span className="font-bold text-gray-700">Select All ({filteredLearners.length})</span>
-                    </label>
-                    <button
-                      onClick={() => setShowLearnerOptions(false)}
-                      className="text-xs text-gray-400 hover:text-gray-600 font-bold uppercase"
-                    >
-                      Done
-                    </button>
-                  </div>
-
-                  {filteredLearners.length === 0 ? (
-                    <p className="text-sm text-gray-500 italic p-2 text-center">
-                      {loadingLearners ? 'Loading learners...' : 'No learners found for this grade/stream'}
-                    </p>
-                  ) : (
-                    filteredLearners.map(l => (
-                      <label key={l.id} className="flex items-center gap-2 cursor-pointer mb-2 hover:bg-gray-50 p-1.5 rounded transition-colors border-b border-gray-50 last:border-0">
-                        <input
-                          type="checkbox"
-                          checked={selectedLearnerIds.includes(l.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedLearnerIds([...selectedLearnerIds, l.id]);
-                            } else {
-                              setSelectedLearnerIds(selectedLearnerIds.filter(id => id !== l.id));
-                            }
-                          }}
-                          className="w-4 h-4 rounded text-brand-teal focus:ring-brand-teal"
-                        />
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-gray-800">{l.firstName} {l.lastName}</span>
-                          <span className="text-[10px] text-gray-500 uppercase font-semibold">{l.admissionNumber || 'ADM: N/A'} • {l.grade} {l.stream}</span>
-                        </div>
-                      </label>
-                    ))
-                  )}
-                </div>
+          {/* Status Message */}
+          {statusMessage && (
+            <div className="text-xs ml-2 flex items-center gap-1">
+              {statusMessage.includes('✅') ? (
+                <CheckCircle size={14} className="text-green-600 flex-shrink-0" />
+              ) : statusMessage.includes('⚠️') ? (
+                <AlertCircle size={14} className="text-amber-600 flex-shrink-0" />
+              ) : statusMessage.includes('⏳') ? (
+                <Loader size={14} className="animate-spin text-blue-600 flex-shrink-0" />
+              ) : (
+                <XCircle size={14} className="text-red-600 flex-shrink-0" />
               )}
-
-              {loadingLearners && (
-                <p className="text-xs text-brand-purple mt-1 flex items-center gap-1">
-                  <Loader className="animate-spin" size={12} /> Loading matching students...
-                </p>
-              )}
-              {filteredLearners.length === 0 && !loadingLearners && learners?.length > 0 && (
-                <p className="text-xs text-brand-purple mt-1 italic">ℹ️ No matches for selected grade/stream. Select filters first.</p>
-              )}
+              <span className="text-gray-600 max-w-xs truncate">{statusMessage}</span>
             </div>
           )}
         </div>
-
-        {/* Generate Button */}
-        <div className="flex justify-end pt-4 mb-6">
-
-
-          <button
-            onClick={handleGenerate}
-            disabled={loading}
-            className="px-8 py-3 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition font-bold disabled:opacity-50 shadow-sm"
-          >
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <Loader className="animate-spin" size={18} />
-                Generating...
-              </span>
-            ) : (
-              'Generate Report'
-            )}
-          </button>
-        </div>
-
-        {/* Status Message */}
-        {statusMessage && (
-          <div className={`rounded-lg p-4 mb-6 border ${statusMessage.includes('✅') ? 'bg-green-50 border-green-200 text-green-800' :
-            statusMessage.includes('⚠️') ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-              statusMessage.includes('⏳') ? 'bg-blue-50 border-blue-200 text-blue-800' :
-                'bg-red-50 border-red-200 text-red-800'
-            }`}>
-            <p className="font-medium">{statusMessage}</p>
-          </div>
-        )}
-
       </div>
-      {/* End no-print filter section */}
 
 
       {/* LEARNER REPORT DISPLAY - COMPACT PROFESSIONAL LAYOUT */}
-      {(reportData?.type === 'LEARNER_REPORT' || reportData?.type === 'LEARNER_TERMLY_REPORT') && reportData?.rows?.length > 0 && (
+      <div className="px-6 py-8">
+        {(reportData?.type === 'LEARNER_REPORT' || reportData?.type === 'LEARNER_TERMLY_REPORT') && reportData?.rows?.length > 0 && (
         <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
           {reportData.rows.length === 1 ? (
             <>
@@ -2498,9 +2288,10 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           )}
         </div>
       )}
+      </div>
 
       {/* GRADE / STREAM REPORT DISPLAY - BROADSHEET */}
-      {(reportData?.type === 'GRADE_REPORT' || reportData?.type === 'STREAM_REPORT' || reportData?.type === 'STREAM_RANKING_REPORT') && reportData?.rows && (
+      <div className="px-6 py-8">
         <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
           <div
             id="summative-report-content"
@@ -2695,9 +2486,11 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           </div>
         </div>
       )}
+      </div>
 
       {/* ANALYSIS REPORT DISPLAY */}
-      {reportData?.type?.includes('ANALYSIS') && (
+      <div className="px-6 py-8">
+        {reportData?.type?.includes('ANALYSIS') && (
         <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
           <div
             id="summative-report-content"
@@ -3138,6 +2931,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           </div>
         )
       }
+      </div>
       {/* LOADING OVERLAY FOR PDF EXPORT */}
       {
         isExporting && (
