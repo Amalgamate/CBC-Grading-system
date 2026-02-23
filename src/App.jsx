@@ -37,6 +37,9 @@ function AppContent() {
   const pathname = location.pathname;
   const { schoolId: urlSchoolId } = parseTenantFromPath(pathname);
   const [appReady, setAppReady] = useState(false);
+  
+  // Detect mobile/Capacitor once
+  const isMobile = window.Capacitor || /mobile|android|iphone/i.test(navigator.userAgent);
 
   const [brandingSettings, setBrandingSettings] = useState({
     logoUrl: '/logo-new.png',
@@ -52,7 +55,7 @@ function AppContent() {
 
   // Mark app as ready after initial load
   useEffect(() => {
-    const timer = setTimeout(() => setAppReady(true), 500);
+    const timer = setTimeout(() => setAppReady(true), 300);
     return () => clearTimeout(timer);
   }, []);
 
@@ -195,37 +198,33 @@ function AppContent() {
       <SplashScreen isLoading={!appReady} />
       {appReady && (
         <Routes>
-        {/* Mobile/Capacitor: redirect "/" to login page directly */}
-        {(window.Capacitor || /mobile|android|iphone/i.test(navigator.userAgent)) && (
-          <Route path="/" element={<Navigate to="/auth/login" replace />} />
-        )}
-        {/* Desktop/Web: show homepage */}
-        {!(window.Capacitor || /mobile|android|iphone/i.test(navigator.userAgent)) && (
-          <Route path="/" element={<HomePage {...landingProps} />} />
-        )}
-        <Route path="/features" element={<FeaturesPage {...landingProps} />} />
-        <Route path="/solutions" element={<SolutionsPage {...landingProps} />} />
-        <Route path="/pricing" element={<PricingPage {...landingProps} />} />
-        <Route path="/contact" element={<ContactPage {...landingProps} />} />
-        <Route path="/about" element={<AboutPage {...landingProps} />} />
-        <Route path="/playroom" element={<PlayroomPage {...landingProps} />} />
-        <Route path="/get-started" element={<Navigate to="/auth/register" replace />} />
-        <Route path="/auth" element={<Navigate to="/auth/login" replace />} />
-        <Route path="/auth/login" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath="/auth" />} />
-        <Route path="/auth/register" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath="/auth" />} />
-        <Route path="/auth/forgot-password" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath="/auth" />} />
-        <Route path="/auth/reset-password" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath="/auth" />} />
-        <Route path="/auth/verify-email" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath="/auth" />} />
-        <Route path="/auth/welcome" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath="/auth" />} />
-        <Route path="/t/:schoolId" element={<NavigateToTenantLogin pathname={pathname} />} />
-        <Route path="/t/:schoolId/login" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath={`/t/${urlSchoolId || ''}`} />} />
-        <Route path="/t/:schoolId/register" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath={`/t/${urlSchoolId || ''}`} />} />
-        <Route path="/t/:schoolId/forgot-password" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath={`/t/${urlSchoolId || ''}`} />} />
-        <Route path="/t/:schoolId/reset-password" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath={`/t/${urlSchoolId || ''}`} />} />
-        <Route path="/t/:schoolId/verify-email" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath={`/t/${urlSchoolId || ''}`} />} />
-        <Route path="/t/:schoolId/welcome" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath={`/t/${urlSchoolId || ''}`} />} />
-        <Route path="/t/:schoolId/get-started" element={<Navigate to={`/t/${urlSchoolId}/register`} replace />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Mobile/Capacitor: redirect "/" to login page directly */}
+          {isMobile && <Route path="/" element={<Navigate to="/auth/login" replace />} />}
+          {/* Desktop/Web: show homepage */}
+          {!isMobile && <Route path="/" element={<HomePage {...landingProps} />} />}
+          <Route path="/features" element={<FeaturesPage {...landingProps} />} />
+          <Route path="/solutions" element={<SolutionsPage {...landingProps} />} />
+          <Route path="/pricing" element={<PricingPage {...landingProps} />} />
+          <Route path="/contact" element={<ContactPage {...landingProps} />} />
+          <Route path="/about" element={<AboutPage {...landingProps} />} />
+          <Route path="/playroom" element={<PlayroomPage {...landingProps} />} />
+          <Route path="/get-started" element={<Navigate to="/auth/register" replace />} />
+          <Route path="/auth" element={<Navigate to="/auth/login" replace />} />
+          <Route path="/auth/login" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath="/auth" />} />
+          <Route path="/auth/register" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath="/auth" />} />
+          <Route path="/auth/forgot-password" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath="/auth" />} />
+          <Route path="/auth/reset-password" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath="/auth" />} />
+          <Route path="/auth/verify-email" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath="/auth" />} />
+          <Route path="/auth/welcome" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath="/auth" />} />
+          <Route path="/t/:schoolId" element={<NavigateToTenantLogin pathname={pathname} />} />
+          <Route path="/t/:schoolId/login" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath={`/t/${urlSchoolId || ''}`} />} />
+          <Route path="/t/:schoolId/register" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath={`/t/${urlSchoolId || ''}`} />} />
+          <Route path="/t/:schoolId/forgot-password" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath={`/t/${urlSchoolId || ''}`} />} />
+          <Route path="/t/:schoolId/reset-password" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath={`/t/${urlSchoolId || ''}`} />} />
+          <Route path="/t/:schoolId/verify-email" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath={`/t/${urlSchoolId || ''}`} />} />
+          <Route path="/t/:schoolId/welcome" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath={`/t/${urlSchoolId || ''}`} />} />
+          <Route path="/t/:schoolId/get-started" element={<Navigate to={`/t/${urlSchoolId}/register`} replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       )}
       {/* <SupportWidget /> */}
