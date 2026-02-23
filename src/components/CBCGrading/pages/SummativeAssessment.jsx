@@ -270,9 +270,20 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
     });
   }, [stagedFilteredTestsBySelection, stagedLearningArea]);
 
+  // Sort grades from lowest to highest
+  const gradeOrder = ['PLAYGROUP', 'PP1', 'PP2', 'GRADE_1', 'GRADE_2', 'GRADE_3', 'GRADE_4', 'GRADE_5', 'GRADE_6', 'GRADE_7', 'GRADE_8', 'GRADE_9'];
+  
   const filteredGrades = useMemo(() => {
-    if (!teacherWorkload.isTeacher) return availableGrades;
-    return availableGrades.filter(g => teacherWorkload.assignedGrades.includes(g));
+    let grades = !teacherWorkload.isTeacher ? availableGrades : availableGrades.filter(g => teacherWorkload.assignedGrades.includes(g));
+    
+    // Sort by grade order
+    return grades.sort((a, b) => {
+      const aIndex = gradeOrder.indexOf(a);
+      const bIndex = gradeOrder.indexOf(b);
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
   }, [availableGrades, teacherWorkload.isTeacher, teacherWorkload.assignedGrades]);
 
 
@@ -474,10 +485,10 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
   }, [marks, selectedTestId]);
 
 
-  // Fetch Learners when moving to Step 2 or filters change
+  // Fetch Learners when test is selected
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (step === 2 && selectedTest) {
+    if (selectedTestId && selectedTest) {
       const fetchLearners = async () => {
         setLoadingLearners(true);
         try {
@@ -507,7 +518,7 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
 
       fetchLearners();
     }
-  }, [step, selectedTest, setup.selectedStream, showError]);
+  }, [selectedTestId, selectedTest, setup.selectedStream, showError])
 
   const filteredLearners = useMemo(() => {
     let result = fetchedLearners;
@@ -953,9 +964,12 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
             <button
               onClick={applyFilters}
               disabled={!stagedTestId}
-              className="h-2 w-2 rounded-full bg-brand-teal flex-shrink-0 hover:bg-brand-teal/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="h-9 px-3 rounded bg-brand-teal hover:bg-brand-teal/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 flex-shrink-0"
               title={stagedTestId ? 'Click to load assessment' : 'Select a test first'}
-            />
+            >
+              <PlayCircle size={16} className="text-white" />
+              <span className="text-xs font-medium text-white">Load</span>
+            </button>
           </div>
         </div>
       </div>
