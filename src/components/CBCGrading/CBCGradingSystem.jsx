@@ -218,20 +218,15 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
     return () => window.removeEventListener('pageNavigate', handlePageNavigate);
   }, []);
 
-  // Handle browser back button to restore page state
+  // Handle browser back button
   React.useEffect(() => {
-    const handlePopState = () => {
-      // Restore the last saved page state from localStorage
-      try {
-        const savedPage = localStorage.getItem('cbc_current_page') || 'dashboard';
-        const savedParams = localStorage.getItem('cbc_page_params');
-        setCurrentPage(savedPage);
-        if (savedParams) {
-          setPageParams(JSON.parse(savedParams));
+    const handlePopState = (event) => {
+      if (event.state && event.state.page) {
+        setCurrentPage(event.state.page);
+        setPageParams(event.state.params || {});
+        if (event.state.params?.learner) {
+          setEditingLearner(event.state.params.learner);
         }
-      } catch (e) {
-        console.error('Error restoring page state:', e);
-        setCurrentPage('dashboard');
       }
     };
 
@@ -319,6 +314,17 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       setEditingLearner(params.learner);
     }
     setCurrentPage(page);
+    
+    // Push to browser history so back button works
+    try {
+      window.history.pushState(
+        { page, params },
+        `CBC - ${page}`,
+        window.location.href
+      );
+    } catch (e) {
+      console.error('Failed to push history state:', e);
+    }
   };
 
   const handleLogout = () => {
