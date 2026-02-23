@@ -90,7 +90,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-School-Id', 'X-Portal-School-Id', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-School-Id', 'X-Branch-Id', 'X-Portal-School-Id', 'Accept'],
   exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
   maxAge: 86400
 }));
