@@ -10,6 +10,7 @@ import PricingPage from './components/ElimcrownWebsite/pages/PricingPage';
 import ContactPage from './components/ElimcrownWebsite/pages/ContactPage';
 import AboutPage from './components/ElimcrownWebsite/pages/AboutPage';
 import PlayroomPage from './components/ElimcrownWebsite/pages/PlayroomPage';
+import SplashScreen from './components/mobile/SplashScreen';
 // import Registration from './components/auth/RegisterForm'; // Use the consolidated register form if needed, but we already have routes
 import SuperAdminDashboard from './components/EDucore/SuperAdminDashboard'; // Legacy path, but functional
 import api from './services/api';
@@ -35,6 +36,7 @@ function AppContent() {
   const location = useLocation();
   const pathname = location.pathname;
   const { schoolId: urlSchoolId } = parseTenantFromPath(pathname);
+  const [appReady, setAppReady] = useState(false);
 
   const [brandingSettings, setBrandingSettings] = useState({
     logoUrl: '/logo-new.png',
@@ -47,6 +49,12 @@ function AppContent() {
     onboardingMessage: 'Sign up to access powerful tools for managing learning and assessment.',
     schoolName: 'Elimcrown',
   });
+
+  // Mark app as ready after initial load
+  useEffect(() => {
+    const timer = setTimeout(() => setAppReady(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!urlSchoolId) return;
@@ -154,32 +162,39 @@ function AppContent() {
   if (isAuthenticated) {
     return (
       <>
-        <Routes>
-          <Route path="/superadmin" element={<SuperAdminDashboard onLogout={handleLogout} />} />
-          <Route
-            path="/app/*"
-            element={
-              <CBCGradingSystem
-                user={user}
-                onLogout={handleLogout}
-                brandingSettings={brandingSettings}
-                setBrandingSettings={setBrandingSettings}
+        <SplashScreen isLoading={!appReady} />
+        {appReady && (
+          <>
+            <Routes>
+              <Route path="/superadmin" element={<SuperAdminDashboard onLogout={handleLogout} />} />
+              <Route
+                path="/app/*"
+                element={
+                  <CBCGradingSystem
+                    user={user}
+                    onLogout={handleLogout}
+                    brandingSettings={brandingSettings}
+                    setBrandingSettings={setBrandingSettings}
+                  />
+                }
               />
-            }
-          />
-          <Route
-            path="*"
-            element={<Navigate to={user?.role === 'SUPER_ADMIN' ? '/superadmin' : '/app'} replace />}
-          />
-        </Routes>
-        {/* <SupportWidget /> */}
+              <Route
+                path="*"
+                element={<Navigate to={user?.role === 'SUPER_ADMIN' ? '/superadmin' : '/app'} replace />}
+              />
+            </Routes>
+            {/* <SupportWidget /> */}
+          </>
+        )}
       </>
     );
   }
 
   return (
     <>
-      <Routes>
+      <SplashScreen isLoading={!appReady} />
+      {appReady && (
+        <Routes>
         {/* Mobile/Capacitor: redirect "/" to login page directly */}
         {(window.Capacitor || /mobile|android|iphone/i.test(navigator.userAgent)) && (
           <Route path="/" element={<Navigate to="/auth/login" replace />} />
@@ -211,7 +226,8 @@ function AppContent() {
         <Route path="/t/:schoolId/welcome" element={<Auth onAuthSuccess={handleAuthSuccess} brandingSettings={brandingSettings} basePath={`/t/${urlSchoolId || ''}`} />} />
         <Route path="/t/:schoolId/get-started" element={<Navigate to={`/t/${urlSchoolId}/register`} replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        </Routes>
+      )}
       {/* <SupportWidget /> */}
     </>
   );

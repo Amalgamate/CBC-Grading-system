@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Support cleartext (HTTP) for localhost only (development) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+    </domain-config>
+
+    <!-- HTTPS for all production domains -->
+    <domain-config>
+        <domain includeSubdomains="true">elimcrown.co.ke</domain>
+        <domain includeSubdomains="true">elimcrown-api.onrender.com</domain>
+        <trust-anchors>
+            <!-- Default system trust store -->
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- Default policy: require HTTPS for all other domains -->
+    <default-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </default-config>
+</network-security-config>

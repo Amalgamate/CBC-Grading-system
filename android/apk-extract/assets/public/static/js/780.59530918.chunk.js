@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkcbc_grading_system=self.webpackChunkcbc_grading_system||[]).push([[780],{37455(e,s,t){t.d(s,{A:()=>a});const a=(0,t(33797).A)("ArrowUp",[["path",{d:"m5 12 7-7 7 7",key:"hav0vg"}],["path",{d:"M12 19V5",key:"x0mq9r"}]])},82004(e,s,t){t.d(s,{A:()=>a});const a=(0,t(33797).A)("ArrowDown",[["path",{d:"M12 5v14",key:"s699le"}],["path",{d:"m19 12-7 7-7-7",key:"1idqje"}]])}}]);
+//# sourceMappingURL=780.59530918.chunk.js.map
