@@ -672,124 +672,11 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
   // Render Main Page with persistent filter bar
   return (
     <div className="min-h-screen bg-slate-50/30">
-      {/* Persistent Filter Bar */}
-      <div className="sticky top-0 z-40 border-b border-slate-200 bg-white px-6 py-3.5 shadow-sm">
-        <div className="flex flex-wrap gap-2 items-center">
-          {/* Grade - Compact Input */}
-          <select
-            value={setup.selectedGrade}
-            onChange={(e) => {
-              setup.updateGrade(e.target.value);
-              setSelectedLearningArea('');
-              setSelectedTestId('');
-            }}
-            className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-24"
-            title="Select Grade"
-          >
-            <option value="">Grade</option>
-            {filteredGrades.map(g => (
-              <option key={g} value={g}>
-                {g.replace('_', ' ')}
-              </option>
-            ))}
-          </select>
-
-          {/* Stream - Compact */}
-          <select
-            value={setup.selectedStream}
-            onChange={(e) => setup.updateStream(e.target.value)}
-            className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-20"
-            title="Select Stream"
-          >
-            <option value="">Stream</option>
-            {availableStreams.map(s => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-
-          {/* Academic Term - Compact */}
-          <select
-            value={setup.selectedTerm}
-            onChange={(e) => {
-              setup.updateTerm(e.target.value);
-              setSelectedLearningArea('');
-              setSelectedTestId('');
-            }}
-            className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-24"
-            title="Select Term"
-          >
-            <option value="">Term</option>
-            {availableTerms.map(t => (
-              <option key={t} value={t}>{t.replace('_', ' ')}</option>
-            ))}
-          </select>
-
-          {/* Learning Area - Balanced */}
-          <select
-            value={selectedLearningArea}
-            onChange={(e) => {
-              setSelectedLearningArea(e.target.value);
-              setSelectedTestId('');
-            }}
-            disabled={!setup.selectedGrade || !setup.selectedTerm || availableLearningAreas.length === 0}
-            className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 flex-1 min-w-[120px]"
-            title="Select Learning Area"
-          >
-            <option value="">
-              {!setup.selectedGrade || !setup.selectedTerm
-                ? 'Area'
-                : 'Area'}
-            </option>
-            {filteredLearningAreasByWorkload.map(area => (
-              <option key={area} value={area}>{area}</option>
-            ))}
-          </select>
-
-          {/* Test - Balanced */}
-          <select
-            value={selectedTestId}
-            onChange={(e) => setSelectedTestId(e.target.value)}
-            disabled={finalTests.length === 0}
-            className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 flex-1 min-w-[120px]"
-            title="Select Test"
-          >
-            <option value="">
-              {finalTests.length === 0 
-                ? (selectedLearningArea ? 'No tests' : 'Test')
-                : 'Test'}
-            </option>
-            {finalTests.map(t => (
-              <option key={t.id} value={t.id}>
-                {t.title || t.name}
-              </option>
-            ))}
-          </select>
-
-          {/* Indicator Badge - Shows when test is selected */}
-          {selectedTestId && (
-            <div className="h-2 w-2 rounded-full bg-brand-teal animate-pulse flex-shrink-0" title="Assessment loaded"></div>
-          )}
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      {!selectedTestId && (
-        <div className="px-6 py-12">
-          <EmptyState
-            icon={Database}
-            title="No Assessment Selected"
-            message="Select a grade, term, learning area, and test to begin recording assessments. The results table will appear below the filters as soon as you make a selection."
-            actionText="Go to Test Management"
-            onAction={() => window.location.hash = '#/assess-summative-tests'}
-          />
-        </div>
-      )}
-
-      {/* Assessment Table - Renders below filter bar when test selected */}
-      {selectedTestId && (
-        <div className="space-y-4 p-6">
-          {/* Sticky Assessment Header */}
-          <div className="bg-white border-b border-gray-100 px-6 py-4 rounded-t-lg shadow-sm flex gap-4">
+      {/* Combined Sticky Header + Filter Bar - Unified Component */}
+      <div className="sticky top-0 z-40 bg-white shadow-sm">
+        {/* Assessment Header - Renders above filter when test selected */}
+        {selectedTestId && (
+          <div className="border-b border-gray-100 px-6 py-4 flex gap-4">
             <div className="flex-1">
               {/* Top Row: Context & Helper */}
               <div className="flex items-center justify-between mb-2 h-5">
@@ -891,7 +778,125 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
               </div>
             </div>
           </div>
+        )}
 
+        {/* Filter Bar - Always visible below header */}
+        <div className="border-t border-slate-200 px-6 py-3.5">
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* Grade - Compact Input */}
+            <select
+              value={setup.selectedGrade}
+              onChange={(e) => {
+                setup.updateGrade(e.target.value);
+                setSelectedLearningArea('');
+                setSelectedTestId('');
+              }}
+              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-24"
+              title="Select Grade"
+            >
+              <option value="">Grade</option>
+              {filteredGrades.map(g => (
+                <option key={g} value={g}>
+                  {g.replace('_', ' ')}
+                </option>
+              ))}
+            </select>
+
+            {/* Stream - Compact */}
+            <select
+              value={setup.selectedStream}
+              onChange={(e) => setup.updateStream(e.target.value)}
+              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-20"
+              title="Select Stream"
+            >
+              <option value="">Stream</option>
+              {availableStreams.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+
+            {/* Academic Term - Compact */}
+            <select
+              value={setup.selectedTerm}
+              onChange={(e) => {
+                setup.updateTerm(e.target.value);
+                setSelectedLearningArea('');
+                setSelectedTestId('');
+              }}
+              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-24"
+              title="Select Term"
+            >
+              <option value="">Term</option>
+              {availableTerms.map(t => (
+                <option key={t} value={t}>{t.replace('_', ' ')}</option>
+              ))}
+            </select>
+
+            {/* Learning Area - Balanced */}
+            <select
+              value={selectedLearningArea}
+              onChange={(e) => {
+                setSelectedLearningArea(e.target.value);
+                setSelectedTestId('');
+              }}
+              disabled={!setup.selectedGrade || !setup.selectedTerm || availableLearningAreas.length === 0}
+              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 flex-1 min-w-[120px]"
+              title="Select Learning Area"
+            >
+              <option value="">
+                {!setup.selectedGrade || !setup.selectedTerm
+                  ? 'Area'
+                  : 'Area'}
+              </option>
+              {filteredLearningAreasByWorkload.map(area => (
+                <option key={area} value={area}>{area}</option>
+              ))}
+            </select>
+
+            {/* Test - Balanced */}
+            <select
+              value={selectedTestId}
+              onChange={(e) => setSelectedTestId(e.target.value)}
+              disabled={finalTests.length === 0}
+              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 flex-1 min-w-[120px]"
+              title="Select Test"
+            >
+              <option value="">
+                {finalTests.length === 0 
+                  ? (selectedLearningArea ? 'No tests' : 'Test')
+                  : 'Test'}
+              </option>
+              {finalTests.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.title || t.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Indicator Badge - Shows when test is selected */}
+            {selectedTestId && (
+              <div className="h-2 w-2 rounded-full bg-brand-teal animate-pulse flex-shrink-0" title="Assessment loaded"></div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      {!selectedTestId && (
+        <div className="px-6 py-12">
+          <EmptyState
+            icon={Database}
+            title="No Assessment Selected"
+            message="Select a grade, term, learning area, and test to begin recording assessments. The results table will appear below the filters as soon as you make a selection."
+            actionText="Go to Test Management"
+            onAction={() => window.location.hash = '#/assess-summative-tests'}
+          />
+        </div>
+      )}
+
+      {/* Assessment Table - Renders below filter bar when test selected */}
+      {selectedTestId && (
+        <div className="p-6">
           {/* PDF Export Content Wrapper */}
           <div id="assessment-report-content" className="bg-white">
 
