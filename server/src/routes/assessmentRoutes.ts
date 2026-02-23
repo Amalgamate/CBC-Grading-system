@@ -5,6 +5,7 @@
 
 import express from 'express';
 import * as assessmentController from '../controllers/assessmentController';
+import * as setupController from '../controllers/setupController';
 import { authenticate } from '../middleware/auth.middleware';
 import { requireTenant } from '../middleware/tenant.middleware';
 
@@ -72,5 +73,15 @@ router.get(
   requireTenant,
   assessmentController.getTestResults
 );
+
+// ============================================
+// SCHOOL SETUP ROUTES - BULK OPERATIONS
+// ============================================
+// These endpoints help administrators quickly set up grading scales and tests for the entire school
+// WARNING: These are powerful operations that should only be available to admins/principals
+
+router.post('/setup/create-scales', authenticate, requireTenant, setupController.bulkCreateGradingScales);
+router.post('/setup/create-tests', authenticate, requireTenant, setupController.bulkCreateSummativeTests);
+router.post('/setup/complete', authenticate, requireTenant, setupController.completeSchoolSetup);
 
 export default router;

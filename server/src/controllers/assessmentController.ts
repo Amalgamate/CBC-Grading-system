@@ -700,6 +700,9 @@ export const createSummativeTest = async (req: AuthRequest, res: Response) => {
 
     // AUTO-LINK SCALE: If scaleId is not provided, try to find a matching one
     let resolvedScaleId = scaleId;
+    let scaleWarning = null;
+    let linkedScale = null;
+
     if (!resolvedScaleId && req.user?.schoolId) {
       const matchingScale = await prisma.gradingSystem.findFirst({
         where: {
@@ -716,7 +719,12 @@ export const createSummativeTest = async (req: AuthRequest, res: Response) => {
       });
       if (matchingScale) {
         resolvedScaleId = matchingScale.id;
+        linkedScale = matchingScale;
         console.log(`- Auto-linked test "${title}" to scale "${matchingScale.name}"`);
+      } else {
+        // NO SCALE FOUND - This is the warning we need to propagate
+        scaleWarning = `⚠️ No grading scale found for ${grade} - ${learningArea}. Test created but has NO performance descriptors. Students will see 'Not assessed' in reports.`;
+        console.warn(scaleWarning);
       }
     }
 
@@ -775,7 +783,11 @@ export const createSummativeTest = async (req: AuthRequest, res: Response) => {
     res.status(201).json({
       success: true,
       message: 'Test created successfully',
-      data: test
+      data: test,
+      // NEW: Include warning and scale linking status
+      warning: scaleWarning,
+      scaleLinked: !!resolvedScaleId,
+      linkedScale: linkedScale ? { id: linkedScale.id, name: linkedScale.name } : null
     });
 
   } catch (error: any) {
