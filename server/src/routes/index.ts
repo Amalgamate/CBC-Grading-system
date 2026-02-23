@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import healthRoutes from './health.routes';
+import diagnosticsRoutes from './diagnostics.routes';
 import authRoutes from './auth.routes';
 import userRoutes from './user.routes';
 import learnerRoutes from './learner.routes';
@@ -42,6 +43,7 @@ const router = Router();
 // PUBLIC ROUTES
 // ============================================
 router.use('/health', healthRoutes);
+router.use('/diagnostics', diagnosticsRoutes);
 router.use('/auth', authRoutes);
 router.use('/onboarding', onboardingRoutes); // Public onboarding endpoints
 router.use('/books', bookRoutes);

@@ -32,29 +32,67 @@ const subdomainPattern = new RegExp(
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+    console.log(`[CORS] Processing request from origin: "${origin}" (type: ${typeof origin})`);
+    
+    if (!origin) {
+      console.log('[CORS] No origin header (likely same-origin or direct request)');
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.includes(origin)) {
+      console.log(`[CORS] ✓ Origin in allowedOrigins list`);
+      return callback(null, true);
+    }
 
     // Allow any localhost ports for development
-    if (origin.startsWith('http://localhost:')) return callback(null, true);
+    if (origin.startsWith('http://localhost:')) {
+      console.log(`[CORS] ✓ Localhost port allowed`);
+      return callback(null, true);
+    }
     // Allow localhost subdomains (e.g. mary.localhost:3000)
-    if (/^https?:\/\/.*\.localhost(:\d+)?$/.test(origin)) return callback(null, true);
-    if (origin.startsWith('http://127.')) return callback(null, true);
+    if (/^https?:\/\/.*\.localhost(:\d+)?$/.test(origin)) {
+      console.log(`[CORS] ✓ Localhost subdomain allowed`);
+      return callback(null, true);
+    }
+    if (origin.startsWith('http://127.')) {
+      console.log(`[CORS] ✓ 127.x.x.x allowed`);
+      return callback(null, true);
+    }
     
     // Allow Capacitor/Mobile app origins (Android WebView)
-    if (origin === 'capacitor://localhost') return callback(null, true);
-    if (origin?.startsWith('capacitor://')) return callback(null, true);
-    if (origin === 'file://localhost') return callback(null, true);
-    if (origin?.startsWith('file://')) return callback(null, true);
+    if (origin === 'capacitor://localhost') {
+      console.log('[CORS] ✓ Capacitor localhost allowed');
+      return callback(null, true);
+    }
+    if (origin?.startsWith('capacitor://')) {
+      console.log('[CORS] ✓ Capacitor origin allowed');
+      return callback(null, true);
+    }
+    if (origin === 'file://localhost') {
+      console.log('[CORS] ✓ file://localhost allowed');
+      return callback(null, true);
+    }
+    if (origin?.startsWith('file://')) {
+      console.log('[CORS] ✓ file:// origin allowed');
+      return callback(null, true);
+    }
 
     // Check wildcard pattern for deployment domain
     if (process.env.NODE_ENV !== 'production' || process.env.SUBDOMAIN_ENABLED === 'true') {
-      if (subdomainPattern.test(origin)) return callback(null, true);
+      if (subdomainPattern.test(origin)) {
+        console.log(`[CORS] ✓ Subdomain pattern matched`);
+        return callback(null, true);
+      }
     }
 
+    console.log(`[CORS] ✗ REJECTED - Origin not in allowed list: ${origin}`);
     callback(new Error('Not allowed by CORS'));
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-School-Id', 'X-Portal-School-Id', 'Accept'],
+  exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
+  maxAge: 86400
 }));
 
 // Body parsers

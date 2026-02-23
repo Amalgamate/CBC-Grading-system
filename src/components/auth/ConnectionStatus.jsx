@@ -26,6 +26,28 @@ export default function ConnectionStatus() {
         
         console.log('🔍 DEBUG INFO:', JSON.stringify(debugData, null, 2));
         
+        // First, try the diagnostics endpoint to see what the server receives
+        const diagnosticsUrl = `${API_BASE_URL}/diagnostics`;
+        console.log('🔍 Calling diagnostics endpoint:', diagnosticsUrl);
+        
+        try {
+          const diagResponse = await fetch(diagnosticsUrl, {
+            method: 'GET',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+          });
+          
+          if (diagResponse.ok) {
+            const diagData = await diagResponse.json();
+            console.log('📊 SERVER DIAGNOSTICS:', JSON.stringify(diagData, null, 2));
+          }
+        } catch (diagError) {
+          console.warn('⚠️ Diagnostics call failed:', diagError.message);
+        }
+        
+        // Then check health
         const healthUrl = `${API_BASE_URL}/health`;
         console.log('🔍 Checking health at:', healthUrl);
         
