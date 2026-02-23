@@ -196,7 +196,16 @@ export const bulkCreateSummativeTests = async (req: AuthRequest, res: Response) 
       // Skip if grade or learning area is missing
       if (!scale.grade || !scale.learningArea) continue;
       
-      const testTitle = `${scale.learningArea} Test - ${term}`;
+      // Look up the scale group name if this system is linked to one
+      let testTitle = `${scale.learningArea} Test - ${term}`;
+      if (scale.scaleGroupId) {
+        const scaleGroup = await prisma.scaleGroup.findUnique({
+          where: { id: scale.scaleGroupId }
+        });
+        if (scaleGroup) {
+          testTitle = `${scaleGroup.name} - ${scale.learningArea} Test - ${term}`;
+        }
+      }
       
       const existing = await prisma.summativeTest.findFirst({
         where: {
@@ -306,6 +315,29 @@ export const completeSchoolSetup = async (req: AuthRequest, res: Response) => {
     console.log(`\n🚀 Starting Complete School Setup for ${schoolId}...`);
     const logs: string[] = [];
     
+    // STEP 0: Create or get default Scale Group
+    logs.push('\n' + '='.repeat(70));
+    logs.push('STEP 0: Setting up Scale Group');
+    logs.push('='.repeat(70));
+    
+    let defaultScaleGroup = await prisma.scaleGroup.findFirst({
+      where: { schoolId, name: 'Standard School Grading Scale' }
+    });
+    
+    if (!defaultScaleGroup) {
+      defaultScaleGroup = await prisma.scaleGroup.create({
+        data: {
+          name: 'Standard School Grading Scale',
+          description: 'Default grading scale for all subjects',
+          schoolId,
+          active: true
+        }
+      });
+      logs.push(`✅ Created default scale group`);
+    } else {
+      logs.push(`✅ Using existing scale group`);
+    }
+    
     // STEP 1: Create Grading Scales
     logs.push('\n' + '='.repeat(70));
     logs.push('STEP 1: Creating Grading Scales');
@@ -346,6 +378,7 @@ export const completeSchoolSetup = async (req: AuthRequest, res: Response) => {
             learningArea,
             type: 'SUMMATIVE',
             active: true,
+            scaleGroupId: defaultScaleGroup.id,
             ranges: {
               create: gradingRanges.map((range) => ({
                 minPercentage: range.minPercentage,
@@ -380,7 +413,17 @@ export const completeSchoolSetup = async (req: AuthRequest, res: Response) => {
     for (const scale of scales) {
       if (!scale.grade || !scale.learningArea) continue; // Skip if grade or learning area is missing
       
-      const testTitle = `${scale.learningArea} Test - ${term}`;
+      // Use the scale group name if available
+      let testTitle = `${scale.learningArea} Test - ${term}`;
+      if (scale.scaleGroupId) {
+        const scaleGroup = await prisma.scaleGroup.findUnique({
+          where: { id: scale.scaleGroupId }
+        });
+        if (scaleGroup) {
+          testTitle = `${scaleGroup.name} - ${scale.learningArea} Test - ${term}`;
+        }
+      }
+      
       const existing = await prisma.summativeTest.findFirst({
         where: {
           schoolId,
