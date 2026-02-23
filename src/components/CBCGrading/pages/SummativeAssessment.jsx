@@ -673,9 +673,9 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
   if (step === 1) {
     return (
       <div className="min-h-screen bg-slate-50/30">
-        {/* Ultra-Compact Filter Bar */}
-        <div className="border-b border-slate-200 bg-white px-6 py-2">
-          <div className="flex flex-wrap gap-1.5 items-center">
+        {/* Balanced Compact Filter Bar */}
+        <div className="border-b border-slate-200 bg-white px-6 py-3.5">
+          <div className="flex flex-wrap gap-2 items-center">
             {/* Grade - Compact Input */}
             <select
               value={setup.selectedGrade}
@@ -684,7 +684,7 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
                 setSelectedLearningArea('');
                 setSelectedTestId('');
               }}
-              className="h-8 px-2 py-0 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors min-w-[100px]"
+              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-24"
               title="Select Grade"
             >
               <option value="">Grade</option>
@@ -695,11 +695,11 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
               ))}
             </select>
 
-            {/* Stream - Ultra Compact */}
+            {/* Stream - Compact */}
             <select
               value={setup.selectedStream}
               onChange={(e) => setup.updateStream(e.target.value)}
-              className="h-8 px-2 py-0 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-16"
+              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-20"
               title="Select Stream"
             >
               <option value="">Stream</option>
@@ -716,7 +716,7 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
                 setSelectedLearningArea('');
                 setSelectedTestId('');
               }}
-              className="h-8 px-2 py-0 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors min-w-[80px]"
+              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-24"
               title="Select Term"
             >
               <option value="">Term</option>
@@ -725,7 +725,7 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
               ))}
             </select>
 
-            {/* Learning Area - Compact */}
+            {/* Learning Area - Balanced */}
             <select
               value={selectedLearningArea}
               onChange={(e) => {
@@ -733,7 +733,7 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
                 setSelectedTestId('');
               }}
               disabled={!setup.selectedGrade || !setup.selectedTerm || availableLearningAreas.length === 0}
-              className="h-8 px-2 py-0 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 flex-1 min-w-[140px]"
+              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 flex-1 min-w-[120px]"
               title="Select Learning Area"
             >
               <option value="">
@@ -746,12 +746,12 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
               ))}
             </select>
 
-            {/* Test - Compact */}
+            {/* Test - Balanced */}
             <select
               value={selectedTestId}
               onChange={(e) => setSelectedTestId(e.target.value)}
               disabled={finalTests.length === 0}
-              className="h-8 px-2 py-0 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 flex-1 min-w-[140px]"
+              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 flex-1 min-w-[120px]"
               title="Select Test"
             >
               <option value="">
@@ -774,7 +774,7 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
               }}
               disabled={!selectedTestId}
               title="Start Assessment"
-              className="h-8 w-8 flex items-center justify-center rounded-full bg-brand-teal hover:bg-brand-teal/90 disabled:bg-slate-300 text-white transition-colors disabled:cursor-not-allowed flex-shrink-0 shadow-sm hover:shadow-md"
+              className="h-9 w-9 flex items-center justify-center rounded-full bg-brand-teal hover:bg-brand-teal/90 disabled:bg-slate-300 text-white transition-colors disabled:cursor-not-allowed flex-shrink-0 shadow-sm hover:shadow-md"
             >
               <PlayCircle size={18} />
             </button>
