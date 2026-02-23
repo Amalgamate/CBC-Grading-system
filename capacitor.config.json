@@ -3,7 +3,7 @@
   "appName": "EDucore",
   "webDir": "build",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "capacitor"
   },
   "plugins": {
     "SplashScreen": {

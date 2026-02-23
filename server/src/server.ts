@@ -44,17 +44,17 @@ app.use(cors({
       return callback(null, true);
     }
 
-    // Allow any localhost ports for development
-    if (origin.startsWith('http://localhost:')) {
-      console.log(`[CORS] ✓ Localhost port allowed`);
+    // Allow any localhost ports for development (HTTP OR HTTPS)
+    if (origin.startsWith('http://localhost:') || origin.startsWith('https://localhost')) {
+      console.log(`[CORS] ✓ Localhost (any scheme/port) allowed`);
       return callback(null, true);
     }
-    // Allow localhost subdomains (e.g. mary.localhost:3000)
+    // Allow localhost subdomains (e.g mary.localhost:3000)
     if (/^https?:\/\/.*\.localhost(:\d+)?$/.test(origin)) {
       console.log(`[CORS] ✓ Localhost subdomain allowed`);
       return callback(null, true);
     }
-    if (origin.startsWith('http://127.')) {
+    if (origin.startsWith('http://127.') || origin.startsWith('https://127.')) {
       console.log(`[CORS] ✓ 127.x.x.x allowed`);
       return callback(null, true);
     }
