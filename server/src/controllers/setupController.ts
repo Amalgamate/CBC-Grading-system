@@ -98,7 +98,6 @@ export const bulkCreateGradingScales = async (req: AuthRequest, res: Response) =
             learningArea,
             type: 'SUMMATIVE',
             active: true,
-            // Create associated grading ranges
             ranges: {
               create: gradingRanges.map((range) => ({
                 minPercentage: range.minPercentage,
@@ -194,16 +193,16 @@ export const bulkCreateSummativeTests = async (req: AuthRequest, res: Response) 
 
     // Create a test for each scale
     for (const scale of scales) {
+      // Skip if grade or learning area is missing
+      if (!scale.grade || !scale.learningArea) continue;
+      
       const testTitle = `${scale.learningArea} Test - ${term}`;
-
-      // Check if test already exists
-      if (!scale.grade || !scale.learningArea) continue; // Skip if grade or learning area is missing
       
       const existing = await prisma.summativeTest.findFirst({
         where: {
           schoolId,
-          grade: scale.grade,
-          learningArea: scale.learningArea,
+          grade: scale.grade as Grade,
+          learningArea: scale.learningArea as string,
           term: term as Term,
           academicYear: parseInt(academicYear.toString())
         }
@@ -229,7 +228,7 @@ export const bulkCreateSummativeTests = async (req: AuthRequest, res: Response) 
       const newTest = await prisma.summativeTest.create({
         data: {
           title: testTitle,
-          learningArea: scale.learningArea,
+          learningArea: scale.learningArea as string,
           term: term as Term,
           academicYear: parseInt(academicYear.toString()),
           grade: scale.grade as Grade,
@@ -385,8 +384,8 @@ export const completeSchoolSetup = async (req: AuthRequest, res: Response) => {
       const existing = await prisma.summativeTest.findFirst({
         where: {
           schoolId,
-          grade: scale.grade,
-          learningArea: scale.learningArea,
+          grade: scale.grade as Grade,
+          learningArea: scale.learningArea as string,
           term: term as Term,
           academicYear: parseInt(academicYear.toString())
         }
@@ -404,7 +403,7 @@ export const completeSchoolSetup = async (req: AuthRequest, res: Response) => {
       await prisma.summativeTest.create({
         data: {
           title: testTitle,
-          learningArea: scale.learningArea,
+          learningArea: scale.learningArea as string,
           term: term as Term,
           academicYear: parseInt(academicYear.toString()),
           grade: scale.grade as Grade,
