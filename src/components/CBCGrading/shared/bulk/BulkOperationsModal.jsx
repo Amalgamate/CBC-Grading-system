@@ -21,6 +21,7 @@ const BulkOperationsModal = ({
   const [exporting, setExporting] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+  const [forceCreate, setForceCreate] = useState(false);
   const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
@@ -98,7 +99,7 @@ const BulkOperationsModal = ({
       }
 
       // Backend handles schoolId/branchId via token/headers
-      const response = await fetch(`${API_BASE_URL}/bulk/${entityType}/upload`, {
+      const response = await fetch(`${API_BASE_URL}/bulk/${entityType}/upload?forceCreate=${forceCreate ? 'true' : 'false'}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -307,6 +308,22 @@ const BulkOperationsModal = ({
                     <CheckCircle size={20} />
                     <span className="text-sm font-semibold truncate max-w-[200px]">{file.name}</span>
                   </div>
+                  
+                  {/* Force Create Option */}
+                  <div className="flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <input
+                      type="checkbox"
+                      id="forceCreate"
+                      checked={forceCreate}
+                      onChange={(e) => setForceCreate(e.target.checked)}
+                      className="w-4 h-4 cursor-pointer"
+                    />
+                    <label htmlFor="forceCreate" className="text-xs cursor-pointer text-gray-700">
+                      <span className="font-semibold">Force Create (Replace Existing)</span>
+                      <p className="text-gray-600">Will replace all records with matching admission numbers</p>
+                    </label>
+                  </div>
+
                   <div className="flex gap-2 justify-center">
                     <button
                       onClick={handleUpload}

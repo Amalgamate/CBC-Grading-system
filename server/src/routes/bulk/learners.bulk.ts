@@ -57,6 +57,9 @@ router.post('/upload', upload.single('file'), async (req: AuthRequest, res: Resp
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    // Get forceCreate flag from query parameter
+    const forceCreate = req.query.forceCreate === 'true';
+
     // Get school and branch from headers (preferred), request body, or user token
     let schoolId = (req.headers['x-school-id'] as string) || req.body.schoolId || req.user!.schoolId;
     let branchId = (req.headers['x-branch-id'] as string) || req.body.branchId || req.user!.branchId;
@@ -127,6 +130,7 @@ router.post('/upload', upload.single('file'), async (req: AuthRequest, res: Resp
     console.log('- School:', schoolId);
     console.log('- Branch:', branchId, `(${branch.name})`);
     console.log('- User:', req.user!.email);
+    console.log('- Force Create:', forceCreate ? 'YES (will replace existing records)' : 'NO (will update existing)');
 
     const results: any[] = [];
     const errors: any[] = [];
@@ -328,28 +332,62 @@ router.post('/upload', upload.single('file'), async (req: AuthRequest, res: Resp
         });
 
         if (existing) {
-          // Update existing learner
-          await prisma.learner.update({
-            where: { id: existing.id },
-            data: {
-              firstName,
-              lastName,
-              grade,
-              stream: csvData['Stream'] || undefined,
-              gender: gender,
-              dateOfBirth: dob,
-              parentId: parentId, // Update link
-              guardianName: csvData['Parent/Guardian'] || undefined,
-              guardianPhone: csvData['Phone 1'] || undefined,
-            }
-          });
+          if (forceCreate) {
+            // Delete and recreate if forceCreate is enabled
+            await prisma.learner.delete({
+              where: { id: existing.id }
+            });
 
-          updated.push({
-            line: item.line,
-            id: existing.id,
-            admNo: csvData['Adm No'],
-            name: rawName
-          });
+            // Create new learner
+            const learner = await prisma.learner.create({
+              data: {
+                schoolId,
+                branchId,
+                admissionNumber: csvData['Adm No'],
+                firstName,
+                lastName,
+                dateOfBirth: dob,
+                gender: gender,
+                grade,
+                stream: csvData['Stream'] || 'A',
+                status: 'ACTIVE',
+                admissionDate,
+                guardianName: csvData['Parent/Guardian'] || undefined,
+                guardianPhone: csvData['Phone 1'] || undefined,
+                parentId: parentId, // Link to parent User record
+              }
+            });
+
+            created.push({
+              line: item.line,
+              id: learner.id,
+              admNo: csvData['Adm No'],
+              name: rawName
+            });
+          } else {
+            // Update existing learner (default behavior)
+            await prisma.learner.update({
+              where: { id: existing.id },
+              data: {
+                firstName,
+                lastName,
+                grade,
+                stream: csvData['Stream'] || undefined,
+                gender: gender,
+                dateOfBirth: dob,
+                parentId: parentId, // Update link
+                guardianName: csvData['Parent/Guardian'] || undefined,
+                guardianPhone: csvData['Phone 1'] || undefined,
+              }
+            });
+
+            updated.push({
+              line: item.line,
+              id: existing.id,
+              admNo: csvData['Adm No'],
+              name: rawName
+            });
+          }
         } else {
           // Create learner
           const learner = await prisma.learner.create({
