@@ -543,9 +543,9 @@ export class UserController {
       throw new ApiError(400, `Invalid role. Must be one of: ${validRoles.join(', ')}`);
     }
 
-    // HEAD_TEACHER / HEAD_OF_CURRICULUM can only view teachers
-    if ((currentUserRole === 'HEAD_TEACHER' || currentUserRole === 'HEAD_OF_CURRICULUM') && !['TEACHER', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM'].includes(role)) {
-      throw new ApiError(403, 'You can only view teachers');
+    // HEAD_TEACHER / HEAD_OF_CURRICULUM can view teachers and parents
+    if ((currentUserRole === 'HEAD_TEACHER' || currentUserRole === 'HEAD_OF_CURRICULUM') && !['TEACHER', 'HEAD_TEACHER', 'HEAD_OF_CURRICULUM', 'PARENT'].includes(role)) {
+      throw new ApiError(403, 'You can only view teachers and parents');
     }
 
     const whereClause: any = { role: role as Role };
