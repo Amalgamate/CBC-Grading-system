@@ -669,267 +669,231 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
     }
   };
 
-  // Render Step 1: Setup
-  if (step === 1) {
-    return (
-      <div className="min-h-screen bg-slate-50/30">
-        {/* Balanced Compact Filter Bar */}
-        <div className="border-b border-slate-200 bg-white px-6 py-3.5">
-          <div className="flex flex-wrap gap-2 items-center">
-            {/* Grade - Compact Input */}
-            <select
-              value={setup.selectedGrade}
-              onChange={(e) => {
-                setup.updateGrade(e.target.value);
-                setSelectedLearningArea('');
-                setSelectedTestId('');
-              }}
-              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-24"
-              title="Select Grade"
-            >
-              <option value="">Grade</option>
-              {filteredGrades.map(g => (
-                <option key={g} value={g}>
-                  {g.replace('_', ' ')}
-                </option>
-              ))}
-            </select>
-
-            {/* Stream - Compact */}
-            <select
-              value={setup.selectedStream}
-              onChange={(e) => setup.updateStream(e.target.value)}
-              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-20"
-              title="Select Stream"
-            >
-              <option value="">Stream</option>
-              {availableStreams.map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-
-            {/* Academic Term - Compact */}
-            <select
-              value={setup.selectedTerm}
-              onChange={(e) => {
-                setup.updateTerm(e.target.value);
-                setSelectedLearningArea('');
-                setSelectedTestId('');
-              }}
-              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-24"
-              title="Select Term"
-            >
-              <option value="">Term</option>
-              {availableTerms.map(t => (
-                <option key={t} value={t}>{t.replace('_', ' ')}</option>
-              ))}
-            </select>
-
-            {/* Learning Area - Balanced */}
-            <select
-              value={selectedLearningArea}
-              onChange={(e) => {
-                setSelectedLearningArea(e.target.value);
-                setSelectedTestId('');
-              }}
-              disabled={!setup.selectedGrade || !setup.selectedTerm || availableLearningAreas.length === 0}
-              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 flex-1 min-w-[120px]"
-              title="Select Learning Area"
-            >
-              <option value="">
-                {!setup.selectedGrade || !setup.selectedTerm
-                  ? 'Area'
-                  : 'Area'}
-              </option>
-              {filteredLearningAreasByWorkload.map(area => (
-                <option key={area} value={area}>{area}</option>
-              ))}
-            </select>
-
-            {/* Test - Balanced */}
-            <select
-              value={selectedTestId}
-              onChange={(e) => setSelectedTestId(e.target.value)}
-              disabled={finalTests.length === 0}
-              className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 flex-1 min-w-[120px]"
-              title="Select Test"
-            >
-              <option value="">
-                {finalTests.length === 0 
-                  ? (selectedLearningArea ? 'No tests' : 'Test')
-                  : 'Test'}
-              </option>
-              {finalTests.map(t => (
-                <option key={t.id} value={t.id}>
-                  {t.title || t.name}
-                </option>
-              ))}
-            </select>
-
-            {/* Assess Icon Button */}
-            <button
-              onClick={() => {
-                if (selectedTestId) setStep(2);
-                else showError('Please select a test');
-              }}
-              disabled={!selectedTestId}
-              title="Start Assessment"
-              className="h-9 w-9 flex items-center justify-center rounded-full bg-brand-teal hover:bg-brand-teal/90 disabled:bg-slate-300 text-white transition-colors disabled:cursor-not-allowed flex-shrink-0 shadow-sm hover:shadow-md"
-            >
-              <PlayCircle size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* Empty State */}
-        {(tests.length === 0 || (setup.selectedGrade && setup.selectedTerm && filteredTestsBySelection.length === 0)) && !loading && (
-          <div className="px-6 py-8">
-            <EmptyState
-              icon={Database}
-              title={tests.length === 0 ? "No Tests Found" : `No Tests Available`}
-              message={tests.length === 0
-                ? "Create and publish tests before accessing assessments."
-                : `No tests found for ${setup.selectedGrade?.replace('_', ' ')} in ${setup.selectedTerm?.replace('_', ' ')}.`
-              }
-              actionText="Go to Test Management"
-              onAction={() => window.location.hash = '#/assess-summative-tests'}
-            />
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading && (
-          <div className="px-6 py-8 flex items-center justify-center">
-            <Loader className="animate-spin text-brand-purple" size={20} />
-            <span className="ml-2 text-sm text-slate-500">Loading assessments...</span>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Render Step 2: Assess
+  // Render Main Page with persistent filter bar
   return (
-    <div className="space-y-6">
-      {/* Sticky Premium Header */}
-      {/* Sticky Premium Header */}
-      <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-8 py-4 shadow-sm -mx-8 -mt-8 mb-8 flex gap-4">
-        {/* Back Button */}
-        <button
-          onClick={() => setStep(1)}
-          className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-400 hover:text-gray-900 self-start -ml-2"
-        >
-          <ArrowLeft size={20} />
-        </button>
+    <div className="min-h-screen bg-slate-50/30">
+      {/* Persistent Filter Bar */}
+      <div className="sticky top-0 z-40 border-b border-slate-200 bg-white px-6 py-3.5 shadow-sm">
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* Grade - Compact Input */}
+          <select
+            value={setup.selectedGrade}
+            onChange={(e) => {
+              setup.updateGrade(e.target.value);
+              setSelectedLearningArea('');
+              setSelectedTestId('');
+            }}
+            className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-24"
+            title="Select Grade"
+          >
+            <option value="">Grade</option>
+            {filteredGrades.map(g => (
+              <option key={g} value={g}>
+                {g.replace('_', ' ')}
+              </option>
+            ))}
+          </select>
 
-        <div className="flex-1">
-          {/* Top Row: Context & Helper */}
-          <div className="flex items-center justify-between mb-1 h-6">
-            <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
-              <span>Assessment</span>
-              <ChevronRight size={10} className="text-gray-300" />
-              <span className="capitalize">{setup.selectedGrade?.replace(/_/g, ' ').toLowerCase()}</span>
-              <ChevronRight size={10} className="text-gray-300" />
-              <span className="capitalize">{setup.selectedTerm?.replace(/_/g, ' ').toLowerCase()}</span>
-            </div>
+          {/* Stream - Compact */}
+          <select
+            value={setup.selectedStream}
+            onChange={(e) => setup.updateStream(e.target.value)}
+            className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-20"
+            title="Select Stream"
+          >
+            <option value="">Stream</option>
+            {availableStreams.map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
 
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                alert("Standard CBC Headers Required:\n- Mathematical Activities\n- Language Activities\n- Literacy & Reading\n- Environmental Activities\n- Creative Activities\n- Religious Education\n\nPlease ensure your Excel headers match these exactly.");
-              }}
-              className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              Template Guide
-            </a>
-          </div>
+          {/* Academic Term - Compact */}
+          <select
+            value={setup.selectedTerm}
+            onChange={(e) => {
+              setup.updateTerm(e.target.value);
+              setSelectedLearningArea('');
+              setSelectedTestId('');
+            }}
+            className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors w-24"
+            title="Select Term"
+          >
+            <option value="">Term</option>
+            {availableTerms.map(t => (
+              <option key={t} value={t}>{t.replace('_', ' ')}</option>
+            ))}
+          </select>
 
-          {/* Bottom Row: Title & Actions */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-bold text-gray-800 leading-none">
-                {selectedTest?.title || selectedTest?.name}
-              </h2>
-              <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wide border ${assessmentProgress.percentage === 100
-                ? 'bg-green-50 text-green-700 border-green-200'
-                : 'bg-blue-50 text-blue-700 border-blue-200'
-                }`}>
-                {assessmentProgress.percentage}% Complete
-              </span>
+          {/* Learning Area - Balanced */}
+          <select
+            value={selectedLearningArea}
+            onChange={(e) => {
+              setSelectedLearningArea(e.target.value);
+              setSelectedTestId('');
+            }}
+            disabled={!setup.selectedGrade || !setup.selectedTerm || availableLearningAreas.length === 0}
+            className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 flex-1 min-w-[120px]"
+            title="Select Learning Area"
+          >
+            <option value="">
+              {!setup.selectedGrade || !setup.selectedTerm
+                ? 'Area'
+                : 'Area'}
+            </option>
+            {filteredLearningAreasByWorkload.map(area => (
+              <option key={area} value={area}>{area}</option>
+            ))}
+          </select>
 
-              {isDraft && (
-                <span className="text-[10px] text-gray-400 font-medium italic flex items-center gap-1.5 ml-1">
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                  Saved {lastSaved && `at ${lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
-                </span>
-              )}
-            </div>
+          {/* Test - Balanced */}
+          <select
+            value={selectedTestId}
+            onChange={(e) => setSelectedTestId(e.target.value)}
+            disabled={finalTests.length === 0}
+            className="h-9 px-2.5 py-1.5 border border-slate-300 rounded text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-brand-purple appearance-none cursor-pointer hover:border-slate-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 flex-1 min-w-[120px]"
+            title="Select Test"
+          >
+            <option value="">
+              {finalTests.length === 0 
+                ? (selectedLearningArea ? 'No tests' : 'Test')
+                : 'Test'}
+            </option>
+            {finalTests.map(t => (
+              <option key={t.id} value={t.id}>
+                {t.title || t.name}
+              </option>
+            ))}
+          </select>
 
-            {/* Actions */}
-            <div className="flex items-center">
-              <button
-                onClick={() => setShowPDFPreview(true)}
-                disabled={generatingPDF || filteredLearners.length === 0}
-                className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Preview
-              </button>
+          {/* Indicator Badge - Shows when test is selected */}
+          {selectedTestId && (
+            <div className="h-2 w-2 rounded-full bg-brand-teal animate-pulse flex-shrink-0" title="Assessment loaded"></div>
+          )}
+        </div>
+      </div>
 
-              <div className="h-3 w-px bg-gray-200 mx-3" />
+      {/* Main Content Area */}
+      {!selectedTestId && (
+        <div className="px-6 py-12">
+          <EmptyState
+            icon={Database}
+            title="No Assessment Selected"
+            message="Select a grade, term, learning area, and test to begin recording assessments. The results table will appear below the filters as soon as you make a selection."
+            actionText="Go to Test Management"
+            onAction={() => window.location.hash = '#/assess-summative-tests'}
+          />
+        </div>
+      )}
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleExport('xlsx')}
-                  disabled={filteredLearners.length === 0}
-                  className="flex items-center gap-1.5 text-sm font-medium text-brand-purple hover:text-brand-purple/80 transition-colors disabled:opacity-50"
-                  title="Export to Excel"
+      {/* Assessment Table - Renders below filter bar when test selected */}
+      {selectedTestId && (
+        <div className="space-y-4 p-6">
+          {/* Sticky Assessment Header */}
+          <div className="bg-white border-b border-gray-100 px-6 py-4 rounded-t-lg shadow-sm flex gap-4">
+            <div className="flex-1">
+              {/* Top Row: Context & Helper */}
+              <div className="flex items-center justify-between mb-2 h-5">
+                <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
+                  <span>Assessment</span>
+                  <ChevronRight size={10} className="text-gray-300" />
+                  <span className="capitalize">{setup.selectedGrade?.replace(/_/g, ' ').toLowerCase()}</span>
+                  <ChevronRight size={10} className="text-gray-300" />
+                  <span className="capitalize">{setup.selectedTerm?.replace(/_/g, ' ').toLowerCase()}</span>
+                </div>
+
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    alert("Standard CBC Headers Required:\n- Mathematical Activities\n- Language Activities\n- Literacy & Reading\n- Environmental Activities\n- Creative Activities\n- Religious Education\n\nPlease ensure your Excel headers match these exactly.");
+                  }}
+                  className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  <FileSpreadsheet size={16} />
-                  Excel
-                </button>
-                <button
-                  onClick={() => handleExport('csv')}
-                  disabled={filteredLearners.length === 0}
-                  className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-50"
-                  title="Export to CSV"
-                >
-                  <Download size={16} />
-                  CSV
-                </button>
+                  Template Guide
+                </a>
               </div>
 
-              <div className="h-3 w-px bg-gray-200 mx-3" />
+              {/* Bottom Row: Title & Actions */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-lg font-bold text-gray-800 leading-none">
+                    {selectedTest?.title || selectedTest?.name}
+                  </h2>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wide border ${assessmentProgress.percentage === 100
+                    ? 'bg-green-50 text-green-700 border-green-200'
+                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                    }`}>
+                    {assessmentProgress.percentage}% Complete
+                  </span>
 
-              <button
-                onClick={() => setShowBulkImportModal(true)}
-                disabled={!selectedTestId || loading || loadingLearners}
-                className="flex items-center gap-1.5 text-sm font-medium text-brand-teal hover:text-brand-teal/80 transition-colors disabled:opacity-50"
-              >
-                <UploadCloud size={16} />
-                Import
-              </button>
+                  {isDraft && (
+                    <span className="text-[10px] text-gray-400 font-medium italic flex items-center gap-1.5 ml-1">
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                      Saved {lastSaved && `at ${lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                    </span>
+                  )}
+                </div>
 
-              <div className="h-3 w-px bg-gray-200 mx-3" />
+                {/* Actions */}
+                <div className="flex items-center">
+                  <button
+                    onClick={() => setShowPDFPreview(true)}
+                    disabled={generatingPDF || filteredLearners.length === 0}
+                    className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Preview
+                  </button>
 
+                  <div className="h-3 w-px bg-gray-200 mx-3" />
 
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleExport('xlsx')}
+                      disabled={filteredLearners.length === 0}
+                      className="flex items-center gap-1.5 text-sm font-medium text-brand-purple hover:text-brand-purple/80 transition-colors disabled:opacity-50"
+                      title="Export to Excel"
+                    >
+                      <FileSpreadsheet size={16} />
+                      Excel
+                    </button>
+                    <button
+                      onClick={() => handleExport('csv')}
+                      disabled={filteredLearners.length === 0}
+                      className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-50"
+                      title="Export to CSV"
+                    >
+                      <Download size={16} />
+                      CSV
+                    </button>
+                  </div>
 
-              <button
-                onClick={() => handleSave()}
-                disabled={loading}
-                className="text-sm font-bold text-[#0D9488] hover:text-[#0f766e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Saving...' : 'Save'}
-              </button>
+                  <div className="h-3 w-px bg-gray-200 mx-3" />
+
+                  <button
+                    onClick={() => setShowBulkImportModal(true)}
+                    disabled={!selectedTestId || loading || loadingLearners}
+                    className="flex items-center gap-1.5 text-sm font-medium text-brand-teal hover:text-brand-teal/80 transition-colors disabled:opacity-50"
+                  >
+                    <UploadCloud size={16} />
+                    Import
+                  </button>
+
+                  <div className="h-3 w-px bg-gray-200 mx-3" />
+
+                  <button
+                    onClick={() => handleSave()}
+                    disabled={loading}
+                    className="text-sm font-bold text-[#0D9488] hover:text-[#0f766e] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-
-
-      {/* PDF Export Content Wrapper */}
-      <div id="assessment-report-content" className="bg-white">
+          {/* PDF Export Content Wrapper */}
+          <div id="assessment-report-content" className="bg-white">
 
         {/* STUDENT RESULTS TABLES (Chunked for pagination) */}
         {chunkedLearners.map((chunk, pageIndex) => (
@@ -1153,8 +1117,11 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
         contentElementId="assessment-report-content"
         title={`${selectedTest?.learningArea || 'Assessment'} Results - ${selectedTest?.grade?.replace('_', ' ') || ''}`}
       />
+        </div>
+      )}
     </div>
   );
+};
 };
 
 // ============================================
