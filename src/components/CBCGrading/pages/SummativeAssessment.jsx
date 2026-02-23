@@ -507,7 +507,8 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
         email: user?.school?.email || brandingSettings?.email || 'email@school.com',
         website: user?.school?.website || brandingSettings?.website || 'www.school.com',
         logoUrl: brandingSettings?.logoUrl || user?.school?.logo || '/logo-elimcrown.png',
-        brandColor: brandingSettings?.brandColor || '#1e3a8a'
+        brandColor: brandingSettings?.brandColor || '#1e3a8a',
+        skipLetterhead: true
       };
 
       // Generate filename
