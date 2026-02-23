@@ -672,128 +672,145 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
   // Render Step 1: Setup
   if (step === 1) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-8">
-        <h2 className="text-xl font-bold text-gray-800 mb-8 pb-4 border-b">Summative Assessment</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Grade</label>
-            <select
-              value={setup.selectedGrade}
-              onChange={(e) => {
-                setup.updateGrade(e.target.value);
-                setSelectedLearningArea('');
-                setSelectedTestId('');
-              }}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple bg-white"
-            >
-              <option value="">Select Grade</option>
-              {filteredGrades.map(g => (
-                <option key={g} value={g}>
-                  {g.replace('_', ' ')}
-                  {teacherWorkload.isTeacher && teacherWorkload.assignedGrades.includes(g) ? ' (Assigned)' : ''}
-                </option>
-              ))}
-            </select>
-            {teacherWorkload.isTeacher && filteredGrades.length === 0 && !teacherWorkload.loading && (
-              <p className="text-[10px] text-red-500 mt-1 font-bold italic">No classes assigned to you.</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Stream</label>
-            <select
-              value={setup.selectedStream}
-              onChange={(e) => setup.updateStream(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple bg-white"
-            >
-              <option value="">Select Stream</option>
-              {availableStreams.map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Academic Term</label>
-            <select
-              value={setup.selectedTerm}
-              onChange={(e) => {
-                setup.updateTerm(e.target.value);
-                setSelectedLearningArea('');
-                setSelectedTestId('');
-              }}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple bg-white"
-            >
-              <option value="">Select Term</option>
-              {availableTerms.map(t => (
-                <option key={t} value={t}>{t.replace('_', ' ')}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Learning Area</label>
-            <select
-              value={selectedLearningArea}
-              onChange={(e) => {
-                setSelectedLearningArea(e.target.value);
-                setSelectedTestId('');
-              }}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple bg-white"
-              disabled={!setup.selectedGrade || !setup.selectedTerm || availableLearningAreas.length === 0}
-            >
-              <option value="">
-                {!setup.selectedGrade || !setup.selectedTerm
-                  ? 'Select Grade & Term first'
-                  : availableLearningAreas.length === 0
-                    ? 'No tests found for this period'
-                    : 'Select Learning Area'}
-              </option>
-              {filteredLearningAreasByWorkload.map(area => {
-                const isAssigned = teacherWorkload.isTeacher &&
-                  teacherWorkload.getAssignedSubjectsForGrade(setup.selectedGrade)?.some(as => as.toLowerCase().trim() === area.toLowerCase().trim());
-
-                return (
-                  <option key={area} value={area}>
-                    {area} {isAssigned ? ' (Assigned)' : ''}
+      <div className="min-h-screen bg-slate-50/30">
+        {/* Filter Bar - Enterprise Compact */}
+        <div className="border-b border-slate-200 bg-white px-6 py-3">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-6 lg:gap-2">
+            {/* Grade */}
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Grade
+              </label>
+              <select
+                value={setup.selectedGrade}
+                onChange={(e) => {
+                  setup.updateGrade(e.target.value);
+                  setSelectedLearningArea('');
+                  setSelectedTestId('');
+                }}
+                className="h-9 w-full border border-slate-200 rounded text-sm bg-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-0 appearance-none cursor-pointer"
+              >
+                <option value="">Select Grade</option>
+                {filteredGrades.map(g => (
+                  <option key={g} value={g}>
+                    {g.replace('_', ' ')}
                   </option>
-                );
-              })}
-            </select>
-            {teacherWorkload.isTeacher && setup.selectedGrade && filteredLearningAreasByWorkload.length === 0 && (
-              <p className="text-[10px] text-red-500 mt-1 font-bold italic">No subjects assigned for this grade.</p>
-            )}
-          </div>
+                ))}
+              </select>
+            </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Tests</label>
-            <select
-              value={selectedTestId}
-              onChange={(e) => setSelectedTestId(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-purple outline-none transition bg-white"
-              disabled={finalTests.length === 0}
-            >
-              <option value="">{finalTests.length === 0 ? (selectedLearningArea ? 'No tests for this area' : 'Select Learning Area first') : 'Select Test'}</option>
-              {finalTests.map(t => (
-                <option key={t.id} value={t.id}>
-                  {t.title || t.name}
+            {/* Stream */}
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Stream
+              </label>
+              <select
+                value={setup.selectedStream}
+                onChange={(e) => setup.updateStream(e.target.value)}
+                className="h-9 w-full border border-slate-200 rounded text-sm bg-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-0 appearance-none cursor-pointer"
+              >
+                <option value="">All Streams</option>
+                {availableStreams.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Academic Term */}
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Academic Term
+              </label>
+              <select
+                value={setup.selectedTerm}
+                onChange={(e) => {
+                  setup.updateTerm(e.target.value);
+                  setSelectedLearningArea('');
+                  setSelectedTestId('');
+                }}
+                className="h-9 w-full border border-slate-200 rounded text-sm bg-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-0 appearance-none cursor-pointer"
+              >
+                <option value="">Select Term</option>
+                {availableTerms.map(t => (
+                  <option key={t} value={t}>{t.replace('_', ' ')}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Learning Area */}
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Learning Area
+              </label>
+              <select
+                value={selectedLearningArea}
+                onChange={(e) => {
+                  setSelectedLearningArea(e.target.value);
+                  setSelectedTestId('');
+                }}
+                disabled={!setup.selectedGrade || !setup.selectedTerm || availableLearningAreas.length === 0}
+                className="h-9 w-full border border-slate-200 rounded text-sm bg-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-0 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">
+                  {!setup.selectedGrade || !setup.selectedTerm
+                    ? 'Select Grade & Term'
+                    : 'Select Area'}
                 </option>
-              ))}
-            </select>
+                {filteredLearningAreasByWorkload.map(area => (
+                  <option key={area} value={area}>{area}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Test */}
+            <div className="md:col-span-2 lg:col-span-1">
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Test
+              </label>
+              <select
+                value={selectedTestId}
+                onChange={(e) => setSelectedTestId(e.target.value)}
+                disabled={finalTests.length === 0}
+                className="h-9 w-full border border-slate-200 rounded text-sm bg-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-0 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">
+                  {finalTests.length === 0 
+                    ? (selectedLearningArea ? 'No tests' : 'Select Area')
+                    : 'Select Test'}
+                </option>
+                {finalTests.map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.title || t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Assess Button */}
+            <div className="col-span-2 md:col-span-1 lg:col-span-1 flex items-end">
+              <button
+                onClick={() => {
+                  if (selectedTestId) setStep(2);
+                  else showError('Please select a test');
+                }}
+                disabled={!selectedTestId}
+                className="w-full h-9 bg-brand-teal hover:bg-brand-teal/90 disabled:bg-slate-200 text-white text-sm font-medium rounded transition-colors disabled:cursor-not-allowed"
+              >
+                Assess
+              </button>
+            </div>
           </div>
         </div>
 
+        {/* Empty State */}
         {(tests.length === 0 || (setup.selectedGrade && setup.selectedTerm && filteredTestsBySelection.length === 0)) && !loading && (
-          <div className="mb-8 p-6 bg-red-50 rounded-xl border border-red-100 italic">
+          <div className="px-6 py-8">
             <EmptyState
               icon={Database}
-              title={tests.length === 0 ? "No Tests Found Globally" : `No Tests for ${setup.selectedGrade.replace('_', ' ')}`}
+              title={tests.length === 0 ? "No Tests Found" : `No Tests Available`}
               message={tests.length === 0
-                ? "Your assessment repository is empty. You need to create and PUBLISH tests before they appear here."
-                : `There are no published or approved tests available for ${setup.selectedGrade.replace('_', ' ')} in ${setup.selectedTerm.replace('_', ' ')}. Check your test management to ensure they are finalized.`
+                ? "Create and publish tests before accessing assessments."
+                : `No tests found for ${setup.selectedGrade?.replace('_', ' ')} in ${setup.selectedTerm?.replace('_', ' ')}.`
               }
               actionText="Go to Test Management"
               onAction={() => window.location.hash = '#/assess-summative-tests'}
@@ -801,18 +818,13 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
           </div>
         )}
 
-        <div className="flex justify-end pt-4">
-          <button
-            onClick={() => {
-              if (selectedTestId) setStep(2);
-              else showError('Please select a test');
-            }}
-            disabled={!selectedTestId}
-            className="px-8 py-3 bg-brand-teal text-white rounded-lg hover:bg-brand-teal/90 transition font-bold disabled:opacity-50 shadow-sm"
-          >
-            Assess
-          </button>
-        </div>
+        {/* Loading State */}
+        {loading && (
+          <div className="px-6 py-8 flex items-center justify-center">
+            <Loader className="animate-spin text-brand-purple" size={20} />
+            <span className="ml-2 text-sm text-slate-500">Loading assessments...</span>
+          </div>
+        )}
       </div>
     );
   }
