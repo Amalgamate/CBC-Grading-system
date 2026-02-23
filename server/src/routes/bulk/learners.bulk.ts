@@ -166,12 +166,12 @@ router.post('/upload', upload.single('file'), async (req: AuthRequest, res: Resp
     const updated: any[] = [];
     const failed: any[] = [];
 
+    console.log(`\n[BULK UPLOAD] Starting processing of ${results.length} valid records (${errors.length} validation errors)`);
+
     for (const item of results) {
       try {
         const csvData = item.data;
-
-        // Map CSV grade to enum
-        const gradeStr = (csvData['Class'] || '').toString().toUpperCase().trim();
+        const admNo = csvData['Adm No'];
         const gradeMap: { [key: string]: Grade } = {
           'CRECHE': 'CRECHE',
           'RECEPTION': 'RECEPTION',
@@ -383,8 +383,15 @@ router.post('/upload', upload.single('file'), async (req: AuthRequest, res: Resp
           name: item.data['Leaner Name'],
           reason: error instanceof Error ? error.message : 'Unknown error'
         });
+        console.error(`[BULK UPLOAD] Row ${item.line} (${item.data['Adm No']}) FAILED:`, error instanceof Error ? error.message : error);
       }
     }
+
+    console.log(`\n[BULK UPLOAD] Processing complete:`);
+    console.log(`  - Created: ${created.length}`);
+    console.log(`  - Updated: ${updated.length}`);
+    console.log(`  - Failed: ${failed.length}`);
+    console.log(`  - Validation errors: ${errors.length}`);
 
     res.json({
       success: true,
