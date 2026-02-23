@@ -615,7 +615,14 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
   }, []);
 
   // Grade ordering for sorting (lowest to highest)
-  const gradeOrder = ['PLAYGROUP', 'PP1', 'PP2', 'GRADE_1', 'GRADE_2', 'GRADE_3', 'GRADE_4', 'GRADE_5', 'GRADE_6', 'GRADE_7', 'GRADE_8', 'GRADE_9'];
+  const gradeOrder = [
+    'CRECHE', 'RECEPTION', 'TRANSITION',
+    'PLAYGROUP', 'PP1', 'PP2',
+    'GRADE_1', 'GRADE_2', 'GRADE_3', 'GRADE_4', 'GRADE_5', 'GRADE_6',
+    'GRADE_7', 'GRADE_8', 'GRADE_9', 'GRADE_10', 'GRADE_11', 'GRADE_12'
+  ];
+
+  const [generateTrigger, setGenerateTrigger] = useState(0);
 
   // Apply staged filters to actual state
   const applyFilters = () => {
@@ -626,8 +633,17 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     setSelectedTestGroups(stagedTestGroups);
     setSelectedTestIds(stagedTestIds);
     setSelectedLearnerIds(stagedLearnerIds);
-    handleGenerate();
+
+    // Trigger handleGenerate after state has been set
+    setGenerateTrigger(prev => prev + 1);
   };
+
+  useEffect(() => {
+    if (generateTrigger > 0) {
+      handleGenerate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [generateTrigger]);
 
   const handleToggleSelectRow = (idx) => {
     setSelectedReportRows(prev => {
@@ -711,7 +727,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
   useEffect(() => {
     const fetchReportLearners = async () => {
       // If grade is not selected, we don't fetch specific learners
-      if (!selectedGrade || selectedGrade === 'all') {
+      if (!stagedGrade || stagedGrade === 'all') {
         setFetchedReportLearners([]);
         return;
       }
@@ -719,10 +735,10 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       try {
         setLoadingLearners(true);
         const params = {
-          grade: selectedGrade,
+          grade: stagedGrade,
           limit: 1000 // Ensure we get all students for the grade
         };
-        if (selectedStream && selectedStream !== 'all') params.stream = selectedStream;
+        if (stagedStream && stagedStream !== 'all') params.stream = stagedStream;
 
         console.log('🔄 Fetching learners for selection from API...', params);
         const response = await api.learners.getAll(params);
@@ -741,12 +757,12 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     };
 
     fetchReportLearners();
-  }, [selectedGrade, selectedStream]);
+  }, [stagedGrade, stagedStream]);
 
   // Filter learners by grade and stream - Properly named useMemo
   const filteredLearners = useMemo(() => {
     // Priority: Use locally fetched learners if we have a grade selection
-    if (selectedGrade && selectedGrade !== 'all' && fetchedReportLearners.length > 0) {
+    if (stagedGrade && stagedGrade !== 'all' && fetchedReportLearners.length > 0) {
       return fetchedReportLearners;
     }
 
@@ -755,18 +771,18 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
 
     return learners.filter(l => {
       // Filter by grade
-      if (selectedGrade && selectedGrade !== 'all') {
-        if (normalize(l.grade) !== normalize(selectedGrade)) return false;
+      if (stagedGrade && stagedGrade !== 'all') {
+        if (normalize(l.grade) !== normalize(stagedGrade)) return false;
       }
 
       // Filter by stream
-      if (selectedStream && selectedStream !== 'all') {
-        if (normalize(l.stream) !== normalize(selectedStream)) return false;
+      if (stagedStream && stagedStream !== 'all') {
+        if (normalize(l.stream) !== normalize(stagedStream)) return false;
       }
 
       return true;
     }).sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`));
-  }, [learners, fetchedReportLearners, selectedGrade, selectedStream]);
+  }, [learners, fetchedReportLearners, stagedGrade, stagedStream]);
 
   // Fetch learners on component mount
   useEffect(() => {
@@ -885,12 +901,12 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     const fetchTests = async () => {
       try {
         const params = {
-          term: selectedTerm,
+          term: stagedTerm,
           academicYear: academicYear // from setup hook or local
         };
 
-        if (selectedGrade && selectedGrade !== 'all') {
-          params.grade = selectedGrade;
+        if (stagedGrade && stagedGrade !== 'all') {
+          params.grade = stagedGrade;
         }
 
         console.log('🔄 Fetching available tests for reports...', params);
@@ -898,8 +914,8 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
 
         if (res.success) {
           // Reset selections when available tests change significantly
-          setSelectedTestGroups([]);
-          setSelectedTestIds([]);
+          setStagedTestGroups([]);
+          setStagedTestIds([]);
 
           setAvailableTests(res.data || []);
           console.log('✅ Tests loaded:', res.data?.length || 0);
@@ -909,7 +925,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       }
     };
     fetchTests();
-  }, [selectedGrade, selectedTerm, academicYear]);
+  }, [stagedGrade, stagedTerm, academicYear]);
 
   // Derive unique test groups (testType) from available tests
   const availableTestGroups = useMemo(() => {
@@ -929,14 +945,14 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
   // Derive tests within the selected test group(s)
   const testsInGroups = useMemo(() => {
     // Show all tests, even those without results (removed results count filter)
-    if (!selectedTestGroups || selectedTestGroups.length === 0) {
+    if (!stagedTestGroups || stagedTestGroups.length === 0) {
       // If no groups selected, show all tests
       return availableTests;
     }
 
-    const filtered = availableTests.filter(t => selectedTestGroups.includes(t.testType));
+    const filtered = availableTests.filter(t => stagedTestGroups.includes(t.testType));
     return filtered;
-  }, [availableTests, selectedTestGroups]);
+  }, [availableTests, stagedTestGroups]);
 
   // Derive unique streams from stream configurations (Source of Truth)
   // Falls back to learner streams if configs not loaded yet
@@ -1968,13 +1984,33 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
     <div className="bg-white">
       {/* STICKY HEADER & FILTER BAR */}
       <div className="sticky top-0 z-40 bg-white shadow-sm">
-        {/* Report Title Header */}
-        <div className="border-b border-gray-100 px-6 py-4">
-          <h2 className="text-xl font-bold text-gray-800">Summative Report</h2>
+        {/* Dynamic Report Particulars Header */}
+        <div className="border-b border-slate-100 px-6 py-3 flex justify-center items-center bg-slate-50">
+          <div className="text-xs text-slate-500 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+            <span className="font-semibold text-brand-teal uppercase tracking-wider">
+              {reportTypes.find(t => t.value === stagedType)?.label || 'Summative Report'}
+            </span>
+            <span className="text-slate-300">•</span>
+            <span className="font-medium">
+              {stagedGrade ? (stagedGrade === 'all' ? 'All Grades' : normalize(stagedGrade).replace('_', ' ')) : 'Grade Not Selected'}
+            </span>
+            <span className="text-slate-300">•</span>
+            <span>
+              {stagedStream ? (stagedStream === 'all' ? 'All Streams' : stagedStream) : 'All Streams'}
+            </span>
+            <span className="text-slate-300">•</span>
+            <span>
+              {terms?.find(t => t.value === stagedTerm)?.label || stagedTerm}
+            </span>
+            <span className="text-slate-300">•</span>
+            <span>
+              {academicYear}
+            </span>
+          </div>
         </div>
 
         {/* Single Row Filter Bar */}
-        <div className="border-t border-slate-200 px-6 py-3.5 flex flex-wrap gap-2 items-center">
+        <div className="border-t border-slate-200 px-6 py-3.5 flex flex-wrap gap-3 items-center w-full max-w-[1200px]">
           {/* Type Selector */}
           <select
             value={stagedType}
@@ -2002,7 +2038,15 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             {(grades || []).sort((a, b) => {
               const aVal = typeof a === 'string' ? a : (a.value || a.id || a.name);
               const bVal = typeof b === 'string' ? b : (b.value || b.id || b.name);
-              return gradeOrder.indexOf(aVal) - gradeOrder.indexOf(bVal);
+
+              const aIndex = gradeOrder.indexOf(aVal);
+              const bIndex = gradeOrder.indexOf(bVal);
+
+              // If not found in gradeOrder, push it to the end instead of the beginning (-1)
+              const safeAIndex = aIndex === -1 ? 999 : aIndex;
+              const safeBIndex = bIndex === -1 ? 999 : bIndex;
+
+              return safeAIndex - safeBIndex;
             }).map(g => {
               const gradeValue = typeof g === 'string' ? g : (g.value || g.id || g.name);
               const gradeLabel = typeof g === 'string' ? g : (g.label || g.name || g);
@@ -2042,6 +2086,174 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
             ))}
           </select>
 
+          {/* Learner Selector */}
+          {(stagedType === 'LEARNER_REPORT' || stagedType === 'LEARNER_TERMLY_REPORT') && (
+            <div className="relative" ref={learnerOptionsRef}>
+              <button
+                onClick={() => setShowLearnerOptions(!showLearnerOptions)}
+                className="h-9 px-3 py-1.5 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-brand-teal focus:border-brand-teal outline-none flex items-center justify-between min-w-[180px] max-w-[280px] bg-white text-gray-700 w-full"
+              >
+                <span className="truncate">
+                  {stagedLearnerIds.length === 0 ? 'Select Learner(s)'
+                    : stagedLearnerIds.length === filteredLearners.length ? `All Learners (${filteredLearners.length})`
+                      : `${stagedLearnerIds.length} Selected`}
+                </span>
+                <span className="text-gray-400 ml-2 text-[10px]">▼</span>
+              </button>
+
+              {showLearnerOptions && (
+                <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-slate-200 rounded-md shadow-lg z-50 max-h-60 flex flex-col">
+                  <div className="p-2 border-b bg-slate-50 flex gap-2 shrink-0">
+                    <button
+                      onClick={() => setStagedLearnerIds(filteredLearners.map(l => l.id))}
+                      className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded hover:bg-indigo-100 flex-1 transition-colors"
+                    >
+                      Select All
+                    </button>
+                    <button
+                      onClick={() => setStagedLearnerIds([])}
+                      className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded hover:bg-slate-200 flex-1 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div className="overflow-y-auto flex-1">
+                    {loadingLearners ? (
+                      <div className="p-4 text-center text-xs text-gray-500">Loading learners...</div>
+                    ) : filteredLearners.length === 0 ? (
+                      <div className="p-3 text-center text-xs text-gray-500">No learners found</div>
+                    ) : (
+                      <div className="p-1">
+                        {filteredLearners.map(learner => (
+                          <label
+                            key={learner.id}
+                            className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded cursor-pointer text-xs"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={stagedLearnerIds.includes(learner.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setStagedLearnerIds(prev => [...prev, learner.id]);
+                                } else {
+                                  setStagedLearnerIds(prev => prev.filter(id => id !== learner.id));
+                                }
+                              }}
+                              className="rounded border-slate-300 text-brand-teal focus:ring-brand-teal"
+                            />
+                            <span className="truncate">{learner.firstName} {learner.lastName}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Test Group Selector */}
+          <div className="relative" ref={testGroupRef}>
+            <button
+              onClick={() => setShowTestGroupOptions(!showTestGroupOptions)}
+              className="h-9 px-3 py-1.5 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-brand-teal focus:border-brand-teal outline-none flex items-center justify-between min-w-[140px] max-w-[200px] bg-white text-gray-700"
+            >
+              <span className="truncate">
+                {stagedTestGroups.length === 0 ? 'All Test Groups' : `${stagedTestGroups.length} Groups Selected`}
+              </span>
+              <span className="text-gray-400 ml-2 text-[10px]">▼</span>
+            </button>
+            {showTestGroupOptions && (
+              <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-md shadow-lg z-50 py-1">
+                {availableTestGroups.length === 0 ? (
+                  <div className="p-3 text-center text-xs text-gray-500">No test groups found for this grade/term</div>
+                ) : (
+                  <>
+                    <div className="p-2 border-b bg-slate-50 flex gap-2 shrink-0">
+                      <button
+                        onClick={() => setStagedTestGroups([])}
+                        className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded hover:bg-slate-200 w-full transition-colors"
+                      >
+                        Reset Group Selection
+                      </button>
+                    </div>
+                    {availableTestGroups.map(group => (
+                      <label key={group} className="flex items-center gap-2 p-2 px-3 hover:bg-slate-50 cursor-pointer text-xs">
+                        <input
+                          type="checkbox"
+                          checked={stagedTestGroups.includes(group)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setStagedTestGroups([...stagedTestGroups, group]);
+                            } else {
+                              setStagedTestGroups(stagedTestGroups.filter(g => g !== group));
+                            }
+                            setStagedTestIds([]); // Reset specific tests if group changes
+                          }}
+                          className="rounded border-slate-300 text-brand-teal focus:ring-brand-teal"
+                        />
+                        <span className="truncate">{group}</span>
+                      </label>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Specific Test Selector */}
+          <div className="relative" ref={testOptionsRef}>
+            <button
+              onClick={() => setShowTestOptions(!showTestOptions)}
+              className="h-9 px-3 py-1.5 border border-slate-300 rounded text-xs focus:ring-1 focus:ring-brand-teal focus:border-brand-teal outline-none flex items-center justify-between min-w-[140px] max-w-[240px] bg-white text-gray-700"
+            >
+              <span className="truncate">
+                {stagedTestIds.length === 0
+                  ? 'All Tests in Group'
+                  : `${stagedTestIds.length} Tests Selected`}
+              </span>
+              <span className="text-gray-400 ml-2 text-[10px]">▼</span>
+            </button>
+            {showTestOptions && (
+              <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-slate-200 rounded-md shadow-lg z-50 py-1 max-h-60 overflow-y-auto">
+                {testsInGroups.length === 0 ? (
+                  <div className="p-3 text-center text-xs text-gray-500">No specific tests found</div>
+                ) : (
+                  <>
+                    <div className="p-2 border-b bg-slate-50 flex gap-2 shrink-0">
+                      <button
+                        onClick={() => setStagedTestIds([])}
+                        className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded hover:bg-slate-200 w-full transition-colors"
+                      >
+                        Clear Specific Tests
+                      </button>
+                    </div>
+                    {testsInGroups.map(test => (
+                      <label key={test.id} className="flex items-start gap-2 p-2 px-3 hover:bg-slate-50 cursor-pointer text-xs">
+                        <input
+                          type="checkbox"
+                          checked={stagedTestIds.includes(test.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setStagedTestIds([...stagedTestIds, test.id]);
+                            } else {
+                              setStagedTestIds(stagedTestIds.filter(id => id !== test.id));
+                            }
+                          }}
+                          className="rounded border-slate-300 text-brand-teal focus:ring-brand-teal mt-0.5"
+                        />
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-semibold text-slate-800 truncate">{test.title}</span>
+                          <span className="text-[10px] text-slate-500 truncate">{test.learningArea} | Type: {test.testType}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Generate Button with Icon */}
           <button
             onClick={applyFilters}
@@ -2074,220 +2286,221 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
       {/* LEARNER REPORT DISPLAY - COMPACT PROFESSIONAL LAYOUT */}
       <div className="px-6 py-8">
         {(reportData?.type === 'LEARNER_REPORT' || reportData?.type === 'LEARNER_TERMLY_REPORT') && reportData?.rows?.length > 0 && (
-        <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
-          {reportData.rows.length === 1 ? (
-            <>
-              <div
-                id="summative-report-content"
-                ref={reportRef}
-                className="rounded-xl overflow-hidden shadow-2xl"
-              >
-                <LearnerReportTemplate
-                  learner={reportData.learner || reportData.rows[0].learner}
-                  results={reportData.results?.length > 0 ? reportData.results : reportData.rows[0].results}
-                  term={reportData.term}
-                  academicYear={reportData.academicYear}
-                  brandingSettings={brandingSettings}
-                  user={user}
-                  streamConfigs={streamConfigs}
-                />
-              </div>
-
-              {/* PRINT CONTROLS - SINGLE STUDENT */}
-              <div className="no-print mt-8 flex gap-4 justify-center">
-                <button
-                  onClick={() => setReportData(null)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded text-sm font-semibold transition"
+          <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
+            {reportData.rows.length === 1 ? (
+              <>
+                <div
+                  id="summative-report-content"
+                  ref={reportRef}
+                  className="rounded-xl overflow-hidden shadow-2xl"
                 >
-                  ← Back
-                </button>
-                <button
-                  onClick={handleSendSMS}
-                  disabled={isSendingSMS}
-                  className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-semibold transition disabled:opacity-50"
-                  title="Send report summary via SMS"
-                >
-                  {isSendingSMS ? '📤 Sending...' : '📱 Send SMS'}
-                </button>
-                <button
-                  onClick={handleSendWhatsApp}
-                  className="px-6 py-2 bg-emerald-500 text-white rounded hover:bg-emerald-600 text-sm font-semibold transition flex items-center gap-2"
-                >
-                  <MessageCircle size={18} />
-                  WhatsApp
-                </button>
-                <button
-                  onClick={handleExportPDF}
-                  disabled={isExporting}
-                  className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold transition flex items-center gap-2"
-                >
-                  {isExporting ? <Loader size={18} className="animate-spin" /> : <Download size={18} />}
-                  Export PDF
-                </button>
-              </div>
-            </>
-          ) : (
-            /* BULK VIEW SUMMARY */
-            <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl p-8 border border-gray-200">
-              <div className="text-center mb-8 pb-6 border-b">
-                <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Printer size={32} />
+                  <LearnerReportTemplate
+                    learner={reportData.learner || reportData.rows[0].learner}
+                    results={reportData.results?.length > 0 ? reportData.results : reportData.rows[0].results}
+                    term={reportData.term}
+                    academicYear={reportData.academicYear}
+                    brandingSettings={brandingSettings}
+                    user={user}
+                    streamConfigs={streamConfigs}
+                  />
                 </div>
-                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Bulk Summary Reports</h2>
-                <p className="text-slate-500 font-bold mt-1 uppercase text-sm">
-                  GRADE: {selectedGrade} | STREAM: {selectedStream} | {reportData.rows.length} STUDENTS SELECTED
-                </p>
-              </div>
 
-              {/* ACTION BAR FOR BULK PREVIEW */}
-              <div className="flex justify-between items-center mb-6 bg-indigo-50 p-4 rounded-xl border border-indigo-100 no-print">
-                <div>
-                  <p className="text-sm font-bold text-indigo-900">Combined Actions</p>
-                  <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">
-                    {selectedReportRows.length > 0 ? `${selectedReportRows.length} learners selected` : `Apply to all ${reportData.rows.length} learners`}
+                {/* PRINT CONTROLS - SINGLE STUDENT */}
+                <div className="no-print mt-8 flex gap-4 justify-center">
+                  <button
+                    onClick={() => setReportData(null)}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded text-sm font-semibold transition"
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    onClick={handleSendSMS}
+                    disabled={isSendingSMS}
+                    className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-semibold transition disabled:opacity-50"
+                    title="Send report summary via SMS"
+                  >
+                    {isSendingSMS ? '📤 Sending...' : '📱 Send SMS'}
+                  </button>
+                  <button
+                    onClick={handleSendWhatsApp}
+                    className="px-6 py-2 bg-emerald-500 text-white rounded hover:bg-emerald-600 text-sm font-semibold transition flex items-center gap-2"
+                  >
+                    <MessageCircle size={18} />
+                    WhatsApp
+                  </button>
+                  <button
+                    onClick={handleExportPDF}
+                    disabled={isExporting}
+                    className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold transition flex items-center gap-2"
+                  >
+                    {isExporting ? <Loader size={18} className="animate-spin" /> : <Download size={18} />}
+                    Export PDF
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* BULK VIEW SUMMARY */
+              <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl p-8 border border-gray-200">
+                <div className="text-center mb-8 pb-6 border-b">
+                  <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Printer size={32} />
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Bulk Summary Reports</h2>
+                  <p className="text-slate-500 font-bold mt-1 uppercase text-sm">
+                    GRADE: {selectedGrade} | STREAM: {selectedStream} | {reportData.rows.length} STUDENTS SELECTED
                   </p>
                 </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleBulkSMS}
-                    disabled={bulkProgress.active}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-md flex items-center gap-2 font-bold uppercase text-[10px]"
-                  >
-                    {bulkProgress.active ? <Loader className="animate-spin" size={14} /> : <MessageSquare size={14} />}
-                    {bulkProgress.active ? 'Sending SMS...' : 'Bulk Send SMS'}
-                  </button>
-                  <button
-                    onClick={() => setShowWhatsAppConfirm(true)}
-                    disabled={isSendingWhatsApp}
-                    className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition shadow-md flex items-center gap-2 font-bold uppercase text-[10px]"
-                  >
-                    {isSendingWhatsApp ? <Loader className="animate-spin" size={14} /> : <MessageCircle size={14} />}
-                    {isSendingWhatsApp ? 'Sending...' : 'Bulk WhatsApp'}
-                  </button>
-                  <button
-                    onClick={handleBulkPrint}
-                    disabled={isBulkPrinting}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-md flex items-center gap-2 font-bold uppercase text-[10px]"
-                  >
-                    {isBulkPrinting ? <Loader className="animate-spin" size={14} /> : <Printer size={14} />}
-                    {isBulkPrinting ? 'Processing...' : 'Download Combined PDF'}
-                  </button>
-                </div>
-              </div>
 
-              <div className="mb-8 border rounded-xl overflow-hidden shadow-sm bg-white">
-                <div className="bg-slate-50 border-b p-3 grid grid-cols-12 text-[10px] font-black text-slate-500 uppercase tracking-widest items-center">
-                  <div className="col-span-1 flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                      checked={selectedReportRows.length === reportData.rows.length}
-                      onChange={() => handleSelectAll(reportData.rows.length)}
-                    />
-                    <span>#</span>
+                {/* ACTION BAR FOR BULK PREVIEW */}
+                <div className="flex justify-between items-center mb-6 bg-indigo-50 p-4 rounded-xl border border-indigo-100 no-print">
+                  <div>
+                    <p className="text-sm font-bold text-indigo-900">Combined Actions</p>
+                    <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">
+                      {selectedReportRows.length > 0 ? `${selectedReportRows.length} learners selected` : `Apply to all ${reportData.rows.length} learners`}
+                    </p>
                   </div>
-                  <div className="col-span-4">Learner Name</div>
-                  <div className="col-span-1 text-center">Avg</div>
-                  <div className="col-span-2 text-center">Status</div>
-                  <div className="col-span-4 text-right">Individual Actions</div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleBulkSMS}
+                      disabled={bulkProgress.active}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-md flex items-center gap-2 font-bold uppercase text-[10px]"
+                    >
+                      {bulkProgress.active ? <Loader className="animate-spin" size={14} /> : <MessageSquare size={14} />}
+                      {bulkProgress.active ? 'Sending SMS...' : 'Bulk Send SMS'}
+                    </button>
+                    <button
+                      onClick={() => setShowWhatsAppConfirm(true)}
+                      disabled={isSendingWhatsApp}
+                      className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition shadow-md flex items-center gap-2 font-bold uppercase text-[10px]"
+                    >
+                      {isSendingWhatsApp ? <Loader className="animate-spin" size={14} /> : <MessageCircle size={14} />}
+                      {isSendingWhatsApp ? 'Sending...' : 'Bulk WhatsApp'}
+                    </button>
+                    <button
+                      onClick={handleBulkPrint}
+                      disabled={isBulkPrinting}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-md flex items-center gap-2 font-bold uppercase text-[10px]"
+                    >
+                      {isBulkPrinting ? <Loader className="animate-spin" size={14} /> : <Printer size={14} />}
+                      {isBulkPrinting ? 'Processing...' : 'Download Combined PDF'}
+                    </button>
+                  </div>
                 </div>
-                <div className="max-h-[450px] overflow-y-auto">
-                  {reportData.rows.map((row, idx) => (
-                    <div key={idx} className={`grid grid-cols-12 items-center p-3 border-b border-slate-50 transition-colors ${selectedReportRows.includes(idx) ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}`}>
-                      <div className="col-span-1 flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                          checked={selectedReportRows.includes(idx)}
-                          onChange={() => handleToggleSelectRow(idx)}
-                        />
-                        <span className="text-[10px] font-bold text-slate-400">{idx + 1}</span>
-                      </div>
-                      <div className="col-span-4">
-                        <p className="font-bold text-slate-800 text-sm">{row.learner.firstName} {row.learner.lastName}</p>
-                        <p className="text-[10px] text-slate-500 uppercase font-semibold">{row.learner.admissionNumber || 'ADM: N/A'}</p>
-                      </div>
-                      <div className="col-span-1 text-center font-black text-blue-600 text-sm">{row.averageScore}%</div>
 
-                      {/* STATUS INDICATORS */}
-                      <div className="col-span-2 flex justify-center gap-1">
-                        {row.communication?.hasSentSms && (
-                          <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-[8px] font-black uppercase flex items-center gap-1" title="SMS Sent">
-                            <CheckCircle size={8} /> SMS
-                          </span>
-                        )}
-                        {row.communication?.hasSentWhatsApp && (
-                          <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[8px] font-black uppercase flex items-center gap-1" title="WhatsApp Sent">
-                            <CheckCircle size={8} /> WA
-                          </span>
-                        )}
-                        {!row.communication?.hasSentSms && !row.communication?.hasSentWhatsApp && (
-                          <span className="text-[8px] text-slate-300 font-bold uppercase italic">Not Sent</span>
-                        )}
-                      </div>
-
-                      <div className="col-span-4 flex justify-end gap-2">
-                        <button
-                          onClick={() => {
-                            // Switch to single view for this learner
-                            setReportData({
-                              ...reportData,
-                              rows: [row],
-                              learner: row.learner,
-                              results: row.results,
-                              averageScore: row.averageScore,
-                              communication: row.communication
-                            });
-                          }}
-                          className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded transition shadow-sm"
-                          title="View Full Report"
-                        >
-                          <Printer size={12} />
-                        </button>
-                        <button
-                          onClick={() => handleSingleDownload(row)}
-                          className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded transition shadow-sm"
-                          title="Download PDF"
-                        >
-                          <Download size={12} />
-                        </button>
-                        <button
-                          disabled={isSendingSMS}
-                          className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded transition shadow-sm disabled:opacity-30"
-                          title="Send SMS"
-                          onClick={() => handleSendSMS(row)}
-                        >
-                          <MessageSquare size={12} />
-                        </button>
-                        <button
-                          disabled={!(row.learner.parent?.phone || row.learner.parentPhone || row.learner.parentPhoneNumber || row.learner.guardianPhone)}
-                          className={`p-2 rounded transition shadow-sm disabled:opacity-30 ${row.communication?.hasSentWhatsApp ? 'bg-green-600 text-white' : 'bg-green-50 text-green-600 hover:bg-green-600 hover:text-white'}`}
-                          title={row.communication?.hasSentWhatsApp ? "WhatsApp Sent - Click to resend" : "Send WhatsApp"}
-                          onClick={() => {
-                            const currentLearner = row.learner;
-                            handleSendWhatsApp(row); // Update this function to handle direct send
-                          }}
-                        >
-                          <MessageCircle size={12} />
-                        </button>
-                      </div>
+                <div className="mb-8 border rounded-xl overflow-hidden shadow-sm bg-white">
+                  <div className="bg-slate-50 border-b p-3 grid grid-cols-12 text-[10px] font-black text-slate-500 uppercase tracking-widest items-center">
+                    <div className="col-span-1 flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        checked={selectedReportRows.length === reportData.rows.length}
+                        onChange={() => handleSelectAll(reportData.rows.length)}
+                      />
+                      <span>#</span>
                     </div>
-                  ))}
+                    <div className="col-span-4">Learner Name</div>
+                    <div className="col-span-1 text-center">Avg</div>
+                    <div className="col-span-2 text-center">Status</div>
+                    <div className="col-span-4 text-right">Individual Actions</div>
+                  </div>
+                  <div className="max-h-[450px] overflow-y-auto">
+                    {reportData.rows.map((row, idx) => (
+                      <div key={idx} className={`grid grid-cols-12 items-center p-3 border-b border-slate-50 transition-colors ${selectedReportRows.includes(idx) ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}`}>
+                        <div className="col-span-1 flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            checked={selectedReportRows.includes(idx)}
+                            onChange={() => handleToggleSelectRow(idx)}
+                          />
+                          <span className="text-[10px] font-bold text-slate-400">{idx + 1}</span>
+                        </div>
+                        <div className="col-span-4">
+                          <p className="font-bold text-slate-800 text-sm">{row.learner.firstName} {row.learner.lastName}</p>
+                          <p className="text-[10px] text-slate-500 uppercase font-semibold">{row.learner.admissionNumber || 'ADM: N/A'}</p>
+                        </div>
+                        <div className="col-span-1 text-center font-black text-blue-600 text-sm">{row.averageScore}%</div>
+
+                        {/* STATUS INDICATORS */}
+                        <div className="col-span-2 flex justify-center gap-1">
+                          {row.communication?.hasSentSms && (
+                            <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-[8px] font-black uppercase flex items-center gap-1" title="SMS Sent">
+                              <CheckCircle size={8} /> SMS
+                            </span>
+                          )}
+                          {row.communication?.hasSentWhatsApp && (
+                            <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[8px] font-black uppercase flex items-center gap-1" title="WhatsApp Sent">
+                              <CheckCircle size={8} /> WA
+                            </span>
+                          )}
+                          {!row.communication?.hasSentSms && !row.communication?.hasSentWhatsApp && (
+                            <span className="text-[8px] text-slate-300 font-bold uppercase italic">Not Sent</span>
+                          )}
+                        </div>
+
+                        <div className="col-span-4 flex justify-end gap-2">
+                          <button
+                            onClick={() => {
+                              // Switch to single view for this learner
+                              setReportData({
+                                ...reportData,
+                                rows: [row],
+                                learner: row.learner,
+                                results: row.results,
+                                averageScore: row.averageScore,
+                                communication: row.communication
+                              });
+                            }}
+                            className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded transition shadow-sm"
+                            title="View Full Report"
+                          >
+                            <Printer size={12} />
+                          </button>
+                          <button
+                            onClick={() => handleSingleDownload(row)}
+                            className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded transition shadow-sm"
+                            title="Download PDF"
+                          >
+                            <Download size={12} />
+                          </button>
+                          <button
+                            disabled={isSendingSMS}
+                            className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded transition shadow-sm disabled:opacity-30"
+                            title="Send SMS"
+                            onClick={() => handleSendSMS(row)}
+                          >
+                            <MessageSquare size={12} />
+                          </button>
+                          <button
+                            disabled={!(row.learner.parent?.phone || row.learner.parentPhone || row.learner.parentPhoneNumber || row.learner.guardianPhone)}
+                            className={`p-2 rounded transition shadow-sm disabled:opacity-30 ${row.communication?.hasSentWhatsApp ? 'bg-green-600 text-white' : 'bg-green-50 text-green-600 hover:bg-green-600 hover:text-white'}`}
+                            title={row.communication?.hasSentWhatsApp ? "WhatsApp Sent - Click to resend" : "Send WhatsApp"}
+                            onClick={() => {
+                              const currentLearner = row.learner;
+                              handleSendWhatsApp(row); // Update this function to handle direct send
+                            }}
+                          >
+                            <MessageCircle size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-4 border-t pt-6">
+                  <button
+                    onClick={() => setReportData(null)}
+                    className="text-slate-500 hover:text-slate-800 font-bold uppercase text-xs transition px-4 py-2 border rounded-lg hover:bg-slate-50"
+                  >
+                    ← Back to Filters
+                  </button>
                 </div>
               </div>
-
-              <div className="flex flex-col items-center gap-4 border-t pt-6">
-                <button
-                  onClick={() => setReportData(null)}
-                  className="text-slate-500 hover:text-slate-800 font-bold uppercase text-xs transition px-4 py-2 border rounded-lg hover:bg-slate-50"
-                >
-                  ← Back to Filters
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </div>
 
       {/* GRADE / STREAM REPORT DISPLAY - BROADSHEET */}
       {(reportData?.type === 'GRADE_REPORT' || reportData?.type === 'STREAM_REPORT' || reportData?.type === 'STREAM_RANKING_REPORT') && reportData?.rows && (
@@ -2297,173 +2510,298 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
               id="summative-report-content"
               className="bg-white mx-auto shadow-2xl overflow-hidden"
               style={{
-              fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-              lineHeight: '1.2',
-              width: '297mm', // Landscape for broadsheet
-              minHeight: '210mm',
-              padding: '10mm',
-              boxSizing: 'border-box'
-            }}
-          >
-            {/* Professional Letterhead - Matching Learner's Report Flow */}
-            <div className="mb-6 flex flex-col items-center text-center">
-              {/* Logo Middle */}
-              <div className="mb-4">
-                <img
-                  src={brandingSettings?.logoUrl || user?.school?.logo || "/logo-new.png"}
-                  alt="Logo"
-                  style={{ height: '100px', width: 'auto', objectFit: 'contain' }}
-                  onError={(e) => { e.target.src = '/logo-new.png'; }}
+                fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+                lineHeight: '1.2',
+                width: '297mm', // Landscape for broadsheet
+                minHeight: '210mm',
+                padding: '10mm',
+                boxSizing: 'border-box'
+              }}
+            >
+              {/* Professional Letterhead - Matching Learner's Report Flow */}
+              <div className="mb-6 flex flex-col items-center text-center">
+                {/* Logo Middle */}
+                <div className="mb-4">
+                  <img
+                    src={brandingSettings?.logoUrl || user?.school?.logo || "/logo-new.png"}
+                    alt="Logo"
+                    style={{ height: '100px', width: 'auto', objectFit: 'contain' }}
+                    onError={(e) => { e.target.src = '/logo-new.png'; }}
+                  />
+                </div>
+
+                {/* School Info */}
+                <h1 style={{ fontSize: '28px', fontWeight: '900', color: brandingSettings?.brandColor || '#1E3A8A', margin: '0', textTransform: 'uppercase', letterSpacing: '1px', lineHeight: '1.1' }}>
+                  {user?.school?.name || brandingSettings?.schoolName || 'ACADEMIC SCHOOL'}
+                </h1>
+
+                {user?.school?.motto && (
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginTop: '2px', textTransform: 'uppercase', fontStyle: 'italic' }}>
+                    "{user.school.motto}"
+                  </div>
+                )}
+
+                {/* Contact Details */}
+                <div style={{ fontSize: '11px', color: '#444', marginTop: '6px', fontWeight: '500', opacity: '0.8' }}>
+                  {user?.school?.location && <span>{user.school.location}</span>}
+                  {user?.school?.email && <span> • {user.school.email}</span>}
+                </div>
+
+                {/* Separator Line */}
+                <div className="w-full h-1 mt-4 mb-4" style={{ backgroundColor: brandingSettings?.brandColor || '#1e3a8a' }}></div>
+
+                {/* Bold Report Title */}
+                <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#000', margin: '0', textTransform: 'uppercase', letterSpacing: '2px' }}>
+                  {reportData?.title}
+                </h2>
+
+                {/* Term/Academic Year Details In Pill */}
+                <div className="flex justify-between items-center w-full mt-4">
+                  <div style={{ fontSize: '12px', fontWeight: '800', color: '#1E3A8A', textTransform: 'uppercase', backgroundColor: '#eff6ff', padding: '6px 20px', borderRadius: '40px', border: '1px solid #dbeafe' }}>
+                    {setup.academicYear} | {reportData.meta?.term?.replace(/_/g, ' ')}
+                  </div>
+
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>
+                    CLASS: {reportData.meta?.grade?.replace(/_/g, ' ')} {reportData.meta?.stream !== 'all' ? reportData.meta?.stream : ''} | GENERATED: {new Date().toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+
+
+              {/* Broadsheet Table */}
+              <div className="overflow-x-auto">
+                <VirtualizedTable
+                  data={reportData.rows}
+                  rowHeight={28} // Compact broadsheet row height
+                  visibleHeight={500}
+                  className="no-print border border-gray-200"
+                  header={
+                    <tr style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
+                      <th style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center', width: '30px' }}>#</th>
+                      <th style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'left', minWidth: '150px' }}>LEARNER NAME</th>
+                      {reportData.subjects.map(subj => (
+                        <th key={subj} style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center', writingMode: 'vertical-rl', transform: 'rotate(180deg)', minHeight: '80px' }}>
+                          {getAbbreviatedName(subj)}
+                        </th>
+                      ))}
+                      <th style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center' }}>TOTAL</th>
+                      <th style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center' }}>AVG %</th>
+                      <th style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center' }}>GRD</th>
+                      <th className="no-print" style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center', width: '40px' }}>ACT</th>
+                    </tr>
+                  }
+                  renderRow={(row, idx) => (
+                    <tr key={row.learner.id} style={{ backgroundColor: idx % 2 === 0 ? 'white' : '#f8fafc' }}>
+                      <td style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{row.position}</td>
+                      <td style={{ padding: '4px', border: '1px solid #e2e8f0', fontWeight: 'bold' }}>
+                        {row.learner.firstName} {row.learner.lastName}
+                      </td>
+                      {reportData.subjects.map(subj => (
+                        <td key={subj} style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                          {row.subjectScores[subj] || '-'}
+                        </td>
+                      ))}
+                      <td style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 'bold' }}>{Math.round(row.totalScore)}</td>
+                      <td style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 'bold' }}>{row.averagePct}%</td>
+                      <td style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 'bold', color: row.grade?.includes('EE') ? 'green' : row.grade?.includes('ME') ? 'blue' : 'orange' }}>
+                        {row.grade}
+                      </td>
+                      <td className="no-print" style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                        <button
+                          title="Share via WhatsApp"
+                          onClick={() => {
+                            const learner = row.learner;
+                            const parentPhone = getLearnerPhone(learner);
+                            if (!parentPhone) {
+                              alert('No parent phone number');
+                              return;
+                            }
+                            const msg = `*${brandingSettings?.schoolName || 'SCHOOL'} REPORT*\nName: ${learner.firstName}\nMean: ${row.averagePct}%\nGrade: ${row.grade}`;
+                            let cleanPhone = parentPhone.replace(/\D/g, '');
+                            if (cleanPhone.startsWith('0')) cleanPhone = '254' + cleanPhone.substring(1);
+                            window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+                          }}
+                          className="p-1 bg-green-100 text-green-600 rounded hover:bg-green-200"
+                        >
+                          <MessageCircle size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  )}
                 />
               </div>
 
-              {/* School Info */}
-              <h1 style={{ fontSize: '28px', fontWeight: '900', color: brandingSettings?.brandColor || '#1E3A8A', margin: '0', textTransform: 'uppercase', letterSpacing: '1px', lineHeight: '1.1' }}>
-                {user?.school?.name || brandingSettings?.schoolName || 'ACADEMIC SCHOOL'}
-              </h1>
-
-              {user?.school?.motto && (
-                <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginTop: '2px', textTransform: 'uppercase', fontStyle: 'italic' }}>
-                  "{user.school.motto}"
+              {/* BULK ACTIONS BAR - MOVED TO BOTTOM */}
+              <div className="no-print mt-8 flex justify-between items-center bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
+                <div className="flex gap-4">
+                  <button
+                    onClick={handleBulkPrint}
+                    disabled={isBulkPrinting}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-md font-bold uppercase text-xs"
+                  >
+                    {isBulkPrinting ? <Loader className="animate-spin" size={16} /> : <Printer size={16} />}
+                    {isBulkPrinting ? 'Generating PDF...' : 'Print All Learners'}
+                  </button>
+                  <button
+                    onClick={handleBulkSMS}
+                    disabled={bulkProgress.active}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-md font-bold uppercase text-xs"
+                  >
+                    {bulkProgress.active ? <Loader className="animate-spin" size={16} /> : <MessageSquare size={16} />}
+                    {bulkProgress.active ? `Sending (${bulkProgress.current}/${bulkProgress.total})` : 'Send SMS to All'}
+                  </button>
+                  <button
+                    onClick={() => setShowWhatsAppConfirm(true)}
+                    disabled={isSendingWhatsApp}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition shadow-md font-bold uppercase text-xs"
+                    title="Send via WhatsApp (Batched)"
+                  >
+                    {isSendingWhatsApp ? <Loader className="animate-spin" size={16} /> : <MessageCircle size={16} />}
+                    {isSendingWhatsApp ? 'Processing...' : 'Bulk WhatsApp'}
+                  </button>
                 </div>
-              )}
 
-              {/* Contact Details */}
-              <div style={{ fontSize: '11px', color: '#444', marginTop: '6px', fontWeight: '500', opacity: '0.8' }}>
-                {user?.school?.location && <span>{user.school.location}</span>}
-                {user?.school?.email && <span> • {user.school.email}</span>}
+                {(bulkProgress.active || isSendingWhatsApp) && (
+                  <div className="text-sm font-medium text-gray-700">
+                    {isSendingWhatsApp ? (
+                      <span className="text-green-600 flex items-center gap-2 font-bold animate-pulse">
+                        <Loader className="animate-spin" size={12} />
+                        WhatsApp Batch: {whatsAppProgress.current}/{whatsAppProgress.total}
+                      </span>
+                    ) : (
+                      <div className="flex gap-3 font-bold">
+                        <span className="text-green-600">SUCCESS: {bulkProgress.success}</span>
+                        <span className="text-gray-300">|</span>
+                        <span className="text-red-500">FAILED: {bulkProgress.failed}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Separator Line */}
-              <div className="w-full h-1 mt-4 mb-4" style={{ backgroundColor: brandingSettings?.brandColor || '#1e3a8a' }}></div>
+              {/* Controls */}
+              <div className="no-print mt-8 flex gap-4 justify-center">
+                <button
+                  onClick={() => setReportData(null)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded text-sm font-semibold transition"
+                >
+                  ← Back
+                </button>
+                <button
+                  onClick={handleExportPDF}
+                  disabled={isExporting}
+                  className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold transition flex items-center gap-2"
+                >
+                  {isExporting ? <Loader size={18} className="animate-spin" /> : <Download size={18} />}
+                  {isExporting ? 'Exporting...' : 'Export Broadsheet PDF'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-              {/* Bold Report Title */}
-              <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#000', margin: '0', textTransform: 'uppercase', letterSpacing: '2px' }}>
-                {reportData?.title}
-              </h2>
+      {/* ANALYSIS REPORT DISPLAY */}
+      {reportData?.type?.includes('ANALYSIS') && (
+        <div className="px-6 py-8">
+          <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
+            <div
+              id="summative-report-content"
+              className="bg-white mx-auto shadow-2xl overflow-hidden"
+              style={{
+                fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+                lineHeight: '1.2',
+                width: '210mm',
+                minHeight: '297mm',
+                padding: '12mm',
+                boxSizing: 'border-box'
+              }}
+            >
+              {/* Professional Letterhead - Consistency across reports */}
+              <div className="mb-6 flex flex-col items-center text-center">
+                {/* Logo Middle */}
+                <div className="mb-4">
+                  <img
+                    src={brandingSettings?.logoUrl || user?.school?.logo || "/logo-new.png"}
+                    alt="Logo"
+                    style={{ height: '80px', width: 'auto', objectFit: 'contain' }}
+                    onError={(e) => { e.target.src = '/logo-new.png'; }}
+                  />
+                </div>
 
-              {/* Term/Academic Year Details In Pill */}
-              <div className="flex justify-between items-center w-full mt-4">
-                <div style={{ fontSize: '12px', fontWeight: '800', color: '#1E3A8A', textTransform: 'uppercase', backgroundColor: '#eff6ff', padding: '6px 20px', borderRadius: '40px', border: '1px solid #dbeafe' }}>
+                {/* School Info */}
+                <h1 style={{ fontSize: '24px', fontWeight: '900', color: brandingSettings?.brandColor || '#1E3A8A', margin: '0', textTransform: 'uppercase', letterSpacing: '1px', lineHeight: '1.2' }}>
+                  {user?.school?.name || brandingSettings?.schoolName || 'ACADEMIC SCHOOL'}
+                </h1>
+
+                {user?.school?.motto && (
+                  <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', marginTop: '2px', textTransform: 'uppercase', fontStyle: 'italic' }}>
+                    "{user.school.motto}"
+                  </div>
+                )}
+
+                {/* Separator Line */}
+                <div className="w-full h-0.5 mt-3 mb-3" style={{ backgroundColor: brandingSettings?.brandColor || '#1e3a8a' }}></div>
+
+                {/* Bold Report Title */}
+                <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#000', margin: '0', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  {reportData?.title}
+                </h2>
+
+                <div style={{ fontSize: '12px', fontWeight: '700', color: '#1E3A8A', marginTop: '4px', textTransform: 'uppercase', backgroundColor: '#eff6ff', padding: '4px 16px', borderRadius: '40px' }}>
                   {setup.academicYear} | {reportData.meta?.term?.replace(/_/g, ' ')}
                 </div>
-
-                <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>
-                  CLASS: {reportData.meta?.grade?.replace(/_/g, ' ')} {reportData.meta?.stream !== 'all' ? reportData.meta?.stream : ''} | GENERATED: {new Date().toLocaleDateString()}
-                </div>
-              </div>
-            </div>
-
-
-            {/* Broadsheet Table */}
-            <div className="overflow-x-auto">
-              <VirtualizedTable
-                data={reportData.rows}
-                rowHeight={28} // Compact broadsheet row height
-                visibleHeight={500}
-                className="no-print border border-gray-200"
-                header={
-                  <tr style={{ backgroundColor: '#1e3a8a', color: 'white' }}>
-                    <th style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center', width: '30px' }}>#</th>
-                    <th style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'left', minWidth: '150px' }}>LEARNER NAME</th>
-                    {reportData.subjects.map(subj => (
-                      <th key={subj} style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center', writingMode: 'vertical-rl', transform: 'rotate(180deg)', minHeight: '80px' }}>
-                        {getAbbreviatedName(subj)}
-                      </th>
-                    ))}
-                    <th style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center' }}>TOTAL</th>
-                    <th style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center' }}>AVG %</th>
-                    <th style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center' }}>GRD</th>
-                    <th className="no-print" style={{ padding: '6px', border: '1px solid #ccc', textAlign: 'center', width: '40px' }}>ACT</th>
-                  </tr>
-                }
-                renderRow={(row, idx) => (
-                  <tr key={row.learner.id} style={{ backgroundColor: idx % 2 === 0 ? 'white' : '#f8fafc' }}>
-                    <td style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{row.position}</td>
-                    <td style={{ padding: '4px', border: '1px solid #e2e8f0', fontWeight: 'bold' }}>
-                      {row.learner.firstName} {row.learner.lastName}
-                    </td>
-                    {reportData.subjects.map(subj => (
-                      <td key={subj} style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                        {row.subjectScores[subj] || '-'}
-                      </td>
-                    ))}
-                    <td style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 'bold' }}>{Math.round(row.totalScore)}</td>
-                    <td style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 'bold' }}>{row.averagePct}%</td>
-                    <td style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 'bold', color: row.grade?.includes('EE') ? 'green' : row.grade?.includes('ME') ? 'blue' : 'orange' }}>
-                      {row.grade}
-                    </td>
-                    <td className="no-print" style={{ padding: '4px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                      <button
-                        title="Share via WhatsApp"
-                        onClick={() => {
-                          const learner = row.learner;
-                          const parentPhone = getLearnerPhone(learner);
-                          if (!parentPhone) {
-                            alert('No parent phone number');
-                            return;
-                          }
-                          const msg = `*${brandingSettings?.schoolName || 'SCHOOL'} REPORT*\nName: ${learner.firstName}\nMean: ${row.averagePct}%\nGrade: ${row.grade}`;
-                          let cleanPhone = parentPhone.replace(/\D/g, '');
-                          if (cleanPhone.startsWith('0')) cleanPhone = '254' + cleanPhone.substring(1);
-                          window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-                        }}
-                        className="p-1 bg-green-100 text-green-600 rounded hover:bg-green-200"
-                      >
-                        <MessageCircle size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                )}
-              />
-            </div>
-
-            {/* BULK ACTIONS BAR - MOVED TO BOTTOM */}
-            <div className="no-print mt-8 flex justify-between items-center bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
-              <div className="flex gap-4">
-                <button
-                  onClick={handleBulkPrint}
-                  disabled={isBulkPrinting}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-md font-bold uppercase text-xs"
-                >
-                  {isBulkPrinting ? <Loader className="animate-spin" size={16} /> : <Printer size={16} />}
-                  {isBulkPrinting ? 'Generating PDF...' : 'Print All Learners'}
-                </button>
-                <button
-                  onClick={handleBulkSMS}
-                  disabled={bulkProgress.active}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-md font-bold uppercase text-xs"
-                >
-                  {bulkProgress.active ? <Loader className="animate-spin" size={16} /> : <MessageSquare size={16} />}
-                  {bulkProgress.active ? `Sending (${bulkProgress.current}/${bulkProgress.total})` : 'Send SMS to All'}
-                </button>
-                <button
-                  onClick={() => setShowWhatsAppConfirm(true)}
-                  disabled={isSendingWhatsApp}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition shadow-md font-bold uppercase text-xs"
-                  title="Send via WhatsApp (Batched)"
-                >
-                  {isSendingWhatsApp ? <Loader className="animate-spin" size={16} /> : <MessageCircle size={16} />}
-                  {isSendingWhatsApp ? 'Processing...' : 'Bulk WhatsApp'}
-                </button>
               </div>
 
-              {(bulkProgress.active || isSendingWhatsApp) && (
-                <div className="text-sm font-medium text-gray-700">
-                  {isSendingWhatsApp ? (
-                    <span className="text-green-600 flex items-center gap-2 font-bold animate-pulse">
-                      <Loader className="animate-spin" size={12} />
-                      WhatsApp Batch: {whatsAppProgress.current}/{whatsAppProgress.total}
-                    </span>
-                  ) : (
-                    <div className="flex gap-3 font-bold">
-                      <span className="text-green-600">SUCCESS: {bulkProgress.success}</span>
-                      <span className="text-gray-300">|</span>
-                      <span className="text-red-500">FAILED: {bulkProgress.failed}</span>
-                    </div>
-                  )}
+              {/* Subject Performance Table */}
+              <div className="mb-8">
+                <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-blue-600 pl-2">Subject Performance Analysis</h2>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f1f5f9', color: '#1e293b' }}>
+                      <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #cbd5e1' }}>SUBJECT</th>
+                      <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>LEARNERS</th>
+                      <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>MEAN SCORE</th>
+                      <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>HIGHEST</th>
+                      <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>LOWEST</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportData.subjectStats.map((stat, idx) => (
+                      <tr key={stat.subject} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '8px', fontWeight: '600' }}>{stat.subject}</td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>{stat.count}</td>
+                        <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: '#2563eb' }}>{stat.mean}%</td>
+                        <td style={{ padding: '8px', textAlign: 'center', color: '#16a34a' }}>{stat.highest}%</td>
+                        <td style={{ padding: '8px', textAlign: 'center', color: '#dc2626' }}>{stat.lowest}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Grade Distribution */}
+              <div className="mb-8">
+                <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-blue-600 pl-2">Grade Distribution</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                  <div className="p-4 bg-green-50 rounded border border-green-200 text-center">
+                    <div className="text-2xl font-bold text-green-700">{reportData.gradeDist['EE'] || 0}</div>
+                    <div className="text-xs font-bold text-green-800 uppercase mt-1">Exceeding Exp.</div>
+                  </div>
+                  <div className="p-4 bg-blue-50 rounded border border-blue-200 text-center">
+                    <div className="text-2xl font-bold text-blue-700">{reportData.gradeDist['ME'] || 0}</div>
+                    <div className="text-xs font-bold text-blue-800 uppercase mt-1">Meeting Exp.</div>
+                  </div>
+                  <div className="p-4 bg-yellow-50 rounded border border-yellow-200 text-center">
+                    <div className="text-2xl font-bold text-yellow-700">{reportData.gradeDist['AE'] || 0}</div>
+                    <div className="text-xs font-bold text-yellow-800 uppercase mt-1">Approaching Exp.</div>
+                  </div>
+                  <div className="p-4 bg-red-50 rounded border border-red-200 text-center">
+                    <div className="text-2xl font-bold text-red-700">{reportData.gradeDist['BE'] || 0}</div>
+                    <div className="text-xs font-bold text-red-800 uppercase mt-1">Below Exp.</div>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Controls */}
@@ -2480,132 +2818,9 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
                 className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold transition flex items-center gap-2"
               >
                 {isExporting ? <Loader size={18} className="animate-spin" /> : <Download size={18} />}
-                {isExporting ? 'Exporting...' : 'Export Broadsheet PDF'}
+                {isExporting ? 'Exporting...' : 'Export Analysis PDF'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ANALYSIS REPORT DISPLAY */}
-      {reportData?.type?.includes('ANALYSIS') && (
-        <div className="px-6 py-8">
-          <div className="bg-gray-100 py-12 px-4 rounded-xl shadow-inner mb-8 no-print">
-            <div
-              id="summative-report-content"
-              className="bg-white mx-auto shadow-2xl overflow-hidden"
-              style={{
-              fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-              lineHeight: '1.2',
-              width: '210mm',
-              minHeight: '297mm',
-              padding: '12mm',
-              boxSizing: 'border-box'
-            }}
-          >
-            {/* Professional Letterhead - Consistency across reports */}
-            <div className="mb-6 flex flex-col items-center text-center">
-              {/* Logo Middle */}
-              <div className="mb-4">
-                <img
-                  src={brandingSettings?.logoUrl || user?.school?.logo || "/logo-new.png"}
-                  alt="Logo"
-                  style={{ height: '80px', width: 'auto', objectFit: 'contain' }}
-                  onError={(e) => { e.target.src = '/logo-new.png'; }}
-                />
-              </div>
-
-              {/* School Info */}
-              <h1 style={{ fontSize: '24px', fontWeight: '900', color: brandingSettings?.brandColor || '#1E3A8A', margin: '0', textTransform: 'uppercase', letterSpacing: '1px', lineHeight: '1.2' }}>
-                {user?.school?.name || brandingSettings?.schoolName || 'ACADEMIC SCHOOL'}
-              </h1>
-
-              {user?.school?.motto && (
-                <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', marginTop: '2px', textTransform: 'uppercase', fontStyle: 'italic' }}>
-                  "{user.school.motto}"
-                </div>
-              )}
-
-              {/* Separator Line */}
-              <div className="w-full h-0.5 mt-3 mb-3" style={{ backgroundColor: brandingSettings?.brandColor || '#1e3a8a' }}></div>
-
-              {/* Bold Report Title */}
-              <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#000', margin: '0', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                {reportData?.title}
-              </h2>
-
-              <div style={{ fontSize: '12px', fontWeight: '700', color: '#1E3A8A', marginTop: '4px', textTransform: 'uppercase', backgroundColor: '#eff6ff', padding: '4px 16px', borderRadius: '40px' }}>
-                {setup.academicYear} | {reportData.meta?.term?.replace(/_/g, ' ')}
-              </div>
-            </div>
-
-            {/* Subject Performance Table */}
-            <div className="mb-8">
-              <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-blue-600 pl-2">Subject Performance Analysis</h2>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f1f5f9', color: '#1e293b' }}>
-                    <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #cbd5e1' }}>SUBJECT</th>
-                    <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>LEARNERS</th>
-                    <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>MEAN SCORE</th>
-                    <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>HIGHEST</th>
-                    <th style={{ padding: '8px', textAlign: 'center', borderBottom: '2px solid #cbd5e1' }}>LOWEST</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportData.subjectStats.map((stat, idx) => (
-                    <tr key={stat.subject} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                      <td style={{ padding: '8px', fontWeight: '600' }}>{stat.subject}</td>
-                      <td style={{ padding: '8px', textAlign: 'center' }}>{stat.count}</td>
-                      <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: '#2563eb' }}>{stat.mean}%</td>
-                      <td style={{ padding: '8px', textAlign: 'center', color: '#16a34a' }}>{stat.highest}%</td>
-                      <td style={{ padding: '8px', textAlign: 'center', color: '#dc2626' }}>{stat.lowest}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Grade Distribution */}
-            <div className="mb-8">
-              <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-blue-600 pl-2">Grade Distribution</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
-                <div className="p-4 bg-green-50 rounded border border-green-200 text-center">
-                  <div className="text-2xl font-bold text-green-700">{reportData.gradeDist['EE'] || 0}</div>
-                  <div className="text-xs font-bold text-green-800 uppercase mt-1">Exceeding Exp.</div>
-                </div>
-                <div className="p-4 bg-blue-50 rounded border border-blue-200 text-center">
-                  <div className="text-2xl font-bold text-blue-700">{reportData.gradeDist['ME'] || 0}</div>
-                  <div className="text-xs font-bold text-blue-800 uppercase mt-1">Meeting Exp.</div>
-                </div>
-                <div className="p-4 bg-yellow-50 rounded border border-yellow-200 text-center">
-                  <div className="text-2xl font-bold text-yellow-700">{reportData.gradeDist['AE'] || 0}</div>
-                  <div className="text-xs font-bold text-yellow-800 uppercase mt-1">Approaching Exp.</div>
-                </div>
-                <div className="p-4 bg-red-50 rounded border border-red-200 text-center">
-                  <div className="text-2xl font-bold text-red-700">{reportData.gradeDist['BE'] || 0}</div>
-                  <div className="text-xs font-bold text-red-800 uppercase mt-1">Below Exp.</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Controls */}
-          <div className="no-print mt-8 flex gap-4 justify-center">
-            <button
-              onClick={() => setReportData(null)}
-              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded text-sm font-semibold transition"
-            >
-              ← Back
-            </button>
-            <button
-              onClick={handleExportPDF}
-              disabled={isExporting}
-              className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-semibold transition flex items-center gap-2"
-            >
-              {isExporting ? <Loader size={18} className="animate-spin" /> : <Download size={18} />}
-              {isExporting ? 'Exporting...' : 'Export Analysis PDF'}
-            </button>
           </div>
         </div>
       )}
