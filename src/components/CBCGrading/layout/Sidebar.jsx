@@ -610,7 +610,7 @@ const Sidebar = React.memo(({
         <div className="flex items-center gap-3 justify-center overflow-hidden relative z-10">
           {sidebarOpen ? (
             <h1 className="text-xl font-bold text-white tracking-widest truncate w-full text-center hover:drop-shadow-lg transition-shadow duration-300">
-              {brandingSettings?.schoolName || 'Elimcrown'}
+              {brandingSettings?.schoolName || 'ZAWADI JUNIOR ACADEMY'}
             </h1>
           ) : (
             <div className="w-10 h-10 rounded-lg bg-brand-purple/20 flex items-center justify-center flex-shrink-0 border border-white/10 hover:border-brand-purple/50 transition-all duration-300 shadow-lg">

@@ -50,7 +50,7 @@ function AppContent() {
     welcomeMessage: 'Unified education management for schools and institutions.',
     onboardingTitle: 'Create Your Elimcrown Account',
     onboardingMessage: 'Sign up to access powerful tools for managing learning and assessment.',
-    schoolName: 'Elimcrown',
+    schoolName: 'ZAWADI JUNIOR ACADEMY',
   });
 
   // Mark app as ready after initial load
