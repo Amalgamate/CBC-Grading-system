@@ -87,29 +87,56 @@ const BulkOperationsModal = ({
         return;
       }
 
+      const schoolId = localStorage.getItem('currentSchoolId');
+      if (!schoolId) {
+        setUploadResult({
+          success: false,
+          error: 'School context missing. Please refresh and log in again.'
+        });
+        setUploading(false);
+        return;
+      }
+
       // Backend handles schoolId/branchId via token/headers
       const response = await fetch(`${API_BASE_URL}/bulk/${entityType}/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'X-School-Id': localStorage.getItem('currentSchoolId') || '',
+          'X-School-Id': schoolId,
           'X-Branch-Id': localStorage.getItem('currentBranchId') || ''
         },
         body: formData
       });
 
-      const result = await response.json();
-
-      if (response.ok) {
-        setUploadResult(result);
-        if (result.summary.created > 0 && onUploadComplete) {
-          onUploadComplete();
+      // Check if response is ok before parsing JSON
+      if (!response.ok) {
+        let errorMessage = `Server error: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (e) {
+          // If can't parse as JSON, try to get text
+          try {
+            const text = await response.text();
+            if (text) errorMessage = text.substring(0, 200);
+          } catch (textErr) {
+            // Fallback to status message
+            errorMessage = `Upload failed with status ${response.status}. Please try again.`;
+          }
         }
-      } else {
         setUploadResult({
           success: false,
-          error: result.error || result.message || 'Upload failed'
+          error: errorMessage
         });
+        setUploading(false);
+        return;
+      }
+
+      // Parse successful response
+      const result = await response.json();
+      setUploadResult(result);
+      if (result.summary && result.summary.created > 0 && onUploadComplete) {
+        onUploadComplete();
       }
     } catch (error) {
       console.error('Upload error:', error);
@@ -137,6 +164,12 @@ const BulkOperationsModal = ({
         }
       });
 
+      if (!response.ok) {
+        console.error('Template download failed:', response.status, response.statusText);
+        alert(`Failed to download template (${response.status}). Please check your connection and try again.`);
+        return;
+      }
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -147,7 +180,8 @@ const BulkOperationsModal = ({
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      alert('Failed to download template');
+      console.error('Template download error:', error);
+      alert('Failed to download template. Please check your connection and try again.');
     }
   };
 
@@ -162,15 +196,29 @@ const BulkOperationsModal = ({
         return;
       }
 
+      const schoolId = localStorage.getItem('currentSchoolId');
+      if (!schoolId) {
+        alert('School context missing. Please refresh and try again.');
+        setExporting(false);
+        return;
+      }
+
       let url = `${API_BASE_URL}/bulk/${entityType}/export`;
 
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'X-School-Id': localStorage.getItem('currentSchoolId') || '',
+          'X-School-Id': schoolId,
           'X-Branch-Id': localStorage.getItem('currentBranchId') || ''
         }
       });
+
+      if (!response.ok) {
+        console.error('Export failed:', response.status, response.statusText);
+        alert(`Failed to export data (${response.status}). Please check your connection and try again.`);
+        setExporting(false);
+        return;
+      }
 
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
@@ -182,7 +230,8 @@ const BulkOperationsModal = ({
       window.URL.revokeObjectURL(downloadUrl);
       document.body.removeChild(a);
     } catch (error) {
-      alert('Failed to export data');
+      console.error('Export error:', error);
+      alert('Failed to export data. Please check your connection and try again.');
     } finally {
       setExporting(false);
     }
