@@ -334,6 +334,13 @@ router.post('/upload', upload.single('file'), async (req: AuthRequest, res: Resp
         if (existing) {
           if (forceCreate) {
             // Delete and recreate if forceCreate is enabled
+            // First, disconnect parent to avoid foreign key constraint
+            await prisma.learner.update({
+              where: { id: existing.id },
+              data: { parentId: null }
+            });
+
+            // Now delete the learner
             await prisma.learner.delete({
               where: { id: existing.id }
             });
