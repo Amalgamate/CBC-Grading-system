@@ -953,41 +953,43 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
               paddingBottom: '40px' // Keep it neat, not touch the footer
             }}
           >
-            {/* Letterhead / Page Header - 2 Column Layout */}
-            <div className="flex items-start gap-4" style={{
-              paddingBottom: '0.75rem',
-              borderBottom: '2px solid #1e3a8a',
-              marginBottom: '1rem',
-              pageBreakInside: 'avoid',
-              minHeight: '3rem'
+            {/* Letterhead / Page Header - Professional 2 Column Layout */}
+            <div style={{
+              paddingBottom: '1rem',
+              borderBottom: '3px solid #1e3a8a',
+              marginBottom: '1.5rem',
+              pageBreakInside: 'avoid'
             }}>
-              {/* Logo Column */}
-              {pageIndex === 0 && (
-                <div className="flex-shrink-0" style={{ width: '80px' }}>
-                  <img
-                    src={brandingSettings?.logoUrl || user?.school?.logo || '/logo-elimcrown.png'}
-                    alt="School Logo"
-                    className="h-12 w-12 object-contain"
-                    onError={(e) => { e.target.src = '/logo-new.png'; }}
-                  />
+              <div className="flex items-center gap-6">
+                {/* Logo Column */}
+                {pageIndex === 0 && (
+                  <div className="flex-shrink-0">
+                    <img
+                      src={brandingSettings?.logoUrl || user?.school?.logo || '/logo-elimcrown.png'}
+                      alt="School Logo"
+                      className="h-20 w-20 object-contain"
+                      onError={(e) => { e.target.src = '/logo-new.png'; }}
+                      style={{ filter: 'drop-shadow(0 2px 4px rgba(30, 58, 138, 0.1))' }}
+                    />
+                  </div>
+                )}
+                {pageIndex > 0 && <div style={{ width: '80px', flexShrink: 0 }}></div>}
+                
+                {/* Text Content Column */}
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold text-[#1e3a8a] uppercase tracking-wider leading-tight">
+                    {user?.school?.name || user?.schoolName || 'SCHOOL NAME'}
+                  </h1>
+                  <h2 className="text-base font-bold text-gray-800 leading-tight mt-1">
+                    Summative Assessment Results {pageIndex > 0 && `(Page ${pageIndex + 1})`}
+                  </h2>
+                  <p className="text-sm text-gray-700 font-semibold leading-tight mt-0.5">
+                    {selectedTest?.learningArea} | {selectedTest?.grade?.replace('_', ' ')} | {setup.selectedStream || 'All Streams'}
+                  </p>
+                  <p className="text-sm text-gray-600 leading-tight mt-0.5">
+                    {selectedTest?.term?.replace('_', ' ')} {selectedTest?.academicYear || new Date().getFullYear()} | Total Marks: {selectedTest?.totalMarks} | Test Date: {selectedTest?.testDate ? new Date(selectedTest.testDate).toLocaleDateString('en-GB') : 'N/A'}
+                  </p>
                 </div>
-              )}
-              {pageIndex > 0 && <div style={{ width: '80px' }}></div>}
-              
-              {/* Text Content Column */}
-              <div className="flex-1 py-0">
-                <h1 className="text-lg font-bold text-[#1e3a8a] uppercase tracking-wide leading-tight">
-                  {user?.school?.name || user?.schoolName || 'SCHOOL NAME'}
-                </h1>
-                <h2 className="text-sm font-bold text-gray-800 leading-tight mt-0.5">
-                  Summative Assessment Results {pageIndex > 0 && `(Page ${pageIndex + 1})`}
-                </h2>
-                <p className="text-xs text-gray-600 font-medium leading-tight mt-0.5">
-                  {selectedTest?.learningArea} | {selectedTest?.grade?.replace('_', ' ')} | {setup.selectedStream || 'All Streams'} | {selectedTest?.term?.replace('_', ' ')} {selectedTest?.academicYear || new Date().getFullYear()}
-                </p>
-                <p className="text-xs text-gray-500 leading-tight mt-0.5">
-                  Total Marks: {selectedTest?.totalMarks} | Test Date: {selectedTest?.testDate ? new Date(selectedTest.testDate).toLocaleDateString() : 'N/A'}
-                </p>
               </div>
             </div>
 
