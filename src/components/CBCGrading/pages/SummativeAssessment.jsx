@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
-  Save, Search, Loader, ArrowLeft, Printer, UploadCloud, Database, ChevronRight, FileSpreadsheet, Download
+  Save, Search, Loader, ArrowLeft, Printer, UploadCloud, Database, ChevronRight, FileSpreadsheet, Download, PlayCircle
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import VirtualizedTable from '../shared/VirtualizedTable';
@@ -673,12 +673,12 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
   if (step === 1) {
     return (
       <div className="min-h-screen bg-slate-50/30">
-        {/* Filter Bar - Enterprise Compact */}
-        <div className="border-b border-slate-200 bg-white px-6 py-3">
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-6 lg:gap-2">
+        {/* Filter Bar - Clean & Balanced */}
+        <div className="border-b border-slate-200 bg-white px-6 py-4">
+          <div className="flex flex-col sm:flex-row gap-3 items-end">
             {/* Grade */}
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">
+            <div className="flex-1 min-w-0">
+              <label className="block text-xs font-semibold text-slate-700 mb-2 uppercase tracking-wide">
                 Grade
               </label>
               <select
@@ -688,7 +688,7 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
                   setSelectedLearningArea('');
                   setSelectedTestId('');
                 }}
-                className="h-9 w-full border border-slate-200 rounded text-sm bg-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-0 appearance-none cursor-pointer"
+                className="h-10 w-full border border-slate-300 rounded-md text-sm bg-white px-3 py-2 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-1 appearance-none cursor-pointer hover:border-slate-400 transition-colors"
               >
                 <option value="">Select Grade</option>
                 {filteredGrades.map(g => (
@@ -699,17 +699,17 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
               </select>
             </div>
 
-            {/* Stream */}
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">
+            {/* Stream - Compact */}
+            <div className="flex-0 min-w-max">
+              <label className="block text-xs font-semibold text-slate-700 mb-2 uppercase tracking-wide">
                 Stream
               </label>
               <select
                 value={setup.selectedStream}
                 onChange={(e) => setup.updateStream(e.target.value)}
-                className="h-9 w-full border border-slate-200 rounded text-sm bg-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-0 appearance-none cursor-pointer"
+                className="h-10 w-20 border border-slate-300 rounded-md text-sm bg-white px-2 py-2 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-1 appearance-none cursor-pointer hover:border-slate-400 transition-colors"
               >
-                <option value="">All Streams</option>
+                <option value="">All</option>
                 {availableStreams.map(s => (
                   <option key={s} value={s}>{s}</option>
                 ))}
@@ -717,9 +717,9 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
             </div>
 
             {/* Academic Term */}
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">
-                Academic Term
+            <div className="flex-1 min-w-0">
+              <label className="block text-xs font-semibold text-slate-700 mb-2 uppercase tracking-wide">
+                Term
               </label>
               <select
                 value={setup.selectedTerm}
@@ -728,7 +728,7 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
                   setSelectedLearningArea('');
                   setSelectedTestId('');
                 }}
-                className="h-9 w-full border border-slate-200 rounded text-sm bg-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-0 appearance-none cursor-pointer"
+                className="h-10 w-full border border-slate-300 rounded-md text-sm bg-white px-3 py-2 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-1 appearance-none cursor-pointer hover:border-slate-400 transition-colors"
               >
                 <option value="">Select Term</option>
                 {availableTerms.map(t => (
@@ -738,8 +738,8 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
             </div>
 
             {/* Learning Area */}
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">
+            <div className="flex-1.5 min-w-0">
+              <label className="block text-xs font-semibold text-slate-700 mb-2 uppercase tracking-wide">
                 Learning Area
               </label>
               <select
@@ -749,7 +749,7 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
                   setSelectedTestId('');
                 }}
                 disabled={!setup.selectedGrade || !setup.selectedTerm || availableLearningAreas.length === 0}
-                className="h-9 w-full border border-slate-200 rounded text-sm bg-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-0 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-10 w-full border border-slate-300 rounded-md text-sm bg-white px-3 py-2 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-1 appearance-none cursor-pointer hover:border-slate-400 transition-colors disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-slate-50"
               >
                 <option value="">
                   {!setup.selectedGrade || !setup.selectedTerm
@@ -763,15 +763,15 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
             </div>
 
             {/* Test */}
-            <div className="md:col-span-2 lg:col-span-1">
-              <label className="block text-xs font-medium text-slate-600 mb-1">
+            <div className="flex-1.5 min-w-0">
+              <label className="block text-xs font-semibold text-slate-700 mb-2 uppercase tracking-wide">
                 Test
               </label>
               <select
                 value={selectedTestId}
                 onChange={(e) => setSelectedTestId(e.target.value)}
                 disabled={finalTests.length === 0}
-                className="h-9 w-full border border-slate-200 rounded text-sm bg-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-0 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-10 w-full border border-slate-300 rounded-md text-sm bg-white px-3 py-2 text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-brand-purple focus:ring-offset-1 appearance-none cursor-pointer hover:border-slate-400 transition-colors disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-slate-50"
               >
                 <option value="">
                   {finalTests.length === 0 
@@ -786,19 +786,18 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
               </select>
             </div>
 
-            {/* Assess Button */}
-            <div className="col-span-2 md:col-span-1 lg:col-span-1 flex items-end">
-              <button
-                onClick={() => {
-                  if (selectedTestId) setStep(2);
-                  else showError('Please select a test');
-                }}
-                disabled={!selectedTestId}
-                className="w-full h-9 bg-brand-teal hover:bg-brand-teal/90 disabled:bg-slate-200 text-white text-sm font-medium rounded transition-colors disabled:cursor-not-allowed"
-              >
-                Assess
-              </button>
-            </div>
+            {/* Assess Icon Button */}
+            <button
+              onClick={() => {
+                if (selectedTestId) setStep(2);
+                else showError('Please select a test');
+              }}
+              disabled={!selectedTestId}
+              title="Start Assessment"
+              className="h-10 w-10 flex items-center justify-center rounded-full bg-brand-teal hover:bg-brand-teal/90 disabled:bg-slate-300 text-white transition-colors disabled:cursor-not-allowed flex-shrink-0 shadow-sm hover:shadow-md"
+            >
+              <PlayCircle size={20} />
+            </button>
           </div>
         </div>
 
