@@ -8,7 +8,7 @@ import StatusBadge from '../shared/StatusBadge';
 import EmptyState from '../shared/EmptyState';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { useAuth } from '../../../hooks/useAuth';
-import { configAPI, communicationAPI } from '../../../services/api';
+import { configAPI, communicationAPI, learnerAPI } from '../../../services/api';
 import BulkOperationsModal from '../shared/bulk/BulkOperationsModal';
 import VirtualizedTable from '../shared/VirtualizedTable';
 import { formatPhoneNumber } from '../../../utils/phoneFormatter';
@@ -214,13 +214,28 @@ const LearnersList = ({
     setIsDeleting(true);
     try {
       if (onBulkDelete) {
-        // If selectAllDatabase is true, pass null to indicate delete all matching filters
-        await onBulkDelete(selectAllDatabase ? null : selectedLearners, selectAllDatabase ? {
-          search: searchTerm,
-          grade: filterGrade !== 'all' ? filterGrade : undefined,
-          status: filterStatus !== 'all' ? filterStatus : undefined,
-          stream: filterStream !== 'all' ? filterStream : undefined
-        } : undefined);
+        let learnerIdsToDelete = selectedLearners;
+
+        // If selectAllDatabase is true, fetch all learners matching current filters
+        if (selectAllDatabase) {
+          const params = {
+            limit: 1000, // Fetch up to 1000 learners per page
+            search: searchTerm || undefined,
+            grade: filterGrade !== 'all' ? filterGrade : undefined,
+            status: filterStatus !== 'all' ? filterStatus : undefined,
+            stream: filterStream !== 'all' ? filterStream : undefined
+          };
+
+          // Remove undefined values
+          Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
+
+          const response = await learnerAPI.getAll(params);
+          if (response.success && response.data) {
+            learnerIdsToDelete = response.data.map(learner => learner.id);
+          }
+        }
+
+        await onBulkDelete(learnerIdsToDelete);
       } else {
         await Promise.all(selectedLearners.map(id => onDeleteLearner(id)));
       }
