@@ -136,6 +136,27 @@ async function main() {
         });
 
         if (!test) {
+          // Find grading scale for this grade + learning area
+          let scale = await prisma.gradingSystem.findFirst({
+            where: {
+              schoolId: school.id,
+              grade: grade as Grade,
+              name: {
+                contains: learningArea
+              }
+            }
+          });
+
+          // If no scale, try to find a default scale for the grade
+          if (!scale) {
+            scale = await prisma.gradingSystem.findFirst({
+              where: {
+                schoolId: school.id,
+                grade: grade as Grade
+              }
+            });
+          }
+
           // Create test
           test = await prisma.summativeTest.create({
             data: {
@@ -149,6 +170,7 @@ async function main() {
               passMarks: 40,
               schoolId: school.id,
               createdBy: adminUser.id,
+              scaleId: scale?.id || undefined, // Associate grading scale for performance descriptors
               active: true,
               published: true,
               status: 'PUBLISHED',
