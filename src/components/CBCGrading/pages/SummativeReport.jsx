@@ -2931,7 +2931,7 @@ const SummativeReport = ({ learners, onFetchLearners, brandingSettings, user }) 
           </div>
         )
       }
-      </div>
+
       {/* LOADING OVERLAY FOR PDF EXPORT */}
       {
         isExporting && (
