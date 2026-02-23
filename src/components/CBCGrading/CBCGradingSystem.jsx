@@ -770,7 +770,7 @@ export default function CBCGradingSystem({ user, onLogout, brandingSettings, set
       case 'assess-summative-tests':
         return <SummativeTestsRouter onNavigate={handleNavigate} />;
       case 'assess-summative-assessment':
-        return <SummativeAssessmentRouter learners={learners} initialTestId={pageParams.initialTestId} brandingSettings={brandingSettings} user={user} />;
+        return <SummativeAssessmentRouter learners={learners} initialTestId={pageParams.initialTestId} brandingSettings={brandingSettings} />;
       case 'assess-summative-report':
         return <SummativeReport learners={learners} onFetchLearners={fetchLearners} brandingSettings={brandingSettings} user={user} />;
       case 'assess-summary-report':
