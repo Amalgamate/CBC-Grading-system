@@ -394,6 +394,15 @@ const LearnersList = ({
               {selectedLearners.length}
             </span>
             <span className="text-brand-purple font-medium">Students Selected</span>
+            {selectedLearners.length < displayLearners.length && (
+              <button
+                onClick={() => setSelectedLearners(displayLearners.map(l => l.id))}
+                className="text-xs font-bold text-brand-purple hover:bg-brand-purple/10 px-2 py-1 rounded transition"
+                title={`Select all ${displayLearners.length} students`}
+              >
+                Select All {displayLearners.length}
+              </button>
+            )}
           </div>
           <div className="flex gap-3">
             <button
