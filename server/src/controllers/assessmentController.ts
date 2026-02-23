@@ -1242,7 +1242,7 @@ export const deleteSummativeTest = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user?.userId;
     const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
-    const isAdmin = req.user?.role === 'ADMIN' || isSuperAdmin;
+    const isAdmin = req.user?.role === 'ADMIN' || isSuperAdmin || req.user?.role === 'HEAD_TEACHER';
 
     // Check ownership and results
     const existingTest = await prisma.summativeTest.findUnique({
@@ -1323,7 +1323,7 @@ export const deleteSummativeTestsBulk = async (req: AuthRequest, res: Response) 
     const { ids } = req.body;
     const userId = req.user?.userId;
     const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
-    const isAdmin = req.user?.role === 'ADMIN' || isSuperAdmin;
+    const isAdmin = req.user?.role === 'ADMIN' || isSuperAdmin || req.user?.role === 'HEAD_TEACHER';
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ success: false, message: 'No IDs provided for bulk deletion' });

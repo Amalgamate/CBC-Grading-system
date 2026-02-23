@@ -62,10 +62,11 @@ const SummativeAssessment = ({ learners, initialTestId }) => {
         testsData = response;
       }
 
-      // Filter for tests that are ready for assessment (Published or Approved)
+      // Filter for tests that are ready for assessment (exclude archived tests)
       const activeTests = testsData.filter(t => {
         const status = (t.status || '').toUpperCase();
-        return ['PUBLISHED', 'APPROVED'].includes(status) || t.published === true;
+        // Include: DRAFT, SUBMITTED, APPROVED, PUBLISHED (exclude ARCHIVED)
+        return ['DRAFT', 'SUBMITTED', 'APPROVED', 'PUBLISHED'].includes(status) && !t.archived;
       });
 
       setTests(activeTests);
