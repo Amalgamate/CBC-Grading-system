@@ -953,36 +953,42 @@ const SummativeAssessment = ({ learners, initialTestId, brandingSettings }) => {
               paddingBottom: '40px' // Keep it neat, not touch the footer
             }}
           >
-            {/* Letterhead / Page Header */}
-            <div className="text-center" style={{
+            {/* Letterhead / Page Header - 2 Column Layout */}
+            <div className="flex items-start gap-4" style={{
               paddingBottom: '0.75rem',
               borderBottom: '2px solid #1e3a8a',
               marginBottom: '1rem',
-              pageBreakInside: 'avoid'
+              pageBreakInside: 'avoid',
+              minHeight: '3rem'
             }}>
+              {/* Logo Column */}
               {pageIndex === 0 && (
-                <div className="flex flex-col items-center justify-center mb-2">
+                <div className="flex-shrink-0" style={{ width: '80px' }}>
                   <img
                     src={brandingSettings?.logoUrl || user?.school?.logo || '/logo-elimcrown.png'}
                     alt="School Logo"
-                    className="h-16 w-auto mb-2 object-contain"
+                    className="h-12 w-12 object-contain"
                     onError={(e) => { e.target.src = '/logo-new.png'; }}
                   />
-                  <h1 className="text-2xl font-bold text-[#1e3a8a] uppercase tracking-wide">
-                    {user?.school?.name || user?.schoolName || 'SCHOOL NAME'}
-                  </h1>
                 </div>
               )}
-
-              <h2 className={`${pageIndex === 0 ? 'text-xl' : 'text-lg'} font-bold text-gray-800`}>
-                Summative Assessment Results {pageIndex > 0 && `(Page ${pageIndex + 1})`}
-              </h2>
-              <p className="text-sm text-gray-600 font-medium mt-1">
-                {selectedTest?.learningArea} | {selectedTest?.grade?.replace('_', ' ')} | {setup.selectedStream || 'All Streams'} | {selectedTest?.term?.replace('_', ' ')} {selectedTest?.academicYear || new Date().getFullYear()}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Total Marks: {selectedTest?.totalMarks} | Test Date: {selectedTest?.testDate ? new Date(selectedTest.testDate).toLocaleDateString() : 'N/A'}
-              </p>
+              {pageIndex > 0 && <div style={{ width: '80px' }}></div>}
+              
+              {/* Text Content Column */}
+              <div className="flex-1 py-0">
+                <h1 className="text-lg font-bold text-[#1e3a8a] uppercase tracking-wide leading-tight">
+                  {user?.school?.name || user?.schoolName || 'SCHOOL NAME'}
+                </h1>
+                <h2 className="text-sm font-bold text-gray-800 leading-tight mt-0.5">
+                  Summative Assessment Results {pageIndex > 0 && `(Page ${pageIndex + 1})`}
+                </h2>
+                <p className="text-xs text-gray-600 font-medium leading-tight mt-0.5">
+                  {selectedTest?.learningArea} | {selectedTest?.grade?.replace('_', ' ')} | {setup.selectedStream || 'All Streams'} | {selectedTest?.term?.replace('_', ' ')} {selectedTest?.academicYear || new Date().getFullYear()}
+                </p>
+                <p className="text-xs text-gray-500 leading-tight mt-0.5">
+                  Total Marks: {selectedTest?.totalMarks} | Test Date: {selectedTest?.testDate ? new Date(selectedTest.testDate).toLocaleDateString() : 'N/A'}
+                </p>
+              </div>
             </div>
 
             {/* Table Container with safe padding */}
