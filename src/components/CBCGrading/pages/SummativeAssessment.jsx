@@ -16,7 +16,7 @@ import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { useLearningAreas } from '../hooks/useLearningAreas';
 import { useTeacherWorkload } from '../hooks/useTeacherWorkload';
 
-const SummativeAssessment = ({ learners, initialTestId }) => {
+const SummativeAssessment = ({ learners, initialTestId, brandingSettings, user }) => {
   const { showSuccess, showError } = useNotifications();
 
   // Use centralized hooks for assessment state management

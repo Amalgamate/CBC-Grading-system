@@ -18,7 +18,7 @@ import { useAssessmentSetup } from '../hooks/useAssessmentSetup';
 import { useLearningAreas } from '../hooks/useLearningAreas';
 import EmptyState from '../shared/EmptyState';
 
-const SummativeAssessmentMobile = ({ learners, initialTestId, onBack }) => {
+const SummativeAssessmentMobile = ({ learners, initialTestId, onBack, brandingSettings, user }) => {
   const { showSuccess, showError } = useNotifications();
   const setup = useAssessmentSetup({ defaultTerm: 'TERM_1' });
   const teacherWorkload = useTeacherWorkload();

@@ -8,7 +8,7 @@ import React, { useState, useEffect } from 'react';
 import SummativeAssessmentMobile from './SummativeAssessmentMobile';
 import SummativeAssessment from './SummativeAssessment';
 
-const SummativeAssessmentRouter = ({ learners, initialTestId, onBack, isMobile: deviceIsMobile }) => {
+const SummativeAssessmentRouter = ({ learners, initialTestId, onBack, isMobile: deviceIsMobile, brandingSettings, user }) => {
   const [isMobile, setIsMobile] = useState(deviceIsMobile ?? window.innerWidth < 768);
 
   useEffect(() => {
@@ -28,13 +28,13 @@ const SummativeAssessmentRouter = ({ learners, initialTestId, onBack, isMobile: 
   if (isMobile) {
     return (
       <div className="fixed inset-0 z-50 bg-gray-50 overflow-hidden">
-        <SummativeAssessmentMobile learners={learners} initialTestId={initialTestId} onBack={onBack} />
+        <SummativeAssessmentMobile learners={learners} initialTestId={initialTestId} onBack={onBack} brandingSettings={brandingSettings} user={user} />
       </div>
     );
   }
 
   // On desktop: render within normal layout
-  return <SummativeAssessment learners={learners} initialTestId={initialTestId} />;
+  return <SummativeAssessment learners={learners} initialTestId={initialTestId} brandingSettings={brandingSettings} user={user} />;
 };
 
 export default SummativeAssessmentRouter;
